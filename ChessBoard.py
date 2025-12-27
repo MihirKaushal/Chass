@@ -31,6 +31,8 @@ class ChessBoard:
                     self.board[row][column] = ChessBoardSquare(True, None)
                 else:
                     self.board[row][column] = ChessBoardSquare(False, None)
+        print("Empty chess board (dark mode on VSCode will make the colors inversed):")
+        self.printBoard()
         self.setBoard()
 
     # sets the borad up according to chess rules
@@ -69,14 +71,35 @@ class ChessBoard:
         self.board[7][6] = ChessBoardSquare(False, ChessPieces.Knight(True))
         self.board[7][7] = ChessBoardSquare(True, ChessPieces.Rook(True))
 
-    
-    # TODO def move(fromRow, fromColumn, toRow, toColumn):
+        # print board after setup
+        print("Chess board after setup (dark mode on VSCode will make the colors inversed):")
+        self.printBoard()
 
-    
+    # moves a piece 
+    def move(self, fromRow, fromColumn, toRow, toColumn):
+        # create temp variable
+        tempPiece = self.board[fromRow][fromColumn]
+
+        # remove piece from previous position
+        if ((fromRow + fromColumn) % 2 == 0):
+            self.board[fromRow][fromColumn] = ChessBoardSquare(True, None)
+        else:
+            self.board[fromRow][fromColumn] = ChessBoardSquare(False, None)
+
+        # add piece to new position
+        if ((toRow + toColumn) % 2 == 0):
+            self.board[toRow][toColumn] = ChessBoardSquare(True, tempPiece)
+        else:
+            self.board[toRow][toColumn] = ChessBoardSquare(False, tempPiece)
+
+        # print board after every move
+        print("(dark mode on VSCode will make the colors inversed):")
+        self.printBoard()
+
+    # prints the chess board
     def printBoard(self):
         for row in self.board:
             print(row)
-
-obj = ChessBoard()
-obj.printBoard()
+        print()
+        print()
 
