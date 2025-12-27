@@ -77,6 +77,23 @@ class ChessBoard:
 
     # moves a piece 
     def move(self, fromRow, fromColumn, toRow, toColumn):
+        if (fromRow == 0):
+            fromRowID = "a"
+        elif (fromRow == 1):
+            fromRowID = "b"
+        elif (fromRow == 2):
+            fromRowID = "c"
+        elif (fromRow == 3):
+            fromRowID = "d"
+        elif (fromRow == 4):
+            fromRowID = "e"
+        elif (fromRow == 5):
+            fromRowID = "f"
+        elif (fromRow == 6):
+            fromRowID = "g"
+        elif (fromRow == 7):
+            fromRowID = "h"
+
         # create temp variable
         tempPiece = self.board[fromRow][fromColumn]
 
