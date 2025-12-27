@@ -131,7 +131,10 @@ class ChessBoard:
             self.board[toRow][toColumn] = ChessBoardSquare(False, tempPiece)
 
         # print board after every move
-        print(tempPiece.getName(), " moves from ", fromColumnID, (8 - fromRow), " to ", toColumnID, (8 - toRow), ", captured ", capturedPiece, sep = "")
+        if (capturedPiece != None):
+            print(tempPiece.getName(), " moved from ", fromColumnID, (8 - fromRow), " to ", toColumnID, (8 - toRow), ", captured ", capturedPiece.getName(), sep = "")
+        else:
+            print(tempPiece.getName(), " moved from ", fromColumnID, (8 - fromRow), " to ", toColumnID, (8 - toRow), ", captured nothing", sep = "")
         print("(dark mode on VSCode will make the colors inversed):")
         self.printBoard()
 
