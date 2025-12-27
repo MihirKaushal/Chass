@@ -31,7 +31,7 @@ class ChessBoard:
                     self.board[row][column] = ChessBoardSquare(True, None)
                 else:
                     self.board[row][column] = ChessBoardSquare(False, None)
-        print("Empty chess board (dark mode on VSCode will make the colors inversed):")
+        print("Empty chess board")
         self.printBoard()
         self.setBoard()
 
@@ -72,7 +72,7 @@ class ChessBoard:
         self.board[7][7] = ChessBoardSquare(True, ChessPieces.Rook(True))
 
         # print board after setup
-        print("Chess board after setup (dark mode on VSCode will make the colors inversed):")
+        print("Chess board after setup")
         self.printBoard()
 
     # moves a piece 
@@ -135,11 +135,11 @@ class ChessBoard:
             print(tempPiece.getName(), " moved from ", fromColumnID, (8 - fromRow), " to ", toColumnID, (8 - toRow), ", captured ", capturedPiece.getName(), sep = "")
         else:
             print(tempPiece.getName(), " moved from ", fromColumnID, (8 - fromRow), " to ", toColumnID, (8 - toRow), ", captured nothing", sep = "")
-        print("(dark mode on VSCode will make the colors inversed):")
         self.printBoard()
 
     # prints the chess board
     def printBoard(self):
+        print("(Dark mode on VSCode will make the colors inversed):")
         for row in self.board:
             print(row)
         print()
