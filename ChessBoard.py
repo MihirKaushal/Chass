@@ -77,25 +77,46 @@ class ChessBoard:
 
     # moves a piece 
     def move(self, fromRow, fromColumn, toRow, toColumn):
-        if (fromRow == 0):
-            fromRowID = "a"
-        elif (fromRow == 1):
-            fromRowID = "b"
-        elif (fromRow == 2):
-            fromRowID = "c"
-        elif (fromRow == 3):
-            fromRowID = "d"
-        elif (fromRow == 4):
-            fromRowID = "e"
-        elif (fromRow == 5):
-            fromRowID = "f"
-        elif (fromRow == 6):
-            fromRowID = "g"
-        elif (fromRow == 7):
-            fromRowID = "h"
+        # store piece og square
+        tempPiece = self.board[fromRow][fromColumn].piece
+        # store piece on new square
+        capturedPiece = self.board[toRow][toColumn].piece
 
-        # create temp variable
-        tempPiece = self.board[fromRow][fromColumn]
+        # get fromColumnID
+        if (fromColumn == 0):
+            fromColumnID = "a"
+        elif (fromColumn == 1):
+            fromColumnID = "b"
+        elif (fromColumn == 2):
+            fromColumnID = "c"
+        elif (fromColumn == 3):
+            fromColumnID = "d"
+        elif (fromColumn == 4):
+            fromColumnID = "e"
+        elif (fromColumn == 5):
+            fromColumnID = "f"
+        elif (fromColumn == 6):
+            fromColumnID = "g"
+        elif (fromColumn == 7):
+            fromColumnID = "h"
+
+        # get toColumnID
+        if (toColumn == 0):
+            toColumnID = "a"
+        elif (toColumn == 1):
+            toColumnID = "b"
+        elif (toColumn == 2):
+            toColumnID = "c"
+        elif (toColumn == 3):
+            toColumnID = "d"
+        elif (toColumn == 4):
+            toColumnID = "e"
+        elif (toColumn == 5):
+            toColumnID = "f"
+        elif (fromRow == 6):
+            toColumnID = "g"
+        elif (toColumn == 7):
+            toColumnID = "h"
 
         # remove piece from previous position
         if ((fromRow + fromColumn) % 2 == 0):
@@ -110,6 +131,7 @@ class ChessBoard:
             self.board[toRow][toColumn] = ChessBoardSquare(False, tempPiece)
 
         # print board after every move
+        print(tempPiece.getName(), " moves from ", fromColumnID, (8 - fromRow), " to ", toColumnID, (8 - toRow), ", captured ", capturedPiece, sep = "")
         print("(dark mode on VSCode will make the colors inversed):")
         self.printBoard()
 

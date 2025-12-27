@@ -3,5 +3,6 @@
 import ChessPieces
 import ChessBoard
 
-obj = ChessBoard.ChessBoard()
-obj.move(6, 4, 4, 4) # pawn e4
+test = ChessBoard.ChessBoard()
+test.move(6, 4, 4, 4) # pawn e4
+test.move(1, 4, 3, 4) # pawn e5
