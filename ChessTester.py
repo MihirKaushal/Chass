@@ -1,9 +1,18 @@
-# Mihir Kaushal
+import json
 
-import ChessPieces
-import ChessBoard
+from ChessBoard import ChessBoard
 
-test = ChessBoard.ChessBoard()
-test.move(6, 4, 4, 4) # pawn e4
-test.move(1, 4, 3, 4) # pawn e5
-test.move(4, 4, 3, 4) # just test capturing (illegal)
+
+def main() -> None:
+    board = ChessBoard(size=8)
+    move = board.move(6, 4, 4, 4)
+
+    payload = {
+        "move": move,
+        "state": board.to_json(),
+    }
+    print(json.dumps(payload, indent=2))
+
+
+if __name__ == "__main__":
+    main()

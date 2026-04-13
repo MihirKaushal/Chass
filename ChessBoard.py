@@ -1,147 +1,95 @@
-# Mihir Kaushal
+from __future__ import annotations
+
+from dataclasses import dataclass
 
 import ChessPieces
 
-# make ChessBoardSquare class, stores the color of square and the piece that is on it
+
+@dataclass
 class ChessBoardSquare:
-    # constructor 
-    def __init__(self, isWhite, piece):
-        self.isWhite = isWhite
-        self.piece = piece
+    is_white: bool
+    piece: ChessPieces.ChessPiece | None = None
 
-    # print format
-    def __repr__(self):
-        if (self.piece == None) and (self.isWhite):
-            return "\u25FB"
-        elif(self.piece == None):
-            return "\u25FC"
-        else: 
-            return str(self.piece)
+    def as_dict(self) -> dict:
+        return {
+            "isWhite": self.is_white,
+            "piece": None
+            if self.piece is None
+            else {
+                "type": self.piece.type,
+                "color": self.piece.color,
+                "symbol": self.piece.symbol,
+                "points": self.piece.points,
+                "hasMoved": self.piece.has_moved,
+            },
+        }
 
 
-# ChessBoard class
 class ChessBoard:
-    # constructor makes an empty board
-    def __init__(self):
-        # fills up empty 8x8 matrix with ChessBoardSquare objects, in check pattern
-        self.board = [[None] * 8 for column in range(8)]
-        for row in range(len(self.board)):
-            for column in range(len(self.board[row])):
-                if ((row + column) % 2 == 0):
-                    self.board[row][column] = ChessBoardSquare(True, None)
-                else:
-                    self.board[row][column] = ChessBoardSquare(False, None)
-        print("Empty chess board")
-        self.printBoard()
-        self.setBoard()
+    def __init__(self, size: int = 8) -> None:
+        if size < 4:
+            raise ValueError("Board size must be at least 4")
+        self.size = size
+        self.board = [
+            [ChessBoardSquare(is_white=((row + col) % 2 == 0)) for col in range(size)]
+            for row in range(size)
+        ]
+        self.set_board()
 
-    # sets the borad up according to chess rules
-    def setBoard(self):
-        # first, fills the top row with the appropriate black pieces
-        self.board[0][0] = ChessBoardSquare(True, ChessPieces.Rook(False))
-        self.board[0][1] = ChessBoardSquare(False, ChessPieces.Knight(False))
-        self.board[0][2] = ChessBoardSquare(True, ChessPieces.Bishop(False))
-        self.board[0][3] = ChessBoardSquare(False, ChessPieces.Queen(False))
-        self.board[0][4] = ChessBoardSquare(True, ChessPieces.King(False))
-        self.board[0][5] = ChessBoardSquare(False, ChessPieces.Bishop(False))
-        self.board[0][6] = ChessBoardSquare(True, ChessPieces.Knight(False))
-        self.board[0][7] = ChessBoardSquare(False, ChessPieces.Rook(False))
+    def _back_rank(self) -> list[str]:
+        rank = ["pawn"] * self.size
+        cycle = ["rook", "knight", "bishop"]
+        left = 0
+        right = self.size - 1
+        cycle_index = 0
 
-        # second, fills up the second row with black pawns
-        for column in range(len(self.board[1])):
-            if (column % 2 == 0):
-                self.board[1][column] = ChessBoardSquare(False, ChessPieces.Pawn(False))
-            else:
-                self.board[1][column] = ChessBoardSquare(True, ChessPieces.Pawn(False))
-        
-        # third, fills up second row from bottom with white pawns
-        for column in range(len(self.board[6])):
-            if (column % 2 == 0):
-                self.board[6][column] = ChessBoardSquare(True, ChessPieces.Pawn(True))
-            else:
-                self.board[6][column] = ChessBoardSquare(False, ChessPieces.Pawn(True))
+        while right - left + 1 > 2:
+            piece_type = cycle[cycle_index % len(cycle)]
+            rank[left] = piece_type
+            rank[right] = piece_type
+            left += 1
+            right -= 1
+            cycle_index += 1
 
-        # forth, fills up bottom row with the appropriate white pieces
-        self.board[7][0] = ChessBoardSquare(False, ChessPieces.Rook(True))
-        self.board[7][1] = ChessBoardSquare(True, ChessPieces.Knight(True))
-        self.board[7][2] = ChessBoardSquare(False, ChessPieces.Bishop(True))
-        self.board[7][3] = ChessBoardSquare(True, ChessPieces.Queen(True))
-        self.board[7][4] = ChessBoardSquare(False, ChessPieces.King(True))
-        self.board[7][5] = ChessBoardSquare(True, ChessPieces.Bishop(True))
-        self.board[7][6] = ChessBoardSquare(False, ChessPieces.Knight(True))
-        self.board[7][7] = ChessBoardSquare(True, ChessPieces.Rook(True))
-
-        # print board after setup
-        print("Chess board after setup")
-        self.printBoard()
-
-    # moves a piece 
-    def move(self, fromRow, fromColumn, toRow, toColumn):
-        # store piece og square
-        tempPiece = self.board[fromRow][fromColumn].piece
-        # store piece on new square
-        capturedPiece = self.board[toRow][toColumn].piece
-
-        # get fromColumnID
-        if (fromColumn == 0):
-            fromColumnID = "a"
-        elif (fromColumn == 1):
-            fromColumnID = "b"
-        elif (fromColumn == 2):
-            fromColumnID = "c"
-        elif (fromColumn == 3):
-            fromColumnID = "d"
-        elif (fromColumn == 4):
-            fromColumnID = "e"
-        elif (fromColumn == 5):
-            fromColumnID = "f"
-        elif (fromColumn == 6):
-            fromColumnID = "g"
-        elif (fromColumn == 7):
-            fromColumnID = "h"
-
-        # get toColumnID
-        if (toColumn == 0):
-            toColumnID = "a"
-        elif (toColumn == 1):
-            toColumnID = "b"
-        elif (toColumn == 2):
-            toColumnID = "c"
-        elif (toColumn == 3):
-            toColumnID = "d"
-        elif (toColumn == 4):
-            toColumnID = "e"
-        elif (toColumn == 5):
-            toColumnID = "f"
-        elif (fromRow == 6):
-            toColumnID = "g"
-        elif (toColumn == 7):
-            toColumnID = "h"
-
-        # remove piece from previous position
-        if ((fromRow + fromColumn) % 2 == 0):
-            self.board[fromRow][fromColumn] = ChessBoardSquare(True, None)
+        if self.size % 2 == 0:
+            rank[left] = "queen"
+            rank[right] = "king"
         else:
-            self.board[fromRow][fromColumn] = ChessBoardSquare(False, None)
+            rank[left] = "king"
 
-        # add piece to new position
-        if ((toRow + toColumn) % 2 == 0):
-            self.board[toRow][toColumn] = ChessBoardSquare(True, tempPiece)
-        else:
-            self.board[toRow][toColumn] = ChessBoardSquare(False, tempPiece)
+        return rank
 
-        # print board after every move
-        if (capturedPiece != None):
-            print(tempPiece.getName(), " moved from ", fromColumnID, (8 - fromRow), " to ", toColumnID, (8 - toRow), ", captured ", capturedPiece.getName(), sep = "")
-        else:
-            print(tempPiece.getName(), " moved from ", fromColumnID, (8 - fromRow), " to ", toColumnID, (8 - toRow), ", captured nothing", sep = "")
-        self.printBoard()
+    def set_board(self) -> None:
+        back_rank = self._back_rank()
 
-    # prints the chess board
-    def printBoard(self):
-        print("(Dark mode on VSCode will make the colors inversed):")
-        for row in self.board:
-            print(row)
-        print()
-        print()
+        for col, piece_type in enumerate(back_rank):
+            self.board[0][col].piece = ChessPieces.create_piece(piece_type, False)
+            self.board[self.size - 1][col].piece = ChessPieces.create_piece(piece_type, True)
 
+        for col in range(self.size):
+            self.board[1][col].piece = ChessPieces.create_piece("pawn", False)
+            self.board[self.size - 2][col].piece = ChessPieces.create_piece("pawn", True)
+
+    def move(self, from_row: int, from_col: int, to_row: int, to_col: int) -> dict:
+        moving_piece = self.board[from_row][from_col].piece
+        if moving_piece is None:
+            raise ValueError("No piece found at source square")
+
+        captured_piece = self.board[to_row][to_col].piece
+
+        self.board[from_row][from_col].piece = None
+        moving_piece.has_moved = True
+        self.board[to_row][to_col].piece = moving_piece
+
+        return {
+            "from": {"row": from_row, "col": from_col},
+            "to": {"row": to_row, "col": to_col},
+            "piece": moving_piece.get_name(),
+            "captured": None if captured_piece is None else captured_piece.get_name(),
+        }
+
+    def to_json(self) -> dict:
+        return {
+            "size": self.size,
+            "board": [[square.as_dict() for square in row] for row in self.board],
+        }

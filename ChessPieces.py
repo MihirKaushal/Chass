@@ -1,104 +1,44 @@
-# Mihir Kaushal
+from __future__ import annotations
 
-# parent class for all chess pieces
+from dataclasses import dataclass
+
+
+@dataclass
 class ChessPiece:
-    def __init__(self, isWhite, points):
-        self.isWhite = isWhite
-        self.points = points
+    type: str
+    is_white: bool
+    symbol: str
+    points: int
+    has_moved: bool = False
 
-class Pawn(ChessPiece):
-    def __init__(self, isWhite):
-        super().__init__(isWhite, 1)
+    @property
+    def color(self) -> str:
+        return "white" if self.is_white else "black"
 
-    def __repr__(self):
-        if self.isWhite:
-            return "\u2659"
-        else:
-            return "\u265F"
-        
-    def getName(self):
-        if (self.isWhite):
-            return "White Pawn"
-        else:
-            return "Black Pawn"
-        
-class King(ChessPiece):
-    def __init__(self, isWhite):
-        super().__init__(isWhite, 67)
+    def get_name(self) -> str:
+        return f"{self.color.title()} {self.type.title()}"
 
-    def __repr__(self):
-        if self.isWhite:
-            return "\u2654"
-        else:
-            return "\u265A"
-        
-    def getName(self):
-        if (self.isWhite):
-            return "White King"
-        else:
-            return "Black King"
-        
-class Queen(ChessPiece):
-    def __init__(self, isWhite):
-        super().__init__(isWhite, 9)
 
-    def __repr__(self):
-        if self.isWhite:
-            return "\u2655"
-        else:
-            return "\u265B"
-        
-    def getName(self):
-        if (self.isWhite):
-            return "White Queen"
-        else:
-            return "Black Queen"
+_PIECE_META = {
+    "pawn": {"points": 1, "white": "\u2659", "black": "\u265F"},
+    "rook": {"points": 5, "white": "\u2656", "black": "\u265C"},
+    "knight": {"points": 3, "white": "\u2658", "black": "\u265E"},
+    "bishop": {"points": 3, "white": "\u2657", "black": "\u265D"},
+    "queen": {"points": 9, "white": "\u2655", "black": "\u265B"},
+    "king": {"points": 67, "white": "\u2654", "black": "\u265A"},
+}
 
-class Rook(ChessPiece):
-    def __init__(self, isWhite):
-        super().__init__(isWhite, 5)
 
-    def __repr__(self):
-        if self.isWhite:
-            return "\u2656"
-        else:
-            return "\u265C"
-        
-    def getName(self):
-        if (self.isWhite):
-            return "White Rook"
-        else:
-            return "Black Rook"
+def create_piece(piece_type: str, is_white: bool) -> ChessPiece:
+    normalized = piece_type.lower()
+    if normalized not in _PIECE_META:
+        raise ValueError(f"Unsupported piece type: {piece_type}")
 
-class Bishop(ChessPiece):
-    def __init__(self, isWhite):
-        super().__init__(isWhite, 3)
-
-    def __repr__(self):
-        if self.isWhite:
-            return "\u2657"
-        else:
-            return "\u265D"
-        
-    def getName(self):
-        if (self.isWhite):
-            return "White Bishop"
-        else:
-            return "Black Bishop"
-
-class Knight(ChessPiece):
-    def __init__(self, isWhite):
-        super().__init__(isWhite, 3)
-
-    def __repr__(self):
-        if self.isWhite:
-            return "\u2658"
-        else:
-            return "\u265E"
-        
-    def getName(self):
-        if (self.isWhite):
-            return "White Knight"
-        else:
-            return "Black Knight"
-
+    data = _PIECE_META[normalized]
+    symbol = data["white"] if is_white else data["black"]
+    return ChessPiece(
+        type=normalized,
+        is_white=is_white,
+        symbol=symbol,
+        points=data["points"],
+    )
