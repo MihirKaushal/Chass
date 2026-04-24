@@ -17,6 +17,7 @@ class RuleEngine:
             rule.id: True for rule in ordered_rules
         }
         self._default_enabled["double_capture_rook"] = False
+        self._default_enabled["score_target_win"] = False
 
     def generate_piece_moves(self, state: GameState, row: int, col: int) -> list[MoveOption]:
         return generate_piece_moves(state, row, col)
@@ -109,9 +110,8 @@ class RuleEngine:
         col: int,
         attacker_color: str,
     ) -> bool:
-        size = state.board.size
-        for r in range(size):
-            for c in range(size):
+        for r in range(state.board.rows):
+            for c in range(state.board.cols):
                 piece = state.board.grid[r][c]
                 if piece is None or piece.color != attacker_color:
                     continue
@@ -141,10 +141,9 @@ class RuleEngine:
         work_state = state.clone()
         work_state.current_player = color
         valid_moves: list[MoveOption] = []
-        size = work_state.board.size
 
-        for row in range(size):
-            for col in range(size):
+        for row in range(work_state.board.rows):
+            for col in range(work_state.board.cols):
                 piece = work_state.board.grid[row][col]
                 if piece is None or piece.color != color:
                     continue
@@ -168,6 +167,8 @@ class RuleEngine:
         return self.get_valid_moves_for_color(state, state.current_player)
 
     def evaluate_state(self, state: GameState) -> GameState:
+        state.game_status = "active"
+        state.winner = None
         for rule, setting in self._iter_enabled_rules(state):
             rule.evaluate_state(state, self, setting.params)
         return state
@@ -224,6 +225,12 @@ class RuleEngine:
             )
         elif next_state.game_status == "stalemate":
             explanation = f"{explanation} Stalemate."
+        elif next_state.game_status == "score_target":
+            explanation = (
+                f"{explanation} {next_state.winner.title()} reached the target score."
+                if next_state.winner
+                else f"{explanation} Score target reached."
+            )
 
         next_state.history[-1].explanation = explanation
 

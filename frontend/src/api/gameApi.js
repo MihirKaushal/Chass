@@ -49,6 +49,13 @@ export function updatePieces(gameId, payload) {
   });
 }
 
+export function updateBoardLayout(gameId, payload) {
+  return request(`/game/${gameId}/layout`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
+}
+
 export function resetGame(gameId, payload = {}) {
   return request(`/game/${gameId}/reset`, {
     method: "POST",

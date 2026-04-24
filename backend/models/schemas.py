@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 
 class Position(BaseModel):
@@ -79,6 +79,8 @@ class PieceDefinitionView(BaseModel):
 
 class GameResponse(BaseModel):
     id: str
+    boardRows: int
+    boardCols: int
     boardSize: int
     board: list[list[PieceView | None]]
     currentPlayer: str
@@ -121,9 +123,18 @@ class PieceDefinitionPayload(BaseModel):
 
 
 class CreateGameRequest(BaseModel):
-    boardSize: int = Field(default=8, ge=4, le=16)
+    boardSize: int | None = Field(default=None, ge=4, le=16)
+    boardRows: int = Field(default=8, ge=4, le=16)
+    boardCols: int = Field(default=8, ge=4, le=16)
     rules: list[RulePatch] = Field(default_factory=list)
     customPieces: list[PieceDefinitionPayload] = Field(default_factory=list)
+
+    @model_validator(mode="after")
+    def normalize_dimensions(self) -> "CreateGameRequest":
+        if self.boardSize is not None:
+            self.boardRows = self.boardSize
+            self.boardCols = self.boardSize
+        return self
 
 
 class MoveRequest(BaseModel):
@@ -154,3 +165,25 @@ class UpdatePiecesRequest(BaseModel):
 
 class ResetGameRequest(BaseModel):
     boardSize: int | None = Field(default=None, ge=4, le=16)
+    boardRows: int | None = Field(default=None, ge=4, le=16)
+    boardCols: int | None = Field(default=None, ge=4, le=16)
+
+    @model_validator(mode="after")
+    def normalize_dimensions(self) -> "ResetGameRequest":
+        if self.boardSize is not None:
+            self.boardRows = self.boardSize
+            self.boardCols = self.boardSize
+        return self
+
+
+class BoardPlacement(BaseModel):
+    row: int
+    col: int
+    type: str
+    color: str
+
+
+class UpdateBoardLayoutRequest(BaseModel):
+    boardRows: int | None = Field(default=None, ge=4, le=16)
+    boardCols: int | None = Field(default=None, ge=4, le=16)
+    placements: list[BoardPlacement] = Field(default_factory=list)

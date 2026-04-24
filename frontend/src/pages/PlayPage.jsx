@@ -9,7 +9,8 @@ function PlayPage({ game, selectedSquare, onSquareClick, boardFlipped }) {
       <section className="board-section">
         <ChessBoard
           board={game.board}
-          boardSize={game.boardSize}
+          boardRows={game.boardRows ?? game.boardSize}
+          boardCols={game.boardCols ?? game.boardSize}
           selectedSquare={selectedSquare}
           validMoves={game.validMoves}
           onSquareClick={onSquareClick}

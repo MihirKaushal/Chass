@@ -161,6 +161,45 @@ button.secondary {
   margin: 0.25rem 0 0.75rem;
 }
 
+.endgame-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(26, 54, 93, 0.42);
+  display: grid;
+  place-items: center;
+  z-index: 70;
+  padding: 1rem;
+}
+
+.endgame-modal {
+  width: min(460px, 100%);
+  background: var(--panel);
+  border: 2px solid rgba(26, 54, 93, 0.34);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(0, 0, 0, 0.24);
+  padding: 1rem;
+}
+
+.endgame-modal h2 {
+  margin: 0;
+  font-size: 1.2rem;
+}
+
+.endgame-modal p {
+  margin: 0.65rem 0 0.85rem;
+  line-height: 1.45;
+}
+
+.endgame-modal button {
+  border: none;
+  border-radius: 10px;
+  padding: 0.5rem 0.9rem;
+  cursor: pointer;
+  font-weight: 600;
+  color: #fff;
+  background: var(--accent);
+}
+
 .play-layout {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 340px;
@@ -290,6 +329,22 @@ button.secondary {
   text-align: left;
 }
 
+.piece-tooltip--below {
+  top: calc(100% + 6px);
+  bottom: auto;
+}
+
+.piece-tooltip--left {
+  left: 4px;
+  transform: none;
+}
+
+.piece-tooltip--right {
+  right: 4px;
+  left: auto;
+  transform: none;
+}
+
 .piece-tooltip strong {
   display: block;
   font-size: 0.74rem;
@@ -376,6 +431,18 @@ button.secondary {
   font-size: 0.88rem;
 }
 
+.mode-box {
+  margin-top: 0.8rem;
+  border: 1px solid rgba(26, 54, 93, 0.2);
+  border-radius: 10px;
+  padding: 0.7rem;
+  background: rgba(255, 255, 255, 0.46);
+}
+
+.mode-box h4 {
+  margin: 0 0 0.35rem;
+}
+
 .customize-layout {
   display: grid;
   place-items: center;
@@ -396,6 +463,147 @@ button.secondary {
 
 .customization-panel > p {
   margin-top: 0.4rem;
+}
+
+.customize-workbench {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 360px;
+  gap: 1rem;
+  margin-top: 0.9rem;
+  align-items: start;
+}
+
+.customize-preview-column {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.customize-board-frame {
+  border: 2px solid rgba(26, 54, 93, 0.26);
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.52);
+  padding: 0.85rem;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.5);
+}
+
+.customize-board-grid {
+  width: 100%;
+  display: grid;
+  border: 3px solid var(--deep);
+  border-radius: 10px;
+  overflow: hidden;
+  aspect-ratio: var(--custom-board-aspect, 1);
+}
+
+.customize-square {
+  position: relative;
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  display: grid;
+  place-items: center;
+}
+
+.customize-square.light {
+  background: var(--light-square);
+}
+
+.customize-square.dark {
+  background: var(--dark-square);
+}
+
+.preview-piece {
+  font-size: clamp(1rem, 1.65vw, 1.6rem);
+  line-height: 1;
+}
+
+.preview-piece.empty {
+  opacity: 0;
+}
+
+.coord-label {
+  position: absolute;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.58rem;
+  color: rgba(26, 54, 93, 0.86);
+  pointer-events: none;
+  line-height: 1;
+}
+
+.coord-rank {
+  top: 3px;
+  left: 4px;
+}
+
+.coord-file {
+  right: 4px;
+  bottom: 3px;
+}
+
+.customize-sidebar {
+  display: grid;
+  gap: 0.8rem;
+}
+
+.palette-hint {
+  margin: 0 0 0.6rem;
+  font-size: 0.84rem;
+  color: rgba(26, 54, 93, 0.75);
+}
+
+.piece-palette-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.palette-tile {
+  border: 1px solid rgba(26, 54, 93, 0.25);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.7);
+  color: var(--deep);
+  padding: 0.45rem;
+  display: grid;
+  gap: 0.2rem;
+  justify-items: center;
+  cursor: grab;
+  transform: none;
+  opacity: 1;
+}
+
+.palette-tile:hover {
+  transform: none;
+  opacity: 1;
+}
+
+.palette-tile.active {
+  border-color: var(--accent);
+  box-shadow: inset 0 0 0 2px rgba(43, 108, 176, 0.28);
+}
+
+.palette-symbol {
+  font-size: 1.35rem;
+  line-height: 1;
+}
+
+.palette-label {
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.piece-points-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.65rem;
+}
+
+.preset-grid {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.variant-grid {
+  grid-template-columns: 1fr;
 }
 
 .customization-card {
@@ -552,6 +760,16 @@ button.secondary {
   }
 
   .layer-grid.two-col {
+    grid-template-columns: 1fr;
+  }
+
+  .piece-points-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 1024px) {
+  .customize-workbench {
     grid-template-columns: 1fr;
   }
 }

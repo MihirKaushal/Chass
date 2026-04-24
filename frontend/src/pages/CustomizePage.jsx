@@ -3,6 +3,7 @@ import CustomizationPanel from "../components/CustomizationPanel";
 function CustomizePage({
   game,
   onApplyBasic,
+  onApplyBoardLayout,
   onApplyPieceCustomization,
   onApplyRuleBuilder,
   onApplyRaw,
@@ -13,6 +14,7 @@ function CustomizePage({
       <CustomizationPanel
         game={game}
         onApplyBasic={onApplyBasic}
+        onApplyBoardLayout={onApplyBoardLayout}
         onApplyPieceCustomization={onApplyPieceCustomization}
         onApplyRuleBuilder={onApplyRuleBuilder}
         onApplyRaw={onApplyRaw}

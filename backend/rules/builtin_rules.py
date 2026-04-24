@@ -16,9 +16,18 @@ class BoundsRule(Rule):
     can_disable = False
 
     def validate(self, state: GameState, move: Move, helper, params: dict) -> ValidationResult:
-        size = state.board.size
-        coords = [move.from_row, move.from_col, move.to_row, move.to_col]
-        if any(coord < 0 or coord >= size for coord in coords):
+        if any(
+            [
+                move.from_row < 0,
+                move.from_row >= state.board.rows,
+                move.to_row < 0,
+                move.to_row >= state.board.rows,
+                move.from_col < 0,
+                move.from_col >= state.board.cols,
+                move.to_col < 0,
+                move.to_col >= state.board.cols,
+            ]
+        ):
             return ValidationResult(is_valid=False, reason="Move is outside board bounds")
         return ValidationResult(is_valid=True)
 
@@ -44,7 +53,7 @@ class TurnRule(Rule):
     can_disable = False
 
     def validate(self, state: GameState, move: Move, helper, params: dict) -> ValidationResult:
-        if state.game_status in {"checkmate", "stalemate"}:
+        if state.game_status in {"checkmate", "stalemate", "score_target"}:
             return ValidationResult(is_valid=False, reason="Game is already finished")
 
         piece = state.board.grid[move.from_row][move.from_col]
@@ -111,7 +120,7 @@ class CheckRule(Rule):
     name = "Check Rule"
     description = "Moves are illegal if they leave your king in check; game state marks check."
     tier = "basic"
-    can_disable = False
+    can_disable = True
 
     def validate(
         self,
@@ -158,7 +167,7 @@ class CheckmateRule(Rule):
     name = "Checkmate Rule"
     description = "Checkmate occurs when checked side has no legal move to escape."
     tier = "basic"
-    can_disable = False
+    can_disable = True
     apply_in_simulation = False
 
     def evaluate_state(self, state: GameState, helper, params: dict) -> None:
@@ -178,7 +187,7 @@ class StalemateRule(Rule):
     name = "Stalemate Rule"
     description = "Stalemate occurs when side to move has no legal moves but is not in check."
     tier = "basic"
-    can_disable = False
+    can_disable = True
     apply_in_simulation = False
 
     def evaluate_state(self, state: GameState, helper, params: dict) -> None:
@@ -205,16 +214,50 @@ class ScoreRule(Rule):
         white_score = 0
         black_score = 0
 
-        for row in state.board.grid:
-            for piece in row:
-                if piece is None or piece.points is None:
-                    continue
-                if piece.color == "white":
-                    white_score += piece.points
-                else:
-                    black_score += piece.points
+        for piece in state.captured_pieces.get("white", []):
+            if piece.points is None:
+                continue
+            white_score += piece.points
+
+        for piece in state.captured_pieces.get("black", []):
+            if piece.points is None:
+                continue
+            black_score += piece.points
 
         state.score = {"white": white_score, "black": black_score}
+
+
+class ScoreTargetWinRule(Rule):
+    id = "score_target_win"
+    name = "Score Target Win Rule"
+    description = (
+        "A player wins when their captured score reaches a configured target "
+        "(for example, first to 21 points)."
+    )
+    tier = "advanced"
+    can_disable = True
+    apply_in_simulation = False
+
+    def evaluate_state(self, state: GameState, helper, params: dict) -> None:
+        if state.game_status in {"checkmate", "stalemate"}:
+            return
+
+        try:
+            target_score = int(params.get("targetScore", 21))
+        except (TypeError, ValueError):
+            target_score = 21
+
+        target_score = max(1, target_score)
+
+        if state.score.get("white", 0) >= target_score:
+            state.winner = "white"
+            state.game_status = "score_target"
+            return
+
+        if state.score.get("black", 0) >= target_score:
+            state.winner = "black"
+            state.game_status = "score_target"
+            return
 
 
 class DoubleCaptureRookRule(Rule):
@@ -257,14 +300,15 @@ class DoubleCaptureRookRule(Rule):
 
         aligned_enemies = max(2, _safe_int(params.get("alignedEnemies", 2), 2))
         capture_count = max(1, _safe_int(params.get("captureCount", 2), 2))
-        size = state.board.size
 
         enemy_chain: list[tuple[int, int, object]] = []
         for step in range(1, aligned_enemies + 1):
             check_row = move.to_row + (step * step_row)
             check_col = move.to_col + (step * step_col)
 
-            if not (0 <= check_row < size and 0 <= check_col < size):
+            if not (
+                0 <= check_row < state.board.rows and 0 <= check_col < state.board.cols
+            ):
                 return
 
             target_piece = state.board.grid[check_row][check_col]
@@ -305,4 +349,5 @@ classic_chess_rules: list[Rule] = [
 
 variant_rules: list[Rule] = [
     DoubleCaptureRookRule(),
+    ScoreTargetWinRule(),
 ]

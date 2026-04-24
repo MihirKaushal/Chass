@@ -1,4 +1,4 @@
-function PieceTooltip({ piece }) {
+function PieceTooltip({ piece, placement = "above", edge = "center" }) {
   if (!piece) {
     return null;
   }
@@ -9,7 +9,10 @@ function PieceTooltip({ piece }) {
     [];
 
   return (
-    <div className="piece-tooltip" role="tooltip">
+    <div
+      className={`piece-tooltip piece-tooltip--${placement} piece-tooltip--${edge}`}
+      role="tooltip"
+    >
       <strong>{piece.name}</strong>
       <span>Color: {piece.color}</span>
       <span>Points: {piece.points ?? "-"}</span>
@@ -24,6 +27,8 @@ function PieceTooltip({ piece }) {
 
 function ChessBoard({
   board,
+  boardRows,
+  boardCols,
   boardSize,
   selectedSquare,
   validMoves,
@@ -31,6 +36,9 @@ function ChessBoard({
   onSquareClick,
   boardFlipped,
 }) {
+  const rows = boardRows ?? boardSize ?? board.length;
+  const cols = boardCols ?? boardSize ?? (board[0] ? board[0].length : 0);
+
   const activeTargets = validMoves
     .filter(
       (move) =>
@@ -43,18 +51,23 @@ function ChessBoard({
   const activeTargetSet = new Set(activeTargets);
 
   return (
-    <div className="board-wrap">
+    <div
+      className="board-wrap"
+      style={{
+        aspectRatio: `${cols} / ${rows}`,
+      }}
+    >
       <div
         className="board-grid"
         style={{
-          gridTemplateColumns: `repeat(${boardSize}, minmax(38px, 1fr))`,
-          gridTemplateRows: `repeat(${boardSize}, minmax(38px, 1fr))`,
+          gridTemplateColumns: `repeat(${cols}, minmax(38px, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, minmax(38px, 1fr))`,
         }}
       >
-        {Array.from({ length: boardSize }).map((_, visibleRowIndex) =>
-          Array.from({ length: boardSize }).map((__, visibleColIndex) => {
-            const rowIndex = boardFlipped ? boardSize - 1 - visibleRowIndex : visibleRowIndex;
-            const colIndex = boardFlipped ? boardSize - 1 - visibleColIndex : visibleColIndex;
+        {Array.from({ length: rows }).map((_, visibleRowIndex) =>
+          Array.from({ length: cols }).map((__, visibleColIndex) => {
+            const rowIndex = boardFlipped ? rows - 1 - visibleRowIndex : visibleRowIndex;
+            const colIndex = boardFlipped ? cols - 1 - visibleColIndex : visibleColIndex;
 
             const piece = board[rowIndex][colIndex];
             const key = `${visibleRowIndex}-${visibleColIndex}`;
@@ -85,6 +98,10 @@ function ChessBoard({
               .filter(Boolean)
               .join(" ");
 
+            const tooltipPlacement = rowIndex === 0 ? "below" : "above";
+            const tooltipEdge =
+              colIndex === 0 ? "left" : colIndex === cols - 1 ? "right" : "center";
+
             return (
               <button
                 type="button"
@@ -94,7 +111,13 @@ function ChessBoard({
               >
                 <span className={pieceClassName}>{piece?.symbol || ""}</span>
                 {isValidTarget ? <span className="move-dot" /> : null}
-                {piece ? <PieceTooltip piece={piece} /> : null}
+                {piece ? (
+                  <PieceTooltip
+                    piece={piece}
+                    placement={tooltipPlacement}
+                    edge={tooltipEdge}
+                  />
+                ) : null}
               </button>
             );
           })

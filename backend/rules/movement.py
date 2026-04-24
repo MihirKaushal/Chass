@@ -5,8 +5,8 @@ from math import gcd
 from backend.models import GameState, MoveOption
 
 
-def in_bounds(size: int, row: int, col: int) -> bool:
-    return 0 <= row < size and 0 <= col < size
+def in_bounds(rows: int, cols: int, row: int, col: int) -> bool:
+    return 0 <= row < rows and 0 <= col < cols
 
 
 def _normalize_for_color(delta: int, color: str, relative_to_color: bool) -> int:
@@ -48,7 +48,7 @@ def _path_is_clear(
 
 
 def generate_piece_moves(state: GameState, row: int, col: int) -> list[MoveOption]:
-    if not in_bounds(state.board.size, row, col):
+    if not in_bounds(state.board.rows, state.board.cols, row, col):
         return []
 
     piece = state.board.grid[row][col]
@@ -75,7 +75,7 @@ def generate_piece_moves(state: GameState, row: int, col: int) -> list[MoveOptio
             target_row = row + dr
             target_col = col + dc
 
-            if not in_bounds(state.board.size, target_row, target_col):
+            if not in_bounds(state.board.rows, state.board.cols, target_row, target_col):
                 break
 
             target_piece = state.board.grid[target_row][target_col]

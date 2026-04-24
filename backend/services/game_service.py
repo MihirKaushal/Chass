@@ -7,6 +7,7 @@ from fastapi import HTTPException
 from backend import db
 from backend.models import Board, GameState, Move, MovePattern, Piece, PieceDefinition, RuleSetting
 from backend.models.schemas import (
+    BoardPlacement,
     CaptureView,
     CreateGameRequest,
     GameResponse,
@@ -21,6 +22,7 @@ from backend.models.schemas import (
     ResetGameRequest,
     RulePatch,
     RuleView,
+    UpdateBoardLayoutRequest,
     UpdatePiecesRequest,
     UpdateRulesRequest,
     ValidMoveView,
@@ -160,10 +162,10 @@ def build_default_piece_definitions() -> dict[str, PieceDefinition]:
     }
 
 
-def _build_back_rank(board_size: int) -> list[str]:
-    rank: list[str] = ["pawn"] * board_size
+def _build_back_rank(board_cols: int) -> list[str]:
+    rank: list[str] = ["pawn"] * board_cols
     left = 0
-    right = board_size - 1
+    right = board_cols - 1
     cycle = ["rook", "knight", "bishop"]
     cycle_index = 0
 
@@ -175,7 +177,7 @@ def _build_back_rank(board_size: int) -> list[str]:
         right -= 1
         cycle_index += 1
 
-    if board_size % 2 == 0:
+    if board_cols % 2 == 0:
         rank[left] = "queen"
         rank[right] = "king"
     else:
@@ -213,25 +215,62 @@ def _create_piece_instance(
     )
 
 
-def _initial_board(board_size: int, piece_definitions: dict[str, PieceDefinition]) -> Board:
-    grid: list[list[Piece | None]] = [[None for _ in range(board_size)] for _ in range(board_size)]
+def _empty_board(board_rows: int, board_cols: int) -> Board:
+    grid: list[list[Piece | None]] = [[None for _ in range(board_cols)] for _ in range(board_rows)]
+    return Board(rows=board_rows, cols=board_cols, grid=grid)
 
-    black_back_rank = _build_back_rank(board_size)
-    white_back_rank = _build_back_rank(board_size)
 
-    for col, piece_type in enumerate(black_back_rank):
-        grid[0][col] = _create_piece_instance(piece_type, "black", piece_definitions)
+def _initial_board(
+    board_rows: int,
+    board_cols: int,
+    piece_definitions: dict[str, PieceDefinition],
+) -> Board:
+    board = _empty_board(board_rows, board_cols)
+    grid = board.grid
 
-    for col in range(board_size):
-        grid[1][col] = _create_piece_instance("pawn", "black", piece_definitions)
+    if board_cols > 8:
+        classic_back_rank = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"]
+        col_start = (board_cols - len(classic_back_rank)) // 2
+        piece_columns = [col_start + index for index in range(len(classic_back_rank))]
+        black_back_rank = classic_back_rank
+        white_back_rank = classic_back_rank
+    else:
+        piece_columns = list(range(board_cols))
+        black_back_rank = _build_back_rank(board_cols)
+        white_back_rank = _build_back_rank(board_cols)
 
-    for col in range(board_size):
-        grid[board_size - 2][col] = _create_piece_instance("pawn", "white", piece_definitions)
+    if board_rows >= 1:
+        for index, col in enumerate(piece_columns):
+            grid[0][col] = _create_piece_instance(black_back_rank[index], "black", piece_definitions)
 
-    for col, piece_type in enumerate(white_back_rank):
-        grid[board_size - 1][col] = _create_piece_instance(piece_type, "white", piece_definitions)
+    if board_rows >= 2:
+        for col in piece_columns:
+            grid[1][col] = _create_piece_instance("pawn", "black", piece_definitions)
 
-    return Board(size=board_size, grid=grid)
+    if board_rows >= 2:
+        for col in piece_columns:
+            grid[board_rows - 2][col] = _create_piece_instance("pawn", "white", piece_definitions)
+
+    if board_rows >= 1:
+        for index, col in enumerate(piece_columns):
+            grid[board_rows - 1][col] = _create_piece_instance(white_back_rank[index], "white", piece_definitions)
+
+    return board
+
+
+def _normalize_placement(
+    placement: BoardPlacement,
+    board_rows: int,
+    board_cols: int,
+    piece_definitions: dict[str, PieceDefinition],
+) -> BoardPlacement:
+    if placement.type not in piece_definitions:
+        raise HTTPException(status_code=400, detail=f"Unknown piece type: {placement.type}")
+    if placement.color not in {"white", "black"}:
+        raise HTTPException(status_code=400, detail=f"Unsupported piece color: {placement.color}")
+    if placement.row < 0 or placement.row >= board_rows or placement.col < 0 or placement.col >= board_cols:
+        raise HTTPException(status_code=400, detail="Placement out of board bounds")
+    return placement
 
 
 def _piece_definition_from_payload(payload: PieceDefinitionPayload) -> PieceDefinition:
@@ -290,18 +329,25 @@ def _apply_piece_patch(
     piece_definitions[patch.type] = updated
 
 
-def _sync_piece_metadata_on_board(game_state: GameState) -> None:
+def _sync_piece_metadata(game_state: GameState) -> None:
+    def apply_definition(piece: Piece | None) -> None:
+        if piece is None:
+            return
+        definition = game_state.piece_definitions.get(piece.type)
+        if definition is None:
+            return
+        piece.name = definition.display_name
+        piece.points = definition.points
+        piece.is_custom = definition.is_custom
+        piece.custom_attributes = dict(definition.custom_attributes)
+
     for row in game_state.board.grid:
         for piece in row:
-            if piece is None:
-                continue
-            definition = game_state.piece_definitions.get(piece.type)
-            if definition is None:
-                continue
-            piece.name = definition.display_name
-            piece.points = definition.points
-            piece.is_custom = definition.is_custom
-            piece.custom_attributes = dict(definition.custom_attributes)
+            apply_definition(piece)
+
+    for color in ("white", "black"):
+        for captured_piece in game_state.captured_pieces.get(color, []):
+            apply_definition(captured_piece)
 
 
 def _apply_rule_patches(
@@ -350,7 +396,7 @@ class GameService:
 
         game_state = GameState(
             id=str(uuid.uuid4()),
-            board=_initial_board(request.boardSize, piece_definitions),
+            board=_initial_board(request.boardRows, request.boardCols, piece_definitions),
             current_player="white",
             rules=rule_settings,
             piece_definitions=piece_definitions,
@@ -369,7 +415,7 @@ class GameService:
         game_state = db.get_game(game_id)
         if game_state is None:
             raise HTTPException(status_code=404, detail="Game not found")
-        _sync_piece_metadata_on_board(game_state)
+        _sync_piece_metadata(game_state)
         self.engine.evaluate_state(game_state)
         return game_state
 
@@ -403,16 +449,49 @@ class GameService:
         for patch in request.pieces:
             _apply_piece_patch(game_state.piece_definitions, patch)
 
-        _sync_piece_metadata_on_board(game_state)
+        _sync_piece_metadata(game_state)
         self.engine.evaluate_state(game_state)
         db.save_game(game_state)
         return game_state
 
     def reset_game(self, game_id: str, request: ResetGameRequest) -> GameState:
         game_state = self.get_game(game_id)
-        board_size = request.boardSize if request.boardSize is not None else game_state.board.size
+        board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows
+        board_cols = request.boardCols if request.boardCols is not None else game_state.board.cols
 
-        game_state.board = _initial_board(board_size, game_state.piece_definitions)
+        game_state.board = _initial_board(board_rows, board_cols, game_state.piece_definitions)
+        game_state.current_player = "white"
+        game_state.history = []
+        game_state.captured_pieces = {"white": [], "black": []}
+        game_state.winner = None
+        game_state.game_status = "active"
+
+        self.engine.evaluate_state(game_state)
+        db.save_game(game_state)
+        return game_state
+
+    def update_board_layout(self, game_id: str, request: UpdateBoardLayoutRequest) -> GameState:
+        game_state = self.get_game(game_id)
+
+        board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows
+        board_cols = request.boardCols if request.boardCols is not None else game_state.board.cols
+
+        board = _empty_board(board_rows, board_cols)
+
+        for placement in request.placements:
+            normalized = _normalize_placement(
+                placement,
+                board_rows,
+                board_cols,
+                game_state.piece_definitions,
+            )
+            board.grid[normalized.row][normalized.col] = _create_piece_instance(
+                normalized.type,
+                normalized.color,
+                game_state.piece_definitions,
+            )
+
+        game_state.board = board
         game_state.current_player = "white"
         game_state.history = []
         game_state.captured_pieces = {"white": [], "black": []}
@@ -513,6 +592,8 @@ class GameService:
 
         return GameResponse(
             id=game_state.id,
+            boardRows=game_state.board.rows,
+            boardCols=game_state.board.cols,
             boardSize=game_state.board.size,
             board=board_view,
             currentPlayer=game_state.current_player,

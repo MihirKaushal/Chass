@@ -6,13 +6,17 @@ function TopNav({
   gameStatus,
   winner,
   onFlipBoard,
+  onToggleAutoBoardFlip,
   boardFlipped,
+  autoBoardFlipEnabled,
 }) {
   const statusLabel =
     gameStatus === "checkmate"
       ? `Checkmate (${winner || "none"})`
       : gameStatus === "stalemate"
         ? "Stalemate"
+        : gameStatus === "score_target"
+          ? `Score Victory (${winner || "none"})`
         : gameStatus === "check"
           ? "Check"
           : "Active";
@@ -50,6 +54,13 @@ function TopNav({
           onClick={onFlipBoard}
         >
           {boardFlipped ? "Unflip Board" : "Flip Board"}
+        </button>
+        <button
+          type="button"
+          className={autoBoardFlipEnabled ? "reset-button" : "reset-button secondary"}
+          onClick={onToggleAutoBoardFlip}
+        >
+          Toggle Auto Board Flip ({autoBoardFlipEnabled ? "On" : "Off"})
         </button>
         <button type="button" className="reset-button" onClick={onReset}>
           Reset

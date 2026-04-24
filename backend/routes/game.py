@@ -7,6 +7,7 @@ from backend.models.schemas import (
     GameResponse,
     MoveRequest,
     ResetGameRequest,
+    UpdateBoardLayoutRequest,
     UpdatePiecesRequest,
     UpdateRulesRequest,
 )
@@ -60,6 +61,14 @@ async def update_rules(game_id: str, request: UpdateRulesRequest) -> GameRespons
 @router.post("/{game_id}/pieces", response_model=GameResponse)
 async def update_pieces(game_id: str, request: UpdatePiecesRequest) -> GameResponse:
     game_state = game_service.update_pieces(game_id, request)
+    response = game_service.serialize_game(game_state)
+    await _broadcast(response)
+    return response
+
+
+@router.post("/{game_id}/layout", response_model=GameResponse)
+async def update_board_layout(game_id: str, request: UpdateBoardLayoutRequest) -> GameResponse:
+    game_state = game_service.update_board_layout(game_id, request)
     response = game_service.serialize_game(game_state)
     await _broadcast(response)
     return response

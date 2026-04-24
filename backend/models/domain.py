@@ -6,7 +6,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Color = Literal["white", "black"]
 MoveMode = Literal["move", "capture", "both"]
-GameStatus = Literal["active", "check", "checkmate", "stalemate"]
+GameStatus = Literal["active", "check", "checkmate", "stalemate", "score_target"]
 
 
 class MovePattern(BaseModel):
@@ -48,25 +48,46 @@ class Square(BaseModel):
 
 
 class Board(BaseModel):
-    size: int
+    rows: int
+    cols: int
     grid: list[list[Piece | None]]
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_size(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        if "rows" in value and "cols" in value:
+            return value
+        legacy_size = value.get("size")
+        if legacy_size is None:
+            return value
+        migrated = dict(value)
+        migrated["rows"] = legacy_size
+        migrated["cols"] = legacy_size
+        return migrated
 
     @model_validator(mode="after")
     def validate_grid_shape(self) -> "Board":
-        if self.size < 4:
-            raise ValueError("Board size must be at least 4")
-        if len(self.grid) != self.size:
-            raise ValueError("Board grid row count must match board size")
+        if self.rows < 4 or self.cols < 4:
+            raise ValueError("Board dimensions must be at least 4x4")
+        if len(self.grid) != self.rows:
+            raise ValueError("Board grid row count must match board rows")
         for row in self.grid:
-            if len(row) != self.size:
-                raise ValueError("Board grid column count must match board size")
+            if len(row) != self.cols:
+                raise ValueError("Board grid column count must match board cols")
         return self
+
+    @property
+    def size(self) -> int:
+        # Compatibility shim for legacy code that still expects square board size.
+        return max(self.rows, self.cols)
 
     def to_square_grid(self) -> list[list[Square]]:
         squares: list[list[Square]] = []
-        for row_idx in range(self.size):
+        for row_idx in range(self.rows):
             row_squares: list[Square] = []
-            for col_idx in range(self.size):
+            for col_idx in range(self.cols):
                 row_squares.append(
                     Square(
                         row=row_idx,
