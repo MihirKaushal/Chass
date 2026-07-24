@@ -2,6 +2,7 @@ function TopNav({
   activeTab,
   onTabChange,
   onReset,
+  onHome,
   currentPlayer,
   gameStatus,
   winner,
@@ -9,6 +10,11 @@ function TopNav({
   onToggleAutoBoardFlip,
   boardFlipped,
   autoBoardFlipEnabled,
+  canCustomize,
+  canReset,
+  mode,
+  playerColor,
+  connectionStatus,
 }) {
   const statusLabel =
     gameStatus === "checkmate"
@@ -17,18 +23,18 @@ function TopNav({
         ? "Stalemate"
         : gameStatus === "score_target"
           ? `Score Victory (${winner || "none"})`
-        : gameStatus === "check"
-          ? "Check"
-          : "Active";
+          : gameStatus === "check"
+            ? "Check"
+            : "Active";
 
   return (
     <header className="top-nav">
-      <div className="brand-block">
-        <h1>Chass!</h1>
-        <p>Variant-ready chess sandbox</p>
-      </div>
+      <button type="button" className="brand-block brand-button" onClick={onHome}>
+        <strong>Chass!</strong>
+        <span>Variant-ready chess sandbox</span>
+      </button>
 
-      <nav className="tab-nav">
+      <nav className="tab-nav" aria-label="Game sections">
         <button
           type="button"
           className={activeTab === "play" ? "tab active" : "tab"}
@@ -36,35 +42,43 @@ function TopNav({
         >
           Play
         </button>
-        <button
-          type="button"
-          className={activeTab === "customize" ? "tab active" : "tab"}
-          onClick={() => onTabChange("customize")}
-        >
-          Customize
-        </button>
+        {canCustomize ? (
+          <button
+            type="button"
+            className={activeTab === "customize" ? "tab active" : "tab"}
+            onClick={() => onTabChange("customize")}
+          >
+            Customize
+          </button>
+        ) : null}
       </nav>
 
-      <div className="status-block">
+      <div className="game-meta">
         <span className="turn-pill">Turn: {currentPlayer}</span>
         <span className="status-pill">Status: {statusLabel}</span>
-        <button
-          type="button"
-          className="reset-button secondary"
-          onClick={onFlipBoard}
-        >
-          {boardFlipped ? "Unflip Board" : "Flip Board"}
+        <span className="mode-pill">
+          {mode === "online"
+            ? `${playerColor || "Online"} / ${connectionStatus}`
+            : "Local room"}
+        </span>
+      </div>
+
+      <div className="board-actions">
+        <button type="button" className="secondary" onClick={onFlipBoard}>
+          {boardFlipped ? "White Side" : "Flip Board"}
         </button>
         <button
           type="button"
-          className={autoBoardFlipEnabled ? "reset-button" : "reset-button secondary"}
+          className={autoBoardFlipEnabled ? "" : "secondary"}
           onClick={onToggleAutoBoardFlip}
         >
-          Toggle Auto Board Flip ({autoBoardFlipEnabled ? "On" : "Off"})
+          Auto Flip: {autoBoardFlipEnabled ? "On" : "Off"}
         </button>
-        <button type="button" className="reset-button" onClick={onReset}>
-          Reset
-        </button>
+        {canReset ? (
+          <button type="button" onClick={onReset}>
+            Reset
+          </button>
+        ) : null}
       </div>
     </header>
   );

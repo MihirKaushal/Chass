@@ -48,9 +48,9 @@ textarea {
 }
 
 .top-nav {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto auto minmax(240px, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 1rem;
   flex-wrap: wrap;
   margin-bottom: 1.25rem;
@@ -61,14 +61,24 @@ textarea {
   box-shadow: var(--shadow);
 }
 
-.brand-block h1 {
-  margin: 0;
+.brand-button {
+  appearance: none;
+  border: 0;
+  padding: 0;
+  color: var(--deep);
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+}
+
+.brand-button strong {
+  display: block;
   font-size: 1.8rem;
   letter-spacing: 0.04em;
 }
 
-.brand-block p {
-  margin: 0;
+.brand-button span {
+  display: block;
   font-size: 0.88rem;
   color: rgba(26, 54, 93, 0.74);
 }
@@ -96,35 +106,54 @@ textarea {
   color: white;
 }
 
-.status-block {
+.game-meta {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 0.45rem;
   justify-content: flex-end;
 }
 
-.turn-pill {
+.turn-pill,
+.status-pill,
+.mode-pill {
   padding: 0.3rem 0.8rem;
   border-radius: 999px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.78rem;
+}
+
+.turn-pill {
   background: rgba(43, 108, 176, 0.14);
   border: 1px solid rgba(43, 108, 176, 0.3);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.85rem;
 }
 
 .status-pill {
-  padding: 0.3rem 0.8rem;
-  border-radius: 999px;
   background: rgba(99, 179, 237, 0.22);
   border: 1px solid rgba(43, 108, 176, 0.33);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.83rem;
+}
+
+.mode-pill {
+  background: rgba(255, 255, 255, 0.48);
+  border: 1px solid rgba(26, 54, 93, 0.18);
+}
+
+.board-actions {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 .reset-button,
 .button-row button,
-.customization-card button {
+.customization-card button,
+.board-actions button,
+.invite-controls button,
+.mode-choice-card button,
+.join-card button,
+.loading-card button {
   border: none;
   border-radius: 10px;
   padding: 0.55rem 0.9rem;
@@ -137,9 +166,20 @@ textarea {
 
 .reset-button:hover,
 .button-row button:hover,
-.customization-card button:hover {
+.customization-card button:hover,
+.board-actions button:hover,
+.invite-controls button:hover,
+.mode-choice-card button:hover,
+.join-card button:hover,
+.loading-card button:hover {
   transform: translateY(-1px);
   opacity: 0.93;
+}
+
+button:disabled {
+  cursor: wait;
+  opacity: 0.58;
+  transform: none;
 }
 
 button.secondary {
@@ -159,6 +199,289 @@ button.secondary {
   font-size: 0.9rem;
   color: var(--accent);
   margin: 0.25rem 0 0.75rem;
+}
+
+.sync-message,
+.turn-notice {
+  margin: -0.5rem 0 0.8rem;
+  border-radius: 10px;
+  padding: 0.55rem 0.75rem;
+  background: rgba(99, 179, 237, 0.16);
+  border: 1px solid rgba(43, 108, 176, 0.22);
+  font-size: 0.86rem;
+}
+
+.turn-notice {
+  font-family: "IBM Plex Mono", monospace;
+}
+
+.eyebrow {
+  display: inline-block;
+  color: var(--accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.landing-shell {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: clamp(1rem, 4vw, 3rem);
+}
+
+.landing-hero {
+  width: min(1060px, 100%);
+  position: relative;
+  padding: clamp(1.2rem, 4vw, 3rem);
+  border: 2px solid rgba(26, 54, 93, 0.2);
+  border-radius: 26px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.64), rgba(234, 216, 181, 0.82)),
+    var(--panel);
+  box-shadow: 0 22px 55px rgba(26, 54, 93, 0.2);
+  overflow: hidden;
+  animation: board-rise 380ms ease;
+}
+
+.landing-hero::after {
+  content: "";
+  position: absolute;
+  width: 310px;
+  height: 310px;
+  top: -170px;
+  right: -90px;
+  border: 38px solid rgba(43, 108, 176, 0.08);
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.landing-copy {
+  max-width: 680px;
+  position: relative;
+  z-index: 1;
+}
+
+.landing-copy h1,
+.join-card h1,
+.loading-card h1 {
+  margin: 0.2rem 0 0;
+  font-size: clamp(2.6rem, 8vw, 5.6rem);
+  line-height: 0.96;
+  letter-spacing: -0.055em;
+}
+
+.landing-copy p {
+  max-width: 620px;
+  margin: 1rem 0 0;
+  color: rgba(26, 54, 93, 0.78);
+  font-size: clamp(1rem, 2vw, 1.15rem);
+  line-height: 1.55;
+}
+
+.mode-choice-grid {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+  margin-top: 2rem;
+}
+
+.mode-choice-card {
+  min-height: 330px;
+  display: flex;
+  flex-direction: column;
+  padding: 1.25rem;
+  border: 1px solid rgba(26, 54, 93, 0.22);
+  border-radius: 18px;
+  background: rgba(255, 255, 255, 0.55);
+}
+
+.mode-choice-card.featured {
+  color: #f7fbff;
+  background:
+    radial-gradient(circle at top right, rgba(99, 179, 237, 0.34), transparent 36%),
+    var(--deep);
+  border-color: var(--deep);
+}
+
+.mode-choice-card h2 {
+  margin: 0.6rem 0 0.35rem;
+  font-size: 1.65rem;
+}
+
+.mode-choice-card p {
+  margin: 0;
+  line-height: 1.45;
+  color: rgba(26, 54, 93, 0.75);
+}
+
+.mode-choice-card.featured p,
+.mode-choice-card.featured li {
+  color: rgba(247, 251, 255, 0.82);
+}
+
+.mode-choice-card ul {
+  margin: 1rem 0 1.2rem;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.mode-choice-card button {
+  width: 100%;
+  margin-top: auto;
+}
+
+.mode-choice-card.featured button {
+  color: var(--deep);
+  background: var(--accent-soft);
+}
+
+.mode-number {
+  font-family: "IBM Plex Mono", monospace;
+  color: var(--accent);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.mode-choice-card.featured .mode-number {
+  color: var(--accent-soft);
+}
+
+.landing-error {
+  position: relative;
+  z-index: 1;
+  margin: 1rem 0 0;
+  padding: 0.65rem 0.8rem;
+  border: 1px solid rgba(123, 31, 31, 0.25);
+  border-radius: 10px;
+  color: #7b1f1f;
+  background: rgba(255, 255, 255, 0.56);
+  font-weight: 600;
+}
+
+.landing-footnote {
+  margin: 1rem 0 0;
+  color: rgba(26, 54, 93, 0.66);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.75rem;
+}
+
+.join-card,
+.loading-card {
+  width: min(560px, 100%);
+  padding: clamp(1.25rem, 4vw, 2.2rem);
+  border: 2px solid rgba(26, 54, 93, 0.2);
+  border-radius: 22px;
+  background: rgba(234, 216, 181, 0.9);
+  box-shadow: var(--shadow);
+  animation: board-rise 300ms ease;
+}
+
+.join-card h1,
+.loading-card h1 {
+  font-size: clamp(2rem, 7vw, 3.5rem);
+}
+
+.join-status,
+.loading-card p {
+  color: rgba(26, 54, 93, 0.74);
+}
+
+.loading-mark {
+  width: 34px;
+  height: 34px;
+  display: block;
+  border: 4px solid rgba(43, 108, 176, 0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 800ms linear infinite;
+}
+
+.online-room {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto minmax(280px, 1fr);
+  gap: 1rem;
+  align-items: center;
+  margin-bottom: 1rem;
+  padding: 0.9rem 1rem;
+  border: 1px solid rgba(43, 108, 176, 0.28);
+  border-left: 5px solid var(--accent);
+  border-radius: 14px;
+  background: rgba(234, 216, 181, 0.76);
+  box-shadow: 0 8px 20px rgba(26, 54, 93, 0.1);
+}
+
+.online-room--ready {
+  grid-template-columns: 1fr auto;
+}
+
+.online-room h2 {
+  margin: 0.15rem 0 0.2rem;
+  font-size: 1.1rem;
+}
+
+.online-room p {
+  margin: 0;
+  font-size: 0.82rem;
+}
+
+.seat-status {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.4rem;
+}
+
+.seat {
+  padding: 0.3rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(26, 54, 93, 0.08);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+}
+
+.seat.connected {
+  color: #174d37;
+  background: rgba(65, 148, 110, 0.18);
+}
+
+.invite-controls {
+  display: flex;
+  align-items: end;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.invite-controls label {
+  min-width: 210px;
+  flex: 1;
+  display: grid;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 600;
+}
+
+.invite-controls input {
+  width: 100%;
+  border: 1px solid rgba(26, 54, 93, 0.28);
+  border-radius: 8px;
+  padding: 0.45rem;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.74);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+}
+
+.invite-controls small {
+  width: 100%;
+  color: rgba(26, 54, 93, 0.72);
+  text-align: right;
 }
 
 .endgame-modal-backdrop {
@@ -240,6 +563,10 @@ button.secondary {
   cursor: pointer;
 }
 
+.square.readonly {
+  cursor: default;
+}
+
 .square.light {
   background: var(--light-square);
 }
@@ -272,7 +599,7 @@ button.secondary {
 }
 
 .piece {
-  font-size: clamp(1.3rem, 2.2vw, 2.1rem);
+  font-size: var(--piece-size, 2.1rem);
   line-height: 1;
   color: var(--deep);
   display: inline-grid;
@@ -449,7 +776,7 @@ button.secondary {
 }
 
 .customization-panel {
-  width: min(920px, 100%);
+  width: min(1180px, 100%);
   background: rgba(234, 216, 181, 0.66);
   border: 2px solid rgba(26, 54, 93, 0.2);
   border-radius: 18px;
@@ -467,7 +794,7 @@ button.secondary {
 
 .customize-workbench {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 360px;
+  grid-template-columns: minmax(0, 508px) minmax(360px, 1fr);
   gap: 1rem;
   margin-top: 0.9rem;
   align-items: start;
@@ -513,7 +840,7 @@ button.secondary {
 }
 
 .preview-piece {
-  font-size: clamp(1rem, 1.65vw, 1.6rem);
+  font-size: var(--piece-size, 1.6rem);
   line-height: 1;
 }
 
@@ -731,7 +1058,32 @@ button.secondary {
   }
 }
 
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
 @media (max-width: 1024px) {
+  .top-nav {
+    grid-template-columns: 1fr auto;
+  }
+
+  .game-meta {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .online-room,
+  .online-room--ready {
+    grid-template-columns: 1fr;
+  }
+
+  .seat-status,
+  .invite-controls {
+    justify-content: flex-start;
+  }
+
   .play-layout {
     grid-template-columns: 1fr;
   }
@@ -754,9 +1106,45 @@ button.secondary {
     width: min(88vw, 84vh);
   }
 
-  .status-block {
+  .game-meta {
     width: 100%;
-    justify-content: space-between;
+  }
+
+  .top-nav {
+    grid-template-columns: 1fr;
+  }
+
+  .tab-nav,
+  .board-actions {
+    justify-self: stretch;
+  }
+
+  .tab-nav button {
+    flex: 1;
+  }
+
+  .board-actions {
+    justify-content: stretch;
+  }
+
+  .board-actions button {
+    flex: 1 1 130px;
+  }
+
+  .mode-choice-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .mode-choice-card {
+    min-height: 300px;
+  }
+
+  .landing-hero {
+    border-radius: 18px;
+  }
+
+  .online-room {
+    padding: 0.8rem;
   }
 
   .layer-grid.two-col {

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
-from typing import Any
+from datetime import datetime
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -79,6 +80,10 @@ class PieceDefinitionView(BaseModel):
 
 class GameResponse(BaseModel):
     id: str
+    mode: Literal["local", "online"]
+    version: int
+    ready: bool
+    players: dict[str, str]
     boardRows: int
     boardCols: int
     boardSize: int
@@ -123,11 +128,12 @@ class PieceDefinitionPayload(BaseModel):
 
 
 class CreateGameRequest(BaseModel):
+    mode: Literal["local", "online"] = "local"
     boardSize: int | None = Field(default=None, ge=4, le=16)
     boardRows: int = Field(default=8, ge=4, le=16)
     boardCols: int = Field(default=8, ge=4, le=16)
-    rules: list[RulePatch] = Field(default_factory=list)
-    customPieces: list[PieceDefinitionPayload] = Field(default_factory=list)
+    rules: list[RulePatch] = Field(default_factory=list, max_length=128)
+    customPieces: list[PieceDefinitionPayload] = Field(default_factory=list, max_length=64)
 
     @model_validator(mode="after")
     def normalize_dimensions(self) -> "CreateGameRequest":
@@ -142,10 +148,12 @@ class MoveRequest(BaseModel):
     fromCol: int
     toRow: int
     toCol: int
+    expectedVersion: int | None = Field(default=None, ge=1)
 
 
 class UpdateRulesRequest(BaseModel):
-    rules: list[RulePatch]
+    rules: list[RulePatch] = Field(max_length=128)
+    expectedVersion: int | None = Field(default=None, ge=1)
 
 
 class PieceDefinitionPatch(BaseModel):
@@ -160,13 +168,15 @@ class PieceDefinitionPatch(BaseModel):
 
 
 class UpdatePiecesRequest(BaseModel):
-    pieces: list[PieceDefinitionPatch]
+    pieces: list[PieceDefinitionPatch] = Field(max_length=64)
+    expectedVersion: int | None = Field(default=None, ge=1)
 
 
 class ResetGameRequest(BaseModel):
     boardSize: int | None = Field(default=None, ge=4, le=16)
     boardRows: int | None = Field(default=None, ge=4, le=16)
     boardCols: int | None = Field(default=None, ge=4, le=16)
+    expectedVersion: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
     def normalize_dimensions(self) -> "ResetGameRequest":
@@ -186,4 +196,25 @@ class BoardPlacement(BaseModel):
 class UpdateBoardLayoutRequest(BaseModel):
     boardRows: int | None = Field(default=None, ge=4, le=16)
     boardCols: int | None = Field(default=None, ge=4, le=16)
-    placements: list[BoardPlacement] = Field(default_factory=list)
+    placements: list[BoardPlacement] = Field(default_factory=list, max_length=256)
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class JoinGameRequest(BaseModel):
+    inviteToken: str = Field(min_length=20, max_length=256)
+
+
+class GameSessionResponse(BaseModel):
+    game: GameResponse
+    playerToken: str | None = None
+    playerColor: str | None = None
+    role: str
+    inviteToken: str | None = None
+    inviteUrl: str | None = None
+    inviteExpiresAt: datetime | None = None
+
+
+class InviteResponse(BaseModel):
+    inviteToken: str
+    inviteUrl: str
+    inviteExpiresAt: datetime

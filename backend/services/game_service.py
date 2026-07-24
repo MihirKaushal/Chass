@@ -1,22 +1,27 @@
 from __future__ import annotations
 
 import uuid
+from dataclasses import dataclass
+from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
 
-from backend import db
+from backend.config import get_settings
 from backend.models import Board, GameState, Move, MovePattern, Piece, PieceDefinition, RuleSetting
 from backend.models.schemas import (
     BoardPlacement,
     CaptureView,
     CreateGameRequest,
     GameResponse,
+    GameSessionResponse,
+    InviteResponse,
+    JoinGameRequest,
     MoveHistoryView,
-    MoveRequest,
     MovePatternView,
-    PieceDefinitionView,
+    MoveRequest,
     PieceDefinitionPatch,
     PieceDefinitionPayload,
+    PieceDefinitionView,
     PieceView,
     Position,
     ResetGameRequest,
@@ -27,8 +32,17 @@ from backend.models.schemas import (
     UpdateRulesRequest,
     ValidMoveView,
 )
+from backend.repositories import (
+    ConcurrentUpdateError,
+    ExpiredGameError,
+    GameRecord,
+    GameRepository,
+    InviteClaimError,
+    MoveAudit,
+    PlayerIdentity,
+)
 from backend.rules import RuleEngine
-
+from backend.security import generate_token, hash_token
 
 DEFAULT_PIECE_POINTS: dict[str, int | None] = {
     "pawn": 1,
@@ -377,12 +391,86 @@ def _apply_rule_patches(
     return ordered
 
 
-class GameService:
-    def __init__(self, engine: RuleEngine) -> None:
-        self.engine = engine
-        db.init_db()
+@dataclass(frozen=True)
+class AuthorizedGame:
+    record: GameRecord
+    player: PlayerIdentity | None
 
-    def create_game(self, request: CreateGameRequest) -> GameState:
+
+class GameService:
+    def __init__(self, engine: RuleEngine, repository: GameRepository | None = None) -> None:
+        self.engine = engine
+        self.repository = repository or GameRepository()
+
+    def _load_game(self, game_id: str) -> GameRecord:
+        try:
+            record = self.repository.get_game(game_id)
+        except ExpiredGameError as error:
+            raise HTTPException(status_code=410, detail=str(error)) from error
+
+        if record is None:
+            raise HTTPException(status_code=404, detail="Game not found")
+
+        _sync_piece_metadata(record.state)
+        self.engine.evaluate_state(record.state)
+        return record
+
+    def authorize(
+        self,
+        game_id: str,
+        player_token: str | None,
+        *,
+        require_host: bool = False,
+    ) -> AuthorizedGame:
+        record = self._load_game(game_id)
+        if record.mode == "local":
+            return AuthorizedGame(record=record, player=None)
+
+        if not player_token:
+            raise HTTPException(
+                status_code=401,
+                detail="A player token is required for this online game",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+
+        player = self.repository.get_player(game_id, hash_token(player_token))
+        if player is None:
+            raise HTTPException(status_code=403, detail="Player token is invalid for this game")
+        if require_host and player.role != "host":
+            raise HTTPException(status_code=403, detail="Only the game host can change this game")
+
+        return AuthorizedGame(record=record, player=player)
+
+    @staticmethod
+    def _expected_version(record: GameRecord, requested: int | None) -> int:
+        if requested is not None and requested != record.version:
+            raise HTTPException(
+                status_code=409,
+                detail="Your game view is out of date. The latest position has been loaded.",
+            )
+        if record.mode == "online" and requested is None:
+            raise HTTPException(
+                status_code=428,
+                detail="Online game updates must include expectedVersion",
+            )
+        return requested if requested is not None else record.version
+
+    def _save(
+        self,
+        state: GameState,
+        expected_version: int,
+        audit: MoveAudit | None = None,
+    ) -> GameRecord:
+        try:
+            return self.repository.save_game(state, expected_version, audit)
+        except ConcurrentUpdateError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @staticmethod
+    def _invite_url(invite_token: str) -> str:
+        return f"{get_settings().frontend_url}/join/{invite_token}"
+
+    def create_game(self, request: CreateGameRequest) -> GameSessionResponse:
         piece_definitions = build_default_piece_definitions()
         for custom_piece in request.customPieces:
             definition = _piece_definition_from_payload(custom_piece)
@@ -408,19 +496,99 @@ class GameService:
         )
 
         self.engine.evaluate_state(game_state)
-        db.save_game(game_state)
-        return game_state
 
-    def get_game(self, game_id: str) -> GameState:
-        game_state = db.get_game(game_id)
-        if game_state is None:
-            raise HTTPException(status_code=404, detail="Game not found")
-        _sync_piece_metadata(game_state)
-        self.engine.evaluate_state(game_state)
-        return game_state
+        settings = get_settings()
+        now = datetime.now(timezone.utc)
+        game_expires_at = now + timedelta(days=settings.game_ttl_days)
 
-    def move_piece(self, game_id: str, request: MoveRequest) -> tuple[GameState, str]:
-        game_state = self.get_game(game_id)
+        if request.mode == "local":
+            record = self.repository.create_game(
+                game_state,
+                mode="local",
+                expires_at=game_expires_at,
+            )
+            return GameSessionResponse(
+                game=self.serialize_game(record),
+                role="local",
+            )
+
+        host_token = generate_token()
+        invite_token = generate_token()
+        invite_expires_at = now + timedelta(hours=settings.invite_ttl_hours)
+        record = self.repository.create_game(
+            game_state,
+            mode="online",
+            expires_at=game_expires_at,
+            host_token_hash=hash_token(host_token),
+            invite_token_hash=hash_token(invite_token),
+            invite_expires_at=invite_expires_at,
+        )
+        return GameSessionResponse(
+            game=self.serialize_game(record),
+            playerToken=host_token,
+            playerColor="white",
+            role="host",
+            inviteToken=invite_token,
+            inviteUrl=self._invite_url(invite_token),
+            inviteExpiresAt=invite_expires_at,
+        )
+
+    def join_game(self, request: JoinGameRequest) -> GameSessionResponse:
+        player_token = generate_token()
+        try:
+            record = self.repository.claim_invite(
+                hash_token(request.inviteToken),
+                hash_token(player_token),
+            )
+        except InviteClaimError as error:
+            raise HTTPException(status_code=409, detail=str(error)) from error
+
+        return GameSessionResponse(
+            game=self.serialize_game(record),
+            playerToken=player_token,
+            playerColor="black",
+            role="player",
+        )
+
+    def get_game(self, game_id: str, player_token: str | None = None) -> GameRecord:
+        return self.authorize(game_id, player_token).record
+
+    def replace_invite(self, game_id: str, player_token: str | None) -> InviteResponse:
+        authorized = self.authorize(game_id, player_token, require_host=True)
+        if authorized.record.ready:
+            raise HTTPException(status_code=409, detail="This game already has two players")
+
+        invite_token = generate_token()
+        expires_at = datetime.now(timezone.utc) + timedelta(
+            hours=get_settings().invite_ttl_hours
+        )
+        self.repository.replace_invite(game_id, hash_token(invite_token), expires_at)
+        return InviteResponse(
+            inviteToken=invite_token,
+            inviteUrl=self._invite_url(invite_token),
+            inviteExpiresAt=expires_at,
+        )
+
+    def move_piece(
+        self,
+        game_id: str,
+        request: MoveRequest,
+        player_token: str | None = None,
+    ) -> tuple[GameRecord, str]:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        game_state = record.state
+
+        if record.mode == "online":
+            if not record.ready:
+                raise HTTPException(status_code=409, detail="Waiting for the second player to join")
+            if authorized.player is None or authorized.player.color != game_state.current_player:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Only {game_state.current_player} can move right now",
+                )
+
+        expected_version = self._expected_version(record, request.expectedVersion)
         move = Move(
             fromRow=request.fromRow,
             fromCol=request.fromCol,
@@ -433,29 +601,65 @@ class GameService:
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
 
-        db.save_game(next_state)
-        return next_state, explanation
+        move_record = next_state.history[-1]
+        saved = self._save(
+            next_state,
+            expected_version,
+            MoveAudit(
+                move_number=move_record.move_number,
+                player_color=move_record.player,
+                piece_type=move_record.piece,
+                from_row=move_record.from_row,
+                from_col=move_record.from_col,
+                to_row=move_record.to_row,
+                to_col=move_record.to_col,
+                explanation=move_record.explanation,
+            ),
+        )
+        return saved, explanation
 
-    def update_rules(self, game_id: str, request: UpdateRulesRequest) -> GameState:
-        game_state = self.get_game(game_id)
+    def update_rules(
+        self,
+        game_id: str,
+        request: UpdateRulesRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        authorized = self.authorize(game_id, player_token, require_host=True)
+        record = authorized.record
+        game_state = record.state
+        expected_version = self._expected_version(record, request.expectedVersion)
         game_state.rules = _apply_rule_patches(game_state.rules, request.rules, self.engine)
         self.engine.evaluate_state(game_state)
-        db.save_game(game_state)
-        return game_state
+        return self._save(game_state, expected_version)
 
-    def update_pieces(self, game_id: str, request: UpdatePiecesRequest) -> GameState:
-        game_state = self.get_game(game_id)
+    def update_pieces(
+        self,
+        game_id: str,
+        request: UpdatePiecesRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        authorized = self.authorize(game_id, player_token, require_host=True)
+        record = authorized.record
+        game_state = record.state
+        expected_version = self._expected_version(record, request.expectedVersion)
 
         for patch in request.pieces:
             _apply_piece_patch(game_state.piece_definitions, patch)
 
         _sync_piece_metadata(game_state)
         self.engine.evaluate_state(game_state)
-        db.save_game(game_state)
-        return game_state
+        return self._save(game_state, expected_version)
 
-    def reset_game(self, game_id: str, request: ResetGameRequest) -> GameState:
-        game_state = self.get_game(game_id)
+    def reset_game(
+        self,
+        game_id: str,
+        request: ResetGameRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        authorized = self.authorize(game_id, player_token, require_host=True)
+        record = authorized.record
+        game_state = record.state
+        expected_version = self._expected_version(record, request.expectedVersion)
         board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows
         board_cols = request.boardCols if request.boardCols is not None else game_state.board.cols
 
@@ -465,13 +669,21 @@ class GameService:
         game_state.captured_pieces = {"white": [], "black": []}
         game_state.winner = None
         game_state.game_status = "active"
+        game_state.score = {"white": 0, "black": 0}
 
         self.engine.evaluate_state(game_state)
-        db.save_game(game_state)
-        return game_state
+        return self._save(game_state, expected_version)
 
-    def update_board_layout(self, game_id: str, request: UpdateBoardLayoutRequest) -> GameState:
-        game_state = self.get_game(game_id)
+    def update_board_layout(
+        self,
+        game_id: str,
+        request: UpdateBoardLayoutRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        authorized = self.authorize(game_id, player_token, require_host=True)
+        record = authorized.record
+        game_state = record.state
+        expected_version = self._expected_version(record, request.expectedVersion)
 
         board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows
         board_cols = request.boardCols if request.boardCols is not None else game_state.board.cols
@@ -497,12 +709,18 @@ class GameService:
         game_state.captured_pieces = {"white": [], "black": []}
         game_state.winner = None
         game_state.game_status = "active"
+        game_state.score = {"white": 0, "black": 0}
 
         self.engine.evaluate_state(game_state)
-        db.save_game(game_state)
-        return game_state
+        return self._save(game_state, expected_version)
 
-    def serialize_game(self, game_state: GameState, last_explanation: str | None = None) -> GameResponse:
+    def serialize_game(
+        self,
+        record: GameRecord,
+        last_explanation: str | None = None,
+    ) -> GameResponse:
+        game_state = record.state
+
         def piece_view(piece: Piece) -> PieceView:
             definition = game_state.piece_definitions.get(piece.type)
             symbol = definition.symbols[piece.color] if definition else "?"
@@ -521,7 +739,9 @@ class GameService:
         for row in game_state.board.grid:
             board_view.append([piece_view(piece) if piece is not None else None for piece in row])
 
-        valid_moves = self.engine.get_valid_moves_for_current_player(game_state)
+        valid_moves = (
+            self.engine.get_valid_moves_for_current_player(game_state) if record.ready else []
+        )
         valid_move_views = [
             ValidMoveView(
                 **{
@@ -592,6 +812,21 @@ class GameService:
 
         return GameResponse(
             id=game_state.id,
+            mode=record.mode,
+            version=record.version,
+            ready=record.ready,
+            players={
+                "white": (
+                    "local"
+                    if record.mode == "local"
+                    else ("joined" if "white" in record.player_colors else "open")
+                ),
+                "black": (
+                    "local"
+                    if record.mode == "local"
+                    else ("joined" if "black" in record.player_colors else "open")
+                ),
+            },
             boardRows=game_state.board.rows,
             boardCols=game_state.board.cols,
             boardSize=game_state.board.size,

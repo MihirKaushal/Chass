@@ -1,25 +1,37 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
-import TopNav from "./components/TopNav";
-import CustomizePage from "./pages/CustomizePage";
-import PlayPage from "./pages/PlayPage";
 import {
+  ApiError,
   createGame,
-  getWebSocketUrl,
+  getGame,
+  joinGame,
   makeMove,
+  replaceInvite,
   resetGame,
   updateBoardLayout,
   updatePieces,
   updateRules,
 } from "./api/gameApi";
+import OnlineLobby from "./components/OnlineLobby";
+import TopNav from "./components/TopNav";
+import {
+  createInviteUrl,
+  loadGameSession,
+  saveGameSession,
+  updateGameSession,
+} from "./gameSession";
+import useGameSocket from "./hooks/useGameSocket";
+import CustomizePage from "./pages/CustomizePage";
+import HomePage from "./pages/HomePage";
+import JoinPage from "./pages/JoinPage";
+import PlayPage from "./pages/PlayPage";
+import { navigate, useRoute } from "./routing";
+
 
 const FINISHED_STATUSES = new Set(["checkmate", "stalemate", "score_target"]);
 
 function colorLabel(color) {
-  if (!color) {
-    return "";
-  }
-  return color.charAt(0).toUpperCase() + color.slice(1);
+  return color ? color.charAt(0).toUpperCase() + color.slice(1) : "";
 }
 
 function oppositeColor(color) {
@@ -56,25 +68,129 @@ function buildEndgameMessage(game) {
     return "Stalemate! Neither side has a legal move.";
   }
 
-  if (winner) {
-    return `${winnerLabel} won!`;
-  }
-
-  return "Game over.";
+  return winner ? `${winnerLabel} won!` : "Game over.";
 }
 
-function App() {
-  const [activeTab, setActiveTab] = useState("play");
+function sessionFromResponse(response) {
+  const inviteUrl = response.inviteToken
+    ? createInviteUrl(response.inviteToken)
+    : response.inviteUrl || null;
+
+  return {
+    gameId: response.game.id,
+    mode: response.game.mode,
+    token: response.playerToken,
+    color: response.playerColor,
+    role: response.role,
+    inviteToken: response.inviteToken,
+    inviteUrl,
+    inviteExpiresAt: response.inviteExpiresAt,
+  };
+}
+
+function GameWorkspace({ gameId }) {
+  const [session, setSession] = useState(() => loadGameSession(gameId));
   const [game, setGame] = useState(null);
+  const gameRef = useRef(null);
+  const [activeTab, setActiveTab] = useState("play");
   const [selectedSquare, setSelectedSquare] = useState(null);
-  const [loading, setLoading] = useState(false);
+  const [initialLoading, setInitialLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
+  const [socketMessage, setSocketMessage] = useState("");
+  const [presence, setPresence] = useState({ white: false, black: false });
   const [boardFlipped, setBoardFlipped] = useState(false);
   const [autoBoardFlipEnabled, setAutoBoardFlipEnabled] = useState(true);
   const [endgameMessage, setEndgameMessage] = useState("");
   const [showEndgameModal, setShowEndgameModal] = useState(false);
   const lastEndgameSignatureRef = useRef("");
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
+
+  const applyIncomingGame = useCallback(
+    (incoming) => {
+      if (!incoming || incoming.id !== gameId) {
+        return;
+      }
+
+      const current = gameRef.current;
+      if (current && incoming.version < current.version) {
+        return;
+      }
+
+      gameRef.current = incoming;
+      setGame(incoming);
+      setInitialLoading(false);
+    },
+    [gameId]
+  );
+
+  const refreshGame = useCallback(async () => {
+    const latest = await getGame(gameId, session?.token);
+    applyIncomingGame(latest);
+
+    if (!session && latest.mode === "local") {
+      const localSession = {
+        gameId,
+        mode: "local",
+        role: "local",
+        token: null,
+        color: null,
+      };
+      saveGameSession(gameId, localSession);
+      setSession(localSession);
+    }
+
+    return latest;
+  }, [applyIncomingGame, gameId, session]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setInitialLoading(true);
+    setError("");
+
+    getGame(gameId, session?.token)
+      .then((latest) => {
+        if (cancelled) {
+          return;
+        }
+        applyIncomingGame(latest);
+        if (!session && latest.mode === "local") {
+          const localSession = {
+            gameId,
+            mode: "local",
+            role: "local",
+            token: null,
+            color: null,
+          };
+          saveGameSession(gameId, localSession);
+          setSession(localSession);
+        }
+      })
+      .catch((requestError) => {
+        if (!cancelled) {
+          setError(requestError.message);
+          setInitialLoading(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [applyIncomingGame, gameId, session?.token]);
+
+  const connectionStatus = useGameSocket({
+    gameId,
+    token: session?.token,
+    enabled: Boolean(game),
+    onGame: applyIncomingGame,
+    onPresence: (payload) => setPresence(payload.connected || { white: false, black: false }),
+    onEvent: (payload) => {
+      if (payload.type === "player_joined") {
+        setSocketMessage(`${colorLabel(payload.color)} joined the game.`);
+      }
+    },
+    onError: setSocketMessage,
+  });
 
   const selectedMoves = useMemo(() => {
     if (!game || !selectedSquare) {
@@ -86,57 +202,31 @@ function App() {
     );
   }, [game, selectedSquare]);
 
-  const initializeGame = async (dimensions = { boardRows: 8, boardCols: 8 }) => {
-    setLoading(true);
-    setError("");
+  const canCustomize =
+    game?.mode === "local" || (game?.mode === "online" && session?.role === "host");
+  const canMove =
+    Boolean(game?.ready) &&
+    (game?.mode === "local" || session?.color === game?.currentPlayer) &&
+    !FINISHED_STATUSES.has(game?.gameStatus) &&
+    !game?.winner;
 
-    const normalized =
-      typeof dimensions === "number"
-        ? { boardRows: dimensions, boardCols: dimensions }
-        : dimensions;
-
-    try {
-      const created = await createGame({
-        boardRows: normalized.boardRows,
-        boardCols: normalized.boardCols,
-        rules: [],
-        customPieces: [],
-      });
-      setGame(created);
-      setSelectedSquare(null);
-      setBoardFlipped(false);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
+  useEffect(() => {
+    if (!canCustomize && activeTab === "customize") {
+      setActiveTab("play");
     }
-  };
+  }, [activeTab, canCustomize]);
 
   useEffect(() => {
-    initializeGame();
-  }, []);
+    setSelectedSquare(null);
+  }, [game?.version]);
 
   useEffect(() => {
-    if (!game?.id) {
+    if (!socketMessage) {
       return undefined;
     }
-
-    const websocket = new WebSocket(getWebSocketUrl(game.id));
-    websocket.onmessage = (event) => {
-      try {
-        const payload = JSON.parse(event.data);
-        if (payload.id === game.id) {
-          setGame(payload);
-        }
-      } catch {
-        // Ignore non-JSON events.
-      }
-    };
-
-    return () => {
-      websocket.close();
-    };
-  }, [game?.id]);
+    const timer = window.setTimeout(() => setSocketMessage(""), 4500);
+    return () => window.clearTimeout(timer);
+  }, [socketMessage]);
 
   useEffect(() => {
     if (!game) {
@@ -157,7 +247,6 @@ function App() {
       game.winner ?? "none",
       game.history.length,
     ].join(":");
-
     if (lastEndgameSignatureRef.current === signature) {
       return;
     }
@@ -174,7 +263,6 @@ function App() {
 
     const moveCount = game.history?.length ?? 0;
     const tracker = moveTrackerRef.current;
-
     if (tracker.gameId !== game.id) {
       moveTrackerRef.current = { gameId: game.id, moveCount };
       return;
@@ -182,46 +270,63 @@ function App() {
 
     const diff = moveCount - tracker.moveCount;
     if (autoBoardFlipEnabled && diff > 0 && diff % 2 === 1) {
-      setBoardFlipped((current) => !current);
+      setBoardFlipped(game.currentPlayer === "black");
     }
-
     moveTrackerRef.current = { gameId: game.id, moveCount };
   }, [autoBoardFlipEnabled, game?.id, game?.history?.length]);
 
-  const submitMove = async (fromSquare, toSquare) => {
-    if (!game?.id) {
-      return;
-    }
-
-    setLoading(true);
+  const runAction = async (operation) => {
+    setActionLoading(true);
     setError("");
-
     try {
-      const updated = await makeMove(game.id, {
-        fromRow: fromSquare.row,
-        fromCol: fromSquare.col,
-        toRow: toSquare.row,
-        toCol: toSquare.col,
-      });
-      setGame(updated);
-      setSelectedSquare(null);
+      return await operation();
     } catch (requestError) {
       setError(requestError.message);
+      if (requestError instanceof ApiError && requestError.status === 409) {
+        await refreshGame().catch(() => {});
+      }
+      throw requestError;
     } finally {
-      setLoading(false);
+      setActionLoading(false);
+    }
+  };
+
+  const mutate = async (apiFunction, payload) => {
+    const current = gameRef.current;
+    if (!current) {
+      throw new Error("Game state is not loaded yet.");
+    }
+
+    const updated = await apiFunction(
+      gameId,
+      { ...payload, expectedVersion: current.version },
+      session?.token
+    );
+    applyIncomingGame(updated);
+    return updated;
+  };
+
+  const submitMove = async (fromSquare, toSquare) => {
+    try {
+      await runAction(() =>
+        mutate(makeMove, {
+          fromRow: fromSquare.row,
+          fromCol: fromSquare.col,
+          toRow: toSquare.row,
+          toCol: toSquare.col,
+        })
+      );
+    } catch {
+      // The shared error banner explains rejected moves.
     }
   };
 
   const handleSquareClick = (row, col) => {
-    if (!game || loading) {
-      return;
-    }
-    if (FINISHED_STATUSES.has(game.gameStatus) || game.winner) {
+    if (!game || actionLoading || !canMove) {
       return;
     }
 
     const clickedPiece = game.board[row][col];
-
     if (!selectedSquare) {
       if (clickedPiece && clickedPiece.color === game.currentPlayer) {
         setSelectedSquare({ row, col });
@@ -229,8 +334,7 @@ function App() {
       return;
     }
 
-    const isSameSquare = selectedSquare.row === row && selectedSquare.col === col;
-    if (isSameSquare) {
+    if (selectedSquare.row === row && selectedSquare.col === col) {
       setSelectedSquare(null);
       return;
     }
@@ -238,7 +342,6 @@ function App() {
     const chosenMove = selectedMoves.find(
       (move) => move.to.row === row && move.to.col === col
     );
-
     if (chosenMove) {
       submitMove(selectedSquare, { row, col });
       return;
@@ -246,149 +349,110 @@ function App() {
 
     if (clickedPiece && clickedPiece.color === game.currentPlayer) {
       setSelectedSquare({ row, col });
-      return;
+    } else {
+      setSelectedSquare(null);
     }
-
-    setSelectedSquare(null);
   };
 
   const handleReset = async () => {
-    if (!game?.id) {
-      return;
-    }
-
-    setLoading(true);
-    setError("");
     try {
-      const updated = await resetGame(game.id, {
-        boardRows: game.boardRows ?? game.boardSize,
-        boardCols: game.boardCols ?? game.boardSize,
-      });
-      setGame(updated);
-      setSelectedSquare(null);
+      await runAction(() =>
+        mutate(resetGame, {
+          boardRows: game.boardRows ?? game.boardSize,
+          boardCols: game.boardCols ?? game.boardSize,
+        })
+      );
       setBoardFlipped(false);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
+    } catch {
+      // The shared error banner explains reset failures.
     }
   };
 
-  const handleFlipBoard = () => {
-    setBoardFlipped((current) => !current);
-  };
+  const applyBasicCustomization = async ({ boardRows, boardCols, patches }) =>
+    runAction(async () => {
+      let current = gameRef.current;
+      const currentRows = current.boardRows ?? current.boardSize;
+      const currentCols = current.boardCols ?? current.boardSize;
 
-  const handleToggleAutoBoardFlip = () => {
-    setAutoBoardFlipEnabled((current) => !current);
-  };
-
-  const applyBasicCustomization = async ({ boardRows, boardCols, patches }) => {
-    if (!game?.id) {
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      let updated = game;
-      const currentRows = game.boardRows ?? game.boardSize;
-      const currentCols = game.boardCols ?? game.boardSize;
       if (boardRows !== currentRows || boardCols !== currentCols) {
-        updated = await resetGame(game.id, { boardRows, boardCols });
+        current = await mutate(resetGame, { boardRows, boardCols });
         setBoardFlipped(false);
       }
 
-      updated = await updateRules(updated.id, { rules: patches });
-      setGame(updated);
-      setSelectedSquare(null);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+      return mutate(updateRules, { rules: patches });
+    });
 
-  const applyBoardLayoutCustomization = async ({ boardRows, boardCols, placements }) => {
-    if (!game?.id) {
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    try {
-      const updated = await updateBoardLayout(game.id, {
+  const applyBoardLayoutCustomization = ({ boardRows, boardCols, placements }) =>
+    runAction(() =>
+      mutate(updateBoardLayout, {
         boardRows,
         boardCols,
         placements,
+      })
+    );
+
+  const applyRuleBuilder = (payload) =>
+    runAction(() => mutate(updateRules, payload));
+
+  const applyPieceCustomization = (payload) =>
+    runAction(() => mutate(updatePieces, payload));
+
+  const createReplacementGame = async (dimensions) => {
+    const response = await runAction(() =>
+      createGame({
+        mode: game.mode,
+        boardRows: dimensions.boardRows,
+        boardCols: dimensions.boardCols,
+        rules: [],
+        customPieces: [],
+      })
+    );
+    const nextSession = sessionFromResponse(response);
+    saveGameSession(response.game.id, nextSession);
+    navigate(`/game/${response.game.id}`);
+  };
+
+  const handleReplaceInvite = async () => {
+    try {
+      const invite = await runAction(() => replaceInvite(gameId, session?.token));
+      const updatedSession = updateGameSession(gameId, {
+        inviteToken: invite.inviteToken,
+        inviteUrl: createInviteUrl(invite.inviteToken),
+        inviteExpiresAt: invite.inviteExpiresAt,
       });
-      setGame(updated);
-      setSelectedSquare(null);
-      setBoardFlipped(false);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
+      setSession(updatedSession);
+    } catch {
+      // The shared error banner explains invite failures.
     }
   };
 
-  const applyRuleBuilder = async (payload) => {
-    if (!game?.id) {
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    try {
-      const updated = await updateRules(game.id, payload);
-      setGame(updated);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyRawRules = async (payload) => {
-    if (!game?.id) {
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    try {
-      const updated = await updateRules(game.id, payload);
-      setGame(updated);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const applyPieceCustomization = async (payload) => {
-    if (!game?.id) {
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-    try {
-      const updated = await updatePieces(game.id, payload);
-      setGame(updated);
-      setSelectedSquare(null);
-    } catch (requestError) {
-      setError(requestError.message);
-    } finally {
-      setLoading(false);
-    }
-  };
+  if (initialLoading && !game) {
+    return (
+      <div className="app-shell centered">
+        <div className="loading-card">
+          <span className="loading-mark" />
+          <h1>Loading the board</h1>
+          <p>Free hosts may need a moment to wake up.</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!game) {
     return (
       <div className="app-shell centered">
-        <p>{loading ? "Creating game..." : "Unable to create game."}</p>
-        {error ? <p className="error">{error}</p> : null}
+        <div className="loading-card">
+          <h1>Game unavailable</h1>
+          <p>{error || "This game could not be loaded."}</p>
+          <div className="button-row">
+            <button type="button" onClick={() => window.location.reload()}>
+              Try Again
+            </button>
+            <button type="button" className="secondary" onClick={() => navigate("/")}>
+              Back Home
+            </button>
+          </div>
+        </div>
       </div>
     );
   }
@@ -399,17 +463,43 @@ function App() {
         activeTab={activeTab}
         onTabChange={setActiveTab}
         onReset={handleReset}
+        onHome={() => navigate("/")}
         currentPlayer={game.currentPlayer}
         gameStatus={game.gameStatus}
         winner={game.winner}
-        onFlipBoard={handleFlipBoard}
-        onToggleAutoBoardFlip={handleToggleAutoBoardFlip}
+        onFlipBoard={() => setBoardFlipped((current) => !current)}
+        onToggleAutoBoardFlip={() => setAutoBoardFlipEnabled((current) => !current)}
         boardFlipped={boardFlipped}
         autoBoardFlipEnabled={autoBoardFlipEnabled}
+        canCustomize={canCustomize}
+        canReset={canCustomize}
+        mode={game.mode}
+        playerColor={session?.color}
+        connectionStatus={connectionStatus}
       />
 
+      {game.mode === "online" ? (
+        <OnlineLobby
+          game={game}
+          session={session}
+          presence={presence}
+          connectionStatus={connectionStatus}
+          onReplaceInvite={handleReplaceInvite}
+        />
+      ) : null}
+
       {error ? <p className="global-error">{error}</p> : null}
-      {loading ? <p className="global-loading">Syncing...</p> : null}
+      {socketMessage ? <p className="sync-message">{socketMessage}</p> : null}
+      {actionLoading ? <p className="global-loading">Syncing authoritative game state...</p> : null}
+      {!canMove && game.ready && activeTab === "play" && !game.winner ? (
+        <p className="turn-notice">
+          {game.mode === "online"
+            ? `You are ${colorLabel(session?.color)}. Waiting for ${colorLabel(
+                game.currentPlayer
+              )} to move.`
+            : ""}
+        </p>
+      ) : null}
 
       {activeTab === "play" ? (
         <PlayPage
@@ -417,6 +507,7 @@ function App() {
           selectedSquare={selectedSquare}
           onSquareClick={handleSquareClick}
           boardFlipped={boardFlipped}
+          interactive={canMove && !actionLoading}
         />
       ) : (
         <CustomizePage
@@ -425,24 +516,76 @@ function App() {
           onApplyBoardLayout={applyBoardLayoutCustomization}
           onApplyPieceCustomization={applyPieceCustomization}
           onApplyRuleBuilder={applyRuleBuilder}
-          onApplyRaw={applyRawRules}
-          onCreateNewGame={initializeGame}
+          onApplyRaw={applyRuleBuilder}
+          onCreateNewGame={createReplacementGame}
         />
       )}
 
       {showEndgameModal ? (
         <div className="endgame-modal-backdrop" role="presentation">
           <div className="endgame-modal" role="dialog" aria-modal="true" aria-live="polite">
+            <span className="eyebrow">Final position</span>
             <h2>Match Finished</h2>
             <p>{endgameMessage}</p>
-            <button type="button" onClick={() => setShowEndgameModal(false)}>
-              Close
-            </button>
+            <div className="button-row">
+              {canCustomize ? (
+                <button type="button" onClick={handleReset}>
+                  Play Again
+                </button>
+              ) : null}
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => setShowEndgameModal(false)}
+              >
+                Review Board
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
     </div>
   );
+}
+
+function App() {
+  const route = useRoute();
+
+  const handleCreate = async (mode) => {
+    const response = await createGame({
+      mode,
+      boardRows: 8,
+      boardCols: 8,
+      rules: [],
+      customPieces: [],
+    });
+    const session = sessionFromResponse(response);
+    saveGameSession(response.game.id, session);
+    navigate(`/game/${response.game.id}`);
+  };
+
+  const handleJoin = async (inviteToken) => {
+    const response = await joinGame(inviteToken);
+    const session = sessionFromResponse(response);
+    saveGameSession(response.game.id, session);
+    navigate(`/game/${response.game.id}`, { replace: true });
+  };
+
+  if (route.name === "join") {
+    return (
+      <JoinPage
+        inviteToken={route.inviteToken}
+        onJoin={handleJoin}
+        onHome={() => navigate("/")}
+      />
+    );
+  }
+
+  if (route.name === "game") {
+    return <GameWorkspace key={route.gameId} gameId={route.gameId} />;
+  }
+
+  return <HomePage onCreate={handleCreate} />;
 }
 
 export default App;

@@ -6,6 +6,13 @@ VENV_DIR="$ROOT_DIR/.venv"
 BACKEND_PORT="${BACKEND_PORT:-8000}"
 FRONTEND_PORT="${FRONTEND_PORT:-5173}"
 
+if [[ -f "$ROOT_DIR/.env" ]]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT_DIR/.env"
+  set +a
+fi
+
 require_command() {
   local cmd="$1"
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -22,7 +29,7 @@ bootstrap_backend() {
 
   # shellcheck disable=SC1091
   source "$VENV_DIR/bin/activate"
-  if ! python -c "import fastapi, uvicorn, pydantic" >/dev/null 2>&1; then
+  if ! python -c "import fastapi, uvicorn, pydantic, sqlalchemy, psycopg" >/dev/null 2>&1; then
     echo "Installing backend dependencies..."
     pip install -r "$ROOT_DIR/backend/requirements.txt"
   fi
@@ -40,6 +47,12 @@ bootstrap_frontend() {
 }
 
 cleanup() {
+  if [[ "${CLEANUP_COMPLETE:-0}" == "1" ]]; then
+    return
+  fi
+  CLEANUP_COMPLETE=1
+  trap - INT TERM EXIT
+
   echo
   echo "Shutting down Chass! services..."
   if [[ -n "${BACKEND_PID:-}" ]]; then
@@ -84,14 +97,14 @@ echo "Starting backend on http://localhost:$BACKEND_PORT ..."
   cd "$ROOT_DIR"
   # shellcheck disable=SC1091
   source "$VENV_DIR/bin/activate"
-  uvicorn backend.main:app --reload --port "$BACKEND_PORT"
+  uvicorn backend.main:app --reload --reload-dir "$ROOT_DIR/backend" --port "$BACKEND_PORT"
 ) &
 BACKEND_PID=$!
 
 echo "Starting frontend on http://localhost:$FRONTEND_PORT ..."
 (
   cd "$ROOT_DIR/frontend"
-  VITE_API_URL="http://localhost:$BACKEND_PORT" npm run dev -- --port "$FRONTEND_PORT"
+  VITE_API_URL="${VITE_API_URL:-http://localhost:$BACKEND_PORT}" npm run dev -- --port "$FRONTEND_PORT"
 ) &
 FRONTEND_PID=$!
 
