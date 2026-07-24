@@ -1,213 +1,391 @@
 # Chass!
 
-Chass! is a browser-based chess platform for classic games and configurable variants. It
-supports same-device play and anonymous, invite-link multiplayer without putting chess
-rules in the networking or service layer.
+Chass! is a full-stack, browser-based chess platform where the rules are part of the
+product. Players can start a familiar local chess match, invite a friend to a private
+online room, or build a variant with a different board, movement system, scoring model,
+and win condition.
 
-## Features
+The project is designed around one central constraint: chess behavior belongs in a
+pluggable rule engine, not in API routes, database code, or multiplayer networking. That
+separation keeps the classic game reliable while making new variants straightforward to
+add.
 
-- Local hot-seat games with automatic board flipping
-- Private online rooms with one-use invite links
-- Authenticated white and black seats without requiring accounts
-- REST commands plus live WebSocket state synchronization
-- Automatic reconnect, heartbeat, presence, and full-state recovery
-- Atomic state versions that reject stale or duplicate moves
-- Real check, checkmate, stalemate, scoring, and score-target variants
-- Variable boards, configurable pieces, modular rules, and custom layouts
-- SQLite locally and PostgreSQL/Supabase in production
-- Expiring games and invites, hashed credentials, CORS restrictions, and rate limits
+## What Chass! Demonstrates
+
+- Full-stack application development with React, FastAPI, and PostgreSQL
+- Server-authoritative real-time multiplayer over WebSockets
+- Domain modeling for boards, pieces, movement patterns, moves, rules, and game states
+- Optimistic concurrency control across multiple browsers
+- A modular rule engine with simulated-move validation for check and checkmate
+- Secure anonymous sessions with expiring, one-use invitation links
+- Environment-based deployment across Vercel, Render, and Supabase
+- Automated API tests and reproducible frontend production builds
+
+## Product Highlights
+
+### Play
+
+- Local hot-seat games for two players on one device
+- Private online games through shareable invitation links
+- Automatic board flipping after each move, with manual and automatic controls
+- Legal-move highlighting, move history, captured pieces, scores, and endgame dialogs
+- Piece metadata tooltips with names, colors, point values, and custom attributes
+- Real check, checkmate, and stalemate evaluation
+
+### Customize
+
+- Independent board row and column dimensions
+- Visual starting-layout editor
+- Rule toggles and quick presets
+- Configurable piece point values and data-driven movement patterns
+- Score-target mode, including a configurable target such as 21 points
+- Example variant rule where a rook can capture two aligned pieces
+- Structured basic, piece, rule-builder, and raw configuration layers
+
+### Connect
+
+- Authenticated White and Black seats without requiring user accounts
+- REST commands for actions and WebSockets for live state updates
+- Presence updates, heartbeats, automatic reconnect, and full-state recovery
+- One-use invites that can expire, be replaced, and cannot overfill a room
+- Persistent games backed by SQLite locally or PostgreSQL in production
+
+## Technology Stack
+
+| Layer | Technology | How it is used |
+| --- | --- | --- |
+| Languages | Python, JavaScript/JSX, CSS, SQL, Bash | Backend domain logic, React UI, styling, relational persistence, and local automation |
+| Frontend | React 18 | Functional components and hooks for game, lobby, customization, and routing state |
+| Frontend tooling | Vite 5, `@vitejs/plugin-react` | Fast local development and optimized production bundles |
+| Backend | FastAPI | Typed REST endpoints, dependency-friendly routing, CORS, and WebSocket handling |
+| Application server | Uvicorn | ASGI server for HTTP and WebSocket traffic |
+| Validation | Pydantic 2 | API contracts, aliases, domain validation, serialization, and legacy-state migration |
+| Persistence | SQLAlchemy 2 | Repository-based database access, transactions, constraints, and atomic updates |
+| Local database | SQLite | Zero-configuration development and automated test storage |
+| Production database | PostgreSQL via Supabase | Durable hosted game, player, invitation, and move data |
+| PostgreSQL driver | Psycopg 3 | SQLAlchemy connectivity to Supabase/PostgreSQL |
+| Real-time transport | Native WebSocket API and FastAPI WebSockets | Low-latency state, presence, authentication, heartbeat, and sync events |
+| Testing | Pytest and HTTPX | API, authorization, invite lifecycle, concurrency, and WebSocket integration tests |
+| Code quality | Ruff | Python linting and consistency checks |
+| Deployment | Vercel, Render Blueprint, Supabase | Free-tier frontend, backend, and PostgreSQL hosting |
+
+The frontend intentionally uses standard CSS rather than a component framework. This
+keeps the blueprint-inspired visual system, responsive board layout, and interaction
+states fully controlled by the project.
 
 ## Architecture
 
 ```text
-React / Vite
-  |-- REST commands (create, join, move, customize)
-  |-- WebSocket events (state, presence, reconnect)
+React + Vite
+  |-- REST: create, join, move, customize, reset
+  |-- WebSocket: authenticate, sync, presence, game events
   v
-FastAPI application
-  |-- session authorization and optimistic concurrency
-  |-- pluggable RuleEngine
+FastAPI routes
   v
-SQLAlchemy repository
-  |-- SQLite for local development
-  `-- PostgreSQL / Supabase for deployment
+GameService
+  |-- session authorization
+  |-- command orchestration
+  |-- no embedded chess rules
+  +----------------------+----------------------+
+  v                                             v
+RuleEngine                                    GameRepository
+  |-- validate                                |-- atomic versions
+  |-- apply                                   |-- player seats
+  |-- evaluate                                |-- expiring invites
+  |-- simulate legal moves                    |-- move audit records
+  v                                             v
+Pydantic domain models                       SQLAlchemy
+                                                |-- SQLite
+                                                `-- PostgreSQL / Supabase
 ```
 
-Multiplayer only decides whether a player may submit a command and whether its version is
-current. The `RuleEngine` remains the only authority on whether a chess move is legal.
+### Rule Engine
+
+Every enabled rule can participate in three phases:
+
+1. `validate`: accept or reject a proposed move.
+2. `apply`: modify state and record effects such as captures or score changes.
+3. `evaluate_state`: determine check, checkmate, stalemate, or a variant win condition.
+
+`CheckRule` simulates a proposed move before accepting it, preventing a player from
+leaving their own king attacked. `CheckmateRule` and `StalemateRule` generate every legal
+move for the current player and evaluate whether any move can escape the position. This
+logic remains reusable because it depends on the shared rule and movement contracts, not
+on HTTP or UI code.
+
+The classic rule group currently includes bounds, piece presence, turn enforcement,
+data-driven movement, capture behavior, king safety, checkmate, stalemate, and scoring.
+Variant rules can be enabled alongside that group or selectively configured through the
+customization interface.
+
+### Multiplayer Consistency
+
+The backend is authoritative. Browsers request moves, but only the server validates and
+applies them.
+
+Each saved game has a monotonically increasing `version`. A mutation includes the
+browser's `expectedVersion`, and SQLAlchemy issues an atomic update constrained by both
+the game ID and that version. If another browser has already changed the game, the stale
+request receives a conflict instead of overwriting newer state.
+
+WebSockets broadcast the accepted state after persistence succeeds. Reconnecting clients
+request a complete state snapshot, so correctness does not depend on receiving every
+individual event.
+
+### Persistence Model
+
+Chass! stores the game aggregate as validated JSON while keeping multiplayer and audit
+concerns relational:
+
+- `games`: serialized game state, mode, version, timestamps, and expiration
+- `game_players`: unique color seats, roles, hashed credentials, and presence timestamps
+- `game_invites`: one-use invitation hashes, expiration, use, and revocation state
+- `moves`: append-only move metadata tied to a specific game version
+
+This provides fast state reconstruction for customizable variants while preserving
+constraints and queryable records for multiplayer behavior. The repository boundary also
+allows the storage strategy to evolve without changing the rule engine.
+
+### Security Model
+
+- Online API and WebSocket access requires a private seat token.
+- Raw player and invitation tokens are returned once; only HMAC-SHA256 hashes are stored.
+- White and Black seats are unique at the database level.
+- Only the online host can reset or customize a game.
+- Invitation claims are transactional, one-use, replaceable, and time-limited.
+- Production CORS is restricted to configured frontend origins.
+- Sensitive endpoints use a lightweight sliding-window rate limiter.
+- Secrets and database credentials are supplied through environment variables.
+
+This is an anonymous-session model for a portfolio MVP, not a replacement for full user
+identity. Account support can be added without moving chess rules into the authentication
+layer.
+
+## Repository Structure
+
+```text
+backend/
+  models/          Pydantic domain objects and API schemas
+  repositories/    SQLAlchemy persistence and concurrency control
+  routes/          FastAPI REST and WebSocket endpoints
+  rules/           Rule contracts, movement generation, and built-in rules
+  services/        Application workflows and session authorization
+  tests/           API and multiplayer integration tests
+  config.py        Environment-based settings
+  db.py            Database tables, engine, and session management
+  main.py          FastAPI application and middleware
+
+frontend/
+  public/           Static brand assets
+  src/
+    api/            REST and WebSocket URL helpers
+    components/     Board, lobby, navigation, history, and customization UI
+    hooks/          Real-time connection lifecycle
+    pages/          Home, play, join, and customize screens
+    styles/         Responsive design system
+  vercel.json       Single-page application routing for Vercel
+
+render.yaml         Render backend Blueprint
+run.sh              One-command local startup
+```
 
 ## Run Locally
 
-Requirements:
+### Requirements
 
-- Python 3.11+
-- Node.js 20+
+- Python 3.11 or newer
+- Node.js 20 or newer
 - npm
 
-Start everything with:
+### One-command startup
 
 ```bash
 ./run.sh
 ```
 
-The script creates or reuses `.venv`, installs missing dependencies, and starts:
+The script creates or reuses `.venv`, installs missing dependencies, and starts both
+applications:
 
 - Frontend: `http://localhost:5173`
 - Backend: `http://localhost:8000`
-- API docs: `http://localhost:8000/docs`
+- Interactive API docs: `http://localhost:8000/docs`
+- Health check: `http://localhost:8000/health`
 
-Optional environment overrides can be placed in a root `.env` using
-[`.env.example`](.env.example).
+Press `Ctrl+C` once to stop both services. Local development uses SQLite by default, so a
+Supabase account is not required.
+
+### Environment variables
+
+Copy `.env.example` to `.env` only when local overrides are needed:
+
+```bash
+cp .env.example .env
+```
+
+| Variable | Purpose | Local default |
+| --- | --- | --- |
+| `DATABASE_URL` | SQLite or PostgreSQL connection URL | `sqlite:///backend/chass.db` |
+| `FRONTEND_URL` | Canonical frontend used in invite links | `http://localhost:5173` |
+| `ALLOWED_ORIGINS` | Comma-separated browser origins allowed by CORS | Local frontend |
+| `ENVIRONMENT` | Enables development or production safeguards | `development` |
+| `TOKEN_SECRET` | HMAC secret for seat and invite token hashes | Development-only value |
+| `INVITE_TTL_HOURS` | Online invite lifetime | `24` |
+| `GAME_TTL_DAYS` | Persisted online game lifetime | `30` |
+| `VITE_API_URL` | Frontend's backend base URL | `http://localhost:8000` |
+
+Never commit `.env`, database passwords, production token secrets, or raw session tokens.
 
 ## Test and Build
+
+Run the backend test suite and linter:
 
 ```bash
 source .venv/bin/activate
 pip install -r backend/requirements-dev.txt
 pytest
+ruff check backend
+```
 
+Verify a clean frontend production build:
+
+```bash
 cd frontend
-npm install
+npm ci
 npm run build
 ```
 
-## Game Sessions
+The integration suite covers local games, authenticated online seats, one-use and
+replacement invites, host-only customization, stale-version rejection, and WebSocket
+authentication.
 
-### Local
+## API Overview
 
-`POST /game/create` with `"mode": "local"` creates an unauthenticated hot-seat game.
-Both players use the same browser.
+| Method | Endpoint | Purpose |
+| --- | --- | --- |
+| `GET` | `/health` | Deployment health check |
+| `POST` | `/game/create` | Create a local or online game |
+| `POST` | `/game/join` | Claim an online invitation |
+| `GET` | `/game/{id}` | Load the latest authorized game state |
+| `POST` | `/game/{id}/move` | Validate and apply a versioned move |
+| `POST` | `/game/{id}/rules` | Configure enabled rules and parameters |
+| `POST` | `/game/{id}/pieces` | Update piece definitions and attributes |
+| `POST` | `/game/{id}/layout` | Replace the board's starting layout |
+| `POST` | `/game/{id}/reset` | Reset an authorized game |
+| `POST` | `/game/{id}/invite` | Replace an unused host invitation |
+| `WS` | `/game/ws/{id}` | Authenticate and receive live game events |
 
-### Online
-
-`POST /game/create` with `"mode": "online"` returns:
-
-- The initial game state
-- A private white host token
-- A one-use invite token and URL
-
-Opening the invite calls `POST /game/join`, assigns black, and gives that browser its own
-private player token. The raw credentials are returned once and only hashes are stored in
-the database.
-
-Online mutations require:
+Online REST requests use:
 
 ```http
 Authorization: Bearer <player-token>
 ```
 
-Move and customization requests also carry `expectedVersion`. The backend atomically
-updates only that version, preventing two browsers from overwriting each other.
+Move and customization commands also include `expectedVersion` for optimistic
+concurrency control. FastAPI exposes the complete request and response schemas through
+OpenAPI at `/docs`.
 
-## API
+## Online Game Flow
 
-- `POST /game/create`
-- `POST /game/join`
-- `GET /game/{id}`
-- `POST /game/{id}/move`
-- `POST /game/{id}/rules`
-- `POST /game/{id}/pieces`
-- `POST /game/{id}/layout`
-- `POST /game/{id}/reset`
-- `POST /game/{id}/invite`
-- `WS /game/ws/{id}` followed by an authentication event
+1. The host creates an online game and receives the White seat token plus a one-use invite.
+2. The invitation URL opens the join screen and atomically assigns the Black seat.
+3. Both browsers authenticate their WebSocket connections with their private seat tokens.
+4. Each move is authorized, rule-validated, version-checked, persisted, and then broadcast.
+5. A disconnected browser reconnects with exponential backoff and requests the latest state.
 
-`GET` and mutation endpoints require the seat token for online games. Only the host may
-reset or customize an online game.
+Seat tokens are stored in that browser's local storage. Clearing site data removes the
+browser's ability to reclaim the anonymous seat because user accounts are not yet part of
+the MVP.
 
-## Extending Chass!
+## Adding New Variants
 
-The project deliberately separates extension points:
+The extension points are intentionally narrow:
 
-- `backend/rules`: validation, effects, and end-state evaluators
-- `backend/models/domain.py`: board, piece, move, and rule-engine state
-- `backend/repositories`: persistence and concurrency, independent of chess behavior
-- `backend/services`: application workflows and session authorization
-- `frontend/src/components/CustomizationPanel.jsx`: variant-building UI
+- Add a rule by implementing the shared `Rule` contract and registering it in
+  `backend/rules/builtin_rules.py`.
+- Add movement behavior through `MovePattern` data instead of route-level conditionals.
+- Add a custom piece through a `PieceDefinition`, including symbols, points, patterns, and
+  metadata.
+- Add a new persistence backend behind `GameRepository` without changing chess behavior.
+- Add a new client experience using the existing API schemas and WebSocket protocol.
 
-To add a rule, implement the shared `Rule` contract and register it in
-`backend/rules/builtin_rules.py`. Multiplayer, routes, and database tables do not need to
-change.
-
-To add a custom piece, add or submit a `PieceDefinition` with movement patterns. Piece
-movement remains data-driven.
-
-Future infrastructure changes have clear boundaries:
-
-- Add account IDs to `game_players` without changing `GameState`.
-- Add a spectator role without changing move validation.
-- Replace in-memory WebSocket broadcasting with Redis/Upstash pub-sub when running more
-  than one backend worker.
-- Normalize selected portions of `state_json` only if query/reporting needs justify it.
+For example, `ScoreTargetWinRule` adds a configurable points-based victory condition, and
+`DoubleCaptureRookRule` demonstrates a move effect that can capture multiple pieces. Both
+work through the same lifecycle as classic rules.
 
 ## Free Deployment
 
-The included deployment path is:
+The included deployment path uses services with free personal-project tiers:
 
-- React frontend: Vercel Hobby
-- FastAPI backend: Render Free Web Service
-- PostgreSQL: Supabase Free
+- React frontend: Vercel
+- FastAPI backend: Render
+- PostgreSQL database: Supabase
 
-### 1. Create Supabase Database
+### 1. Supabase
 
-1. Create a free [Supabase](https://supabase.com/) project.
-2. In the project dashboard, select **Connect**.
-3. Copy the **Session pooler** connection string on port `5432`. Render is IPv4-only, so
-   do not use Supabase's IPv6-only direct connection.
-4. Replace the password placeholder with the database password. Percent-encode special
-   characters if you construct the URL manually.
-5. Keep this value private; it becomes Render's `DATABASE_URL`.
+1. Create a Supabase project.
+2. Open **Connect**, then **Direct > Connection string**.
+3. Select the **Session pooler** URI on port `5432`.
+4. Replace the password placeholder with the URL-encoded database password.
+5. Keep the URL private; it becomes Render's `DATABASE_URL`.
 
-The backend creates the required tables at startup. Supabase may pause an inactive free
-project; it can be resumed from the Supabase dashboard.
+The backend creates its tables at startup. Session pooling is used because Render's free
+service connects over IPv4.
 
-### 2. Deploy FastAPI to Render
+### 2. Render
 
 1. Push the repository to GitHub.
-2. In [Render](https://render.com/), choose **New > Blueprint** and select the repository.
-3. Render reads [`render.yaml`](render.yaml).
-4. Provide `DATABASE_URL` from Supabase.
-5. Temporarily set `FRONTEND_URL` and `ALLOWED_ORIGINS` to
-   `https://example.invalid`.
-6. Deploy and note the resulting URL, such as
-   `https://chass-api.onrender.com`.
+2. In Render, choose **New > Blueprint** and select the repository.
+3. Render reads `render.yaml` and creates the `chass-api` service.
+4. Enter the Supabase URL as `DATABASE_URL`.
+5. Initially set `FRONTEND_URL` and `ALLOWED_ORIGINS` to `https://example.invalid`.
+6. Deploy and verify `https://your-api.onrender.com/health`.
 
-`TOKEN_SECRET` is generated by Render. Do not replace it after games have been created,
-because existing player tokens depend on it.
+Render generates `TOKEN_SECRET`. Do not rotate it while active anonymous games still need
+their existing seat tokens.
 
-### 3. Deploy React to Vercel
+### 3. Vercel
 
-1. Import the same GitHub repository into [Vercel](https://vercel.com/).
-2. Set the project **Root Directory** to `frontend`.
-3. Confirm the framework preset is Vite.
+1. Import the same GitHub repository.
+2. Set the Root Directory to `frontend`.
+3. Confirm the Vite framework preset.
 4. Add `VITE_API_URL=https://your-api.onrender.com`.
-5. Deploy and note the Vercel frontend URL.
+5. Deploy and copy the stable production URL.
 
-[`frontend/vercel.json`](frontend/vercel.json) sends direct invite and game URLs to
-`index.html`, allowing `/join/...` and `/game/...` to load after refresh.
+`frontend/vercel.json` rewrites client-side game and invitation routes to `index.html`, so
+direct links continue to work after refresh.
 
-### 4. Finish CORS and Invite URLs
+### 4. Production origins
 
-Return to the Render service and set:
+In the Render service's **Environment** page, replace the temporary values:
 
 ```text
 FRONTEND_URL=https://your-project.vercel.app
 ALLOWED_ORIGINS=https://your-project.vercel.app
 ```
 
-If you later add a custom domain, update both variables. Multiple allowed origins are
-comma-separated. Redeploy or restart the Render service after changing them.
+Use exact HTTPS origins without trailing slashes. For a custom domain, use that domain as
+`FRONTEND_URL` and add both origins to `ALLOWED_ORIGINS`, separated by commas.
 
-## Free-Tier Limitations
+## Current Tradeoffs and Roadmap
 
-- Render free services sleep when idle, so the first visit may take about a minute.
-- Supabase free projects can pause after low activity.
-- The WebSocket room manager is intentionally single-process. Do not add multiple Uvicorn
-  workers until a shared pub-sub adapter is introduced.
-- Anonymous seat credentials live in that browser's local storage. Clearing site data
-  loses the seat because there are no user accounts yet.
-- Free Supabase projects do not provide the same backup guarantees as paid production
-  plans.
+The MVP favors a simple, understandable deployment over premature infrastructure:
 
-These tradeoffs are suitable for a personal portfolio project and can be upgraded behind
-the existing repository and real-time interfaces later.
+- Render free services can sleep when idle, making the first request slower.
+- Supabase free projects can pause after sustained low activity and be resumed manually.
+- WebSocket rooms are currently process-local, so production should run one backend worker.
+- Horizontal scaling requires a shared pub-sub adapter such as Redis or managed messaging.
+- The rate limiter is also process-local and should move to shared storage at larger scale.
+- Free-tier database backups do not provide paid-production recovery guarantees.
+
+Natural next steps include user accounts, spectators, rematches, saved variant templates,
+matchmaking, shared Redis-backed presence, Alembic migrations, and an AI opponent. These
+features can build on the existing service, repository, and rule interfaces instead of
+requiring a rewrite.
+
+## Design Principle
+
+> Networking decides who may submit a command. The rule engine decides whether the move
+> is legal.
+
+That boundary is what allows Chass! to support both dependable chess and increasingly
+creative variants as the project grows.
