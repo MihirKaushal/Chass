@@ -99,8 +99,12 @@ function GameWorkspace({ gameId }) {
   const [error, setError] = useState("");
   const [socketMessage, setSocketMessage] = useState("");
   const [presence, setPresence] = useState({ white: false, black: false });
-  const [boardFlipped, setBoardFlipped] = useState(false);
-  const [autoBoardFlipEnabled, setAutoBoardFlipEnabled] = useState(true);
+  const [boardFlipped, setBoardFlipped] = useState(
+    session?.mode === "online" && session?.color === "black"
+  );
+  const [autoBoardFlipEnabled, setAutoBoardFlipEnabled] = useState(
+    session?.mode !== "online"
+  );
   const [endgameMessage, setEndgameMessage] = useState("");
   const [showEndgameModal, setShowEndgameModal] = useState(false);
   const lastEndgameSignatureRef = useRef("");
@@ -219,6 +223,15 @@ function GameWorkspace({ gameId }) {
   useEffect(() => {
     setSelectedSquare(null);
   }, [game?.version]);
+
+  useEffect(() => {
+    if (game?.mode !== "online" || !session?.color) {
+      return;
+    }
+
+    setAutoBoardFlipEnabled(false);
+    setBoardFlipped(session.color === "black");
+  }, [game?.id, game?.mode, session?.color]);
 
   useEffect(() => {
     if (!socketMessage) {
