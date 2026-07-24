@@ -4,6 +4,8 @@ Chass! is a full-stack browser chess platform for classic games and configurable
 variants. It supports local two-player games, private invite-link multiplayer, custom
 boards and pieces, modular rules, and real-time synchronization.
 
+**Live site:** [https://chass-rho.vercel.app](https://chass-rho.vercel.app)
+
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
@@ -169,8 +171,8 @@ The repository includes configuration for a free personal-project deployment:
 After Vercel deploys, set both Render values to the production frontend URL:
 
 ```text
-FRONTEND_URL=https://your-project.vercel.app
-ALLOWED_ORIGINS=https://your-project.vercel.app
+FRONTEND_URL=https://chass-rho.vercel.app
+ALLOWED_ORIGINS=https://chass-rho.vercel.app
 ```
 
 Render services may sleep when idle, and inactive Supabase free projects may need to be
