@@ -479,7 +479,7 @@ function CustomizationPanel({
     }
   };
 
-  const applyBasicChanges = () => {
+  const applyBasicChanges = async () => {
     setLocalError("");
     const patches = basicRuleSet.map((rule) => ({
       id: rule.id,
@@ -487,19 +487,27 @@ function CustomizationPanel({
       params: rule.params,
     }));
 
-    onApplyBasic({ boardRows, boardCols, patches });
+    try {
+      await onApplyBasic({ boardRows, boardCols, patches });
+    } catch (actionError) {
+      setLocalError(actionError?.message || "Unable to apply basic customization.");
+    }
   };
 
-  const applyBoardLayout = () => {
+  const applyBoardLayout = async () => {
     setLocalError("");
-    onApplyBoardLayout({
-      boardRows,
-      boardCols,
-      placements: toPlacements(previewBoard),
-    });
+    try {
+      await onApplyBoardLayout({
+        boardRows,
+        boardCols,
+        placements: toPlacements(previewBoard),
+      });
+    } catch (actionError) {
+      setLocalError(actionError?.message || "Unable to apply the board layout.");
+    }
   };
 
-  const applyPointChanges = () => {
+  const applyPointChanges = async () => {
     setLocalError("");
 
     const pieces = [];
@@ -519,28 +527,36 @@ function CustomizationPanel({
       });
     }
 
-    onApplyPieceCustomization({
-      pieces,
-    });
+    try {
+      await onApplyPieceCustomization({
+        pieces,
+      });
+    } catch (actionError) {
+      setLocalError(actionError?.message || "Unable to update piece points.");
+    }
   };
 
-  const applyBuilderRule = () => {
+  const applyBuilderRule = async () => {
     setLocalError("");
-    onApplyRuleBuilder({
-      rules: [
-        {
-          id: "double_capture_rook",
-          enabled: true,
-          params: {
-            alignedEnemies: alignedEnemyCount,
-            captureCount: 2,
+    try {
+      await onApplyRuleBuilder({
+        rules: [
+          {
+            id: "double_capture_rook",
+            enabled: true,
+            params: {
+              alignedEnemies: alignedEnemyCount,
+              captureCount: 2,
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    } catch (actionError) {
+      setLocalError(actionError?.message || "Unable to apply the builder rule.");
+    }
   };
 
-  const applyRawRules = () => {
+  const applyRawRules = async () => {
     setLocalError("");
     let parsed;
     try {
@@ -555,7 +571,20 @@ function CustomizationPanel({
       return;
     }
 
-    onApplyRaw({ rules: parsed });
+    try {
+      await onApplyRaw({ rules: parsed });
+    } catch (actionError) {
+      setLocalError(actionError?.message || "Unable to apply raw rules.");
+    }
+  };
+
+  const createNewGame = async () => {
+    setLocalError("");
+    try {
+      await onCreateNewGame({ boardRows, boardCols });
+    } catch (actionError) {
+      setLocalError(actionError?.message || "Unable to create a new game.");
+    }
   };
 
   return (
@@ -570,8 +599,9 @@ function CustomizationPanel({
               className="customize-board-grid"
               style={{
                 aspectRatio: `${boardCols} / ${boardRows}`,
-                gridTemplateColumns: `repeat(${boardCols}, minmax(34px, 1fr))`,
-                gridTemplateRows: `repeat(${boardRows}, minmax(34px, 1fr))`,
+                gridTemplateColumns: `repeat(${boardCols}, minmax(0, 1fr))`,
+                gridTemplateRows: `repeat(${boardRows}, minmax(0, 1fr))`,
+                "--piece-size": `${Math.max(0.68, Math.min(1.6, 13 / boardCols))}rem`,
               }}
             >
               {Array.from({ length: boardRows }).map((_, row) =>
@@ -667,7 +697,7 @@ function CustomizationPanel({
               <button
                 type="button"
                 className="secondary"
-                onClick={() => onCreateNewGame({ boardRows, boardCols })}
+                onClick={createNewGame}
               >
                 Create New Game
               </button>

@@ -1,8 +1,8 @@
 from .domain import (
     Board,
     CaptureEvent,
-    GameStatus,
     GameState,
+    GameStatus,
     Move,
     MoveOption,
     MovePattern,

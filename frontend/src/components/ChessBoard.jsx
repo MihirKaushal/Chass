@@ -35,6 +35,7 @@ function ChessBoard({
   lastMove,
   onSquareClick,
   boardFlipped,
+  interactive = true,
 }) {
   const rows = boardRows ?? boardSize ?? board.length;
   const cols = boardCols ?? boardSize ?? (board[0] ? board[0].length : 0);
@@ -55,13 +56,15 @@ function ChessBoard({
       className="board-wrap"
       style={{
         aspectRatio: `${cols} / ${rows}`,
+        width: `min(85vw, calc(74vh * ${cols / rows}), 820px)`,
+        "--piece-size": `${Math.max(0.72, Math.min(2.1, 18 / cols))}rem`,
       }}
     >
       <div
         className="board-grid"
         style={{
-          gridTemplateColumns: `repeat(${cols}, minmax(38px, 1fr))`,
-          gridTemplateRows: `repeat(${rows}, minmax(38px, 1fr))`,
+          gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))`,
+          gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))`,
         }}
       >
         {Array.from({ length: rows }).map((_, visibleRowIndex) =>
@@ -87,6 +90,7 @@ function ChessBoard({
               isValidTarget ? "valid-target" : "",
               isLastMoveSquare ? "last-move" : "",
               piece?.isCustom ? "custom-square" : "",
+              !interactive ? "readonly" : "",
             ]
               .filter(Boolean)
               .join(" ");
@@ -98,16 +102,21 @@ function ChessBoard({
               .filter(Boolean)
               .join(" ");
 
-            const tooltipPlacement = rowIndex === 0 ? "below" : "above";
+            const tooltipPlacement = visibleRowIndex === 0 ? "below" : "above";
             const tooltipEdge =
-              colIndex === 0 ? "left" : colIndex === cols - 1 ? "right" : "center";
+              visibleColIndex === 0
+                ? "left"
+                : visibleColIndex === cols - 1
+                  ? "right"
+                  : "center";
 
             return (
               <button
                 type="button"
                 key={key}
                 className={className}
-                onClick={() => onSquareClick(rowIndex, colIndex)}
+                onClick={() => interactive && onSquareClick(rowIndex, colIndex)}
+                aria-disabled={!interactive}
               >
                 <span className={pieceClassName}>{piece?.symbol || ""}</span>
                 {isValidTarget ? <span className="move-dot" /> : null}

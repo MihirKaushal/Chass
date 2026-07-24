@@ -3,6 +3,12 @@ __pycache__/
 *.pyo
 *.DS_Store
 .venv/
+.env
+.env.local
 backend/chass.db
+backend/*.db-shm
+backend/*.db-wal
 frontend/node_modules/
 frontend/dist/
+frontend/.env
+frontend/.env.local
