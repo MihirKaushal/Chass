@@ -11,7 +11,14 @@ services:
         value: production
       - key: TOKEN_SECRET
         generateValue: true
+      # Keep this as "sql" until Firebase credentials are configured in Render.
+      - key: PERSISTENCE_BACKEND
+        sync: false
       - key: DATABASE_URL
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CREDENTIALS_BASE64
         sync: false
       - key: FRONTEND_URL
         sync: false

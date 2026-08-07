@@ -1,0 +1,117 @@
+# Firebase Setup
+
+Chass! uses Firebase Admin on the FastAPI server. The React frontend never receives
+Firebase credentials and never accesses Firestore directly.
+
+## 1. Create Firestore
+
+1. Open the [Firebase Console](https://console.firebase.google.com/) and create a project.
+2. Google Analytics is optional and is not required by Chass!.
+3. Open **Build > Firestore Database** and select **Create database**.
+4. Choose the free **Standard edition**, the default database, and a region near the
+   Render service.
+5. Choose **Production mode** so browser access starts denied.
+6. Copy the project ID from **Project settings > General**.
+
+Do not enable billing. Chass! only needs the Spark plan's free Firestore database.
+
+## 2. Create Server Credentials
+
+1. Open **Project settings > Service accounts**.
+2. Select **Firebase Admin SDK**.
+3. Select **Generate new private key** and confirm.
+4. Keep the downloaded JSON file private and outside this repository.
+
+Encode the JSON as one line on macOS or Linux:
+
+```bash
+base64 < ~/Downloads/your-service-account.json | tr -d '\n'
+```
+
+The output is the value for `FIREBASE_CREDENTIALS_BASE64`. Never commit the JSON file or
+the encoded value. Base64 is transport encoding, not encryption.
+
+## 3. Configure Render Without Downtime
+
+The new variables use `sync: false`, so an existing Render Blueprint does not add their
+values automatically.
+
+1. Open **Render > chass-api > Environment**.
+2. Add `FIREBASE_PROJECT_ID` using the Firebase project ID.
+3. Add `FIREBASE_CREDENTIALS_BASE64` using the encoded service-account JSON.
+4. Keep the existing `TOKEN_SECRET` unchanged so existing seat tokens remain valid.
+5. Initially keep `PERSISTENCE_BACKEND=sql` and deploy the new application code.
+6. After the deployment succeeds, change `PERSISTENCE_BACKEND=firestore`.
+7. Select **Save and deploy**.
+
+Keep `DATABASE_URL` temporarily for rollback or data migration. It is ignored while
+`PERSISTENCE_BACKEND=firestore` and can be removed after the cutover is verified.
+
+## 4. Keep Firestore Private
+
+The repository includes `firestore.rules`, which denies all browser reads and writes.
+Firebase Admin bypasses these rules using server IAM credentials.
+
+From the repository root, deploy the included rules and index configuration once:
+
+```bash
+npx firebase-tools login
+npx firebase-tools deploy --only firestore --project your-firebase-project-id
+```
+
+This also prevents Firestore from indexing the serialized board-state field, which does
+not need to be searched.
+
+In **Firestore Database > Rules**, confirm the deployed rule is equivalent to:
+
+```text
+match /{document=**} {
+  allow read, write: if false;
+}
+```
+
+Do not add public rules. A future account feature can introduce Firebase Authentication
+and user-specific policies separately.
+
+## 5. Optional: Preserve Existing Games
+
+Existing Supabase documents do not move automatically. If old test games are disposable,
+skip this section and start with an empty Firestore database.
+
+To preserve them, first resume Supabase and set these variables locally:
+
+```bash
+export DATABASE_URL='your-supabase-session-pooler-url'
+export FIREBASE_PROJECT_ID='your-firebase-project-id'
+export FIREBASE_CREDENTIALS_BASE64='your-encoded-service-account-json'
+```
+
+Preview the migration:
+
+```bash
+source .venv/bin/activate
+python -m scripts.migrate_sql_to_firestore
+```
+
+Apply it:
+
+```bash
+python -m scripts.migrate_sql_to_firestore --apply
+```
+
+The migration preserves game IDs, versions, token hashes, invites, and move audits. It
+skips expired games by default so abandoned records are not moved. Keep Render's existing
+`TOKEN_SECRET`; changing it invalidates previously issued seat tokens.
+
+## 6. Verify the Cutover
+
+1. Open the Render health endpoint and confirm `"persistence":"firestore"`.
+2. Create and move in a local game on the deployed frontend.
+3. Create an online room and copy its invitation.
+4. Join from an incognito window or second device.
+5. Make a move from each side and refresh both browsers.
+6. Confirm `games`, `game_players`, `game_invites`, and `moves` appear in Firestore's Data
+   tab.
+
+If startup fails, set `PERSISTENCE_BACKEND=sql` in Render and redeploy. This immediately
+returns the backend to the existing database while the Firebase configuration is fixed.

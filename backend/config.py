@@ -34,6 +34,9 @@ def _origins(frontend_url: str, include_development: bool) -> tuple[str, ...]:
 @dataclass(frozen=True)
 class Settings:
     database_url: str
+    persistence_backend: str
+    firebase_project_id: str | None
+    firebase_credentials_base64: str | None
     frontend_url: str
     allowed_origins: tuple[str, ...]
     token_secret: str
@@ -50,6 +53,16 @@ def get_settings() -> Settings:
     frontend_url = os.getenv("FRONTEND_URL", DEFAULT_FRONTEND_URL).rstrip("/")
     environment = os.getenv("ENVIRONMENT", "development")
     token_secret = os.getenv("TOKEN_SECRET", DEFAULT_TOKEN_SECRET)
+    persistence_backend = (
+        os.getenv("PERSISTENCE_BACKEND", "sql").strip().lower() or "sql"
+    )
+    firebase_project_id = os.getenv("FIREBASE_PROJECT_ID", "").strip() or None
+    firebase_credentials_base64 = (
+        os.getenv("FIREBASE_CREDENTIALS_BASE64", "").strip() or None
+    )
+
+    if persistence_backend not in {"sql", "firestore"}:
+        raise RuntimeError("PERSISTENCE_BACKEND must be either 'sql' or 'firestore'")
 
     if environment.lower() == "production" and (
         token_secret == DEFAULT_TOKEN_SECRET or len(token_secret) < 32
@@ -59,8 +72,26 @@ def get_settings() -> Settings:
             "in production"
         )
 
+    if persistence_backend == "firestore" and not firebase_project_id:
+        raise RuntimeError("FIREBASE_PROJECT_ID is required when using Firestore")
+
+    has_application_credentials = bool(os.getenv("GOOGLE_APPLICATION_CREDENTIALS"))
+    if (
+        persistence_backend == "firestore"
+        and environment.lower() == "production"
+        and not firebase_credentials_base64
+        and not has_application_credentials
+    ):
+        raise RuntimeError(
+            "FIREBASE_CREDENTIALS_BASE64 or GOOGLE_APPLICATION_CREDENTIALS is required "
+            "for Firestore in production"
+        )
+
     return Settings(
         database_url=os.getenv("DATABASE_URL", DEFAULT_DATABASE_URL),
+        persistence_backend=persistence_backend,
+        firebase_project_id=firebase_project_id,
+        firebase_credentials_base64=firebase_credentials_base64,
         frontend_url=frontend_url,
         allowed_origins=_origins(
             frontend_url,

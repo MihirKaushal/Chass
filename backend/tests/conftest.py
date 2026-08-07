@@ -1,7 +1,11 @@
 from __future__ import annotations
 
+import os
+
 import pytest
 from fastapi.testclient import TestClient
+
+os.environ["PERSISTENCE_BACKEND"] = "sql"
 
 from backend.db import reset_database_engine
 from backend.main import app

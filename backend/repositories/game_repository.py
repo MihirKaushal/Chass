@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass
 from datetime import datetime, timezone
 
 from sqlalchemy import delete, select, update
@@ -9,54 +8,15 @@ from sqlalchemy.exc import IntegrityError
 
 from backend.db import GameInviteRow, GamePlayerRow, GameRow, MoveRow, session_scope
 from backend.models import GameState
-
-
-class RepositoryError(Exception):
-    pass
-
-
-class ConcurrentUpdateError(RepositoryError):
-    pass
-
-
-class ExpiredGameError(RepositoryError):
-    pass
-
-
-class InviteClaimError(RepositoryError):
-    pass
-
-
-@dataclass(frozen=True)
-class PlayerIdentity:
-    game_id: str
-    color: str
-    role: str
-
-
-@dataclass(frozen=True)
-class GameRecord:
-    state: GameState
-    mode: str
-    version: int
-    player_colors: frozenset[str]
-    expires_at: datetime | None
-
-    @property
-    def ready(self) -> bool:
-        return self.mode == "local" or {"white", "black"}.issubset(self.player_colors)
-
-
-@dataclass(frozen=True)
-class MoveAudit:
-    move_number: int
-    player_color: str
-    piece_type: str
-    from_row: int
-    from_col: int
-    to_row: int
-    to_col: int
-    explanation: str
+from backend.repositories.base import (
+    ConcurrentUpdateError,
+    ExpiredGameError,
+    GameRecord,
+    InviteClaimError,
+    MoveAudit,
+    PlayerIdentity,
+    RepositoryError,
+)
 
 
 def _as_utc(value: datetime | None) -> datetime | None:
@@ -65,7 +25,7 @@ def _as_utc(value: datetime | None) -> datetime | None:
     return value.replace(tzinfo=timezone.utc)
 
 
-class GameRepository:
+class SqlGameRepository:
     def _record_from_row(self, session, row: GameRow) -> GameRecord:
         colors = session.scalars(
             select(GamePlayerRow.color).where(GamePlayerRow.game_id == row.id)

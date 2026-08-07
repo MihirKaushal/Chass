@@ -7,12 +7,16 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from backend.config import get_settings
 from backend.db import init_db
+from backend.firebase_client import get_firestore_client
 from backend.routes import game_router
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    init_db()
+    if get_settings().persistence_backend == "firestore":
+        get_firestore_client()
+    else:
+        init_db()
     yield
 
 
@@ -35,7 +39,11 @@ app.add_middleware(
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "environment": settings.environment}
+    return {
+        "status": "ok",
+        "environment": settings.environment,
+        "persistence": settings.persistence_backend,
+    }
 
 
 app.include_router(game_router)
