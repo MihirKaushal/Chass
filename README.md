@@ -26,9 +26,9 @@ boards and pieces, modular rules, and real-time synchronization.
 | Languages | Python, JavaScript/JSX, CSS, SQL, Bash |
 | Frontend | React 18, React Hooks, Vite 5, native WebSocket API |
 | Backend | FastAPI, Uvicorn, Pydantic 2 |
-| Database | SQLAlchemy 2, SQLite, PostgreSQL, Psycopg 3 |
+| Database | Cloud Firestore, Firebase Admin SDK, SQLAlchemy 2, SQLite |
 | Testing and quality | Pytest, HTTPX, Ruff, Vite production builds |
-| Hosting | Vercel, Render, Supabase |
+| Hosting | Vercel, Render, Firebase |
 
 ### Main Packages
 
@@ -36,8 +36,8 @@ boards and pieces, modular rules, and real-time synchronization.
 - **Vite:** Frontend development server and production bundler.
 - **FastAPI:** REST API, WebSocket endpoints, CORS, and generated OpenAPI documentation.
 - **Pydantic:** Request validation, domain models, and JSON serialization.
-- **SQLAlchemy:** Database models, queries, transactions, and persistence abstraction.
-- **Psycopg:** PostgreSQL driver used for Supabase deployments.
+- **Firebase Admin:** Secure server-side Firestore access and transactions.
+- **SQLAlchemy:** Local SQLite persistence and an optional SQL fallback.
 - **Uvicorn:** ASGI server for FastAPI HTTP and WebSocket traffic.
 - **Pytest and HTTPX:** Backend API and multiplayer integration testing.
 - **Ruff:** Python linting and code-quality checks.
@@ -53,9 +53,9 @@ FastAPI
   |-- Game service
   |-- Modular rule engine
   v
-SQLAlchemy
-  |-- SQLite locally
-  `-- PostgreSQL / Supabase in production
+Repository adapters
+  |-- SQLAlchemy / SQLite locally
+  `-- Firebase Admin / Firestore in production
 ```
 
 Game rules are handled by a separate rule engine rather than API routes or database code.
@@ -67,7 +67,7 @@ database updates prevent stale moves from one browser from overwriting newer gam
 ```text
 backend/
   models/          Domain models and API schemas
-  repositories/    SQLAlchemy persistence
+  repositories/    Firestore and SQL persistence adapters
   routes/          REST and WebSocket endpoints
   rules/           Movement and game rules
   services/        Game and session workflows
@@ -108,7 +108,7 @@ Local addresses:
 - API documentation: `http://localhost:8000/docs`
 - Health check: `http://localhost:8000/health`
 
-Local development uses SQLite and does not require Supabase. Press `Ctrl+C` to stop both
+Local development uses SQLite and does not require Firebase. Press `Ctrl+C` to stop both
 services.
 
 ## Test and Build
@@ -146,7 +146,10 @@ Use `.env.example` as the local template.
 
 | Variable | Purpose |
 | --- | --- |
-| `DATABASE_URL` | SQLite or PostgreSQL connection string |
+| `PERSISTENCE_BACKEND` | Selects `sql` locally or `firestore` in production |
+| `DATABASE_URL` | Local SQLite or optional SQL fallback connection string |
+| `FIREBASE_PROJECT_ID` | Firebase project used by the backend |
+| `FIREBASE_CREDENTIALS_BASE64` | Base64-encoded server service-account JSON |
 | `FRONTEND_URL` | Frontend address used for invite links |
 | `ALLOWED_ORIGINS` | Comma-separated CORS origins |
 | `ENVIRONMENT` | `development` or `production` |
@@ -163,10 +166,12 @@ The repository includes configuration for a free personal-project deployment:
 
 - **Frontend:** Import the repository into Vercel, set the Root Directory to `frontend`,
   and set `VITE_API_URL` to the Render backend URL.
-- **Backend:** Create a Render Blueprint from `render.yaml` and provide `DATABASE_URL`,
-  `FRONTEND_URL`, and `ALLOWED_ORIGINS`.
-- **Database:** Create a Supabase PostgreSQL project and use its Session pooler connection
-  string on port `5432` as `DATABASE_URL`.
+- **Backend:** Create a Render Blueprint from `render.yaml`, add the Firebase server
+  credentials, and set `PERSISTENCE_BACKEND=firestore`.
+- **Database:** Create a free Firebase project and its default Cloud Firestore database.
+
+See [Firebase Setup](docs/FIREBASE_SETUP.md) for the exact credential, migration, Render,
+security-rule, rollback, and verification steps.
 
 After Vercel deploys, set both Render values to the production frontend URL:
 
@@ -175,5 +180,4 @@ FRONTEND_URL=https://chass-rho.vercel.app
 ALLOWED_ORIGINS=https://chass-rho.vercel.app
 ```
 
-Render services may sleep when idle, and inactive Supabase free projects may need to be
-resumed from the Supabase dashboard.
+Render services may sleep when idle, but Firestore does not require manual unpausing.

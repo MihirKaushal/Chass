@@ -40,6 +40,7 @@ from backend.repositories import (
     InviteClaimError,
     MoveAudit,
     PlayerIdentity,
+    create_game_repository,
 )
 from backend.rules import RuleEngine
 from backend.security import generate_token, hash_token
@@ -400,7 +401,7 @@ class AuthorizedGame:
 class GameService:
     def __init__(self, engine: RuleEngine, repository: GameRepository | None = None) -> None:
         self.engine = engine
-        self.repository = repository or GameRepository()
+        self.repository = repository or create_game_repository()
 
     def _load_game(self, game_id: str) -> GameRecord:
         try:

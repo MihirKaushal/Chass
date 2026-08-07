@@ -1,0 +1,10 @@
+{
+  "indexes": [],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "games",
+      "fieldPath": "state_json",
+      "indexes": []
+    }
+  ]
+}

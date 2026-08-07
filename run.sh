@@ -29,7 +29,7 @@ bootstrap_backend() {
 
   # shellcheck disable=SC1091
   source "$VENV_DIR/bin/activate"
-  if ! python -c "import fastapi, uvicorn, pydantic, sqlalchemy, psycopg" >/dev/null 2>&1; then
+  if ! python -c "import fastapi, uvicorn, pydantic, sqlalchemy, psycopg, firebase_admin" >/dev/null 2>&1; then
     echo "Installing backend dependencies..."
     pip install -r "$ROOT_DIR/backend/requirements.txt"
   fi
