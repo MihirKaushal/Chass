@@ -28,6 +28,13 @@ Encode the JSON as one line on macOS or Linux:
 base64 < ~/Downloads/your-service-account.json | tr -d '\n'
 ```
 
+On macOS, copy it directly and verify the clipboard without displaying the credential:
+
+```bash
+base64 < ~/Downloads/your-service-account.json | tr -d '\n' | pbcopy
+pbpaste | python3 -c 'import base64,json,sys; value=json.loads(base64.b64decode(sys.stdin.read())); assert value.get("type") == "service_account"; print("Credential encoding is valid")'
+```
+
 The output is the value for `FIREBASE_CREDENTIALS_BASE64`. Never commit the JSON file or
 the encoded value. Base64 is transport encoding, not encryption.
 
