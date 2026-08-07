@@ -4,10 +4,17 @@ import os
 from datetime import datetime, timedelta, timezone
 
 import pytest
+from google.cloud.firestore_v1.base_query import FieldFilter
 
 from backend.models.schemas import CreateGameRequest, JoinGameRequest
 from backend.repositories import MoveAudit
-from backend.repositories.firestore_repository import GAMES, FirestoreGameRepository
+from backend.repositories.firestore_repository import (
+    GAMES,
+    INVITES,
+    MOVES,
+    PLAYERS,
+    FirestoreGameRepository,
+)
 from backend.rules import RuleEngine
 from backend.services.game_service import GameService
 
@@ -41,11 +48,24 @@ def test_firestore_emulator_game_lifecycle(monkeypatch):
             to_col=4,
             explanation="Pawn moved.",
         ),
+        expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
     )
     assert saved.version == 2
 
+    now = datetime.now(timezone.utc)
     repository.client.collection(GAMES).document(created.game.id).update(
-        {"expires_at": datetime.now(timezone.utc) - timedelta(seconds=1)}
+        {
+            "updated_at": now - timedelta(hours=25),
+            "expires_at": now + timedelta(days=30),
+        }
     )
-    assert repository.delete_expired_games() == 1
+    assert repository.delete_inactive_games(now - timedelta(hours=24), now) == 1
     assert repository.get_game(created.game.id) is None
+
+    for collection_name in (PLAYERS, INVITES, MOVES):
+        related = list(
+            repository.client.collection(collection_name)
+            .where(filter=FieldFilter("game_id", "==", created.game.id))
+            .stream()
+        )
+        assert related == []

@@ -42,7 +42,8 @@ class Settings:
     token_secret: str
     environment: str
     invite_ttl_hours: int
-    game_ttl_days: int
+    game_idle_ttl_hours: int
+    game_cleanup_interval_minutes: int
 
     @property
     def is_production(self) -> bool:
@@ -100,5 +101,8 @@ def get_settings() -> Settings:
         token_secret=token_secret,
         environment=environment,
         invite_ttl_hours=_positive_int("INVITE_TTL_HOURS", 24),
-        game_ttl_days=_positive_int("GAME_TTL_DAYS", 30),
+        game_idle_ttl_hours=_positive_int("GAME_IDLE_TTL_HOURS", 24),
+        game_cleanup_interval_minutes=_positive_int(
+            "GAME_CLEANUP_INTERVAL_MINUTES", 15
+        ),
     )

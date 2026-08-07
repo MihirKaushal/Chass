@@ -1,5 +1,15 @@
 from __future__ import annotations
 
+from datetime import datetime, timedelta, timezone
+
+from sqlalchemy import func, select
+
+from backend.db import GameInviteRow, GamePlayerRow, GameRow, MoveRow, session_scope
+
+
+def as_utc(value: datetime) -> datetime:
+    return value if value.tzinfo is not None else value.replace(tzinfo=timezone.utc)
+
 
 def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
@@ -211,6 +221,26 @@ def test_host_can_replace_unused_invite(client):
     assert new_join.status_code == 200
 
 
+def test_inactive_invite_cannot_revive_game(client):
+    created = create_online_game(client)
+    game_id = created["game"]["id"]
+    now = datetime.now(timezone.utc)
+
+    with session_scope() as session:
+        game = session.get(GameRow, game_id)
+        assert game is not None
+        game.updated_at = now - timedelta(hours=25)
+        game.expires_at = now + timedelta(days=30)
+        session.commit()
+
+    joined = client.post(
+        "/game/join",
+        json={"inviteToken": created["inviteToken"]},
+    )
+    assert joined.status_code == 409
+    assert "inactivity" in joined.json()["detail"].lower()
+
+
 def test_websocket_authenticates_before_joining_room(client):
     created = create_online_game(client)
     game_id = created["game"]["id"]
@@ -230,3 +260,71 @@ def test_websocket_authenticates_before_joining_room(client):
         presence = websocket.receive_json()
         assert presence["type"] == "presence"
         assert presence["connected"]["white"] is True
+
+
+def test_successful_move_refreshes_idle_expiration(client):
+    created = client.post("/game/create", json={"mode": "local"}).json()
+    game_id = created["game"]["id"]
+    now = datetime.now(timezone.utc)
+
+    with session_scope() as session:
+        game = session.get(GameRow, game_id)
+        assert game is not None
+        game.expires_at = now + timedelta(minutes=5)
+        game.updated_at = now
+        session.commit()
+
+    moved = client.post(
+        f"/game/{game_id}/move",
+        json={"fromRow": 6, "fromCol": 4, "toRow": 4, "toCol": 4},
+    )
+    assert moved.status_code == 200
+
+    with session_scope() as session:
+        game = session.get(GameRow, game_id)
+        assert game is not None
+        assert as_utc(game.expires_at) >= now + timedelta(hours=23, minutes=59)
+
+
+def test_inactive_game_access_deletes_all_associated_data(client):
+    created = create_online_game(client)
+    game_id = created["game"]["id"]
+    joined = client.post(
+        "/game/join",
+        json={"inviteToken": created["inviteToken"]},
+    ).json()
+
+    moved = client.post(
+        f"/game/{game_id}/move",
+        headers=auth(created["playerToken"]),
+        json={
+            "fromRow": 6,
+            "fromCol": 4,
+            "toRow": 4,
+            "toCol": 4,
+            "expectedVersion": 1,
+        },
+    )
+    assert moved.status_code == 200
+
+    now = datetime.now(timezone.utc)
+    with session_scope() as session:
+        game = session.get(GameRow, game_id)
+        assert game is not None
+        game.updated_at = now - timedelta(hours=25)
+        game.expires_at = now + timedelta(days=30)
+        session.commit()
+
+    expired = client.get(
+        f"/game/{game_id}",
+        headers=auth(joined["playerToken"]),
+    )
+    assert expired.status_code == 410
+
+    with session_scope() as session:
+        assert session.get(GameRow, game_id) is None
+        for model in (GamePlayerRow, GameInviteRow, MoveRow):
+            count = session.scalar(
+                select(func.count()).select_from(model).where(model.game_id == game_id)
+            )
+            assert count == 0

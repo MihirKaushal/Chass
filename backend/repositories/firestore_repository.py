@@ -23,7 +23,7 @@ PLAYERS = "game_players"
 INVITES = "game_invites"
 MOVES = "moves"
 DELETE_BATCH_SIZE = 400
-MAX_GAMES_PER_CLEANUP = 25
+MAX_GAMES_PER_CLEANUP = 100
 LAST_SEEN_WRITE_INTERVAL = timedelta(minutes=5)
 
 
@@ -44,12 +44,16 @@ class FirestoreGameRepository:
         state_json = data.get("state_json")
         if not isinstance(state_json, str):
             raise RepositoryError("Stored game state is missing or invalid")
+        updated_at = _as_utc(data.get("updated_at")) or _as_utc(data.get("created_at"))
+        if updated_at is None:
+            raise RepositoryError("Stored game activity timestamp is missing or invalid")
 
         return GameRecord(
             state=GameState.model_validate_json(state_json),
             mode=str(data.get("mode", "local")),
             version=int(data.get("version", 1)),
             player_colors=frozenset(str(color) for color in data.get("player_colors", [])),
+            updated_at=updated_at,
             expires_at=_as_utc(data.get("expires_at")),
         )
 
@@ -83,7 +87,6 @@ class FirestoreGameRepository:
         invite_expires_at: datetime | None = None,
     ) -> GameRecord:
         now = datetime.now(timezone.utc)
-        self.delete_expired_games(now)
 
         if mode == "online" and (
             not host_token_hash or not invite_token_hash or not invite_expires_at
@@ -144,23 +147,86 @@ class FirestoreGameRepository:
                 batch.delete(snapshot.reference)
             batch.commit()
 
-    def delete_expired_games(self, now: datetime | None = None) -> int:
-        cutoff = now or datetime.now(timezone.utc)
-        expired_games = list(
-            self.client.collection(GAMES)
-            .where(filter=FieldFilter("expires_at", "<=", cutoff))
-            .limit(MAX_GAMES_PER_CLEANUP)
-            .stream()
+    @staticmethod
+    def _is_inactive(
+        data: dict[str, Any],
+        inactive_before: datetime,
+        now: datetime,
+    ) -> bool:
+        if data.get("deletion_pending") is True:
+            return True
+
+        expires_at = _as_utc(data.get("expires_at"))
+        updated_at = _as_utc(data.get("updated_at"))
+        return (expires_at is not None and expires_at <= now) or (
+            updated_at is not None and updated_at <= inactive_before
         )
 
-        for snapshot in expired_games:
-            game_id = snapshot.id
-            self._delete_matching_documents(PLAYERS, game_id)
-            self._delete_matching_documents(INVITES, game_id)
-            self._delete_matching_documents(MOVES, game_id)
-            snapshot.reference.delete()
+    def delete_game_if_inactive(
+        self,
+        game_id: str,
+        inactive_before: datetime,
+        now: datetime | None = None,
+    ) -> bool:
+        current = now or datetime.now(timezone.utc)
+        game_ref = self.client.collection(GAMES).document(game_id)
+        transaction = self.client.transaction()
 
-        return len(expired_games)
+        @firestore.transactional
+        def mark_for_deletion(transaction):
+            snapshot = game_ref.get(transaction=transaction)
+            if not snapshot.exists:
+                return False
+
+            game = snapshot.to_dict() or {}
+            if not self._is_inactive(game, inactive_before, current):
+                return False
+
+            if game.get("deletion_pending") is not True:
+                transaction.update(
+                    game_ref,
+                    {
+                        "deletion_pending": True,
+                        "deletion_started_at": current,
+                    },
+                )
+            return True
+
+        if not mark_for_deletion(transaction):
+            return False
+
+        for collection_name in (PLAYERS, INVITES, MOVES):
+            self._delete_matching_documents(collection_name, game_id)
+        game_ref.delete()
+        return True
+
+    def delete_inactive_games(
+        self,
+        inactive_before: datetime,
+        now: datetime | None = None,
+    ) -> int:
+        current = now or datetime.now(timezone.utc)
+        games = self.client.collection(GAMES)
+        candidate_ids: set[str] = set()
+
+        for field, cutoff in (
+            ("expires_at", current),
+            ("updated_at", inactive_before),
+        ):
+            remaining = MAX_GAMES_PER_CLEANUP - len(candidate_ids)
+            if remaining <= 0:
+                break
+            snapshots = games.where(filter=FieldFilter(field, "<=", cutoff)).limit(
+                remaining
+            )
+            candidate_ids.update(snapshot.id for snapshot in snapshots.stream())
+
+        deleted = 0
+        for game_id in candidate_ids:
+            if self.delete_game_if_inactive(game_id, inactive_before, current):
+                deleted += 1
+
+        return deleted
 
     def get_game(self, game_id: str) -> GameRecord | None:
         snapshot = self.client.collection(GAMES).document(game_id).get()
@@ -168,6 +234,9 @@ class FirestoreGameRepository:
             return None
 
         data = snapshot.to_dict() or {}
+        if data.get("deletion_pending") is True:
+            raise ExpiredGameError("Game cleanup is in progress")
+
         expires_at = _as_utc(data.get("expires_at"))
         if expires_at is not None and expires_at <= datetime.now(timezone.utc):
             raise ExpiredGameError("Game has expired")
@@ -194,7 +263,13 @@ class FirestoreGameRepository:
             role=str(data.get("role", "player")),
         )
 
-    def claim_invite(self, invite_token_hash: str, player_token_hash: str) -> GameRecord:
+    def claim_invite(
+        self,
+        invite_token_hash: str,
+        player_token_hash: str,
+        game_expires_at: datetime,
+        inactive_before: datetime,
+    ) -> GameRecord:
         invite_ref = self.client.collection(INVITES).document(invite_token_hash)
         player_ref = self.client.collection(PLAYERS).document(player_token_hash)
         transaction = self.client.transaction()
@@ -223,9 +298,16 @@ class FirestoreGameRepository:
                 raise InviteClaimError("Game no longer exists")
 
             game = game_snapshot.to_dict() or {}
-            game_expires_at = _as_utc(game.get("expires_at"))
-            if game_expires_at is not None and game_expires_at <= now:
+            if game.get("deletion_pending") is True:
                 raise InviteClaimError("Game has expired")
+            current_expiration = _as_utc(game.get("expires_at"))
+            if current_expiration is not None and current_expiration <= now:
+                raise InviteClaimError("Game has expired")
+            updated_at = _as_utc(game.get("updated_at")) or _as_utc(
+                game.get("created_at")
+            )
+            if updated_at is None or updated_at <= inactive_before:
+                raise InviteClaimError("Game has expired due to inactivity")
             if game.get("active_invite_hash") != invite_token_hash:
                 raise InviteClaimError("Invite link was replaced")
 
@@ -252,6 +334,7 @@ class FirestoreGameRepository:
                     "player_colors": sorted(player_colors),
                     "active_invite_hash": None,
                     "updated_at": now,
+                    "expires_at": game_expires_at,
                 },
             )
 
@@ -259,6 +342,7 @@ class FirestoreGameRepository:
             updated_game["player_colors"] = sorted(player_colors)
             updated_game["active_invite_hash"] = None
             updated_game["updated_at"] = now
+            updated_game["expires_at"] = game_expires_at
             return updated_game
 
         return self._record_from_data(claim(transaction))
@@ -267,7 +351,8 @@ class FirestoreGameRepository:
         self,
         game_id: str,
         invite_token_hash: str,
-        expires_at: datetime,
+        invite_expires_at: datetime,
+        game_expires_at: datetime,
     ) -> None:
         game_ref = self.client.collection(GAMES).document(game_id)
         new_invite_ref = self.client.collection(INVITES).document(invite_token_hash)
@@ -281,6 +366,11 @@ class FirestoreGameRepository:
                 raise RepositoryError("Game no longer exists")
 
             game = game_snapshot.to_dict() or {}
+            if game.get("deletion_pending") is True:
+                raise RepositoryError("Game has expired")
+            current_expiration = _as_utc(game.get("expires_at"))
+            if current_expiration is not None and current_expiration <= now:
+                raise RepositoryError("Game has expired")
             active_invite_hash = game.get("active_invite_hash")
             old_invite_ref = None
             old_invite_snapshot = None
@@ -297,14 +387,18 @@ class FirestoreGameRepository:
                     "game_id": game_id,
                     "target_color": "black",
                     "created_at": now,
-                    "expires_at": expires_at,
+                    "expires_at": invite_expires_at,
                     "used_at": None,
                     "revoked_at": None,
                 },
             )
             transaction.update(
                 game_ref,
-                {"active_invite_hash": invite_token_hash, "updated_at": now},
+                {
+                    "active_invite_hash": invite_token_hash,
+                    "updated_at": now,
+                    "expires_at": game_expires_at,
+                },
             )
 
         replace(transaction)
@@ -314,6 +408,7 @@ class FirestoreGameRepository:
         state: GameState,
         expected_version: int,
         audit: MoveAudit | None = None,
+        expires_at: datetime | None = None,
     ) -> GameRecord:
         game_ref = self.client.collection(GAMES).document(state.id)
         transaction = self.client.transaction()
@@ -325,6 +420,13 @@ class FirestoreGameRepository:
                 raise ConcurrentUpdateError("Game no longer exists")
 
             game = game_snapshot.to_dict() or {}
+            if game.get("deletion_pending") is True:
+                raise ConcurrentUpdateError("Game no longer exists")
+            current_expiration = _as_utc(game.get("expires_at"))
+            if current_expiration is not None and current_expiration <= datetime.now(
+                timezone.utc
+            ):
+                raise ConcurrentUpdateError("Game has expired")
             current_version = int(game.get("version", 1))
             if current_version != expected_version:
                 raise ConcurrentUpdateError(
@@ -339,6 +441,7 @@ class FirestoreGameRepository:
                     "state_json": state.model_dump_json(),
                     "version": next_version,
                     "updated_at": now,
+                    **({"expires_at": expires_at} if expires_at is not None else {}),
                 },
             )
 
@@ -367,6 +470,8 @@ class FirestoreGameRepository:
             updated_game["state_json"] = state.model_dump_json()
             updated_game["version"] = next_version
             updated_game["updated_at"] = now
+            if expires_at is not None:
+                updated_game["expires_at"] = expires_at
             return updated_game
 
         return self._record_from_data(save(transaction))
