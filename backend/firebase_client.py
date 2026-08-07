@@ -15,17 +15,65 @@ from backend.config import get_settings
 
 _client: Client | None = None
 _client_lock = Lock()
+_CREDENTIAL_PREFIX = "FIREBASE_CREDENTIALS_BASE64="
+_REQUIRED_SERVICE_ACCOUNT_FIELDS = {
+    "client_email",
+    "private_key",
+    "project_id",
+    "token_uri",
+}
 
 
-def _service_account_credential(encoded_credentials: str):
+def _normalize_credential_value(value: str) -> str:
+    normalized = value.strip()
+    if len(normalized) >= 2 and normalized[0] == normalized[-1] and normalized[0] in {
+        "'",
+        '"',
+    }:
+        normalized = normalized[1:-1].strip()
+
+    if normalized.startswith(_CREDENTIAL_PREFIX):
+        normalized = normalized.removeprefix(_CREDENTIAL_PREFIX).strip()
+        if (
+            len(normalized) >= 2
+            and normalized[0] == normalized[-1]
+            and normalized[0] in {"'", '"'}
+        ):
+            normalized = normalized[1:-1].strip()
+
+    return normalized
+
+
+def _decode_service_account(encoded_credentials: str) -> dict:
+    normalized = _normalize_credential_value(encoded_credentials)
+
     try:
-        decoded = base64.b64decode(encoded_credentials, validate=True).decode("utf-8")
+        if normalized.startswith("{"):
+            decoded = normalized
+        else:
+            compact = "".join(normalized.split())
+            padded = compact + "=" * (-len(compact) % 4)
+            decoded = base64.b64decode(padded, validate=True).decode("utf-8")
         service_account = json.loads(decoded)
-    except (binascii.Error, UnicodeDecodeError, json.JSONDecodeError) as error:
-        raise RuntimeError("FIREBASE_CREDENTIALS_BASE64 is not valid base64 JSON") from error
+    except (binascii.Error, UnicodeDecodeError, ValueError) as error:
+        raise RuntimeError(
+            "FIREBASE_CREDENTIALS_BASE64 is not valid JSON or base64-encoded JSON"
+        ) from error
 
     if not isinstance(service_account, dict):
         raise RuntimeError("Firebase credentials must decode to a service account object")
+
+    missing_fields = _REQUIRED_SERVICE_ACCOUNT_FIELDS.difference(service_account)
+    if service_account.get("type") != "service_account" or missing_fields:
+        raise RuntimeError(
+            "Firebase credentials do not contain a complete service account"
+        )
+
+    return service_account
+
+
+def _service_account_credential(encoded_credentials: str):
+    service_account = _decode_service_account(encoded_credentials)
     return credentials.Certificate(service_account)
 
 
