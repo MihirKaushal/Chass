@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 from collections import defaultdict
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from typing import Any
 
 from sqlalchemy import select
 
+from backend.config import get_settings
 from backend.db import GameInviteRow, GamePlayerRow, GameRow, MoveRow, session_scope
 from backend.firebase_client import get_firestore_client
 from backend.repositories.firestore_repository import GAMES, INVITES, MOVES, PLAYERS
@@ -33,6 +34,7 @@ def _load_documents(
 ) -> list[tuple[str, str, dict[str, Any]]]:
     documents: list[tuple[str, str, dict[str, Any]]] = []
     now = datetime.now(timezone.utc)
+    inactive_before = now - timedelta(hours=get_settings().game_idle_ttl_hours)
 
     with session_scope() as session:
         games = list(session.scalars(select(GameRow)).all())
@@ -44,7 +46,8 @@ def _load_documents(
             games = [
                 game
                 for game in games
-                if game.expires_at is None or _as_utc(game.expires_at) > now
+                if (game.expires_at is None or _as_utc(game.expires_at) > now)
+                and _as_utc(game.updated_at) > inactive_before
             ]
 
         game_ids = {game.id for game in games}

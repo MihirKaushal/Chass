@@ -209,6 +209,24 @@ def test_firestore_invites_are_transactional_and_replaceable(firestore_service):
         service.join_game(JoinGameRequest(inviteToken=replacement.inviteToken))
 
 
+def test_firestore_inactive_invite_cannot_revive_game(firestore_service):
+    service, _, client = firestore_service
+    created = service.create_game(CreateGameRequest(mode="online"))
+    now = datetime.now(timezone.utc)
+    client.documents[GAMES][created.game.id].update(
+        {
+            "updated_at": now - timedelta(hours=25),
+            "expires_at": now + timedelta(days=30),
+        }
+    )
+
+    with pytest.raises(HTTPException, match="inactivity") as expired:
+        service.join_game(JoinGameRequest(inviteToken=created.inviteToken))
+
+    assert expired.value.status_code == 409
+    assert len(client.documents[PLAYERS]) == 1
+
+
 def test_firestore_versions_and_move_audits_are_atomic(firestore_service):
     service, repository, client = firestore_service
     created = service.create_game(CreateGameRequest(mode="local"))
@@ -225,23 +243,35 @@ def test_firestore_versions_and_move_audits_are_atomic(firestore_service):
         to_col=4,
         explanation="Pawn moved.",
     )
-    saved = repository.save_game(record.state, expected_version=1, audit=audit)
+    next_expiration = datetime.now(timezone.utc) + timedelta(hours=24)
+    saved = repository.save_game(
+        record.state,
+        expected_version=1,
+        audit=audit,
+        expires_at=next_expiration,
+    )
     assert saved.version == 2
+    assert saved.expires_at == next_expiration
     assert f"{created.game.id}_2" in client.documents[MOVES]
 
     with pytest.raises(ConcurrentUpdateError):
         repository.save_game(record.state, expected_version=1)
 
 
-def test_firestore_expiration_removes_related_documents(firestore_service):
+def test_firestore_inactivity_removes_related_documents(firestore_service):
     service, repository, client = firestore_service
     created = service.create_game(CreateGameRequest(mode="online"))
     game_id = created.game.id
+    now = datetime.now(timezone.utc)
 
-    client.documents[GAMES][game_id]["expires_at"] = datetime.now(timezone.utc) - timedelta(
-        seconds=1
-    )
-    deleted = repository.delete_expired_games()
+    # Legacy games may still have a future creation-based deadline; activity wins.
+    client.documents[GAMES][game_id]["updated_at"] = now - timedelta(hours=25)
+    client.documents[GAMES][game_id]["expires_at"] = now + timedelta(days=30)
+    client.documents[MOVES][f"{game_id}_2"] = {
+        "game_id": game_id,
+        "game_version": 2,
+    }
+    deleted = repository.delete_inactive_games(now - timedelta(hours=24), now)
 
     assert deleted == 1
     assert game_id not in client.documents[GAMES]
@@ -250,3 +280,20 @@ def test_firestore_expiration_removes_related_documents(firestore_service):
             document.get("game_id") != game_id
             for document in client.documents[collection_name].values()
         )
+
+
+def test_firestore_cleanup_resumes_a_pending_deletion(firestore_service):
+    service, repository, client = firestore_service
+    created = service.create_game(CreateGameRequest(mode="online"))
+    game_id = created.game.id
+    now = datetime.now(timezone.utc)
+
+    client.documents[GAMES][game_id].update(
+        {
+            "deletion_pending": True,
+            "updated_at": now - timedelta(hours=25),
+        }
+    )
+
+    assert repository.delete_inactive_games(now - timedelta(hours=24), now) == 1
+    assert game_id not in client.documents[GAMES]

@@ -17,6 +17,7 @@ boards and pieces, modular rules, and real-time synchronization.
 - Toggleable rules, score-target games, and custom rule presets
 - Legal-move highlighting, captured pieces, history, scores, and endgame dialogs
 - Manual or automatic board flipping
+- Automatic cleanup after 24 hours without game activity
 - Responsive React interface for desktop and mobile
 
 ## Tech Stack
@@ -61,6 +62,8 @@ Repository adapters
 Game rules are handled by a separate rule engine rather than API routes or database code.
 The backend validates moves and remains authoritative during online games. Versioned
 database updates prevent stale moves from one browser from overwriting newer game state.
+Game activity uses a renewable expiration lease, and both repository adapters cascade
+inactive-game cleanup to player seats, invitation records, and move audits.
 
 ## Project Structure
 
@@ -155,7 +158,8 @@ Use `.env.example` as the local template.
 | `ENVIRONMENT` | `development` or `production` |
 | `TOKEN_SECRET` | Private session-token hashing secret |
 | `INVITE_TTL_HOURS` | Invitation expiration time |
-| `GAME_TTL_DAYS` | Online game expiration time |
+| `GAME_IDLE_TTL_HOURS` | Hours after the last game change before deletion |
+| `GAME_CLEANUP_INTERVAL_MINUTES` | Cleanup frequency while FastAPI is awake |
 | `VITE_API_URL` | Public backend address used by React |
 
 Do not commit `.env`, database passwords, or production secrets.

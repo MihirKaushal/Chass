@@ -107,10 +107,30 @@ python -m scripts.migrate_sql_to_firestore --apply
 ```
 
 The migration preserves game IDs, versions, token hashes, invites, and move audits. It
-skips expired games by default so abandoned records are not moved. Keep Render's existing
-`TOKEN_SECRET`; changing it invalidates previously issued seat tokens.
+skips expired or inactive games by default so abandoned records are not moved. Keep
+Render's existing `TOKEN_SECRET`; changing it invalidates previously issued seat tokens.
 
-## 6. Verify the Cutover
+## 6. Inactive-Game Retention
+
+The Render configuration defaults to:
+
+```text
+INVITE_TTL_HOURS=24
+GAME_IDLE_TTL_HOURS=24
+GAME_CLEANUP_INTERVAL_MINUTES=15
+```
+
+Creation, joining, replacing an invitation, moves, resets, and customization renew the
+game's idle deadline. Reads, WebSocket reconnects, presence, and pings do not. After 24
+hours without a game change, Chass! removes its game document, player seats, invitation
+records, and move audits.
+
+Cleanup runs when FastAPI starts and every 15 minutes while it is awake. If free Render
+hosting is asleep at the deadline, deletion runs when the backend next wakes. Direct
+access to an expired game also triggers its cleanup. This application-managed process
+avoids requiring Firestore's billed TTL deletion feature.
+
+## 7. Verify the Cutover
 
 1. Open the Render health endpoint and confirm `"persistence":"firestore"`.
 2. Create and move in a local game on the deployed frontend.

@@ -40,6 +40,7 @@ from backend.repositories import (
     InviteClaimError,
     MoveAudit,
     PlayerIdentity,
+    RepositoryError,
     create_game_repository,
 )
 from backend.rules import RuleEngine
@@ -403,14 +404,54 @@ class GameService:
         self.engine = engine
         self.repository = repository or create_game_repository()
 
+    @staticmethod
+    def _expiration_deadline(now: datetime | None = None) -> datetime:
+        current = now or datetime.now(timezone.utc)
+        return current + timedelta(hours=get_settings().game_idle_ttl_hours)
+
+    @staticmethod
+    def _inactive_before(now: datetime | None = None) -> datetime:
+        current = now or datetime.now(timezone.utc)
+        return current - timedelta(hours=get_settings().game_idle_ttl_hours)
+
+    def cleanup_inactive_games(self, now: datetime | None = None) -> int:
+        current = now or datetime.now(timezone.utc)
+        return self.repository.delete_inactive_games(
+            self._inactive_before(current),
+            current,
+        )
+
     def _load_game(self, game_id: str) -> GameRecord:
+        now = datetime.now(timezone.utc)
+        inactive_before = self._inactive_before(now)
         try:
             record = self.repository.get_game(game_id)
         except ExpiredGameError as error:
+            self.repository.delete_game_if_inactive(game_id, inactive_before, now)
             raise HTTPException(status_code=410, detail=str(error)) from error
 
         if record is None:
             raise HTTPException(status_code=404, detail="Game not found")
+
+        expired = record.expires_at is not None and record.expires_at <= now
+        if expired or record.updated_at <= inactive_before:
+            deleted = self.repository.delete_game_if_inactive(
+                game_id,
+                inactive_before,
+                now,
+            )
+            if deleted:
+                raise HTTPException(
+                    status_code=410,
+                    detail=(
+                        "Game expired after "
+                        f"{get_settings().game_idle_ttl_hours} hours without activity"
+                    ),
+                )
+
+            record = self.repository.get_game(game_id)
+            if record is None:
+                raise HTTPException(status_code=404, detail="Game not found")
 
         _sync_piece_metadata(record.state)
         self.engine.evaluate_state(record.state)
@@ -463,7 +504,12 @@ class GameService:
         audit: MoveAudit | None = None,
     ) -> GameRecord:
         try:
-            return self.repository.save_game(state, expected_version, audit)
+            return self.repository.save_game(
+                state,
+                expected_version,
+                audit,
+                expires_at=self._expiration_deadline(),
+            )
         except ConcurrentUpdateError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
 
@@ -500,7 +546,8 @@ class GameService:
 
         settings = get_settings()
         now = datetime.now(timezone.utc)
-        game_expires_at = now + timedelta(days=settings.game_ttl_days)
+        self.cleanup_inactive_games(now)
+        game_expires_at = self._expiration_deadline(now)
 
         if request.mode == "local":
             record = self.repository.create_game(
@@ -536,10 +583,13 @@ class GameService:
 
     def join_game(self, request: JoinGameRequest) -> GameSessionResponse:
         player_token = generate_token()
+        now = datetime.now(timezone.utc)
         try:
             record = self.repository.claim_invite(
                 hash_token(request.inviteToken),
                 hash_token(player_token),
+                self._expiration_deadline(now),
+                self._inactive_before(now),
             )
         except InviteClaimError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
@@ -560,10 +610,17 @@ class GameService:
             raise HTTPException(status_code=409, detail="This game already has two players")
 
         invite_token = generate_token()
-        expires_at = datetime.now(timezone.utc) + timedelta(
-            hours=get_settings().invite_ttl_hours
-        )
-        self.repository.replace_invite(game_id, hash_token(invite_token), expires_at)
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(hours=get_settings().invite_ttl_hours)
+        try:
+            self.repository.replace_invite(
+                game_id,
+                hash_token(invite_token),
+                expires_at,
+                self._expiration_deadline(now),
+            )
+        except (ExpiredGameError, RepositoryError) as error:
+            raise HTTPException(status_code=410, detail=str(error)) from error
         return InviteResponse(
             inviteToken=invite_token,
             inviteUrl=self._invite_url(invite_token),

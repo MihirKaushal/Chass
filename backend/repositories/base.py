@@ -36,6 +36,7 @@ class GameRecord:
     mode: str
     version: int
     player_colors: frozenset[str]
+    updated_at: datetime
     expires_at: datetime | None
 
     @property
@@ -66,7 +67,18 @@ class GameRepository(Protocol):
         invite_expires_at: datetime | None = None,
     ) -> GameRecord: ...
 
-    def delete_expired_games(self, now: datetime | None = None) -> int: ...
+    def delete_inactive_games(
+        self,
+        inactive_before: datetime,
+        now: datetime | None = None,
+    ) -> int: ...
+
+    def delete_game_if_inactive(
+        self,
+        game_id: str,
+        inactive_before: datetime,
+        now: datetime | None = None,
+    ) -> bool: ...
 
     def get_game(self, game_id: str) -> GameRecord | None: ...
 
@@ -76,13 +88,16 @@ class GameRepository(Protocol):
         self,
         invite_token_hash: str,
         player_token_hash: str,
+        game_expires_at: datetime,
+        inactive_before: datetime,
     ) -> GameRecord: ...
 
     def replace_invite(
         self,
         game_id: str,
         invite_token_hash: str,
-        expires_at: datetime,
+        invite_expires_at: datetime,
+        game_expires_at: datetime,
     ) -> None: ...
 
     def save_game(
@@ -90,4 +105,5 @@ class GameRepository(Protocol):
         state: GameState,
         expected_version: int,
         audit: MoveAudit | None = None,
+        expires_at: datetime | None = None,
     ) -> GameRecord: ...

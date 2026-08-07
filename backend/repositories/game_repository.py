@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime, timezone
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import delete, or_, select, update
 from sqlalchemy.exc import IntegrityError
 
 from backend.db import GameInviteRow, GamePlayerRow, GameRow, MoveRow, session_scope
@@ -35,6 +35,7 @@ class SqlGameRepository:
             mode=row.mode,
             version=row.version,
             player_colors=frozenset(colors),
+            updated_at=_as_utc(row.updated_at),
             expires_at=_as_utc(row.expires_at),
         )
 
@@ -48,7 +49,6 @@ class SqlGameRepository:
         invite_expires_at: datetime | None = None,
     ) -> GameRecord:
         now = datetime.now(timezone.utc)
-        self.delete_expired_games(now)
 
         with session_scope() as session:
             game_row = GameRow(
@@ -92,17 +92,43 @@ class SqlGameRepository:
             session.commit()
             return self._record_from_row(session, game_row)
 
-    def delete_expired_games(self, now: datetime | None = None) -> int:
-        cutoff = now or datetime.now(timezone.utc)
+    def delete_inactive_games(
+        self,
+        inactive_before: datetime,
+        now: datetime | None = None,
+    ) -> int:
+        current = now or datetime.now(timezone.utc)
         with session_scope() as session:
             result = session.execute(
                 delete(GameRow).where(
-                    GameRow.expires_at.is_not(None),
-                    GameRow.expires_at <= cutoff,
+                    or_(
+                        GameRow.updated_at <= inactive_before,
+                        GameRow.expires_at <= current,
+                    )
                 )
             )
             session.commit()
             return result.rowcount or 0
+
+    def delete_game_if_inactive(
+        self,
+        game_id: str,
+        inactive_before: datetime,
+        now: datetime | None = None,
+    ) -> bool:
+        current = now or datetime.now(timezone.utc)
+        with session_scope() as session:
+            result = session.execute(
+                delete(GameRow).where(
+                    GameRow.id == game_id,
+                    or_(
+                        GameRow.updated_at <= inactive_before,
+                        GameRow.expires_at <= current,
+                    ),
+                )
+            )
+            session.commit()
+            return (result.rowcount or 0) == 1
 
     def get_game(self, game_id: str) -> GameRecord | None:
         with session_scope() as session:
@@ -131,7 +157,13 @@ class SqlGameRepository:
             session.commit()
             return PlayerIdentity(game_id=player.game_id, color=player.color, role=player.role)
 
-    def claim_invite(self, invite_token_hash: str, player_token_hash: str) -> GameRecord:
+    def claim_invite(
+        self,
+        invite_token_hash: str,
+        player_token_hash: str,
+        game_expires_at: datetime,
+        inactive_before: datetime,
+    ) -> GameRecord:
         now = datetime.now(timezone.utc)
 
         try:
@@ -150,12 +182,18 @@ class SqlGameRepository:
                 if _as_utc(invite.expires_at) <= now:
                     raise InviteClaimError("Invite link has expired")
 
-                game = session.get(GameRow, invite.game_id)
+                game = session.scalar(
+                    select(GameRow)
+                    .where(GameRow.id == invite.game_id)
+                    .with_for_update()
+                )
                 if game is None:
                     raise InviteClaimError("Game no longer exists")
-                game_expires_at = _as_utc(game.expires_at)
-                if game_expires_at is not None and game_expires_at <= now:
+                current_expiration = _as_utc(game.expires_at)
+                if current_expiration is not None and current_expiration <= now:
                     raise InviteClaimError("Game has expired")
+                if _as_utc(game.updated_at) <= inactive_before:
+                    raise InviteClaimError("Game has expired due to inactivity")
 
                 occupied = session.scalar(
                     select(GamePlayerRow).where(
@@ -179,6 +217,7 @@ class SqlGameRepository:
                 )
                 invite.used_at = now
                 game.updated_at = now
+                game.expires_at = game_expires_at
                 session.commit()
                 return self._record_from_row(session, game)
         except IntegrityError as error:
@@ -188,11 +227,22 @@ class SqlGameRepository:
         self,
         game_id: str,
         invite_token_hash: str,
-        expires_at: datetime,
+        invite_expires_at: datetime,
+        game_expires_at: datetime,
     ) -> None:
         now = datetime.now(timezone.utc)
 
         with session_scope() as session:
+            game = session.scalar(
+                select(GameRow).where(GameRow.id == game_id).with_for_update()
+            )
+            if game is None:
+                raise RepositoryError("Game no longer exists")
+
+            current_expiration = _as_utc(game.expires_at)
+            if current_expiration is not None and current_expiration <= now:
+                raise RepositoryError("Game has expired")
+
             existing = session.scalars(
                 select(GameInviteRow).where(
                     GameInviteRow.game_id == game_id,
@@ -210,9 +260,11 @@ class SqlGameRepository:
                     token_hash=invite_token_hash,
                     target_color="black",
                     created_at=now,
-                    expires_at=expires_at,
+                    expires_at=invite_expires_at,
                 )
             )
+            game.updated_at = now
+            game.expires_at = game_expires_at
             session.commit()
 
     def save_game(
@@ -220,6 +272,7 @@ class SqlGameRepository:
         state: GameState,
         expected_version: int,
         audit: MoveAudit | None = None,
+        expires_at: datetime | None = None,
     ) -> GameRecord:
         now = datetime.now(timezone.utc)
         next_version = expected_version + 1
@@ -230,11 +283,13 @@ class SqlGameRepository:
                 .where(
                     GameRow.id == state.id,
                     GameRow.version == expected_version,
+                    or_(GameRow.expires_at.is_(None), GameRow.expires_at > now),
                 )
                 .values(
                     state_json=state.model_dump_json(),
                     version=next_version,
                     updated_at=now,
+                    **({"expires_at": expires_at} if expires_at is not None else {}),
                 )
             )
 

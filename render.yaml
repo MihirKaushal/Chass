@@ -26,5 +26,7 @@ services:
         sync: false
       - key: INVITE_TTL_HOURS
         value: "24"
-      - key: GAME_TTL_DAYS
-        value: "30"
+      - key: GAME_IDLE_TTL_HOURS
+        value: "24"
+      - key: GAME_CLEANUP_INTERVAL_MINUTES
+        value: "15"
