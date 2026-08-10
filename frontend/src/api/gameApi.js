@@ -54,6 +54,38 @@ export function makeMove(gameId, payload, token) {
   });
 }
 
+export function updateGambitDeployment(gameId, payload, token) {
+  return request(`/game/${gameId}/gambit/deployment`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export function readyGambitDeployment(gameId, payload, token) {
+  return request(`/game/${gameId}/gambit/ready`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export function completeGambitHandoff(gameId, payload, token) {
+  return request(`/game/${gameId}/gambit/handoff`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export function useGambitPower(gameId, payload, token) {
+  return request(`/game/${gameId}/gambit/power`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
 export function updateRules(gameId, payload, token) {
   return request(`/game/${gameId}/rules`, {
     method: "POST",

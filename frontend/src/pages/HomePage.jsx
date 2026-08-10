@@ -1,7 +1,9 @@
 import { useState } from "react";
 
+import LandingNav from "../components/LandingNav";
 
-function HomePage({ onCreate }) {
+
+function HomePage({ onCreate, onOpenGambit }) {
   const [creatingMode, setCreatingMode] = useState("");
   const [error, setError] = useState("");
 
@@ -19,6 +21,7 @@ function HomePage({ onCreate }) {
   return (
     <main className="landing-shell">
       <section className="landing-hero">
+        <LandingNav active="play" onPlay={() => {}} onGambit={onOpenGambit} />
         <div className="landing-copy">
           <span className="eyebrow">Build the rules. Play the board.</span>
           <h1>Chass!</h1>

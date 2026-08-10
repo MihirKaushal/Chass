@@ -10,6 +10,7 @@ boards and pieces, modular rules, and real-time synchronization.
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
 - Local hot-seat and private online multiplayer
+- Chass Gambit: private 39-point army deployment, center affinity, and command powers
 - Shareable, one-use game invitation links
 - Live WebSocket updates, reconnect, presence, and state recovery
 - Variable board dimensions and editable starting layouts
@@ -62,6 +63,8 @@ Repository adapters
 Game rules are handled by a separate rule engine rather than API routes or database code.
 The backend validates moves and remains authoritative during online games. Versioned
 database updates prevent stale moves from one browser from overwriting newer game state.
+Gambit deployments use seat-specific views and revisions so an opponent receives no piece,
+count, edit, or timing data before the atomic reveal.
 Game activity uses a renewable expiration lease, and both repository adapters cascade
 inactive-game cleanup to player seats, invitation records, and move audits.
 
@@ -136,6 +139,10 @@ npm run build
 | `POST` | `/game/join` | Join through an invitation |
 | `GET` | `/game/{id}` | Load game state |
 | `POST` | `/game/{id}/move` | Submit a move |
+| `POST` | `/game/{id}/gambit/deployment` | Place, remove, clear, or undo a hidden army edit |
+| `POST` | `/game/{id}/gambit/ready` | Lock a private deployment and reveal when both are legal |
+| `POST` | `/game/{id}/gambit/handoff` | Continue a local privacy handoff |
+| `POST` | `/game/{id}/gambit/power` | Use Reinforce, Evolve, or Stronghold |
 | `POST` | `/game/{id}/rules` | Update game rules |
 | `POST` | `/game/{id}/pieces` | Customize pieces |
 | `POST` | `/game/{id}/layout` | Update the board layout |

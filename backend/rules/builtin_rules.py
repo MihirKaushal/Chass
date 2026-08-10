@@ -115,6 +115,47 @@ class CaptureRule(Rule):
         )
 
 
+class PromotionRule(Rule):
+    id = "promotion"
+    name = "Pawn Promotion"
+    description = (
+        "A pawn reaching the final rank promotes to a queen, rook, bishop, or knight."
+    )
+    tier = "basic"
+    can_disable = False
+
+    def apply(
+        self,
+        state: GameState,
+        move: Move,
+        context: RuleContext,
+        helper,
+        params: dict,
+    ) -> None:
+        piece = state.board.grid[move.to_row][move.to_col]
+        if piece is None or piece.type != "pawn":
+            return
+        promotion_row = 0 if piece.color == "white" else state.board.rows - 1
+        if move.to_row != promotion_row:
+            return
+
+        promoted_type = move.promotion or "queen"
+        definition = state.piece_definitions.get(promoted_type)
+        if definition is None:
+            return
+
+        piece.type = promoted_type
+        piece.name = definition.display_name
+        piece.points = definition.points
+        piece.has_moved = True
+        piece.is_custom = definition.is_custom
+        piece.custom_attributes = dict(definition.custom_attributes)
+        if not context.simulated:
+            context.messages.append(
+                f"Pawn promoted to {definition.display_name}."
+            )
+
+
 class CheckRule(Rule):
     id = "check"
     name = "Check Rule"
@@ -175,7 +216,10 @@ class CheckmateRule(Rule):
             return
 
         legal_moves = helper.get_valid_moves_for_color(state, state.current_player)
-        if legal_moves:
+        if legal_moves or helper.has_legal_alternative_action(
+            state,
+            state.current_player,
+        ):
             return
 
         state.game_status = "checkmate"
@@ -195,7 +239,10 @@ class StalemateRule(Rule):
             return
 
         legal_moves = helper.get_valid_moves_for_color(state, state.current_player)
-        if legal_moves:
+        if legal_moves or helper.has_legal_alternative_action(
+            state,
+            state.current_player,
+        ):
             return
 
         state.game_status = "stalemate"
@@ -342,6 +389,7 @@ classic_chess_rules: list[Rule] = [
     MovementPatternRule(),
     CheckRule(),
     CaptureRule(),
+    PromotionRule(),
     CheckmateRule(),
     StalemateRule(),
     ScoreRule(),
