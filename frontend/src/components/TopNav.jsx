@@ -15,9 +15,18 @@ function TopNav({
   mode,
   playerColor,
   connectionStatus,
+  variant,
+  phase,
+  onOpenGambit,
 }) {
   const statusLabel =
-    gameStatus === "checkmate"
+    phase === "lobby"
+      ? "Waiting for player"
+      : phase === "deployment"
+        ? "Hidden deployment"
+        : phase === "handoff"
+          ? "Private handoff"
+          : gameStatus === "checkmate"
       ? `Checkmate (${winner || "none"})`
       : gameStatus === "stalemate"
         ? "Stalemate"
@@ -37,10 +46,17 @@ function TopNav({
       <nav className="tab-nav" aria-label="Game sections">
         <button
           type="button"
-          className={activeTab === "play" ? "tab active" : "tab"}
+          className={activeTab === "play" && variant !== "gambit" ? "tab active" : "tab"}
           onClick={() => onTabChange("play")}
         >
           Play
+        </button>
+        <button
+          type="button"
+          className={variant === "gambit" ? "tab active gambit-tab" : "tab gambit-tab"}
+          onClick={() => (variant === "gambit" ? onTabChange("play") : onOpenGambit())}
+        >
+          Chass Gambit
         </button>
         {canCustomize ? (
           <button
@@ -54,7 +70,9 @@ function TopNav({
       </nav>
 
       <div className="game-meta">
-        <span className="turn-pill">Turn: {currentPlayer}</span>
+        <span className="turn-pill">
+          {phase === "deployment" ? "Building armies" : `Turn: ${currentPlayer}`}
+        </span>
         <span className="status-pill">Status: {statusLabel}</span>
         <span className="mode-pill">
           {mode === "online"
@@ -76,7 +94,7 @@ function TopNav({
         </button>
         {canReset ? (
           <button type="button" onClick={onReset}>
-            Reset
+            {variant === "gambit" ? "Restart Setup" : "Reset"}
           </button>
         ) : null}
       </div>

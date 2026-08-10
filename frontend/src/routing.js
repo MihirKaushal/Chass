@@ -2,6 +2,10 @@ import { useEffect, useState } from "react";
 
 
 function routeFromPath(pathname) {
+  if (/^\/gambit\/?$/.test(pathname)) {
+    return { name: "gambit" };
+  }
+
   const joinMatch = pathname.match(/^\/join\/([^/]+)\/?$/);
   if (joinMatch) {
     return { name: "join", inviteToken: decodeURIComponent(joinMatch[1]) };

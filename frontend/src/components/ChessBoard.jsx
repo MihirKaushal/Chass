@@ -36,6 +36,11 @@ function ChessBoard({
   onSquareClick,
   boardFlipped,
   interactive = true,
+  extraTargets = [],
+  affinitySquares = {},
+  editableRows = [],
+  foggedRows = [],
+  showCoordinates = false,
 }) {
   const rows = boardRows ?? boardSize ?? board.length;
   const cols = boardCols ?? boardSize ?? (board[0] ? board[0].length : 0);
@@ -50,6 +55,15 @@ function ChessBoard({
     .map((move) => `${move.to.row}-${move.to.col}`);
 
   const activeTargetSet = new Set(activeTargets);
+  const extraTargetSet = new Set(
+    extraTargets.map((target) => `${target.row}-${target.col}`)
+  );
+  const affinityMap = new Map();
+  Object.entries(affinitySquares).forEach(([color, squares]) => {
+    squares.forEach((square) => affinityMap.set(`${square.row}-${square.col}`, color));
+  });
+  const editableRowSet = new Set(editableRows);
+  const foggedRowSet = new Set(foggedRows);
 
   return (
     <div
@@ -78,6 +92,8 @@ function ChessBoard({
             const isSelected =
               selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
             const isValidTarget = activeTargetSet.has(`${rowIndex}-${colIndex}`);
+            const isExtraTarget = extraTargetSet.has(`${rowIndex}-${colIndex}`);
+            const affinityColor = affinityMap.get(`${rowIndex}-${colIndex}`);
             const isLastMoveSquare =
               lastMove &&
               ((lastMove.from.row === rowIndex && lastMove.from.col === colIndex) ||
@@ -88,7 +104,11 @@ function ChessBoard({
               isLight ? "light" : "dark",
               isSelected ? "selected" : "",
               isValidTarget ? "valid-target" : "",
+              isExtraTarget ? "command-target" : "",
               isLastMoveSquare ? "last-move" : "",
+              affinityColor ? `affinity-square affinity-${affinityColor}` : "",
+              editableRowSet.has(rowIndex) ? "deployment-zone" : "",
+              foggedRowSet.has(rowIndex) ? "fogged-square" : "",
               piece?.isCustom ? "custom-square" : "",
               !interactive ? "readonly" : "",
             ]
@@ -117,9 +137,26 @@ function ChessBoard({
                 className={className}
                 onClick={() => interactive && onSquareClick(rowIndex, colIndex)}
                 aria-disabled={!interactive}
+                aria-label={`${String.fromCharCode(97 + colIndex)}${rows - rowIndex}${
+                  piece ? `, ${piece.color} ${piece.name}` : ""
+                }`}
               >
+                {showCoordinates && visibleColIndex === 0 ? (
+                  <span className="board-coordinate board-rank">{rows - rowIndex}</span>
+                ) : null}
+                {showCoordinates && visibleRowIndex === rows - 1 ? (
+                  <span className="board-coordinate board-file">
+                    {String.fromCharCode(97 + colIndex)}
+                  </span>
+                ) : null}
+                {affinityColor ? (
+                  <span className="affinity-marker" aria-hidden="true">
+                    {affinityColor === "white" ? "W" : "B"}
+                  </span>
+                ) : null}
                 <span className={pieceClassName}>{piece?.symbol || ""}</span>
                 {isValidTarget ? <span className="move-dot" /> : null}
+                {isExtraTarget ? <span className="command-target-ring" /> : null}
                 {piece ? (
                   <PieceTooltip
                     piece={piece}

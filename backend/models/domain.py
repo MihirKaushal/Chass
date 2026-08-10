@@ -7,6 +7,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 Color = Literal["white", "black"]
 MoveMode = Literal["move", "capture", "both"]
 GameStatus = Literal["active", "check", "checkmate", "stalemate", "score_target"]
+GameVariant = Literal["classic", "gambit"]
+GamePhase = Literal["lobby", "deployment", "handoff", "play", "finished"]
 
 
 class MovePattern(BaseModel):
@@ -107,6 +109,7 @@ class Move(BaseModel):
     from_col: int = Field(alias="fromCol")
     to_row: int = Field(alias="toRow")
     to_col: int = Field(alias="toCol")
+    promotion: Literal["queen", "rook", "bishop", "knight"] | None = None
 
 
 class RuleSetting(BaseModel):
@@ -132,6 +135,7 @@ class MoveRecord(BaseModel):
     to_col: int
     captures: list[CaptureEvent] = Field(default_factory=list)
     explanation: str
+    action_type: str = "move"
 
 
 class MoveOption(BaseModel):
@@ -143,9 +147,107 @@ class MoveOption(BaseModel):
     explanation: str = ""
 
 
+class BoardCoordinate(BaseModel):
+    row: int
+    col: int
+
+
+class DeploymentPiece(BaseModel):
+    row: int
+    col: int
+    type: str
+
+
+class GambitConfig(BaseModel):
+    budget: int = 39
+    max_pieces: int = 16
+    setup_rows: int = 2
+    command_point_cap: int = 3
+    piece_points: dict[str, int] = Field(
+        default_factory=lambda: {
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+        }
+    )
+    piece_caps: dict[str, int] = Field(
+        default_factory=lambda: {
+            "pawn": 12,
+            "knight": 4,
+            "bishop": 4,
+            "rook": 4,
+            "queen": 2,
+            "king": 1,
+        }
+    )
+    power_costs: dict[str, int] = Field(
+        default_factory=lambda: {
+            "reinforce": 1,
+            "evolve": 2,
+            "stronghold": 3,
+        }
+    )
+    power_usage_caps: dict[str, int] = Field(
+        default_factory=lambda: {
+            "reinforce": 2,
+            "evolve": 2,
+            "stronghold": 1,
+        }
+    )
+    affinity_squares: dict[Color, list[BoardCoordinate]] = Field(
+        default_factory=lambda: {
+            "white": [
+                BoardCoordinate(row=4, col=4),  # e4
+                BoardCoordinate(row=3, col=3),  # d5
+            ],
+            "black": [
+                BoardCoordinate(row=4, col=3),  # d4
+                BoardCoordinate(row=3, col=4),  # e5
+            ],
+        }
+    )
+
+
+class GambitState(BaseModel):
+    config: GambitConfig = Field(default_factory=GambitConfig)
+    deployments: dict[Color, list[DeploymentPiece]] = Field(
+        default_factory=lambda: {"white": [], "black": []}
+    )
+    deployment_ready: dict[Color, bool] = Field(
+        default_factory=lambda: {"white": False, "black": False}
+    )
+    deployment_undo: dict[Color, list[list[DeploymentPiece]]] = Field(
+        default_factory=lambda: {"white": [], "black": []}
+    )
+    deployment_versions: dict[Color, int] = Field(
+        default_factory=lambda: {"white": 1, "black": 1}
+    )
+    active_deployment_color: Color = "white"
+    command_points: dict[Color, int] = Field(
+        default_factory=lambda: {"white": 0, "black": 0}
+    )
+    affinity_primed: dict[Color, bool] = Field(
+        default_factory=lambda: {"white": False, "black": False}
+    )
+    power_usage: dict[Color, dict[str, int]] = Field(
+        default_factory=lambda: {
+            "white": {"reinforce": 0, "evolve": 0, "stronghold": 0},
+            "black": {"reinforce": 0, "evolve": 0, "stronghold": 0},
+        }
+    )
+    setup_message: str | None = None
+    last_power_explanation: str | None = None
+
+
 class GameState(BaseModel):
     id: str
     board: Board
+    variant: GameVariant = "classic"
+    phase: GamePhase = "play"
+    gambit: GambitState | None = None
     current_player: Color = "white"
     rules: list[RuleSetting] = Field(default_factory=list)
     piece_definitions: dict[str, PieceDefinition] = Field(default_factory=dict)

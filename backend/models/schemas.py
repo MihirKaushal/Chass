@@ -56,6 +56,7 @@ class MoveHistoryView(BaseModel):
     to: Position
     captures: list[CaptureView] = Field(default_factory=list)
     explanation: str
+    actionType: str = "move"
 
 
 class MovePatternView(BaseModel):
@@ -78,9 +79,47 @@ class PieceDefinitionView(BaseModel):
     patterns: list[MovePatternView] = Field(default_factory=list)
 
 
+class GambitConfigView(BaseModel):
+    budget: int
+    maxPieces: int
+    setupRows: int
+    commandPointCap: int
+    piecePoints: dict[str, int]
+    pieceCaps: dict[str, int]
+    powerCosts: dict[str, int]
+    powerUsageCaps: dict[str, int]
+    affinitySquares: dict[str, list[Position]]
+
+
+class GambitSetupSummaryView(BaseModel):
+    pointsSpent: int
+    pointsRemaining: int
+    pieceCount: int
+    counts: dict[str, int]
+    canReady: bool
+    issues: list[str] = Field(default_factory=list)
+
+
+class GambitView(BaseModel):
+    config: GambitConfigView
+    viewerColor: str | None = None
+    editableColor: str | None = None
+    deploymentReady: dict[str, bool]
+    setupSummary: GambitSetupSummaryView | None = None
+    setupMessage: str | None = None
+    commandPoints: dict[str, int]
+    affinityPrimed: dict[str, bool]
+    affinityControlled: dict[str, bool]
+    powerUsage: dict[str, dict[str, int]]
+    legalPowerTargets: dict[str, list[Position]]
+    lastPowerExplanation: str | None = None
+
+
 class GameResponse(BaseModel):
     id: str
     mode: Literal["local", "online"]
+    variant: Literal["classic", "gambit"] = "classic"
+    phase: Literal["lobby", "deployment", "handoff", "play", "finished"] = "play"
     version: int
     ready: bool
     players: dict[str, str]
@@ -98,6 +137,7 @@ class GameResponse(BaseModel):
     winner: str | None = None
     gameStatus: str
     score: dict[str, int]
+    gambit: GambitView | None = None
 
 
 class RulePatch(BaseModel):
@@ -129,6 +169,7 @@ class PieceDefinitionPayload(BaseModel):
 
 class CreateGameRequest(BaseModel):
     mode: Literal["local", "online"] = "local"
+    variant: Literal["classic", "gambit"] = "classic"
     boardSize: int | None = Field(default=None, ge=4, le=16)
     boardRows: int = Field(default=8, ge=4, le=16)
     boardCols: int = Field(default=8, ge=4, le=16)
@@ -148,6 +189,31 @@ class MoveRequest(BaseModel):
     fromCol: int
     toRow: int
     toCol: int
+    promotion: Literal["queen", "rook", "bishop", "knight"] | None = None
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class GambitDeploymentRequest(BaseModel):
+    action: Literal["place", "remove", "clear", "undo"]
+    row: int | None = None
+    col: int | None = None
+    pieceType: str | None = None
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class GambitReadyRequest(BaseModel):
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class GambitHandoffRequest(BaseModel):
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class GambitPowerRequest(BaseModel):
+    power: Literal["reinforce", "evolve", "stronghold"]
+    row: int
+    col: int
+    evolveTo: Literal["knight", "bishop"] | None = None
     expectedVersion: int | None = Field(default=None, ge=1)
 
 

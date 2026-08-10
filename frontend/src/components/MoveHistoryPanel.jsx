@@ -19,20 +19,32 @@ function CapturedPieces({ capturedPieces }) {
   );
 }
 
-function ActiveRules({ rules }) {
+function ActiveRules({ rules, compact }) {
+  const activeRules = rules.filter((rule) => rule.enabled);
+  const list = (
+    <ul className="rule-list">
+      {activeRules.map((rule) => (
+        <li key={rule.id}>
+          <span>{rule.name}</span>
+          <small>{rule.tier}</small>
+        </li>
+      ))}
+    </ul>
+  );
+
+  if (compact) {
+    return (
+      <details className="panel-section compact-rules">
+        <summary>Active Rules ({activeRules.length})</summary>
+        {list}
+      </details>
+    );
+  }
+
   return (
     <section className="panel-section">
       <h3>Active Rules</h3>
-      <ul className="rule-list">
-        {rules
-          .filter((rule) => rule.enabled)
-          .map((rule) => (
-            <li key={rule.id}>
-              <span>{rule.name}</span>
-              <small>{rule.tier}</small>
-            </li>
-          ))}
-      </ul>
+      {list}
     </section>
   );
 }
@@ -63,11 +75,12 @@ function MoveHistoryPanel({
   gameStatus,
   winner,
   score,
+  compactRules = false,
 }) {
   return (
     <aside className="history-panel">
       <GameStateSummary gameStatus={gameStatus} winner={winner} score={score} />
-      <ActiveRules rules={rules} />
+      <ActiveRules rules={rules} compact={compactRules} />
       <CapturedPieces capturedPieces={capturedPieces} />
 
       <section className="panel-section history-section">
@@ -77,7 +90,7 @@ function MoveHistoryPanel({
           {[...history].reverse().map((move) => (
             <li key={move.moveNumber}>
               <span>
-                {move.moveNumber}. {move.piece} ({move.player})
+                {move.moveNumber}. {move.actionType === "move" ? move.piece : move.actionType} ({move.player})
               </span>
               <small>{move.explanation}</small>
             </li>

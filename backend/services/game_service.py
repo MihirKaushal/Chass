@@ -7,11 +7,27 @@ from datetime import datetime, timedelta, timezone
 from fastapi import HTTPException
 
 from backend.config import get_settings
-from backend.models import Board, GameState, Move, MovePattern, Piece, PieceDefinition, RuleSetting
+from backend.models import (
+    Board,
+    GambitState,
+    GameState,
+    Move,
+    MovePattern,
+    Piece,
+    PieceDefinition,
+    RuleSetting,
+)
 from backend.models.schemas import (
     BoardPlacement,
     CaptureView,
     CreateGameRequest,
+    GambitConfigView,
+    GambitDeploymentRequest,
+    GambitHandoffRequest,
+    GambitPowerRequest,
+    GambitReadyRequest,
+    GambitSetupSummaryView,
+    GambitView,
     GameResponse,
     GameSessionResponse,
     InviteResponse,
@@ -518,6 +534,14 @@ class GameService:
         return f"{get_settings().frontend_url}/join/{invite_token}"
 
     def create_game(self, request: CreateGameRequest) -> GameSessionResponse:
+        if request.variant == "gambit" and (
+            request.boardRows != 8 or request.boardCols != 8
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="Chass Gambit currently uses an 8x8 board.",
+            )
+
         piece_definitions = build_default_piece_definitions()
         for custom_piece in request.customPieces:
             definition = _piece_definition_from_payload(custom_piece)
@@ -529,9 +553,21 @@ class GameService:
             engine=self.engine,
         )
 
+        is_gambit = request.variant == "gambit"
         game_state = GameState(
             id=str(uuid.uuid4()),
-            board=_initial_board(request.boardRows, request.boardCols, piece_definitions),
+            board=(
+                _empty_board(request.boardRows, request.boardCols)
+                if is_gambit
+                else _initial_board(request.boardRows, request.boardCols, piece_definitions)
+            ),
+            variant=request.variant,
+            phase=(
+                "lobby"
+                if is_gambit and request.mode == "online"
+                else ("deployment" if is_gambit else "play")
+            ),
+            gambit=GambitState() if is_gambit else None,
             current_player="white",
             rules=rule_settings,
             piece_definitions=piece_definitions,
@@ -572,7 +608,7 @@ class GameService:
             invite_expires_at=invite_expires_at,
         )
         return GameSessionResponse(
-            game=self.serialize_game(record),
+            game=self.serialize_game(record, viewer_color="white"),
             playerToken=host_token,
             playerColor="white",
             role="host",
@@ -594,8 +630,19 @@ class GameService:
         except InviteClaimError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
 
+        if record.state.variant == "gambit" and record.state.phase == "lobby":
+            next_state = record.state.clone()
+            next_state.phase = "deployment"
+            if next_state.gambit is not None:
+                next_version = record.version + 1
+                next_state.gambit.deployment_versions = {
+                    "white": next_version,
+                    "black": next_version,
+                }
+            record = self._save(next_state, record.version)
+
         return GameSessionResponse(
-            game=self.serialize_game(record),
+            game=self.serialize_game(record, viewer_color="black"),
             playerToken=player_token,
             playerColor="black",
             role="player",
@@ -603,6 +650,16 @@ class GameService:
 
     def get_game(self, game_id: str, player_token: str | None = None) -> GameRecord:
         return self.authorize(game_id, player_token).record
+
+    def viewer_color(self, record: GameRecord, player_token: str | None) -> str | None:
+        if record.mode == "local":
+            return None
+        if not player_token:
+            raise HTTPException(status_code=401, detail="A player token is required.")
+        player = self.repository.get_player(record.state.id, hash_token(player_token))
+        if player is None:
+            raise HTTPException(status_code=403, detail="Player token is invalid for this game.")
+        return player.color
 
     def replace_invite(self, game_id: str, player_token: str | None) -> InviteResponse:
         authorized = self.authorize(game_id, player_token, require_host=True)
@@ -627,6 +684,150 @@ class GameService:
             inviteExpiresAt=expires_at,
         )
 
+    @staticmethod
+    def _deployment_color(authorized: AuthorizedGame) -> str:
+        state = authorized.record.state
+        if state.gambit is None:
+            raise HTTPException(status_code=409, detail="This is not a Chass Gambit game.")
+        if authorized.record.mode == "online":
+            if authorized.player is None:
+                raise HTTPException(status_code=403, detail="A player seat is required.")
+            return authorized.player.color
+        return state.gambit.active_deployment_color
+
+    def update_gambit_deployment(
+        self,
+        game_id: str,
+        request: GambitDeploymentRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        for attempt in range(3):
+            authorized = self.authorize(game_id, player_token)
+            record = authorized.record
+            color = self._deployment_color(authorized)
+
+            try:
+                next_state = self.engine.gambit.update_deployment(
+                    record.state,
+                    color,
+                    mode=record.mode,
+                    room_ready=record.ready,
+                    action=request.action,
+                    row=request.row,
+                    col=request.col,
+                    piece_type=request.pieceType,
+                )
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+
+            try:
+                return self._save(next_state, record.version)
+            except HTTPException as error:
+                if error.status_code != 409 or record.mode != "online" or attempt == 2:
+                    raise
+        raise HTTPException(status_code=409, detail="Deployment changed; please try again.")
+
+    def ready_gambit_deployment(
+        self,
+        game_id: str,
+        request: GambitReadyRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        for attempt in range(3):
+            authorized = self.authorize(game_id, player_token)
+            record = authorized.record
+            if record.mode == "online" and not record.ready:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Waiting for the second player to join.",
+                )
+            color = self._deployment_color(authorized)
+            try:
+                next_state = self.engine.gambit.mark_ready(
+                    record.state,
+                    color,
+                    mode=record.mode,
+                    helper=self.engine,
+                )
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+
+            self.engine.evaluate_state(next_state)
+            try:
+                return self._save(next_state, record.version)
+            except HTTPException as error:
+                if error.status_code != 409 or record.mode != "online" or attempt == 2:
+                    raise
+        raise HTTPException(status_code=409, detail="Deployment changed; please try again.")
+
+    def complete_gambit_handoff(
+        self,
+        game_id: str,
+        request: GambitHandoffRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        expected_version = self._expected_version(record, request.expectedVersion)
+        try:
+            next_state = self.engine.gambit.complete_handoff(
+                record.state,
+                mode=record.mode,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return self._save(next_state, expected_version)
+
+    def use_gambit_power(
+        self,
+        game_id: str,
+        request: GambitPowerRequest,
+        player_token: str | None = None,
+    ) -> tuple[GameRecord, str]:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        if record.state.variant != "gambit":
+            raise HTTPException(status_code=409, detail="This is not a Chass Gambit game.")
+        if record.mode == "online":
+            if authorized.player is None or authorized.player.color != record.state.current_player:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"Only {record.state.current_player} can act right now.",
+                )
+            color = authorized.player.color
+        else:
+            color = record.state.current_player
+
+        expected_version = self._expected_version(record, request.expectedVersion)
+        try:
+            next_state, explanation = self.engine.apply_gambit_power(
+                record.state,
+                color,
+                power=request.power,
+                row=request.row,
+                col=request.col,
+                evolve_to=request.evolveTo,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+
+        action_record = next_state.history[-1]
+        saved = self._save(
+            next_state,
+            expected_version,
+            MoveAudit(
+                move_number=action_record.move_number,
+                player_color=action_record.player,
+                piece_type=action_record.piece,
+                from_row=action_record.from_row,
+                from_col=action_record.from_col,
+                to_row=action_record.to_row,
+                to_col=action_record.to_col,
+                explanation=action_record.explanation,
+            ),
+        )
+        return saved, explanation
+
     def move_piece(
         self,
         game_id: str,
@@ -636,6 +837,12 @@ class GameService:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
         game_state = record.state
+
+        if game_state.variant == "gambit" and game_state.phase != "play":
+            raise HTTPException(
+                status_code=409,
+                detail="Both armies must be revealed before pieces can move.",
+            )
 
         if record.mode == "online":
             if not record.ready:
@@ -652,6 +859,7 @@ class GameService:
             fromCol=request.fromCol,
             toRow=request.toRow,
             toCol=request.toCol,
+            promotion=request.promotion,
         )
 
         try:
@@ -685,6 +893,11 @@ class GameService:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
         game_state = record.state
+        if game_state.variant == "gambit":
+            raise HTTPException(
+                status_code=409,
+                detail="Chass Gambit rules are managed by its dedicated variant setup.",
+            )
         expected_version = self._expected_version(record, request.expectedVersion)
         game_state.rules = _apply_rule_patches(game_state.rules, request.rules, self.engine)
         self.engine.evaluate_state(game_state)
@@ -699,6 +912,11 @@ class GameService:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
         game_state = record.state
+        if game_state.variant == "gambit":
+            raise HTTPException(
+                status_code=409,
+                detail="Piece editing is not available during a Chass Gambit match.",
+            )
         expected_version = self._expected_version(record, request.expectedVersion)
 
         for patch in request.pieces:
@@ -718,6 +936,30 @@ class GameService:
         record = authorized.record
         game_state = record.state
         expected_version = self._expected_version(record, request.expectedVersion)
+
+        if game_state.variant == "gambit":
+            config = (
+                game_state.gambit.config.model_copy(deep=True)
+                if game_state.gambit is not None
+                else None
+            )
+            game_state.board = _empty_board(8, 8)
+            game_state.phase = (
+                "deployment" if record.mode == "local" or record.ready else "lobby"
+            )
+            game_state.gambit = GambitState(config=config) if config is not None else GambitState()
+            game_state.gambit.deployment_versions = {
+                "white": record.version + 1,
+                "black": record.version + 1,
+            }
+            game_state.current_player = "white"
+            game_state.history = []
+            game_state.captured_pieces = {"white": [], "black": []}
+            game_state.winner = None
+            game_state.game_status = "active"
+            game_state.score = {"white": 0, "black": 0}
+            return self._save(game_state, expected_version)
+
         board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows
         board_cols = request.boardCols if request.boardCols is not None else game_state.board.cols
 
@@ -741,6 +983,11 @@ class GameService:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
         game_state = record.state
+        if game_state.variant == "gambit":
+            raise HTTPException(
+                status_code=409,
+                detail="The Gambit deployment board is edited through the War Chest.",
+            )
         expected_version = self._expected_version(record, request.expectedVersion)
 
         board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows
@@ -776,6 +1023,7 @@ class GameService:
         self,
         record: GameRecord,
         last_explanation: str | None = None,
+        viewer_color: str | None = None,
     ) -> GameResponse:
         game_state = record.state
 
@@ -793,12 +1041,39 @@ class GameService:
                 customAttributes=piece.custom_attributes,
             )
 
-        board_view: list[list[PieceView | None]] = []
-        for row in game_state.board.grid:
-            board_view.append([piece_view(piece) if piece is not None else None for piece in row])
+        board_grid = game_state.board.grid
+        visible_deployment_color: str | None = None
+        if game_state.variant == "gambit" and game_state.phase in {
+            "lobby",
+            "deployment",
+            "handoff",
+        }:
+            visible_deployment_color, visible_pieces = self.engine.gambit.visible_deployment(
+                game_state,
+                viewer_color,
+                mode=record.mode,
+            )
+            board_grid = [
+                [None for _ in range(game_state.board.cols)]
+                for _ in range(game_state.board.rows)
+            ]
+            if visible_deployment_color is not None:
+                for placement in visible_pieces:
+                    board_grid[placement.row][placement.col] = _create_piece_instance(
+                        placement.type,
+                        visible_deployment_color,
+                        game_state.piece_definitions,
+                    )
+
+        board_view: list[list[PieceView | None]] = [
+            [piece_view(piece) if piece is not None else None for piece in row]
+            for row in board_grid
+        ]
 
         valid_moves = (
-            self.engine.get_valid_moves_for_current_player(game_state) if record.ready else []
+            self.engine.get_valid_moves_for_current_player(game_state)
+            if record.ready and game_state.phase == "play"
+            else []
         )
         valid_move_views = [
             ValidMoveView(
@@ -836,6 +1111,20 @@ class GameService:
                 )
             )
 
+        if game_state.variant == "gambit":
+            rule_views.extend(
+                RuleView(
+                    id=rule.id,
+                    name=rule.name,
+                    description=rule.description,
+                    tier=rule.tier,
+                    enabled=True,
+                    canDisable=rule.can_disable,
+                    params={},
+                )
+                for rule in self.engine.gambit.available_rules()
+            )
+
         history_views = []
         for item in game_state.history:
             history_views.append(
@@ -856,6 +1145,7 @@ class GameService:
                             for capture in item.captures
                         ],
                         "explanation": item.explanation,
+                        "actionType": item.action_type,
                     },
                 )
             )
@@ -868,10 +1158,103 @@ class GameService:
         if last_explanation is None and game_state.history:
             last_explanation = game_state.history[-1].explanation
 
+        gambit_view = None
+        if game_state.variant == "gambit" and game_state.gambit is not None:
+            gambit = game_state.gambit
+            effective_viewer = (
+                viewer_color
+                if record.mode == "online"
+                else (
+                    visible_deployment_color
+                    if game_state.phase in {"lobby", "deployment", "handoff"}
+                    else game_state.current_player
+                )
+            )
+            setup_summary = None
+            if visible_deployment_color is not None:
+                summary = self.engine.gambit.setup_summary(
+                    game_state,
+                    visible_deployment_color,
+                )
+                setup_summary = GambitSetupSummaryView(**summary)
+
+            editable_color = None
+            if (
+                game_state.phase == "deployment"
+                and effective_viewer in {"white", "black"}
+                and (record.mode == "local" or record.ready)
+                and not gambit.deployment_ready[effective_viewer]
+            ):
+                editable_color = effective_viewer
+
+            legal_power_targets: dict[str, list[Position]] = {
+                power: [] for power in gambit.config.power_costs
+            }
+            if (
+                game_state.phase == "play"
+                and effective_viewer == game_state.current_player
+            ):
+                raw_targets = self.engine.gambit.legal_power_targets(
+                    game_state,
+                    effective_viewer,
+                    self.engine,
+                )
+                legal_power_targets = {
+                    power: [Position(**target) for target in targets]
+                    for power, targets in raw_targets.items()
+                }
+
+            gambit_view = GambitView(
+                config=GambitConfigView(
+                    budget=gambit.config.budget,
+                    maxPieces=gambit.config.max_pieces,
+                    setupRows=gambit.config.setup_rows,
+                    commandPointCap=gambit.config.command_point_cap,
+                    piecePoints=gambit.config.piece_points,
+                    pieceCaps=gambit.config.piece_caps,
+                    powerCosts=gambit.config.power_costs,
+                    powerUsageCaps=gambit.config.power_usage_caps,
+                    affinitySquares={
+                        color: [
+                            Position(row=square.row, col=square.col)
+                            for square in squares
+                        ]
+                        for color, squares in gambit.config.affinity_squares.items()
+                    },
+                ),
+                viewerColor=effective_viewer,
+                editableColor=editable_color,
+                deploymentReady=gambit.deployment_ready,
+                setupSummary=setup_summary,
+                setupMessage=gambit.setup_message,
+                commandPoints=gambit.command_points,
+                affinityPrimed=gambit.affinity_primed,
+                affinityControlled=self.engine.gambit.affinity_control(game_state),
+                powerUsage=gambit.power_usage,
+                legalPowerTargets=legal_power_targets,
+                lastPowerExplanation=gambit.last_power_explanation,
+            )
+
+        response_phase = game_state.phase
+        if game_state.game_status in {"checkmate", "stalemate", "score_target"}:
+            response_phase = "finished"
+
+        response_version = record.version
+        if (
+            game_state.variant == "gambit"
+            and game_state.gambit is not None
+            and record.mode == "online"
+            and game_state.phase in {"lobby", "deployment", "handoff"}
+            and viewer_color in {"white", "black"}
+        ):
+            response_version = game_state.gambit.deployment_versions[viewer_color]
+
         return GameResponse(
             id=game_state.id,
             mode=record.mode,
-            version=record.version,
+            variant=game_state.variant,
+            phase=response_phase,
+            version=response_version,
             ready=record.ready,
             players={
                 "white": (
@@ -921,4 +1304,5 @@ class GameService:
             winner=game_state.winner,
             gameStatus=game_state.game_status,
             score=game_state.score,
+            gambit=gambit_view,
         )

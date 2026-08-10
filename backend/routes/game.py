@@ -7,6 +7,10 @@ from starlette.concurrency import run_in_threadpool
 
 from backend.models.schemas import (
     CreateGameRequest,
+    GambitDeploymentRequest,
+    GambitHandoffRequest,
+    GambitPowerRequest,
+    GambitReadyRequest,
     GameResponse,
     GameSessionResponse,
     InviteResponse,
@@ -19,6 +23,7 @@ from backend.models.schemas import (
 )
 from backend.rate_limit import rate_limiter
 from backend.realtime import SocketIdentity, socket_manager
+from backend.repositories import GameRecord
 from backend.rules import RuleEngine
 from backend.services.game_service import GameService
 
@@ -36,11 +41,28 @@ def _bearer_token(authorization: str | None) -> str | None:
     raise HTTPException(status_code=401, detail="Authorization must use a Bearer token")
 
 
-async def _broadcast_state(game_response: GameResponse) -> None:
-    await socket_manager.broadcast(
-        game_response.id,
-        "game_state",
-        {"game": game_response.model_dump(by_alias=True)},
+async def _broadcast_state(
+    record: GameRecord,
+    *,
+    event_type: str = "game_state",
+    last_explanation: str | None = None,
+    target_color: str | None = None,
+) -> None:
+    await socket_manager.broadcast_personalized(
+        record.state.id,
+        event_type,
+        lambda identity: {
+            "game": game_service.serialize_game(
+                record,
+                last_explanation=last_explanation,
+                viewer_color=identity.color,
+            ).model_dump(by_alias=True)
+        },
+        identity_filter=(
+            (lambda identity: identity.color == target_color)
+            if target_color is not None
+            else None
+        ),
     )
 
 
@@ -54,12 +76,17 @@ async def create_game(payload: CreateGameRequest, request: Request) -> GameSessi
 async def join_game(payload: JoinGameRequest, request: Request) -> GameSessionResponse:
     rate_limiter.check(request, "join", limit=30, window_seconds=60)
     response = await run_in_threadpool(game_service.join_game, payload)
+    authorized = await run_in_threadpool(
+        game_service.authorize,
+        response.game.id,
+        response.playerToken,
+    )
     await socket_manager.broadcast(
         response.game.id,
         "player_joined",
         {"color": response.playerColor},
     )
-    await _broadcast_state(response.game)
+    await _broadcast_state(authorized.record)
     await socket_manager.broadcast_presence(response.game.id)
     return response
 
@@ -69,12 +96,16 @@ async def get_game(
     game_id: str,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
-    record = await run_in_threadpool(
-        game_service.get_game,
+    token = _bearer_token(authorization)
+    authorized = await run_in_threadpool(
+        game_service.authorize,
         game_id,
-        _bearer_token(authorization),
+        token,
     )
-    return game_service.serialize_game(record)
+    return game_service.serialize_game(
+        authorized.record,
+        viewer_color=authorized.player.color if authorized.player else None,
+    )
 
 
 @router.post("/{game_id}/move", response_model=GameResponse)
@@ -84,6 +115,7 @@ async def make_move(
     request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    token = _bearer_token(authorization)
     rate_limiter.check(
         request,
         "move",
@@ -95,15 +127,19 @@ async def make_move(
         game_service.move_piece,
         game_id,
         payload,
-        _bearer_token(authorization),
+        token,
     )
-    response = game_service.serialize_game(record, last_explanation=explanation)
-    await _broadcast_state(response)
+    response = game_service.serialize_game(
+        record,
+        last_explanation=explanation,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record, last_explanation=explanation)
     if response.gameStatus in {"checkmate", "stalemate", "score_target"}:
-        await socket_manager.broadcast(
-            response.id,
-            "game_ended",
-            {"game": response.model_dump(by_alias=True)},
+        await _broadcast_state(
+            record,
+            event_type="game_ended",
+            last_explanation=explanation,
         )
     return response
 
@@ -114,14 +150,18 @@ async def update_rules(
     request: UpdateRulesRequest,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    token = _bearer_token(authorization)
     record = await run_in_threadpool(
         game_service.update_rules,
         game_id,
         request,
-        _bearer_token(authorization),
+        token,
     )
-    response = game_service.serialize_game(record)
-    await _broadcast_state(response)
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record)
     return response
 
 
@@ -131,14 +171,18 @@ async def update_pieces(
     request: UpdatePiecesRequest,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    token = _bearer_token(authorization)
     record = await run_in_threadpool(
         game_service.update_pieces,
         game_id,
         request,
-        _bearer_token(authorization),
+        token,
     )
-    response = game_service.serialize_game(record)
-    await _broadcast_state(response)
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record)
     return response
 
 
@@ -148,14 +192,18 @@ async def update_board_layout(
     request: UpdateBoardLayoutRequest,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    token = _bearer_token(authorization)
     record = await run_in_threadpool(
         game_service.update_board_layout,
         game_id,
         request,
-        _bearer_token(authorization),
+        token,
     )
-    response = game_service.serialize_game(record)
-    await _broadcast_state(response)
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record)
     return response
 
 
@@ -165,14 +213,129 @@ async def reset_game(
     request: ResetGameRequest,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    token = _bearer_token(authorization)
     record = await run_in_threadpool(
         game_service.reset_game,
         game_id,
         request,
-        _bearer_token(authorization),
+        token,
     )
-    response = game_service.serialize_game(record)
-    await _broadcast_state(response)
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record)
+    return response
+
+
+@router.post("/{game_id}/gambit/deployment", response_model=GameResponse)
+async def update_gambit_deployment(
+    game_id: str,
+    payload: GambitDeploymentRequest,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    token = _bearer_token(authorization)
+    rate_limiter.check(
+        request,
+        "gambit_deployment",
+        limit=180,
+        window_seconds=60,
+        discriminator=game_id,
+    )
+    record = await run_in_threadpool(
+        game_service.update_gambit_deployment,
+        game_id,
+        payload,
+        token,
+    )
+    viewer_color = game_service.viewer_color(record, token)
+    response = game_service.serialize_game(
+        record,
+        viewer_color=viewer_color,
+    )
+    await _broadcast_state(
+        record,
+        target_color=viewer_color if record.mode == "online" else None,
+    )
+    return response
+
+
+@router.post("/{game_id}/gambit/ready", response_model=GameResponse)
+async def ready_gambit_deployment(
+    game_id: str,
+    payload: GambitReadyRequest,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    token = _bearer_token(authorization)
+    record = await run_in_threadpool(
+        game_service.ready_gambit_deployment,
+        game_id,
+        payload,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record)
+    return response
+
+
+@router.post("/{game_id}/gambit/handoff", response_model=GameResponse)
+async def complete_gambit_handoff(
+    game_id: str,
+    payload: GambitHandoffRequest,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    token = _bearer_token(authorization)
+    record = await run_in_threadpool(
+        game_service.complete_gambit_handoff,
+        game_id,
+        payload,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record)
+    return response
+
+
+@router.post("/{game_id}/gambit/power", response_model=GameResponse)
+async def use_gambit_power(
+    game_id: str,
+    payload: GambitPowerRequest,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    token = _bearer_token(authorization)
+    rate_limiter.check(
+        request,
+        "gambit_power",
+        limit=120,
+        window_seconds=60,
+        discriminator=game_id,
+    )
+    record, explanation = await run_in_threadpool(
+        game_service.use_gambit_power,
+        game_id,
+        payload,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        last_explanation=explanation,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record, last_explanation=explanation)
+    if response.gameStatus in {"checkmate", "stalemate", "score_target"}:
+        await _broadcast_state(
+            record,
+            event_type="game_ended",
+            last_explanation=explanation,
+        )
     return response
 
 
@@ -232,7 +395,12 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
         await socket_manager.send(
             websocket,
             "game_state",
-            {"game": game_service.serialize_game(authorized.record).model_dump(by_alias=True)},
+            {
+                "game": game_service.serialize_game(
+                    authorized.record,
+                    viewer_color=identity.color,
+                ).model_dump(by_alias=True)
+            },
         )
         await socket_manager.broadcast_presence(game_id)
 
@@ -246,7 +414,12 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
                 await socket_manager.send(
                     websocket,
                     "game_state",
-                    {"game": game_service.serialize_game(latest).model_dump(by_alias=True)},
+                    {
+                        "game": game_service.serialize_game(
+                            latest,
+                            viewer_color=identity.color,
+                        ).model_dump(by_alias=True)
+                    },
                 )
     except WebSocketDisconnect:
         pass

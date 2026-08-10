@@ -45,6 +45,8 @@ class MovementHelper(Protocol):
 
     def simulate_move_for_validation(self, state: GameState, move: Move) -> GameState: ...
 
+    def has_legal_alternative_action(self, state: GameState, color: str) -> bool: ...
+
 
 class Rule:
     id: str = "base_rule"

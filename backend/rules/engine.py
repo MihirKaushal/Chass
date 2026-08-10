@@ -5,6 +5,7 @@ from collections.abc import Iterable
 from backend.models import GameState, Move, MoveOption, MoveRecord, Piece, RuleSetting
 from backend.rules.base import Rule, RuleContext, ValidationResult
 from backend.rules.builtin_rules import classic_chess_rules, opposing_color, variant_rules
+from backend.rules.gambit_rules import GambitRuleSet
 from backend.rules.movement import generate_piece_moves
 
 
@@ -18,6 +19,7 @@ class RuleEngine:
         }
         self._default_enabled["double_capture_rook"] = False
         self._default_enabled["score_target_win"] = False
+        self.gambit = GambitRuleSet()
 
     def generate_piece_moves(self, state: GameState, row: int, col: int) -> list[MoveOption]:
         return generate_piece_moves(state, row, col)
@@ -88,6 +90,11 @@ class RuleEngine:
         return simulated
 
     def validate_move(self, state: GameState, move: Move) -> ValidationResult:
+        if state.variant == "gambit" and state.phase != "play":
+            return ValidationResult(
+                is_valid=False,
+                reason="Pieces can move only after both armies are revealed.",
+            )
         for rule, setting in self._iter_enabled_rules(state):
             validation = rule.validate(state, move, self, setting.params)
             if not validation.is_valid:
@@ -135,7 +142,9 @@ class RuleEngine:
         )
 
     def get_valid_moves_for_color(self, state: GameState, color: str) -> list[MoveOption]:
-        if state.game_status in {"checkmate", "stalemate"} and color == state.current_player:
+        if state.variant == "gambit" and state.phase not in {"play", "finished"}:
+            return []
+        if state.game_status in {"checkmate", "stalemate", "score_target"}:
             return []
 
         work_state = state.clone()
@@ -166,11 +175,26 @@ class RuleEngine:
     def get_valid_moves_for_current_player(self, state: GameState) -> list[MoveOption]:
         return self.get_valid_moves_for_color(state, state.current_player)
 
+    def has_legal_alternative_action(self, state: GameState, color: str) -> bool:
+        if state.variant != "gambit" or state.phase != "play":
+            return False
+        return self.gambit.has_legal_power(state, color, self)
+
     def evaluate_state(self, state: GameState) -> GameState:
+        if state.variant == "gambit" and state.phase not in {"play", "finished"}:
+            state.game_status = "active"
+            state.winner = None
+            return state
         state.game_status = "active"
         state.winner = None
         for rule, setting in self._iter_enabled_rules(state):
             rule.evaluate_state(state, self, setting.params)
+        if state.variant == "gambit" and state.game_status in {
+            "checkmate",
+            "stalemate",
+            "score_target",
+        }:
+            state.phase = "finished"
         return state
 
     def apply_move(self, state: GameState, move: Move) -> tuple[GameState, str]:
@@ -212,7 +236,10 @@ class RuleEngine:
         )
         next_state.history.append(move_record)
 
-        next_state.current_player = opposing_color(next_state.current_player)
+        if next_state.variant == "gambit":
+            self.gambit.complete_turn(next_state, moving_piece.color)
+        else:
+            next_state.current_player = opposing_color(next_state.current_player)
         self.evaluate_state(next_state)
 
         if next_state.game_status == "check":
@@ -234,4 +261,41 @@ class RuleEngine:
 
         next_state.history[-1].explanation = explanation
 
+        return next_state, explanation
+
+    def apply_gambit_power(
+        self,
+        state: GameState,
+        color: str,
+        *,
+        power: str,
+        row: int,
+        col: int,
+        evolve_to: str | None,
+    ) -> tuple[GameState, str]:
+        next_state, explanation = self.gambit.apply_power(
+            state,
+            color,
+            power=power,
+            row=row,
+            col=col,
+            evolve_to=evolve_to,
+            helper=self,
+        )
+        self.evaluate_state(next_state)
+
+        if next_state.game_status == "check":
+            explanation = f"{explanation} {next_state.current_player.title()} king is in check."
+        elif next_state.game_status == "checkmate":
+            explanation = (
+                f"{explanation} Checkmate. {next_state.winner.title()} wins."
+                if next_state.winner
+                else f"{explanation} Checkmate."
+            )
+        elif next_state.game_status == "stalemate":
+            explanation = f"{explanation} Stalemate."
+
+        next_state.history[-1].explanation = explanation
+        if next_state.gambit is not None:
+            next_state.gambit.last_power_explanation = explanation
         return next_state, explanation

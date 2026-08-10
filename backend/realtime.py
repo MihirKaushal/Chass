@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import defaultdict
 from dataclasses import dataclass
+from typing import Callable
 
 from fastapi import WebSocket
 
@@ -49,6 +50,31 @@ class GameSocketManager:
         for websocket in list(room):
             try:
                 await websocket.send_json(message)
+            except Exception:
+                dead_sockets.append(websocket)
+
+        for websocket in dead_sockets:
+            self.disconnect(game_id, websocket)
+
+    async def broadcast_personalized(
+        self,
+        game_id: str,
+        event_type: str,
+        payload_for_identity: Callable[[SocketIdentity], dict],
+        identity_filter: Callable[[SocketIdentity], bool] | None = None,
+    ) -> None:
+        room = self.connections.get(game_id)
+        if not room:
+            return
+
+        dead_sockets: list[WebSocket] = []
+        for websocket, identity in list(room.items()):
+            if identity_filter is not None and not identity_filter(identity):
+                continue
+            try:
+                await websocket.send_json(
+                    {"type": event_type, **payload_for_identity(identity)}
+                )
             except Exception:
                 dead_sockets.append(websocket)
 

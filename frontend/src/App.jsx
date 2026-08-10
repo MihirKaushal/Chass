@@ -2,15 +2,19 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ApiError,
+  completeGambitHandoff,
   createGame,
   getGame,
   joinGame,
   makeMove,
+  readyGambitDeployment,
   replaceInvite,
   resetGame,
   updateBoardLayout,
+  updateGambitDeployment,
   updatePieces,
   updateRules,
+  useGambitPower,
 } from "./api/gameApi";
 import OnlineLobby from "./components/OnlineLobby";
 import TopNav from "./components/TopNav";
@@ -22,6 +26,8 @@ import {
 } from "./gameSession";
 import useGameSocket from "./hooks/useGameSocket";
 import CustomizePage from "./pages/CustomizePage";
+import GambitHomePage from "./pages/GambitHomePage";
+import GambitPage from "./pages/GambitPage";
 import HomePage from "./pages/HomePage";
 import JoinPage from "./pages/JoinPage";
 import PlayPage from "./pages/PlayPage";
@@ -79,6 +85,7 @@ function sessionFromResponse(response) {
   return {
     gameId: response.game.id,
     mode: response.game.mode,
+    variant: response.game.variant,
     token: response.playerToken,
     color: response.playerColor,
     role: response.role,
@@ -207,9 +214,11 @@ function GameWorkspace({ gameId }) {
   }, [game, selectedSquare]);
 
   const canCustomize =
-    game?.mode === "local" || (game?.mode === "online" && session?.role === "host");
+    game?.variant !== "gambit" &&
+    (game?.mode === "local" || (game?.mode === "online" && session?.role === "host"));
   const canMove =
     Boolean(game?.ready) &&
+    game?.phase === "play" &&
     (game?.mode === "local" || session?.color === game?.currentPlayer) &&
     !FINISHED_STATUSES.has(game?.gameStatus) &&
     !game?.winner;
@@ -232,6 +241,27 @@ function GameWorkspace({ gameId }) {
     setAutoBoardFlipEnabled(false);
     setBoardFlipped(session.color === "black");
   }, [game?.id, game?.mode, session?.color]);
+
+  useEffect(() => {
+    if (game?.variant !== "gambit" || game.phase !== "deployment") {
+      return;
+    }
+    const setupColor = game.gambit?.editableColor || game.gambit?.viewerColor;
+    if (setupColor) {
+      setBoardFlipped(setupColor === "black");
+    }
+  }, [game?.gambit?.editableColor, game?.gambit?.viewerColor, game?.phase, game?.variant]);
+
+  useEffect(() => {
+    if (
+      game?.variant === "gambit" &&
+      game.phase === "play" &&
+      game.history.length === 0
+    ) {
+      setBoardFlipped(game.mode === "online" ? session?.color === "black" : false);
+      setAutoBoardFlipEnabled(game.mode !== "online");
+    }
+  }, [game?.history?.length, game?.mode, game?.phase, game?.variant, session?.color]);
 
   useEffect(() => {
     if (!socketMessage) {
@@ -331,6 +361,38 @@ function GameWorkspace({ gameId }) {
       );
     } catch {
       // The shared error banner explains rejected moves.
+    }
+  };
+
+  const handleDeploymentChange = async (payload) => {
+    try {
+      await runAction(() => mutate(updateGambitDeployment, payload));
+    } catch {
+      // The shared error banner explains rejected deployment changes.
+    }
+  };
+
+  const handleGambitReady = async () => {
+    try {
+      await runAction(() => mutate(readyGambitDeployment, {}));
+    } catch {
+      // The shared error banner explains why the army cannot lock in yet.
+    }
+  };
+
+  const handleGambitHandoff = async () => {
+    try {
+      await runAction(() => mutate(completeGambitHandoff, {}));
+    } catch {
+      // The shared error banner explains handoff failures.
+    }
+  };
+
+  const handleGambitPower = async (payload) => {
+    try {
+      await runAction(() => mutate(useGambitPower, payload));
+    } catch {
+      // The shared error banner explains rejected command actions.
     }
   };
 
@@ -489,6 +551,9 @@ function GameWorkspace({ gameId }) {
         mode={game.mode}
         playerColor={session?.color}
         connectionStatus={connectionStatus}
+        variant={game.variant}
+        phase={game.phase}
+        onOpenGambit={() => navigate("/gambit")}
       />
 
       {game.mode === "online" ? (
@@ -504,17 +569,32 @@ function GameWorkspace({ gameId }) {
       {error ? <p className="global-error">{error}</p> : null}
       {socketMessage ? <p className="sync-message">{socketMessage}</p> : null}
       {actionLoading ? <p className="global-loading">Syncing authoritative game state...</p> : null}
-      {!canMove && game.ready && activeTab === "play" && !game.winner ? (
+      {!canMove &&
+      game.ready &&
+      game.mode === "online" &&
+      game.phase === "play" &&
+      activeTab === "play" &&
+      !game.winner ? (
         <p className="turn-notice">
-          {game.mode === "online"
-            ? `You are ${colorLabel(session?.color)}. Waiting for ${colorLabel(
-                game.currentPlayer
-              )} to move.`
-            : ""}
+          You are {colorLabel(session?.color)}. Waiting for {colorLabel(game.currentPlayer)} to
+          move.
         </p>
       ) : null}
 
-      {activeTab === "play" ? (
+      {game.variant === "gambit" ? (
+        <GambitPage
+          game={game}
+          selectedSquare={selectedSquare}
+          onSquareClick={handleSquareClick}
+          boardFlipped={boardFlipped}
+          interactive={canMove && !actionLoading}
+          actionLoading={actionLoading}
+          onDeploymentChange={handleDeploymentChange}
+          onReady={handleGambitReady}
+          onHandoff={handleGambitHandoff}
+          onPower={handleGambitPower}
+        />
+      ) : activeTab === "play" ? (
         <PlayPage
           game={game}
           selectedSquare={selectedSquare}
@@ -564,9 +644,10 @@ function GameWorkspace({ gameId }) {
 function App() {
   const route = useRoute();
 
-  const handleCreate = async (mode) => {
+  const handleCreate = async (mode, variant = "classic") => {
     const response = await createGame({
       mode,
+      variant,
       boardRows: 8,
       boardCols: 8,
       rules: [],
@@ -598,7 +679,16 @@ function App() {
     return <GameWorkspace key={route.gameId} gameId={route.gameId} />;
   }
 
-  return <HomePage onCreate={handleCreate} />;
+  if (route.name === "gambit") {
+    return (
+      <GambitHomePage
+        onCreate={(mode) => handleCreate(mode, "gambit")}
+        onOpenClassic={() => navigate("/")}
+      />
+    );
+  }
+
+  return <HomePage onCreate={handleCreate} onOpenGambit={() => navigate("/gambit")} />;
 }
 
 export default App;

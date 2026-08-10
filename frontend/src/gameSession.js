@@ -10,6 +10,7 @@ export function saveGameSession(gameId, session) {
   const normalized = {
     gameId,
     mode: session.mode,
+    variant: session.variant || "classic",
     token: session.token || null,
     color: session.color || null,
     role: session.role,
