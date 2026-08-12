@@ -1,19 +1,15 @@
-function LandingNav({ active, onPlay, onGambit }) {
+function LandingNav({ active, onPlay, onCustomize }) {
   return (
-    <nav className="landing-mode-nav" aria-label="Choose a Chass mode">
-      <button
-        type="button"
-        className={active === "play" ? "active" : ""}
-        onClick={onPlay}
-      >
+    <nav className="landing-mode-nav" aria-label="Chass sections">
+      <button type="button" className={active === "play" ? "active" : ""} onClick={onPlay}>
         Play
       </button>
       <button
         type="button"
-        className={active === "gambit" ? "active" : ""}
-        onClick={onGambit}
+        className={active === "customize" ? "active" : ""}
+        onClick={onCustomize}
       >
-        Chass Gambit
+        Customize
       </button>
     </nav>
   );

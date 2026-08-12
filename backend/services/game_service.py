@@ -6,20 +6,38 @@ from datetime import datetime, timedelta, timezone
 
 from fastapi import HTTPException
 
+from backend.catalog import (
+    build_catalog_piece_definitions,
+    catalog_payload,
+)
+from backend.catalog import (
+    build_default_piece_definitions as build_catalog_default_piece_definitions,
+)
 from backend.config import get_settings
 from backend.models import (
+    AbilityState,
     Board,
+    BoardCoordinate,
+    ClockState,
     GambitState,
+    GameConfiguration,
     GameState,
     Move,
     MovePattern,
     Piece,
     PieceDefinition,
     RuleSetting,
+    SpecialAbilityConfig,
+    VictoryConfig,
 )
 from backend.models.schemas import (
+    AbilitySelectionRequest,
+    AbilityStateView,
+    AvailableActionView,
     BoardPlacement,
     CaptureView,
+    ClockView,
+    CountdownView,
     CreateGameRequest,
     GambitConfigView,
     GambitDeploymentRequest,
@@ -28,6 +46,7 @@ from backend.models.schemas import (
     GambitReadyRequest,
     GambitSetupSummaryView,
     GambitView,
+    GameActionRequest,
     GameResponse,
     GameSessionResponse,
     InviteResponse,
@@ -41,8 +60,10 @@ from backend.models.schemas import (
     PieceView,
     Position,
     ResetGameRequest,
+    ResultView,
     RulePatch,
     RuleView,
+    SetupHandoffRequest,
     UpdateBoardLayoutRequest,
     UpdatePiecesRequest,
     UpdateRulesRequest,
@@ -60,6 +81,11 @@ from backend.repositories import (
     create_game_repository,
 )
 from backend.rules import RuleEngine
+from backend.rules.variant_system import (
+    FINISHED_STATUSES,
+    barricade_start_square,
+    public_countdowns,
+)
 from backend.security import generate_token, hash_token
 
 DEFAULT_PIECE_POINTS: dict[str, int | None] = {
@@ -73,125 +99,7 @@ DEFAULT_PIECE_POINTS: dict[str, int | None] = {
 
 
 def build_default_piece_definitions() -> dict[str, PieceDefinition]:
-    return {
-        "pawn": PieceDefinition(
-            type="pawn",
-            display_name="Pawn",
-            symbols={"white": "\u2659", "black": "\u265F"},
-            points=DEFAULT_PIECE_POINTS["pawn"],
-            is_custom=False,
-            custom_attributes={},
-            patterns=[
-                MovePattern(
-                    dr=-1,
-                    dc=0,
-                    mode="move",
-                    repeat=False,
-                    relative_to_color=True,
-                    requires_clear_path=True,
-                ),
-                MovePattern(
-                    dr=-2,
-                    dc=0,
-                    mode="move",
-                    repeat=False,
-                    relative_to_color=True,
-                    requires_unmoved=True,
-                    requires_clear_path=True,
-                ),
-                MovePattern(dr=-1, dc=1, mode="capture", repeat=False, relative_to_color=True),
-                MovePattern(dr=-1, dc=-1, mode="capture", repeat=False, relative_to_color=True),
-            ],
-            metadata={"family": "classic"},
-        ),
-        "rook": PieceDefinition(
-            type="rook",
-            display_name="Rook",
-            symbols={"white": "\u2656", "black": "\u265C"},
-            points=DEFAULT_PIECE_POINTS["rook"],
-            is_custom=False,
-            custom_attributes={},
-            patterns=[
-                MovePattern(dr=1, dc=0, repeat=True, mode="both", requires_clear_path=True),
-                MovePattern(dr=-1, dc=0, repeat=True, mode="both", requires_clear_path=True),
-                MovePattern(dr=0, dc=1, repeat=True, mode="both", requires_clear_path=True),
-                MovePattern(dr=0, dc=-1, repeat=True, mode="both", requires_clear_path=True),
-            ],
-            metadata={"family": "classic"},
-        ),
-        "knight": PieceDefinition(
-            type="knight",
-            display_name="Knight",
-            symbols={"white": "\u2658", "black": "\u265E"},
-            points=DEFAULT_PIECE_POINTS["knight"],
-            is_custom=False,
-            custom_attributes={},
-            patterns=[
-                MovePattern(dr=-2, dc=-1),
-                MovePattern(dr=-2, dc=1),
-                MovePattern(dr=-1, dc=-2),
-                MovePattern(dr=-1, dc=2),
-                MovePattern(dr=1, dc=-2),
-                MovePattern(dr=1, dc=2),
-                MovePattern(dr=2, dc=-1),
-                MovePattern(dr=2, dc=1),
-            ],
-            metadata={"family": "classic"},
-        ),
-        "bishop": PieceDefinition(
-            type="bishop",
-            display_name="Bishop",
-            symbols={"white": "\u2657", "black": "\u265D"},
-            points=DEFAULT_PIECE_POINTS["bishop"],
-            is_custom=False,
-            custom_attributes={},
-            patterns=[
-                MovePattern(dr=1, dc=1, repeat=True, requires_clear_path=True),
-                MovePattern(dr=1, dc=-1, repeat=True, requires_clear_path=True),
-                MovePattern(dr=-1, dc=1, repeat=True, requires_clear_path=True),
-                MovePattern(dr=-1, dc=-1, repeat=True, requires_clear_path=True),
-            ],
-            metadata={"family": "classic"},
-        ),
-        "queen": PieceDefinition(
-            type="queen",
-            display_name="Queen",
-            symbols={"white": "\u2655", "black": "\u265B"},
-            points=DEFAULT_PIECE_POINTS["queen"],
-            is_custom=False,
-            custom_attributes={},
-            patterns=[
-                MovePattern(dr=1, dc=0, repeat=True, requires_clear_path=True),
-                MovePattern(dr=-1, dc=0, repeat=True, requires_clear_path=True),
-                MovePattern(dr=0, dc=1, repeat=True, requires_clear_path=True),
-                MovePattern(dr=0, dc=-1, repeat=True, requires_clear_path=True),
-                MovePattern(dr=1, dc=1, repeat=True, requires_clear_path=True),
-                MovePattern(dr=1, dc=-1, repeat=True, requires_clear_path=True),
-                MovePattern(dr=-1, dc=1, repeat=True, requires_clear_path=True),
-                MovePattern(dr=-1, dc=-1, repeat=True, requires_clear_path=True),
-            ],
-            metadata={"family": "classic"},
-        ),
-        "king": PieceDefinition(
-            type="king",
-            display_name="King",
-            symbols={"white": "\u2654", "black": "\u265A"},
-            points=DEFAULT_PIECE_POINTS["king"],
-            is_custom=False,
-            custom_attributes={},
-            patterns=[
-                MovePattern(dr=1, dc=0),
-                MovePattern(dr=-1, dc=0),
-                MovePattern(dr=0, dc=1),
-                MovePattern(dr=0, dc=-1),
-                MovePattern(dr=1, dc=1),
-                MovePattern(dr=1, dc=-1),
-                MovePattern(dr=-1, dc=1),
-                MovePattern(dr=-1, dc=-1),
-            ],
-            metadata={"family": "classic"},
-        ),
-    }
+    return build_catalog_default_piece_definitions()
 
 
 def _build_back_rank(board_cols: int) -> list[str]:
@@ -244,6 +152,7 @@ def _create_piece_instance(
         has_moved=False,
         is_custom=definition.is_custom,
         custom_attributes=dict(definition.custom_attributes),
+        runtime={},
     )
 
 
@@ -298,7 +207,10 @@ def _normalize_placement(
 ) -> BoardPlacement:
     if placement.type not in piece_definitions:
         raise HTTPException(status_code=400, detail=f"Unknown piece type: {placement.type}")
-    if placement.color not in {"white", "black"}:
+    allowed_colors = {"white", "black"}
+    if piece_definitions[placement.type].metadata.get("neutral"):
+        allowed_colors.add("neutral")
+    if placement.color not in allowed_colors:
         raise HTTPException(status_code=400, detail=f"Unsupported piece color: {placement.color}")
     if placement.row < 0 or placement.row >= board_rows or placement.col < 0 or placement.col >= board_cols:
         raise HTTPException(status_code=400, detail="Placement out of board bounds")
@@ -380,6 +292,280 @@ def _sync_piece_metadata(game_state: GameState) -> None:
     for color in ("white", "black"):
         for captured_piece in game_state.captured_pieces.get(color, []):
             apply_definition(captured_piece)
+
+
+def _center_affinity_squares(board_rows: int, board_cols: int) -> dict[str, list[BoardCoordinate]]:
+    upper_row = max(0, board_rows // 2 - 1)
+    lower_row = min(board_rows - 1, board_rows // 2)
+    left_col = max(0, board_cols // 2 - 1)
+    right_col = min(board_cols - 1, board_cols // 2)
+    return {
+        "white": [
+            BoardCoordinate(row=lower_row, col=right_col),
+            BoardCoordinate(row=upper_row, col=left_col),
+        ],
+        "black": [
+            BoardCoordinate(row=lower_row, col=left_col),
+            BoardCoordinate(row=upper_row, col=right_col),
+        ],
+    }
+
+
+def _exact_gambit_budget_reachable(
+    budget: int,
+    max_pieces: int,
+    piece_points: dict[str, int],
+    piece_caps: dict[str, int],
+) -> bool:
+    king_cost = piece_points.get("king")
+    if king_cost is None or king_cost > budget or max_pieces < 1:
+        return False
+
+    # Each integer bit marks a reachable score for an exact piece count.
+    reachable = [0] * (max_pieces + 1)
+    reachable[1] = 1 << king_cost
+    score_mask = (1 << (budget + 1)) - 1
+    for piece_type, cost in piece_points.items():
+        if piece_type == "king" or cost <= 0:
+            continue
+        cap = min(piece_caps.get(piece_type, 0), max_pieces - 1, budget // cost)
+        group_size = 1
+        remaining = cap
+        while remaining > 0:
+            take = min(group_size, remaining)
+            score_shift = cost * take
+            for count in range(max_pieces - take, 0, -1):
+                reachable[count + take] |= (
+                    reachable[count] << score_shift
+                ) & score_mask
+            remaining -= take
+            group_size *= 2
+    target_bit = 1 << budget
+    return any(scores & target_bit for scores in reachable[1:])
+
+
+def _configuration_from_request(request: CreateGameRequest) -> tuple[
+    GameConfiguration,
+    dict[str, PieceDefinition],
+    GambitState | None,
+]:
+    payload = request.configuration
+    catalog = build_catalog_piece_definitions()
+    if payload is None:
+        definitions = build_default_piece_definitions()
+        configuration = GameConfiguration(
+            preset_id="gambit" if request.variant == "gambit" else "classic",
+        )
+        gambit = GambitState() if request.variant == "gambit" else None
+        if gambit is not None:
+            # Legacy API callers retain the original at-most budget behavior. The
+            # new versioned configuration path requires spending the full budget.
+            gambit.config.require_exact_budget = False
+            gambit.config.affinity_squares = _center_affinity_squares(
+                request.boardRows,
+                request.boardCols,
+            )
+        return configuration, definitions, gambit
+
+    unknown = sorted(set(payload.enabledPieces) - set(catalog))
+    if unknown:
+        raise HTTPException(status_code=400, detail=f"Unknown piece type: {unknown[0]}")
+    if "king" not in payload.enabledPieces:
+        raise HTTPException(status_code=400, detail="The King must remain enabled.")
+    enabled_types = set(payload.enabledPieces)
+    placement_types = {placement.type for placement in payload.initialLayout}
+    disabled_placements = sorted(placement_types - enabled_types)
+    if disabled_placements:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Starting piece is not enabled: {disabled_placements[0]}",
+        )
+    if not payload.gambit.enabled and payload.initialLayout:
+        for color in ("white", "black"):
+            king_count = sum(
+                placement.type == "king" and placement.color == color
+                for placement in payload.initialLayout
+            )
+            if king_count != 1:
+                raise HTTPException(
+                    status_code=400,
+                    detail=f"{color.title()} must begin with exactly one King.",
+                )
+
+    definitions: dict[str, PieceDefinition] = {}
+    for piece_type in payload.enabledPieces:
+        definition = catalog[piece_type].model_copy(deep=True)
+        if piece_type in payload.piecePoints:
+            definition.points = payload.piecePoints[piece_type]
+        if definition.points is not None and definition.points < 0:
+            raise HTTPException(status_code=400, detail="Piece points cannot be negative.")
+        definitions[piece_type] = definition
+
+    configuration = GameConfiguration(
+        schema_version=payload.schemaVersion,
+        preset_id=payload.presetId,
+        enabled_piece_types=list(payload.enabledPieces),
+        initial_layout=[placement.model_dump() for placement in payload.initialLayout],
+        victory=VictoryConfig(
+            mode=payload.victory.mode,
+            target_points=payload.victory.targetPoints,
+            time_seconds=payload.victory.timeSeconds,
+            king_points=payload.victory.kingPoints,
+        ),
+        special_abilities=SpecialAbilityConfig(
+            enabled=payload.specialAbilities.enabled,
+            allowed=list(dict.fromkeys(payload.specialAbilities.allowed)),
+        ),
+    )
+
+    gambit = None
+    if payload.gambit.enabled:
+        unknown_caps = sorted(set(payload.gambit.pieceCaps) - enabled_types)
+        if unknown_caps:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Piece limit is not enabled: {unknown_caps[0]}",
+            )
+        gambit = GambitState()
+        gambit.config.budget = payload.gambit.budget
+        gambit.config.max_pieces = payload.gambit.maxPieces
+        gambit.config.setup_rows = payload.gambit.setupRows
+        gambit.config.command_point_cap = payload.gambit.commandPointCap
+        gambit.config.affinity_enabled = payload.gambit.affinityEnabled
+        gambit.config.require_exact_budget = True
+        gambit.config.piece_points = {
+            piece_type: int(definitions[piece_type].points or 0)
+            for piece_type in payload.enabledPieces
+            if piece_type != "barricade"
+        }
+        default_caps = {
+            piece_type: payload.gambit.maxPieces for piece_type in payload.enabledPieces
+        }
+        default_caps["king"] = 1
+        default_caps["queen"] = payload.gambit.maxQueens
+        default_caps["barricade"] = 0
+        default_caps.update(payload.gambit.pieceCaps)
+        default_caps["king"] = 1
+        default_caps["queen"] = payload.gambit.maxQueens
+        default_caps["barricade"] = 0
+        gambit.config.piece_caps = default_caps
+        if not _exact_gambit_budget_reachable(
+            gambit.config.budget,
+            gambit.config.max_pieces,
+            gambit.config.piece_points,
+            gambit.config.piece_caps,
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    "The Gambit budget cannot be spent exactly with the enabled "
+                    "piece values and limits."
+                ),
+            )
+        gambit.config.affinity_squares = _center_affinity_squares(
+            request.boardRows,
+            request.boardCols,
+        )
+    # Standard promotion and command transformations remain available even when
+    # their piece types are not part of the starting army catalog.
+    for piece_type in ("queen", "rook", "bishop", "knight"):
+        definitions.setdefault(piece_type, catalog[piece_type].model_copy(deep=True))
+    return configuration, definitions, gambit
+
+
+def _configured_board(
+    rows: int,
+    cols: int,
+    definitions: dict[str, PieceDefinition],
+    configuration: GameConfiguration,
+) -> Board:
+    if not configuration.initial_layout:
+        board = _initial_board(rows, cols, definitions)
+        if "barricade" in definitions:
+            center_rows = [max(0, rows // 2 - 1), min(rows - 1, rows // 2)]
+            center_cols = [max(0, cols // 2 - 1), min(cols - 1, cols // 2)]
+            center = next(
+                (
+                    (row, col)
+                    for row in center_rows
+                    for col in center_cols
+                    if board.grid[row][col] is None
+                ),
+                None,
+            )
+            if center is not None:
+                board.grid[center[0]][center[1]] = _create_piece_instance(
+                    "barricade",
+                    "neutral",
+                    definitions,
+                )
+            else:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Enable the Barricade only when a center square is empty.",
+                )
+        return board
+
+    board = _empty_board(rows, cols)
+    seen: set[tuple[int, int]] = set()
+    center_squares = {
+        (row, col)
+        for row in [max(0, rows // 2 - 1), min(rows - 1, rows // 2)]
+        for col in [max(0, cols // 2 - 1), min(cols - 1, cols // 2)]
+    }
+    barricade_placements = [
+        BoardPlacement.model_validate(raw)
+        for raw in configuration.initial_layout
+        if raw.get("type") == "barricade"
+    ]
+    if len(barricade_placements) > 1:
+        raise HTTPException(status_code=400, detail="Only one Barricade may begin on the board.")
+    if any(
+        (placement.row, placement.col) not in center_squares
+        for placement in barricade_placements
+    ):
+        raise HTTPException(status_code=400, detail="The Barricade must begin in the board's center.")
+    if any(placement.color != "neutral" for placement in barricade_placements):
+        raise HTTPException(status_code=400, detail="The Barricade must be neutral.")
+    for raw in configuration.initial_layout:
+        placement = BoardPlacement.model_validate(raw)
+        if (placement.row, placement.col) in seen:
+            raise HTTPException(status_code=400, detail="Only one piece may occupy each square.")
+        seen.add((placement.row, placement.col))
+        normalized = _normalize_placement(placement, rows, cols, definitions)
+        board.grid[normalized.row][normalized.col] = _create_piece_instance(
+            normalized.type,
+            normalized.color,
+            definitions,
+        )
+    if "barricade" in definitions and not any(
+        piece is not None and piece.type == "barricade"
+        for board_row in board.grid
+        for piece in board_row
+    ):
+        center_rows = [max(0, rows // 2 - 1), min(rows - 1, rows // 2)]
+        center_cols = [max(0, cols // 2 - 1), min(cols - 1, cols // 2)]
+        center = next(
+            (
+                (row, col)
+                for row in center_rows
+                for col in center_cols
+                if board.grid[row][col] is None
+            ),
+            None,
+        )
+        if center is not None:
+            board.grid[center[0]][center[1]] = _create_piece_instance(
+                "barricade",
+                "neutral",
+                definitions,
+            )
+        else:
+            raise HTTPException(
+                status_code=400,
+                detail="Enable the Barricade only when a center square is empty.",
+            )
+    return board
 
 
 def _apply_rule_patches(
@@ -470,7 +656,28 @@ class GameService:
                 raise HTTPException(status_code=404, detail="Game not found")
 
         _sync_piece_metadata(record.state)
+        was_finished = record.state.phase == "finished"
         self.engine.evaluate_state(record.state)
+        clock_expired = (
+            not was_finished
+            and record.state.phase == "finished"
+            and record.state.result is not None
+            and record.state.result.reason_code == "time_expired"
+        )
+        if clock_expired:
+            try:
+                record = self.repository.save_game(
+                    record.state,
+                    record.version,
+                    expires_at=record.expires_at,
+                )
+            except ConcurrentUpdateError as error:
+                latest = self.repository.get_game(game_id)
+                if latest is None:
+                    raise HTTPException(status_code=404, detail="Game not found") from error
+                _sync_piece_metadata(latest.state)
+                self.engine.evaluate_state(latest.state)
+                record = latest
         return record
 
     def authorize(
@@ -534,17 +741,11 @@ class GameService:
         return f"{get_settings().frontend_url}/join/{invite_token}"
 
     def create_game(self, request: CreateGameRequest) -> GameSessionResponse:
-        if request.variant == "gambit" and (
-            request.boardRows != 8 or request.boardCols != 8
-        ):
-            raise HTTPException(
-                status_code=400,
-                detail="Chass Gambit currently uses an 8x8 board.",
-            )
-
-        piece_definitions = build_default_piece_definitions()
+        configuration, piece_definitions, gambit_state = _configuration_from_request(request)
         for custom_piece in request.customPieces:
             definition = _piece_definition_from_payload(custom_piece)
+            if definition.points is not None and definition.points < 0:
+                raise HTTPException(status_code=400, detail="Piece points cannot be negative.")
             piece_definitions[definition.type] = definition
 
         rule_settings = _apply_rule_patches(
@@ -553,24 +754,65 @@ class GameService:
             engine=self.engine,
         )
 
-        is_gambit = request.variant == "gambit"
+        is_gambit = gambit_state is not None or request.variant == "gambit"
+        request.variant = "gambit" if is_gambit else "classic"
+        abilities_enabled = configuration.special_abilities.enabled
+        initial_phase = (
+            "lobby"
+            if request.mode == "online"
+            and (
+                is_gambit
+                or abilities_enabled
+                or configuration.victory.mode == "timed"
+            )
+            else (
+                "ability_selection"
+                if abilities_enabled
+                else ("deployment" if is_gambit else "play")
+            )
+        )
+        if is_gambit and gambit_state is None:
+            gambit_state = GambitState()
+            gambit_state.config.affinity_squares = _center_affinity_squares(
+                request.boardRows,
+                request.boardCols,
+            )
+        if configuration.victory.mode in {"point_race", "king_capture", "royal_score"}:
+            piece_definitions["king"].points = configuration.victory.king_points
+
         game_state = GameState(
             id=str(uuid.uuid4()),
             board=(
                 _empty_board(request.boardRows, request.boardCols)
                 if is_gambit
-                else _initial_board(request.boardRows, request.boardCols, piece_definitions)
+                else _configured_board(
+                    request.boardRows,
+                    request.boardCols,
+                    piece_definitions,
+                    configuration,
+                )
             ),
             variant=request.variant,
-            phase=(
-                "lobby"
-                if is_gambit and request.mode == "online"
-                else ("deployment" if is_gambit else "play")
-            ),
-            gambit=GambitState() if is_gambit else None,
+            phase=initial_phase,
+            gambit=gambit_state,
             current_player="white",
             rules=rule_settings,
             piece_definitions=piece_definitions,
+            configuration=configuration,
+            abilities=AbilityState(),
+            clock=(
+                ClockState(
+                    initial_seconds=configuration.victory.time_seconds,
+                    remaining_seconds={
+                        "white": float(configuration.victory.time_seconds),
+                        "black": float(configuration.victory.time_seconds),
+                    },
+                    active_color="white",
+                    turn_started_at=datetime.now(timezone.utc),
+                )
+                if configuration.victory.mode == "timed"
+                else None
+            ),
             history=[],
             captured_pieces={"white": [], "black": []},
             winner=None,
@@ -630,15 +872,24 @@ class GameService:
         except InviteClaimError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
 
-        if record.state.variant == "gambit" and record.state.phase == "lobby":
+        if record.state.phase == "lobby":
             next_state = record.state.clone()
-            next_state.phase = "deployment"
+            next_state.phase = (
+                "ability_selection"
+                if next_state.configuration.special_abilities.enabled
+                else ("deployment" if next_state.variant == "gambit" else "play")
+            )
             if next_state.gambit is not None:
                 next_version = record.version + 1
                 next_state.gambit.deployment_versions = {
                     "white": next_version,
                     "black": next_version,
                 }
+            if next_state.phase == "play" and next_state.clock is not None:
+                next_state.clock.active_color = "white"
+                next_state.clock.turn_started_at = now
+            if next_state.phase == "play":
+                self.engine.evaluate_state(next_state)
             record = self._save(next_state, record.version)
 
         return GameSessionResponse(
@@ -650,6 +901,10 @@ class GameService:
 
     def get_game(self, game_id: str, player_token: str | None = None) -> GameRecord:
         return self.authorize(game_id, player_token).record
+
+    @staticmethod
+    def catalog() -> dict:
+        return catalog_payload()
 
     def viewer_color(self, record: GameRecord, player_token: str | None) -> str | None:
         if record.mode == "local":
@@ -683,6 +938,117 @@ class GameService:
             inviteUrl=self._invite_url(invite_token),
             inviteExpiresAt=expires_at,
         )
+
+    @staticmethod
+    def _setup_color(authorized: AuthorizedGame) -> str:
+        state = authorized.record.state
+        if authorized.record.mode == "online":
+            if authorized.player is None:
+                raise HTTPException(status_code=403, detail="A player seat is required.")
+            return authorized.player.color
+        return state.abilities.active_selection_color
+
+    def select_ability(
+        self,
+        game_id: str,
+        request: AbilitySelectionRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        state = record.state
+        config = state.configuration.special_abilities
+        if not config.enabled or state.phase != "ability_selection":
+            raise HTTPException(status_code=409, detail="Ability selection is not active.")
+        if request.abilityId not in config.allowed:
+            raise HTTPException(status_code=400, detail="That ability is not enabled for this game.")
+        if record.mode == "online" and not record.ready:
+            raise HTTPException(status_code=409, detail="Waiting for the second player to join.")
+
+        color = self._setup_color(authorized)
+        if state.abilities.selected[color] is not None:
+            raise HTTPException(status_code=409, detail="This ability choice is already locked.")
+        expected = self._expected_version(record, request.expectedVersion)
+        next_state = state.clone()
+        next_state.abilities.selected[color] = request.abilityId
+
+        if record.mode == "local" and color == "white":
+            next_state.abilities.active_selection_color = "black"
+            next_state.phase = "handoff"
+        elif all(next_state.abilities.selected.values()):
+            next_state.phase = "deployment" if next_state.variant == "gambit" else "play"
+            if next_state.variant == "gambit" and next_state.gambit is not None:
+                next_state.gambit.active_deployment_color = "white"
+            if next_state.clock is not None:
+                next_state.clock.turn_started_at = datetime.now(timezone.utc)
+            if next_state.phase == "play":
+                self.engine.evaluate_state(next_state)
+        return self._save(next_state, expected)
+
+    def complete_setup_handoff(
+        self,
+        game_id: str,
+        request: SetupHandoffRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        if record.mode != "local" or record.state.phase != "handoff":
+            raise HTTPException(status_code=409, detail="No private handoff is waiting.")
+        expected = self._expected_version(record, request.expectedVersion)
+        next_state = record.state.clone()
+        if (
+            next_state.configuration.special_abilities.enabled
+            and next_state.abilities.selected["black"] is None
+        ):
+            next_state.phase = "ability_selection"
+        elif next_state.variant == "gambit":
+            next_state.phase = "deployment"
+        else:
+            next_state.phase = "play"
+        if next_state.phase == "play":
+            self.engine.evaluate_state(next_state)
+        return self._save(next_state, expected)
+
+    def use_custom_action(
+        self,
+        game_id: str,
+        request: GameActionRequest,
+        player_token: str | None = None,
+    ) -> tuple[GameRecord, str]:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        color = record.state.current_player
+        if record.mode == "online":
+            if not record.ready:
+                raise HTTPException(status_code=409, detail="Waiting for the second player to join.")
+            if authorized.player is None or authorized.player.color != color:
+                raise HTTPException(status_code=403, detail=f"Only {color} can act right now.")
+        expected = self._expected_version(record, request.expectedVersion)
+        try:
+            next_state, explanation = self.engine.apply_custom_action(
+                record.state,
+                color,
+                request.model_dump(exclude={"expectedVersion"}),
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        action = next_state.history[-1]
+        saved = self._save(
+            next_state,
+            expected,
+            MoveAudit(
+                move_number=action.move_number,
+                player_color=action.player,
+                piece_type=action.piece,
+                from_row=action.from_row,
+                from_col=action.from_col,
+                to_row=action.to_row,
+                to_col=action.to_col,
+                explanation=action.explanation,
+            ),
+        )
+        return saved, explanation
 
     @staticmethod
     def _deployment_color(authorized: AuthorizedGame) -> str:
@@ -838,10 +1204,10 @@ class GameService:
         record = authorized.record
         game_state = record.state
 
-        if game_state.variant == "gambit" and game_state.phase != "play":
+        if game_state.phase != "play":
             raise HTTPException(
                 status_code=409,
-                detail="Both armies must be revealed before pieces can move.",
+                detail="Setup must be complete before pieces can move.",
             )
 
         if record.mode == "online":
@@ -943,9 +1309,15 @@ class GameService:
                 if game_state.gambit is not None
                 else None
             )
-            game_state.board = _empty_board(8, 8)
+            game_state.board = _empty_board(game_state.board.rows, game_state.board.cols)
             game_state.phase = (
-                "deployment" if record.mode == "local" or record.ready else "lobby"
+                "lobby"
+                if record.mode == "online" and not record.ready
+                else (
+                    "ability_selection"
+                    if game_state.configuration.special_abilities.enabled
+                    else "deployment"
+                )
             )
             game_state.gambit = GambitState(config=config) if config is not None else GambitState()
             game_state.gambit.deployment_versions = {
@@ -953,23 +1325,57 @@ class GameService:
                 "black": record.version + 1,
             }
             game_state.current_player = "white"
+            game_state.abilities = AbilityState()
+            game_state.turn_counts = {"white": 0, "black": 0}
             game_state.history = []
             game_state.captured_pieces = {"white": [], "black": []}
             game_state.winner = None
             game_state.game_status = "active"
             game_state.score = {"white": 0, "black": 0}
+            game_state.spent_score = {"white": 0, "black": 0}
+            game_state.result = None
+            if game_state.clock is not None:
+                seconds = game_state.clock.initial_seconds
+                game_state.clock.remaining_seconds = {
+                    "white": float(seconds),
+                    "black": float(seconds),
+                }
+                game_state.clock.active_color = "white"
+                game_state.clock.turn_started_at = datetime.now(timezone.utc)
             return self._save(game_state, expected_version)
 
         board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows
         board_cols = request.boardCols if request.boardCols is not None else game_state.board.cols
 
-        game_state.board = _initial_board(board_rows, board_cols, game_state.piece_definitions)
+        game_state.board = _configured_board(
+            board_rows,
+            board_cols,
+            game_state.piece_definitions,
+            game_state.configuration,
+        )
         game_state.current_player = "white"
+        game_state.phase = (
+            "ability_selection"
+            if game_state.configuration.special_abilities.enabled
+            else "play"
+        )
+        game_state.abilities = AbilityState()
+        game_state.turn_counts = {"white": 0, "black": 0}
         game_state.history = []
         game_state.captured_pieces = {"white": [], "black": []}
         game_state.winner = None
         game_state.game_status = "active"
         game_state.score = {"white": 0, "black": 0}
+        game_state.spent_score = {"white": 0, "black": 0}
+        game_state.result = None
+        if game_state.clock is not None:
+            seconds = game_state.clock.initial_seconds
+            game_state.clock.remaining_seconds = {
+                "white": float(seconds),
+                "black": float(seconds),
+            }
+            game_state.clock.active_color = "white"
+            game_state.clock.turn_started_at = datetime.now(timezone.utc)
 
         self.engine.evaluate_state(game_state)
         return self._save(game_state, expected_version)
@@ -1027,10 +1433,91 @@ class GameService:
     ) -> GameResponse:
         game_state = record.state
 
+        configuration_view = {
+            "schemaVersion": game_state.configuration.schema_version,
+            "presetId": game_state.configuration.preset_id,
+            "enabledPieces": game_state.configuration.enabled_piece_types,
+            "initialLayout": game_state.configuration.initial_layout,
+            "victory": {
+                "mode": game_state.configuration.victory.mode,
+                "targetPoints": game_state.configuration.victory.target_points,
+                "timeSeconds": game_state.configuration.victory.time_seconds,
+                "kingPoints": game_state.configuration.victory.king_points,
+            },
+            "specialAbilities": {
+                "enabled": game_state.configuration.special_abilities.enabled,
+                "allowed": game_state.configuration.special_abilities.allowed,
+            },
+            "gambit": {
+                "enabled": game_state.gambit is not None,
+                **(
+                    {
+                        "budget": game_state.gambit.config.budget,
+                        "maxPieces": game_state.gambit.config.max_pieces,
+                        "setupRows": game_state.gambit.config.setup_rows,
+                        "maxQueens": game_state.gambit.config.piece_caps.get("queen", 0),
+                        "affinityEnabled": game_state.gambit.config.affinity_enabled,
+                        "commandPointCap": game_state.gambit.config.command_point_cap,
+                        "pieceCaps": game_state.gambit.config.piece_caps,
+                    }
+                    if game_state.gambit is not None
+                    else {}
+                ),
+            },
+        }
+
+        piece_names = {
+            piece.piece_id: piece.name
+            for board_row in game_state.board.grid
+            for piece in board_row
+            if piece is not None
+        }
+
         def piece_view(piece: Piece) -> PieceView:
             definition = game_state.piece_definitions.get(piece.type)
-            symbol = definition.symbols[piece.color] if definition else "?"
+            symbol = definition.symbols.get(piece.color, "?") if definition else "?"
+            runtime = dict(piece.runtime)
+            if piece.color in {"white", "black"}:
+                current_turn = game_state.turn_counts[piece.color]
+                for key in (
+                    "catapult_ready_turn",
+                    "pacified_until_turn",
+                    "capture_immune_until_turn",
+                    "love_until_turn",
+                ):
+                    if key in runtime:
+                        runtime[f"{key}_remaining"] = max(
+                            0,
+                            int(runtime[key]) - current_turn,
+                        )
+                if (
+                    piece.type == "bishop"
+                    and game_state.abilities.selected.get(piece.color) == "episcopal"
+                ):
+                    ready_turn = int(
+                        game_state.abilities.runtime[piece.color].get(
+                            "episcopal_ready_turn",
+                            0,
+                        )
+                    )
+                    runtime["episcopal_ready_turn_remaining"] = max(
+                        0,
+                        ready_turn - current_turn,
+                    )
+                if piece.type == "diplomat":
+                    runtime["diplomat_contacts_status"] = [
+                        {
+                            "targetName": piece_names.get(target_id, "enemy piece"),
+                            "progress": int(progress),
+                            "required": 2,
+                        }
+                        for target_id, progress in dict(
+                            runtime.get("diplomat_contacts", {})
+                        ).items()
+                        if int(progress) > 0
+                    ]
             return PieceView(
+                pieceId=piece.piece_id,
                 type=piece.type,
                 name=piece.name,
                 color=piece.color,
@@ -1038,7 +1525,11 @@ class GameService:
                 symbol=symbol,
                 hasMoved=piece.has_moved,
                 isCustom=piece.is_custom,
+                icon=definition.icon if definition else "",
+                description=definition.description if definition else "",
+                movement=definition.movement_summary if definition else "",
                 customAttributes=piece.custom_attributes,
+                runtime=runtime,
             )
 
         board_grid = game_state.board.grid
@@ -1064,6 +1555,17 @@ class GameService:
                         visible_deployment_color,
                         game_state.piece_definitions,
                     )
+            if "barricade" in game_state.configuration.enabled_piece_types:
+                row, col = barricade_start_square(
+                    game_state.board.rows,
+                    game_state.board.cols,
+                )
+                if board_grid[row][col] is None:
+                    board_grid[row][col] = _create_piece_instance(
+                        "barricade",
+                        "neutral",
+                        game_state.piece_definitions,
+                    )
 
         board_view: list[list[PieceView | None]] = [
             [piece_view(piece) if piece is not None else None for piece in row]
@@ -1073,6 +1575,13 @@ class GameService:
         valid_moves = (
             self.engine.get_valid_moves_for_current_player(game_state)
             if record.ready and game_state.phase == "play"
+            else []
+        )
+
+        can_view_actions = record.mode == "local" or viewer_color == game_state.current_player
+        available_actions = (
+            self.engine.get_available_actions(game_state, game_state.current_player)
+            if record.ready and game_state.phase == "play" and can_view_actions
             else []
         )
         valid_move_views = [
@@ -1210,6 +1719,8 @@ class GameService:
                     maxPieces=gambit.config.max_pieces,
                     setupRows=gambit.config.setup_rows,
                     commandPointCap=gambit.config.command_point_cap,
+                    affinityEnabled=gambit.config.affinity_enabled,
+                    requireExactBudget=gambit.config.require_exact_budget,
                     piecePoints=gambit.config.piece_points,
                     pieceCaps=gambit.config.piece_caps,
                     powerCosts=gambit.config.power_costs,
@@ -1236,8 +1747,37 @@ class GameService:
             )
 
         response_phase = game_state.phase
-        if game_state.game_status in {"checkmate", "stalemate", "score_target"}:
+        if game_state.game_status in FINISHED_STATUSES:
             response_phase = "finished"
+
+        if record.mode == "online":
+            ability_viewer = viewer_color
+        elif game_state.phase in {"ability_selection", "handoff"}:
+            ability_viewer = game_state.abilities.active_selection_color
+        elif game_state.variant == "gambit" and game_state.phase == "deployment":
+            ability_viewer = visible_deployment_color
+        else:
+            ability_viewer = game_state.current_player
+        choices_revealed = game_state.phase in {"play", "finished"}
+        selected_view = (
+            dict(game_state.abilities.selected)
+            if choices_revealed
+            else {
+                color: (
+                    game_state.abilities.selected[color]
+                    if color == ability_viewer
+                    else ("locked" if game_state.abilities.selected[color] else None)
+                )
+                for color in ("white", "black")
+            }
+        )
+        ability_editable_color = None
+        if (
+            game_state.phase == "ability_selection"
+            and ability_viewer in {"white", "black"}
+            and game_state.abilities.selected[ability_viewer] is None
+        ):
+            ability_editable_color = ability_viewer
 
         response_version = record.version
         if (
@@ -1282,7 +1822,12 @@ class GameService:
                     symbols=definition.symbols,
                     points=definition.points,
                     isCustom=definition.is_custom,
+                    icon=definition.icon,
+                    description=definition.description,
+                    movement=definition.movement_summary,
+                    behavior=definition.behavior,
                     customAttributes=definition.custom_attributes,
+                    metadata=definition.metadata,
                     patterns=[
                         MovePatternView(
                             dr=pattern.dr,
@@ -1304,5 +1849,36 @@ class GameService:
             winner=game_state.winner,
             gameStatus=game_state.game_status,
             score=game_state.score,
+            spentScore=game_state.spent_score,
+            configuration=configuration_view,
+            abilities=AbilityStateView(
+                enabled=game_state.configuration.special_abilities.enabled,
+                allowed=game_state.configuration.special_abilities.allowed,
+                selected=selected_view,
+                used=game_state.abilities.used,
+                viewerSelection=(
+                    game_state.abilities.selected.get(ability_viewer)
+                    if ability_viewer in {"white", "black"}
+                    else None
+                ),
+                editableColor=ability_editable_color,
+            ),
+            countdowns=[CountdownView(**item) for item in public_countdowns(game_state)],
+            availableActions=[AvailableActionView(**item) for item in available_actions],
+            result=(
+                ResultView(
+                    reasonCode=game_state.result.reason_code,
+                    description=game_state.result.description,
+                    trigger=game_state.result.trigger,
+                    winner=game_state.result.winner,
+                )
+                if game_state.result is not None
+                else None
+            ),
+            clock=(
+                ClockView(**self.engine.clock_snapshot(game_state))
+                if game_state.clock is not None
+                else None
+            ),
             gambit=gambit_view,
         )

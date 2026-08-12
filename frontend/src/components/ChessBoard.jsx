@@ -7,20 +7,51 @@ function PieceTooltip({ piece, placement = "above", edge = "center" }) {
     piece.customAttributes?.customRules ||
     piece.customAttributes?.rules ||
     [];
+  const runtimeItems = [];
+  if (piece.runtime?.catapult_ready_turn_remaining > 0) {
+    runtimeItems.push(`Projectile ready in ${piece.runtime.catapult_ready_turn_remaining} own turn(s)`);
+  }
+  if (piece.runtime?.pacified_until_turn_remaining > 0) {
+    runtimeItems.push(`Pacified for ${piece.runtime.pacified_until_turn_remaining} more own turn(s)`);
+  }
+  if (piece.runtime?.love_until_turn_remaining > 0) {
+    runtimeItems.push(`Queen mobility for ${piece.runtime.love_until_turn_remaining} more own turn(s)`);
+  }
+  if (piece.runtime?.recruit_target_name) {
+    runtimeItems.push(
+      `Recruiting ${piece.runtime.recruit_target_name}: ${piece.runtime.recruit_progress || 0}/${piece.runtime.recruit_threshold || "?"}`
+    );
+  }
+  if (piece.runtime?.pacifications) {
+    runtimeItems.push(`Diplomat pacifications: ${piece.runtime.pacifications}/5`);
+  }
+  if (piece.runtime?.episcopal_ready_turn_remaining > 0) {
+    runtimeItems.push(`Episcopal ready in ${piece.runtime.episcopal_ready_turn_remaining} own turn(s)`);
+  }
+  (piece.runtime?.diplomat_contacts_status || []).forEach((contact) => {
+    runtimeItems.push(
+      `Contact with ${contact.targetName}: ${contact.progress}/${contact.required}`
+    );
+  });
 
   return (
     <div
       className={`piece-tooltip piece-tooltip--${placement} piece-tooltip--${edge}`}
       role="tooltip"
     >
-      <strong>{piece.name}</strong>
+      <div className="tooltip-title"><i>{piece.icon}</i><strong>{piece.name}</strong></div>
       <span>Color: {piece.color}</span>
-      <span>Points: {piece.points ?? "-"}</span>
+      <span>Points: {piece.points ?? 0}</span>
+      {piece.description ? <p><b>Role</b>{piece.description}</p> : null}
+      {piece.movement ? <p><b>Movement</b>{piece.movement}</p> : null}
       {customRules.length ? (
-        <span>Custom rules: {customRules.join(", ")}</span>
+        <p><b>Special Rules</b>{customRules.join(" · ")}</p>
       ) : (
-        <span>Custom rules: none</span>
+        <span>Special rules: none</span>
       )}
+      {runtimeItems.length ? (
+        <div className="tooltip-runtime"><b>Live Status</b>{runtimeItems.map((item) => <span key={item}>{item}</span>)}</div>
+      ) : null}
     </div>
   );
 }
@@ -118,6 +149,7 @@ function ChessBoard({
             const pieceClassName = [
               piece ? "piece" : "piece ghost",
               piece?.isCustom ? "custom-piece" : "default-piece",
+              piece ? `piece-${piece.color}` : "",
             ]
               .filter(Boolean)
               .join(" ");

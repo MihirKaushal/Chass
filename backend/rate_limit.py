@@ -41,5 +41,9 @@ class SlidingWindowRateLimiter:
 
             events.append(now)
 
+    def reset(self) -> None:
+        with self._lock:
+            self._events.clear()
+
 
 rate_limiter = SlidingWindowRateLimiter()

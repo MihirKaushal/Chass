@@ -10,7 +10,7 @@ const POWER_COPY = {
   reinforce: {
     label: "Reinforce",
     kicker: "Add one Pawn",
-    description: "Deploy a Pawn on an empty square in your first two ranks.",
+    description: "Deploy a Pawn on an empty square in your configured home rows.",
   },
   evolve: {
     label: "Evolve",
@@ -94,6 +94,19 @@ function GambitDeployment({
     () => new Map(game.pieceDefinitions.map((definition) => [definition.type, definition])),
     [game.pieceDefinitions]
   );
+  const availablePieceTypes = useMemo(() => {
+    const enabled = (game.configuration?.enabledPieces || PIECE_ORDER).filter(
+      (pieceType) => pieceType !== "barricade"
+    );
+    return [...enabled].sort((left, right) => {
+      const leftIndex = PIECE_ORDER.indexOf(left);
+      const rightIndex = PIECE_ORDER.indexOf(right);
+      if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+      if (leftIndex === -1) return 1;
+      if (rightIndex === -1) return -1;
+      return leftIndex - rightIndex;
+    });
+  }, [game.configuration?.enabledPieces]);
   const rows = game.boardRows ?? game.boardSize;
   const ownRows = setupRowsFor(color, rows, gambit.config.setupRows);
   const opponentRows = setupRowsFor(
@@ -109,6 +122,9 @@ function GambitDeployment({
       return;
     }
     const piece = game.board[row][col];
+    if (piece?.color === "neutral") {
+      return;
+    }
     if (piece) {
       onDeploymentChange({ action: "remove", row, col });
       return;
@@ -147,10 +163,12 @@ function GambitDeployment({
           showCoordinates
         />
 
-        <div className="affinity-legend">
-          <span><i className="affinity-swatch white" /> White affinity: e4 + d5</span>
-          <span><i className="affinity-swatch black" /> Black affinity: d4 + e5</span>
-        </div>
+        {gambit.config.affinityEnabled ? (
+          <div className="affinity-legend">
+            <span><i className="affinity-swatch white" /> White affinity squares</span>
+            <span><i className="affinity-swatch black" /> Black affinity squares</span>
+          </div>
+        ) : null}
       </section>
 
       <aside className="war-chest-panel">
@@ -179,7 +197,7 @@ function GambitDeployment({
         ) : null}
 
         <div className="war-chest-grid">
-          {PIECE_ORDER.map((pieceType) => {
+          {availablePieceTypes.map((pieceType) => {
             const definition = definitionMap.get(pieceType);
             const cost = gambit.config.piecePoints[pieceType];
             const cap = gambit.config.pieceCaps[pieceType];
@@ -275,7 +293,7 @@ function CommandPanel({ game, interactive, selectedPower, onSelectPower, evolveT
           <span className="eyebrow">{title(color)} command</span>
           <h2>Command Points</h2>
         </div>
-        <div className="command-pips" aria-label={`${points} of 3 command points`}>
+        <div className="command-pips" aria-label={`${points} of ${gambit.config.commandPointCap} command points`}>
           {Array.from({ length: gambit.config.commandPointCap }).map((_, index) => (
             <i key={index} className={index < points ? "filled" : ""} />
           ))}
@@ -285,7 +303,9 @@ function CommandPanel({ game, interactive, selectedPower, onSelectPower, evolveT
       <div className={`affinity-readout ${controlled ? "controlled" : ""}`}>
         <strong>{controlled ? "Affinity held" : "Affinity contested"}</strong>
         <span>
-          {primed
+          {!gambit.config.affinityEnabled
+            ? "Affinity squares are disabled for this game."
+            : primed
             ? "Keep both squares through the enemy turn to earn 1 point."
             : "Occupy both marked squares at the end of your turn to prime a point."}
         </span>
@@ -355,6 +375,7 @@ function GambitPlay({
   interactive,
   actionLoading,
   onPower,
+  onAction,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
   const [evolveTo, setEvolveTo] = useState("knight");
@@ -423,6 +444,13 @@ function GambitPlay({
           gameStatus={game.gameStatus}
           winner={game.winner}
           score={game.score}
+          abilities={game.abilities}
+          countdowns={game.countdowns}
+          availableActions={game.availableActions}
+          clock={game.clock}
+          onAction={onAction}
+          actionLoading={actionLoading}
+          boardRows={game.boardRows ?? game.boardSize}
           compactRules
         />
       </aside>

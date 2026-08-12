@@ -1,8 +1,11 @@
+function title(value) {
+  return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
+}
+
 function TopNav({
-  activeTab,
-  onTabChange,
   onReset,
   onHome,
+  onCustomize,
   currentPlayer,
   gameStatus,
   winner,
@@ -10,74 +13,51 @@ function TopNav({
   onToggleAutoBoardFlip,
   boardFlipped,
   autoBoardFlipEnabled,
-  canCustomize,
   canReset,
   mode,
   playerColor,
   connectionStatus,
   variant,
   phase,
-  onOpenGambit,
 }) {
   const statusLabel =
     phase === "lobby"
-      ? "Waiting for player"
-      : phase === "deployment"
-        ? "Hidden deployment"
-        : phase === "handoff"
-          ? "Private handoff"
-          : gameStatus === "checkmate"
-      ? `Checkmate (${winner || "none"})`
-      : gameStatus === "stalemate"
-        ? "Stalemate"
-        : gameStatus === "score_target"
-          ? `Score Victory (${winner || "none"})`
-          : gameStatus === "check"
-            ? "Check"
-            : "Active";
+      ? "Waiting For Player"
+      : phase === "ability_selection"
+        ? "Ability Selection"
+        : phase === "deployment"
+          ? "Hidden Deployment"
+          : phase === "handoff"
+            ? "Private Handoff"
+            : winner
+              ? `${title(winner)} Won`
+              : title(gameStatus || "active");
 
   return (
     <header className="top-nav">
       <button type="button" className="brand-block brand-button" onClick={onHome}>
         <strong>Chass!</strong>
-        <span>Variant-ready chess sandbox</span>
+        <span>Build the rules. Play the board.</span>
       </button>
 
       <nav className="tab-nav" aria-label="Game sections">
-        <button
-          type="button"
-          className={activeTab === "play" && variant !== "gambit" ? "tab active" : "tab"}
-          onClick={() => onTabChange("play")}
-        >
+        <button type="button" className="tab active">
           Play
         </button>
-        <button
-          type="button"
-          className={variant === "gambit" ? "tab active gambit-tab" : "tab gambit-tab"}
-          onClick={() => (variant === "gambit" ? onTabChange("play") : onOpenGambit())}
-        >
-          Chass Gambit
+        <button type="button" className="tab" onClick={onCustomize}>
+          Customize
         </button>
-        {canCustomize ? (
-          <button
-            type="button"
-            className={activeTab === "customize" ? "tab active" : "tab"}
-            onClick={() => onTabChange("customize")}
-          >
-            Customize
-          </button>
-        ) : null}
       </nav>
 
       <div className="game-meta">
         <span className="turn-pill">
-          {phase === "deployment" ? "Building armies" : `Turn: ${currentPlayer}`}
+          {phase === "play" ? `Turn: ${title(currentPlayer)}` : statusLabel}
         </span>
         <span className="status-pill">Status: {statusLabel}</span>
         <span className="mode-pill">
           {mode === "online"
-            ? `${playerColor || "Online"} / ${connectionStatus}`
-            : "Local room"}
+            ? `${title(playerColor || "Online")} / ${connectionStatus}`
+            : "Local Room"}
         </span>
       </div>
 

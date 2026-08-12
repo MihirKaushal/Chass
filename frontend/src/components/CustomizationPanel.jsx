@@ -1,955 +1,759 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { getCatalog } from "../api/gameApi";
+
 const MIN_DIMENSION = 4;
 const MAX_DIMENSION = 16;
+const STANDARD_TYPES = ["pawn", "knight", "bishop", "rook", "queen", "king"];
+const BACK_RANK = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
 
-function clampDimension(value) {
-  if (!Number.isFinite(value)) {
-    return MIN_DIMENSION;
+function title(value) {
+  return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
+}
+
+function clamp(value, minimum, maximum) {
+  const number = Number(value);
+  if (!Number.isFinite(number)) {
+    return minimum;
   }
-  return Math.max(MIN_DIMENSION, Math.min(MAX_DIMENSION, value));
+  return Math.max(minimum, Math.min(maximum, Math.trunc(number)));
 }
 
-function cloneBoard(board) {
-  return board.map((row) => row.map((piece) => (piece ? { ...piece } : null)));
+function coordinate(row, col, rows) {
+  return `${String.fromCharCode(65 + col)}${rows - row}`;
 }
 
-function createEmptyBoard(rows, cols) {
-  return Array.from({ length: rows }, () => Array.from({ length: cols }, () => null));
-}
-
-function resizeBoardCentered(currentBoard, nextRows, nextCols) {
-  const currentRows = currentBoard.length;
-  const currentCols = currentBoard[0] ? currentBoard[0].length : 0;
-  const resized = createEmptyBoard(nextRows, nextCols);
-
-  const rowOffset = Math.floor((nextRows - currentRows) / 2);
-  const colOffset = Math.floor((nextCols - currentCols) / 2);
-
-  for (let row = 0; row < currentRows; row += 1) {
-    for (let col = 0; col < currentCols; col += 1) {
-      const nextRow = row + rowOffset;
-      const nextCol = col + colOffset;
-      if (nextRow < 0 || nextRow >= nextRows || nextCol < 0 || nextCol >= nextCols) {
-        continue;
-      }
-      resized[nextRow][nextCol] = currentBoard[row][col];
-    }
+function classicLayout(rows, cols) {
+  if (rows < 4 || cols < 8) {
+    const kingCol = Math.floor(cols / 2);
+    return [
+      { row: 0, col: kingCol, type: "king", color: "black" },
+      { row: rows - 1, col: kingCol, type: "king", color: "white" },
+    ];
   }
-
-  return resized;
-}
-
-function toPlacements(board) {
+  const startCol = Math.floor((cols - 8) / 2);
   const placements = [];
-  for (let row = 0; row < board.length; row += 1) {
-    for (let col = 0; col < board[row].length; col += 1) {
-      const piece = board[row][col];
-      if (!piece) {
-        continue;
-      }
-      placements.push({ row, col, type: piece.type, color: piece.color });
-    }
-  }
+  BACK_RANK.forEach((type, index) => {
+    placements.push({ row: 0, col: startCol + index, type, color: "black" });
+    placements.push({ row: rows - 1, col: startCol + index, type, color: "white" });
+    placements.push({ row: 1, col: startCol + index, type: "pawn", color: "black" });
+    placements.push({ row: rows - 2, col: startCol + index, type: "pawn", color: "white" });
+  });
   return placements;
 }
 
-function fileLabelFromCol(col) {
-  return String.fromCharCode(65 + col);
+function centeredResize(placements, oldRows, oldCols, rows, cols) {
+  const rowOffset = Math.floor((rows - oldRows) / 2);
+  const colOffset = Math.floor((cols - oldCols) / 2);
+  return placements
+    .map((piece) => ({ ...piece, row: piece.row + rowOffset, col: piece.col + colOffset }))
+    .filter((piece) => piece.row >= 0 && piece.row < rows && piece.col >= 0 && piece.col < cols);
 }
 
-function rankLabelFromRow(row, totalRows) {
-  return String(totalRows - row);
-}
-
-function createClassicSetupBoard(rows, cols, definitionsByType) {
-  const board = createEmptyBoard(rows, cols);
-  const classicBackRank = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
-
-  if (rows < 2 || cols < 8) {
-    return board;
+function formationLayout(id, rows, cols) {
+  const base = classicLayout(rows, cols);
+  if (id === "no_pawns") {
+    return base.filter((piece) => piece.type !== "pawn");
   }
-
-  const colStart = Math.floor((cols - 8) / 2);
-
-  for (let index = 0; index < 8; index += 1) {
-    const col = colStart + index;
-    const backType = classicBackRank[index];
-    const backDefinition = definitionsByType[backType];
-    const pawnDefinition = definitionsByType.pawn;
-
-    if (backDefinition) {
-      board[0][col] = {
-        type: backDefinition.type,
-        name: backDefinition.displayName,
-        color: "black",
-        points: backDefinition.points,
-        symbol: backDefinition.symbols.black,
-        hasMoved: false,
-        isCustom: backDefinition.isCustom,
-        customAttributes: backDefinition.customAttributes || {},
-      };
-
-      board[rows - 1][col] = {
-        type: backDefinition.type,
-        name: backDefinition.displayName,
-        color: "white",
-        points: backDefinition.points,
-        symbol: backDefinition.symbols.white,
-        hasMoved: false,
-        isCustom: backDefinition.isCustom,
-        customAttributes: backDefinition.customAttributes || {},
-      };
+  if (id === "pawn_race") {
+    return base.filter((piece) => ["pawn", "king"].includes(piece.type));
+  }
+  if (id === "knight_skirmish") {
+    return [
+      { row: 0, col: 2, type: "king", color: "black" },
+      { row: 1, col: 1, type: "knight", color: "black" },
+      { row: 1, col: 4, type: "knight", color: "black" },
+      { row: 5, col: 3, type: "king", color: "white" },
+      { row: 4, col: 1, type: "knight", color: "white" },
+      { row: 4, col: 4, type: "knight", color: "white" },
+    ];
+  }
+  if (id === "horde") {
+    const pieces = base.filter((piece) => piece.color === "black");
+    for (let row = rows - 4; row < rows; row += 1) {
+      for (let col = 0; col < cols; col += 1) {
+        pieces.push({ row, col, type: "pawn", color: "white" });
+      }
     }
-
-    if (pawnDefinition) {
-      board[1][col] = {
-        type: pawnDefinition.type,
-        name: pawnDefinition.displayName,
-        color: "black",
-        points: pawnDefinition.points,
-        symbol: pawnDefinition.symbols.black,
-        hasMoved: false,
-        isCustom: pawnDefinition.isCustom,
-        customAttributes: pawnDefinition.customAttributes || {},
-      };
-
-      board[rows - 2][col] = {
-        type: pawnDefinition.type,
-        name: pawnDefinition.displayName,
-        color: "white",
-        points: pawnDefinition.points,
-        symbol: pawnDefinition.symbols.white,
-        hasMoved: false,
-        isCustom: pawnDefinition.isCustom,
-        customAttributes: pawnDefinition.customAttributes || {},
-      };
-    }
+    pieces[Math.floor(pieces.length / 2)] = {
+      row: rows - 1,
+      col: Math.floor(cols / 2),
+      type: "king",
+      color: "white",
+    };
+    return pieces;
   }
-
-  return board;
+  if (id === "castle_siege") {
+    return classicLayout(rows, cols).filter((piece) => piece.type !== "knight");
+  }
+  return base;
 }
 
-function pieceFromDefinition(definitionsByType, type, color) {
-  const definition = definitionsByType[type];
-  if (!definition) {
-    return null;
-  }
+const FORMATIONS = [
+  {
+    id: "no_pawns",
+    name: "No Pawns",
+    icon: "♜",
+    summary: "Open lines immediately by removing every Pawn.",
+    rows: 8,
+    cols: 8,
+  },
+  {
+    id: "pawn_race",
+    name: "Pawn Race",
+    icon: "♟",
+    summary: "Kings and Pawns only, with promotion deciding the attack.",
+    rows: 8,
+    cols: 8,
+  },
+  {
+    id: "knight_skirmish",
+    name: "Knight Skirmish",
+    icon: "♞",
+    summary: "A compact 6x6 tactical duel built around Knight forks.",
+    rows: 6,
+    cols: 6,
+  },
+  {
+    id: "horde",
+    name: "Horde",
+    icon: "⚑",
+    summary: "A dense Pawn army challenges a conventional force.",
+    rows: 8,
+    cols: 8,
+  },
+  {
+    id: "castle_siege",
+    name: "Castle Siege",
+    icon: "🏰",
+    summary: "A wider 8x10 battlefield with long defensive lanes.",
+    rows: 8,
+    cols: 10,
+  },
+];
 
+function defaultDraft(catalog) {
+  const pointValues = {};
+  const pieceCaps = {};
+  catalog.pieces.forEach((piece) => {
+    pointValues[piece.type] = Math.max(0, piece.points ?? 0);
+    pieceCaps[piece.type] = piece.type === "king" ? 1 : piece.type === "queen" ? 2 : 16;
+  });
   return {
-    type: definition.type,
-    name: definition.displayName,
-    color,
-    points: definition.points,
-    symbol: definition.symbols[color],
-    hasMoved: false,
-    isCustom: definition.isCustom,
-    customAttributes: definition.customAttributes || {},
+    presetId: "classic",
+    boardRows: 8,
+    boardCols: 8,
+    enabledPieces: [...STANDARD_TYPES],
+    pointValues,
+    pieceCaps,
+    placements: classicLayout(8, 8),
+    victory: {
+      mode: "checkmate",
+      targetPoints: 21,
+      timeSeconds: 600,
+      kingPoints: 0,
+    },
+    specialAbilities: { enabled: false, allowed: [] },
+    gambit: {
+      enabled: false,
+      budget: 39,
+      maxPieces: 16,
+      setupRows: 2,
+      maxQueens: 2,
+      affinityEnabled: true,
+      commandPointCap: 3,
+    },
   };
 }
 
-function createPawnRaceBoard(definitionsByType) {
-  const rows = 8;
-  const cols = 8;
-  const board = createEmptyBoard(rows, cols);
+function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlace }) {
+  const definitionMap = useMemo(
+    () => new Map(catalog.pieces.map((piece) => [piece.type, piece])),
+    [catalog]
+  );
+  const placementMap = useMemo(
+    () => new Map(draft.placements.map((piece) => [`${piece.row}-${piece.col}`, piece])),
+    [draft.placements]
+  );
+  const setupRows = new Set([
+    ...Array.from({ length: Math.min(draft.gambit.setupRows, draft.boardRows) }, (_, index) => index),
+    ...Array.from(
+      { length: Math.min(draft.gambit.setupRows, draft.boardRows) },
+      (_, index) => draft.boardRows - 1 - index
+    ),
+  ]);
 
-  for (let col = 0; col < cols; col += 1) {
-    board[1][col] = pieceFromDefinition(definitionsByType, "pawn", "black");
-    board[6][col] = pieceFromDefinition(definitionsByType, "pawn", "white");
-  }
+  return (
+    <div className="studio-preview-stack">
+      <div className="studio-board-frame">
+        <div
+          className="studio-board"
+          style={{
+            aspectRatio: `${draft.boardCols} / ${draft.boardRows}`,
+            gridTemplateColumns: `repeat(${draft.boardCols}, minmax(0, 1fr))`,
+            gridTemplateRows: `repeat(${draft.boardRows}, minmax(0, 1fr))`,
+            "--studio-piece-size": `${Math.max(0.7, Math.min(1.8, 14 / draft.boardCols))}rem`,
+          }}
+        >
+          {Array.from({ length: draft.boardRows }).map((_, row) =>
+            Array.from({ length: draft.boardCols }).map((__, col) => {
+              const gambitBarricade =
+                draft.gambit.enabled &&
+                draft.enabledPieces.includes("barricade") &&
+                row === Math.max(0, Math.floor(draft.boardRows / 2) - 1) &&
+                col === Math.max(0, Math.floor(draft.boardCols / 2) - 1);
+              const placement = gambitBarricade
+                ? { row, col, type: "barricade", color: "neutral" }
+                : placementMap.get(`${row}-${col}`);
+              const definition = placement ? definitionMap.get(placement.type) : null;
+              const symbol = placement
+                ? definition?.symbols?.[placement.color] || definition?.icon || "?"
+                : "";
+              const affinityRows = [
+                Math.max(0, Math.floor(draft.boardRows / 2) - 1),
+                Math.min(draft.boardRows - 1, Math.floor(draft.boardRows / 2)),
+              ];
+              const affinityCols = [
+                Math.max(0, Math.floor(draft.boardCols / 2) - 1),
+                Math.min(draft.boardCols - 1, Math.floor(draft.boardCols / 2)),
+              ];
+              const affinity =
+                draft.gambit.enabled && draft.gambit.affinityEnabled &&
+                affinityRows.includes(row) && affinityCols.includes(col);
+              return (
+                <button
+                  type="button"
+                  key={`${row}-${col}`}
+                  className={[
+                    "studio-square",
+                    (row + col) % 2 === 0 ? "light" : "dark",
+                    draft.gambit.enabled && setupRows.has(row) ? "setup-zone" : "",
+                    affinity ? "studio-affinity" : "",
+                  ].filter(Boolean).join(" ")}
+                  disabled={draft.gambit.enabled}
+                  onClick={() => onPlace(row, col)}
+                  title={
+                    draft.gambit.enabled
+                      ? "Players arrange their own private setup when the game begins."
+                      : `${coordinate(row, col, draft.boardRows)}${placement ? `: ${placement.color} ${placement.type}` : ""}`
+                  }
+                >
+                  {col === 0 ? <span className="studio-rank">{draft.boardRows - row}</span> : null}
+                  {row === draft.boardRows - 1 ? (
+                    <span className="studio-file">{String.fromCharCode(65 + col)}</span>
+                  ) : null}
+                  <span className={`studio-piece ${definition?.isCustom ? "custom" : ""}`}>
+                    {symbol}
+                  </span>
+                </button>
+              );
+            })
+          )}
+        </div>
+      </div>
 
-  board[0][4] = pieceFromDefinition(definitionsByType, "king", "black");
-  board[7][4] = pieceFromDefinition(definitionsByType, "king", "white");
-
-  return { rows, cols, board };
+      <div className="board-tool-readout">
+        <span>{draft.gambit.enabled ? "Private Setup Preview" : "Board Editor"}</span>
+        <strong>
+          {draft.gambit.enabled
+            ? `${draft.gambit.setupRows} home rows per player`
+            : selectedTool?.kind === "erase"
+              ? "Eraser selected"
+              : selectedTool
+                ? `${title(selectedTool.color)} ${title(selectedTool.type)} selected`
+                : "Choose a piece below"}
+        </strong>
+        {!draft.gambit.enabled ? (
+          <button type="button" className="text-button" onClick={() => onSelectTool({ kind: "erase" })}>
+            Use Eraser
+          </button>
+        ) : null}
+      </div>
+    </div>
+  );
 }
 
-function createNoPawnsBoard(definitionsByType) {
-  const rows = 8;
-  const cols = 8;
-  const board = createClassicSetupBoard(rows, cols, definitionsByType);
-
-  for (let col = 0; col < cols; col += 1) {
-    board[1][col] = null;
-    board[6][col] = null;
-  }
-
-  return { rows, cols, board };
+function Toggle({ checked, onChange, label, description }) {
+  return (
+    <label className="studio-toggle">
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <span className="toggle-track" aria-hidden="true"><i /></span>
+      <span className="toggle-copy">
+        <strong>{label}</strong>
+        <small>{description}</small>
+      </span>
+    </label>
+  );
 }
 
-function createKnightSkirmishBoard(definitionsByType) {
-  const rows = 6;
-  const cols = 6;
-  const board = createEmptyBoard(rows, cols);
+function Rulebook({ catalog }) {
+  return (
+    <section className="rulebook" id="rulebook">
+      <header className="rulebook-hero">
+        <div>
+          <span className="eyebrow">Complete Reference</span>
+          <h2>The Chass Rulebook</h2>
+          <p>
+            This is the detailed source of truth for every built-in piece, victory rule,
+            special ability, countdown, and Chass Gambit system.
+          </p>
+        </div>
+        <nav aria-label="Rulebook sections">
+          <a href="#rulebook-pieces">Pieces</a>
+          <a href="#rulebook-victory">Victory</a>
+          <a href="#rulebook-abilities">Abilities</a>
+          <a href="#rulebook-gambit">Gambit</a>
+        </nav>
+      </header>
 
-  board[0][2] = pieceFromDefinition(definitionsByType, "king", "black");
-  board[5][3] = pieceFromDefinition(definitionsByType, "king", "white");
+      <article className="rulebook-section" id="rulebook-pieces">
+        <div className="rulebook-section-heading">
+          <span>01</span>
+          <div><h3>Piece Encyclopedia</h3><p>Movement, value, and special behavior.</p></div>
+        </div>
+        <div className="rulebook-entry-grid">
+          {catalog.pieces.map((piece) => (
+            <details className="rulebook-entry" key={piece.type} open={piece.isCustom}>
+              <summary>
+                <span className="entry-icon">{piece.icon || piece.symbols.black}</span>
+                <span><strong>{piece.name}</strong><small>{piece.isCustom ? "Chass original" : "Classic piece"}</small></span>
+                <b>{piece.points ?? 0} pts</b>
+              </summary>
+              <p>{piece.description}</p>
+              <h4>Movement</h4>
+              <p>{piece.movement}</p>
+              {piece.rules.length ? <ul>{piece.rules.map((rule) => <li key={rule}>{rule}</li>)}</ul> : null}
+            </details>
+          ))}
+        </div>
+      </article>
 
-  board[1][1] = pieceFromDefinition(definitionsByType, "knight", "black");
-  board[1][4] = pieceFromDefinition(definitionsByType, "knight", "black");
-  board[4][1] = pieceFromDefinition(definitionsByType, "knight", "white");
-  board[4][4] = pieceFromDefinition(definitionsByType, "knight", "white");
+      <article className="rulebook-section" id="rulebook-victory">
+        <div className="rulebook-section-heading">
+          <span>02</span>
+          <div><h3>Victory Rules</h3><p>Exactly what must happen before the match ends.</p></div>
+        </div>
+        <div className="rulebook-strip">
+          {catalog.victoryModes.map((mode) => (
+            <div key={mode.id}><i>{mode.icon}</i><strong>{mode.name}</strong><p>{mode.summary}</p></div>
+          ))}
+        </div>
+      </article>
 
-  board[2][2] = pieceFromDefinition(definitionsByType, "pawn", "black");
-  board[3][3] = pieceFromDefinition(definitionsByType, "pawn", "white");
+      <article className="rulebook-section" id="rulebook-abilities">
+        <div className="rulebook-section-heading">
+          <span>03</span>
+          <div><h3>Special Ability Codex</h3><p>Each player privately locks one enabled ability.</p></div>
+        </div>
+        <div className="rulebook-entry-grid">
+          {catalog.specialAbilities.map((ability) => (
+            <details className="rulebook-entry ability-entry" key={ability.id} open>
+              <summary><span className="entry-icon">{ability.icon}</span><span><strong>{ability.name}</strong><small>Player ability</small></span></summary>
+              <p>{ability.summary}</p>
+              <ul>{ability.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
+            </details>
+          ))}
+        </div>
+      </article>
 
-  return { rows, cols, board };
+      <article className="rulebook-section" id="rulebook-gambit">
+        <div className="rulebook-section-heading">
+          <span>04</span>
+          <div><h3>{catalog.gambit.icon} {catalog.gambit.name}</h3><p>{catalog.gambit.summary}</p></div>
+        </div>
+        <div className="rulebook-gambit-copy">
+          <ol>{catalog.gambit.details.map((detail) => <li key={detail}>{detail}</li>)}</ol>
+          <div>
+            <h4>Affinity And Command</h4>
+            <p>
+              The four geometric center squares are divided between White and Black. Hold both
+              squares assigned to your color through the opponent&apos;s turn to earn one command
+              point, up to the configured cap.
+            </p>
+            <p>
+              One command point reinforces a Pawn, two evolves a Pawn into a Knight or Bishop,
+              and three establishes a Rook in an available home square. Every command consumes
+              the player&apos;s normal turn and is simulated for King safety.
+            </p>
+          </div>
+        </div>
+      </article>
+
+      <article className="rulebook-section countdown-reference">
+        <div className="rulebook-section-heading">
+          <span>05</span>
+          <div><h3>Turns And Countdowns</h3><p>How timed effects are counted and displayed.</p></div>
+        </div>
+        <p>
+          A countdown decreases only when the affected player completes one of their own turns.
+          Both players can see every active countdown in the game sidebar. Hovering the affected
+          piece shows the same remaining time beside its movement and point information.
+        </p>
+      </article>
+    </section>
+  );
 }
 
-function createHordeBoard(definitionsByType) {
-  const rows = 8;
-  const cols = 8;
-  const board = createClassicSetupBoard(rows, cols, definitionsByType);
-
-  for (let row = 4; row < 8; row += 1) {
-    for (let col = 0; col < cols; col += 1) {
-      board[row][col] = pieceFromDefinition(definitionsByType, "pawn", "white");
-    }
-  }
-
-  board[7][4] = pieceFromDefinition(definitionsByType, "king", "white");
-
-  return { rows, cols, board };
-}
-
-function createMiniCastleBoard(definitionsByType) {
-  const rows = 8;
-  const cols = 10;
-  const board = createClassicSetupBoard(rows, cols, definitionsByType);
-
-  board[0][0] = pieceFromDefinition(definitionsByType, "rook", "black");
-  board[0][9] = pieceFromDefinition(definitionsByType, "rook", "black");
-  board[7][0] = pieceFromDefinition(definitionsByType, "rook", "white");
-  board[7][9] = pieceFromDefinition(definitionsByType, "rook", "white");
-
-  return { rows, cols, board };
-}
-
-function CustomizationPanel({
-  game,
-  onApplyBasic,
-  onApplyBoardLayout,
-  onApplyPieceCustomization,
-  onApplyRuleBuilder,
-  onApplyRaw,
-  onCreateNewGame,
-}) {
-  const initialRows = game.boardRows ?? game.boardSize;
-  const initialCols = game.boardCols ?? game.boardSize;
-
-  const [boardRows, setBoardRows] = useState(initialRows);
-  const [boardCols, setBoardCols] = useState(initialCols);
-  const [previewBoard, setPreviewBoard] = useState(() => cloneBoard(game.board));
-
-  const [ruleToggles, setRuleToggles] = useState({});
-  const [alignedEnemyCount, setAlignedEnemyCount] = useState(2);
-  const [rawRules, setRawRules] = useState("[]");
-  const [piecePointsByType, setPiecePointsByType] = useState({});
+function CustomizationPanel({ onCreate, initialPreset = "" }) {
+  const [catalog, setCatalog] = useState(null);
+  const [draft, setDraft] = useState(null);
   const [selectedTool, setSelectedTool] = useState(null);
-  const [scoreRaceTarget, setScoreRaceTarget] = useState(21);
-  const [scoreRaceKingPoints, setScoreRaceKingPoints] = useState(1);
-
-  const [localError, setLocalError] = useState("");
-
-  const basicRuleSet = useMemo(
-    () => game.rules.filter((rule) => rule.canDisable),
-    [game.rules]
-  );
-
-  const definitionsByType = useMemo(
-    () =>
-      game.pieceDefinitions.reduce((accumulator, definition) => {
-        accumulator[definition.type] = definition;
-        return accumulator;
-      }, {}),
-    [game.pieceDefinitions]
-  );
-
-  const palettePieces = useMemo(
-    () =>
-      game.pieceDefinitions.flatMap((definition) => [
-        {
-          kind: "piece",
-          key: `${definition.type}-white`,
-          type: definition.type,
-          color: "white",
-          symbol: definition.symbols.white,
-          label: `${definition.displayName} (White)`,
-        },
-        {
-          kind: "piece",
-          key: `${definition.type}-black`,
-          type: definition.type,
-          color: "black",
-          symbol: definition.symbols.black,
-          label: `${definition.displayName} (Black)`,
-        },
-      ]),
-    [game.pieceDefinitions]
-  );
+  const [creatingMode, setCreatingMode] = useState("");
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    const rows = game.boardRows ?? game.boardSize;
-    const cols = game.boardCols ?? game.boardSize;
+    let cancelled = false;
+    getCatalog()
+      .then((payload) => {
+        if (cancelled) return;
+        setCatalog(payload);
+        setDraft(defaultDraft(payload));
+      })
+      .catch((requestError) => setError(requestError.message));
+    return () => { cancelled = true; };
+  }, []);
 
-    setBoardRows(rows);
-    setBoardCols(cols);
-    setPreviewBoard(cloneBoard(game.board));
-    setLocalError("");
-    setRuleToggles(
-      game.rules.reduce((accumulator, rule) => {
-        accumulator[rule.id] = rule.enabled;
-        return accumulator;
-      }, {})
+  const definitionMap = useMemo(
+    () => new Map((catalog?.pieces || []).map((piece) => [piece.type, piece])),
+    [catalog]
+  );
+
+  const applyPopularMode = (mode) => {
+    const rows = mode.boardRows;
+    const cols = mode.boardCols;
+    setDraft((current) => ({
+      ...current,
+      presetId: mode.id,
+      boardRows: rows,
+      boardCols: cols,
+      placements: classicLayout(rows, cols),
+      victory: { ...current.victory, ...mode.victory },
+      gambit: { ...current.gambit, ...mode.gambit },
+    }));
+  };
+
+  useEffect(() => {
+    if (!draft || !catalog || !initialPreset) return;
+    const preset = catalog.popularModes.find((mode) => mode.id === initialPreset);
+    if (preset) applyPopularMode(preset);
+    // The URL preset is an initial hint, not a persistent synchronization source.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [catalog, initialPreset]);
+
+  if (!catalog || !draft) {
+    return (
+      <section className="customization-panel studio-loading">
+        <span className="loading-mark" />
+        <h2>Opening The Chass Workshop</h2>
+        <p>{error || "Loading pieces, abilities, and rule definitions..."}</p>
+      </section>
     );
-    setRawRules(
-      JSON.stringify(
-        game.rules.map((rule) => ({
-          id: rule.id,
-          enabled: rule.enabled,
-          params: rule.params,
-        })),
-        null,
-        2
-      )
-    );
+  }
 
-    setPiecePointsByType(
-      game.pieceDefinitions.reduce((accumulator, definition) => {
-        accumulator[definition.type] = definition.points ?? "";
-        return accumulator;
-      }, {})
-    );
+  const changeDimensions = (nextRows, nextCols) => {
+    const rows = clamp(nextRows, MIN_DIMENSION, MAX_DIMENSION);
+    const cols = clamp(nextCols, MIN_DIMENSION, MAX_DIMENSION);
+    setDraft((current) => ({
+      ...current,
+      presetId: "custom",
+      boardRows: rows,
+      boardCols: cols,
+      placements: centeredResize(
+        current.placements,
+        current.boardRows,
+        current.boardCols,
+        rows,
+        cols
+      ),
+    }));
+  };
 
-    const firstDefinition = game.pieceDefinitions[0];
-    if (firstDefinition) {
-      setSelectedTool({
-        kind: "piece",
-        type: firstDefinition.type,
-        color: "white",
-      });
-    }
-  }, [game]);
+  const applyFormation = (formation) => {
+    setDraft((current) => ({
+      ...current,
+      presetId: formation.id,
+      boardRows: formation.rows,
+      boardCols: formation.cols,
+      gambit: { ...current.gambit, enabled: false },
+      placements: formationLayout(formation.id, formation.rows, formation.cols),
+    }));
+  };
 
-  const placeToolAt = (row, col, tool) => {
-    if (!tool) {
-      return;
-    }
-
-    setPreviewBoard((current) => {
-      const next = cloneBoard(current);
-
-      if (tool.kind === "erase") {
-        next[row][col] = null;
-        return next;
+  const togglePiece = (pieceType, enabled) => {
+    if (pieceType === "king" && !enabled) return;
+    setDraft((current) => {
+      let placements = enabled
+        ? current.placements
+        : current.placements.filter((piece) => piece.type !== pieceType);
+      if (enabled && pieceType === "barricade" && !current.gambit.enabled) {
+        const centerCandidates = [
+          [Math.max(0, Math.floor(current.boardRows / 2) - 1), Math.max(0, Math.floor(current.boardCols / 2) - 1)],
+          [Math.max(0, Math.floor(current.boardRows / 2) - 1), Math.floor(current.boardCols / 2)],
+          [Math.floor(current.boardRows / 2), Math.max(0, Math.floor(current.boardCols / 2) - 1)],
+          [Math.floor(current.boardRows / 2), Math.floor(current.boardCols / 2)],
+        ];
+        const center = centerCandidates.find(([row, col]) =>
+          !placements.some((piece) => piece.row === row && piece.col === col)
+        );
+        if (center) {
+          placements = [...placements, { row: center[0], col: center[1], type: "barricade", color: "neutral" }];
+        }
       }
+      return {
+        ...current,
+        enabledPieces: enabled
+          ? [...new Set([...current.enabledPieces, pieceType])]
+          : current.enabledPieces.filter((type) => type !== pieceType),
+        placements,
+      };
+    });
+    if (!enabled && selectedTool?.type === pieceType) setSelectedTool(null);
+  };
 
-      const definition = definitionsByType[tool.type];
-      if (!definition) {
+  const placeTool = (row, col) => {
+    if (draft.gambit.enabled || !selectedTool) return;
+    setDraft((current) => {
+      const currentPiece = current.placements.find(
+        (piece) => piece.row === row && piece.col === col
+      );
+      if (currentPiece?.type === "barricade") {
         return current;
       }
-
-      next[row][col] = {
-        type: definition.type,
-        name: definition.displayName,
-        color: tool.color,
-        points: definition.points,
-        symbol: definition.symbols[tool.color],
-        hasMoved: false,
-        isCustom: definition.isCustom,
-        customAttributes: definition.customAttributes || {},
+      const withoutSquare = current.placements.filter(
+        (piece) => piece.row !== row || piece.col !== col
+      );
+      if (selectedTool.kind === "erase") return { ...current, placements: withoutSquare };
+      return {
+        ...current,
+        placements: [
+          ...withoutSquare,
+          { row, col, type: selectedTool.type, color: selectedTool.color },
+        ],
       };
-
-      return next;
     });
   };
 
-  const setDimensions = (nextRows, nextCols) => {
-    const normalizedRows = clampDimension(nextRows);
-    const normalizedCols = clampDimension(nextCols);
-
-    setBoardRows(normalizedRows);
-    setBoardCols(normalizedCols);
-    setPreviewBoard((current) => resizeBoardCentered(current, normalizedRows, normalizedCols));
-  };
-
-  const applyPresetClassic8x8 = () => {
-    setBoardRows(8);
-    setBoardCols(8);
-    setPreviewBoard(createClassicSetupBoard(8, 8, definitionsByType));
-  };
-
-  const applyPresetEmpty10x10 = () => {
-    setBoardRows(10);
-    setBoardCols(10);
-    setPreviewBoard(createEmptyBoard(10, 10));
-  };
-
-  const applyPresetCenteredClassicRectangular = () => {
-    setBoardRows(8);
-    setBoardCols(10);
-    setPreviewBoard(createClassicSetupBoard(8, 10, definitionsByType));
-  };
-
-  const applyVariantMode = (variantBuilder) => {
-    const variant = variantBuilder(definitionsByType);
-    setBoardRows(variant.rows);
-    setBoardCols(variant.cols);
-    setPreviewBoard(variant.board);
-  };
-
-  const applyScoreRaceMode = async () => {
-    setLocalError("");
-
-    const targetScore = Number(scoreRaceTarget);
-    const kingPoints = Number(scoreRaceKingPoints);
-
-    if (!Number.isFinite(targetScore) || targetScore <= 0) {
-      setLocalError("Score race target must be a positive number.");
-      return;
+  const validationIssues = [];
+  const isWholeNumberAtLeast = (value, minimum) =>
+    Number.isInteger(Number(value)) && Number(value) >= minimum;
+  if (!draft.enabledPieces.includes("king")) validationIssues.push("The King must remain enabled.");
+  if (Object.values(draft.pointValues).some((value) => !isWholeNumberAtLeast(value, 0))) {
+    validationIssues.push("Every piece value must be a whole number of zero or more.");
+  }
+  if (draft.victory.mode === "point_race" && !isWholeNumberAtLeast(draft.victory.targetPoints, 1)) {
+    validationIssues.push("The target score must be a whole number of at least one.");
+  }
+  if (draft.victory.mode === "timed" && !isWholeNumberAtLeast(draft.victory.timeSeconds, 60)) {
+    validationIssues.push("Each player needs at least one whole minute on the clock.");
+  }
+  if (
+    ["point_race", "king_capture", "royal_score"].includes(draft.victory.mode) &&
+    !isWholeNumberAtLeast(draft.victory.kingPoints, 0)
+  ) {
+    validationIssues.push("The King point value must be a whole number of zero or more.");
+  }
+  if (draft.specialAbilities.enabled && draft.specialAbilities.allowed.length === 0) {
+    validationIssues.push("Enable at least one ability for players to choose.");
+  }
+  if (draft.gambit.enabled) {
+    if (!isWholeNumberAtLeast(draft.gambit.budget, 0)) {
+      validationIssues.push("Gambit points must be a whole number of zero or more.");
     }
-
-    if (!Number.isFinite(kingPoints) || kingPoints < 0) {
-      setLocalError("King points must be zero or greater.");
-      return;
+    if (!isWholeNumberAtLeast(draft.gambit.maxPieces, 1)) {
+      validationIssues.push("A Gambit army must allow at least one piece for its King.");
     }
-
-    const raceBoard = createClassicSetupBoard(8, 8, definitionsByType);
-    const placements = toPlacements(raceBoard);
-    const patches = game.rules
-      .filter((rule) => rule.canDisable)
-      .map((rule) => {
-        if (rule.id === "score_target_win") {
-          return {
-            id: rule.id,
-            enabled: true,
-            params: {
-              ...rule.params,
-              targetScore,
-            },
-          };
-        }
-
-        if (["check", "checkmate", "stalemate"].includes(rule.id)) {
-          return {
-            id: rule.id,
-            enabled: false,
-            params: rule.params,
-          };
-        }
-
-        return {
-          id: rule.id,
-          enabled: rule.enabled,
-          params: rule.params,
-        };
-      });
-
-    try {
-      await onApplyPieceCustomization({
-        pieces: [
-          {
-            type: "king",
-            points: kingPoints,
-            isCustom: true,
-            customAttributes: {
-              modeTag: "score_race",
-            },
-          },
-        ],
-      });
-
-      await onApplyBasic({
-        boardRows: 8,
-        boardCols: 8,
-        patches,
-      });
-
-      await onApplyBoardLayout({
-        boardRows: 8,
-        boardCols: 8,
-        placements,
-      });
-
-      setBoardRows(8);
-      setBoardCols(8);
-      setPreviewBoard(raceBoard);
-    } catch (modeError) {
-      setLocalError(modeError?.message || "Unable to activate Score Race mode.");
+    if (
+      !isWholeNumberAtLeast(draft.gambit.setupRows, 1) ||
+      draft.gambit.setupRows > Math.floor(draft.boardRows / 2)
+    ) {
+      validationIssues.push("Private setup rows must fit entirely within each player's half.");
     }
-  };
-
-  const applyBasicChanges = async () => {
-    setLocalError("");
-    const patches = basicRuleSet.map((rule) => ({
-      id: rule.id,
-      enabled: Boolean(ruleToggles[rule.id]),
-      params: rule.params,
-    }));
-
-    try {
-      await onApplyBasic({ boardRows, boardCols, patches });
-    } catch (actionError) {
-      setLocalError(actionError?.message || "Unable to apply basic customization.");
+    if (!isWholeNumberAtLeast(draft.gambit.maxQueens, 0)) {
+      validationIssues.push("The Queen limit must be a whole number of zero or more.");
+    } else if (draft.gambit.maxQueens > draft.gambit.maxPieces) {
+      validationIssues.push("The Queen limit cannot exceed the maximum army size.");
     }
-  };
-
-  const applyBoardLayout = async () => {
-    setLocalError("");
-    try {
-      await onApplyBoardLayout({
-        boardRows,
-        boardCols,
-        placements: toPlacements(previewBoard),
-      });
-    } catch (actionError) {
-      setLocalError(actionError?.message || "Unable to apply the board layout.");
+    if (!isWholeNumberAtLeast(draft.gambit.commandPointCap, 0)) {
+      validationIssues.push("The command point cap must be a whole number of zero or more.");
     }
-  };
-
-  const applyPointChanges = async () => {
-    setLocalError("");
-
-    const pieces = [];
-    for (const definition of game.pieceDefinitions) {
-      const rawValue = piecePointsByType[definition.type];
-      const normalizedPoints = rawValue === "" ? null : Number(rawValue);
-
-      if (normalizedPoints !== null && Number.isNaN(normalizedPoints)) {
-        setLocalError(`Point value for ${definition.displayName} must be numeric or blank.`);
-        return;
+    if (
+      draft.enabledPieces.some(
+        (type) => type !== "barricade" && !isWholeNumberAtLeast(draft.pieceCaps[type], type === "king" ? 1 : 0)
+      )
+    ) {
+      validationIssues.push("Every Gambit piece limit must be a valid whole number.");
+    }
+    if (draft.gambit.setupRows * draft.boardCols < draft.gambit.maxPieces) {
+      validationIssues.push("The deployment rows do not contain enough squares for the maximum army size.");
+    }
+  }
+  if (!draft.gambit.enabled) {
+    for (const color of ["white", "black"]) {
+      if (draft.placements.filter((piece) => piece.type === "king" && piece.color === color).length !== 1) {
+        validationIssues.push(`${title(color)} needs exactly one King for this victory rule.`);
       }
-
-      pieces.push({
-        type: definition.type,
-        points: normalizedPoints,
-        isCustom: true,
-      });
     }
+  }
 
-    try {
-      await onApplyPieceCustomization({
-        pieces,
-      });
-    } catch (actionError) {
-      setLocalError(actionError?.message || "Unable to update piece points.");
+  const create = async (mode) => {
+    if (validationIssues.length) {
+      setError(validationIssues[0]);
+      return;
     }
-  };
-
-  const applyBuilderRule = async () => {
-    setLocalError("");
+    setCreatingMode(mode);
+    setError("");
     try {
-      await onApplyRuleBuilder({
-        rules: [
-          {
-            id: "double_capture_rook",
-            enabled: true,
-            params: {
-              alignedEnemies: alignedEnemyCount,
-              captureCount: 2,
-            },
+      await onCreate({
+        mode,
+        boardRows: draft.boardRows,
+        boardCols: draft.boardCols,
+        configuration: {
+          schemaVersion: 1,
+          presetId: draft.presetId,
+          enabledPieces: draft.enabledPieces,
+          piecePoints: Object.fromEntries(
+            draft.enabledPieces.map((type) => [type, Number(draft.pointValues[type] ?? 0)])
+          ),
+          initialLayout: draft.gambit.enabled ? [] : draft.placements,
+          victory: draft.victory,
+          specialAbilities: draft.specialAbilities,
+          gambit: {
+            ...draft.gambit,
+            pieceCaps: Object.fromEntries(
+              draft.enabledPieces.map((type) => [type, Number(draft.pieceCaps[type] ?? draft.gambit.maxPieces)])
+            ),
           },
-        ],
+        },
       });
-    } catch (actionError) {
-      setLocalError(actionError?.message || "Unable to apply the builder rule.");
-    }
-  };
-
-  const applyRawRules = async () => {
-    setLocalError("");
-    let parsed;
-    try {
-      parsed = JSON.parse(rawRules);
-    } catch {
-      setLocalError("Raw rule payload must be valid JSON");
-      return;
-    }
-
-    if (!Array.isArray(parsed)) {
-      setLocalError("Raw rule payload must be an array of rule patches");
-      return;
-    }
-
-    try {
-      await onApplyRaw({ rules: parsed });
-    } catch (actionError) {
-      setLocalError(actionError?.message || "Unable to apply raw rules.");
-    }
-  };
-
-  const createNewGame = async () => {
-    setLocalError("");
-    try {
-      await onCreateNewGame({ boardRows, boardCols });
-    } catch (actionError) {
-      setLocalError(actionError?.message || "Unable to create a new game.");
+    } catch (requestError) {
+      setError(requestError.message);
+      setCreatingMode("");
     }
   };
 
   return (
-    <section className="customization-panel">
-      <h2>Customization Layers</h2>
-      <p>Live preview your board, place pieces, and tune values before applying.</p>
-
-      <div className="customize-workbench">
-        <div className="customize-preview-column">
-          <div className="customize-board-frame">
-            <div
-              className="customize-board-grid"
-              style={{
-                aspectRatio: `${boardCols} / ${boardRows}`,
-                gridTemplateColumns: `repeat(${boardCols}, minmax(0, 1fr))`,
-                gridTemplateRows: `repeat(${boardRows}, minmax(0, 1fr))`,
-                "--piece-size": `${Math.max(0.68, Math.min(1.6, 13 / boardCols))}rem`,
-              }}
-            >
-              {Array.from({ length: boardRows }).map((_, row) =>
-                Array.from({ length: boardCols }).map((__, col) => {
-                  const piece = previewBoard[row]?.[col] || null;
-                  const isLight = (row + col) % 2 === 0;
-
-                  return (
-                    <button
-                      type="button"
-                      key={`${row}-${col}`}
-                      className={`customize-square ${isLight ? "light" : "dark"}`}
-                      onClick={() => placeToolAt(row, col, selectedTool)}
-                      onDragOver={(event) => event.preventDefault()}
-                      onDrop={(event) => {
-                        event.preventDefault();
-                        const payload = event.dataTransfer.getData("application/chass-piece");
-                        if (!payload) {
-                          return;
-                        }
-
-                        try {
-                          const tool = JSON.parse(payload);
-                          setSelectedTool(tool);
-                          placeToolAt(row, col, tool);
-                        } catch {
-                          setLocalError("Unable to drop piece onto board.");
-                        }
-                      }}
-                    >
-                      {col === 0 ? (
-                        <span className="coord-label coord-rank">
-                          {rankLabelFromRow(row, boardRows)}
-                        </span>
-                      ) : null}
-                      {row === boardRows - 1 ? (
-                        <span className="coord-label coord-file">
-                          {fileLabelFromCol(col)}
-                        </span>
-                      ) : null}
-                      <span className={`preview-piece ${piece ? "filled" : "empty"}`}>
-                        {piece?.symbol || ""}
-                      </span>
-                    </button>
-                  );
-                })
-              )}
-            </div>
-          </div>
-
-          <div className="button-row">
-            <button type="button" onClick={applyBoardLayout}>
-              Apply Board Layout
-            </button>
-            <button
-              type="button"
-              className="secondary"
-              onClick={() => setPreviewBoard(createEmptyBoard(boardRows, boardCols))}
-            >
-              Clear Board
-            </button>
-          </div>
+    <section className="customization-panel configuration-studio">
+      <header className="studio-hero">
+        <div>
+          <span className="eyebrow">Configuration Studio</span>
+          <h1>Build Your Version Of Chass</h1>
+          <p>
+            Start simple, or combine custom pieces, a new victory condition, player abilities,
+            and hidden Gambit deployment. Every setting below includes an explanation.
+          </p>
         </div>
+        <a className="rulebook-jump" href="#rulebook"><span>📖</span> Read The Rulebook</a>
+      </header>
 
-        <aside className="customize-sidebar">
-          <div className="customization-card">
-            <h3>Board Dimensions</h3>
-            <div className="layer-grid two-col">
-              <label className="field-label">
-                Rows
-                <input
-                  type="number"
-                  min={MIN_DIMENSION}
-                  max={MAX_DIMENSION}
-                  value={boardRows}
-                  onChange={(event) => setDimensions(Number(event.target.value), boardCols)}
-                />
-              </label>
-
-              <label className="field-label">
-                Columns
-                <input
-                  type="number"
-                  min={MIN_DIMENSION}
-                  max={MAX_DIMENSION}
-                  value={boardCols}
-                  onChange={(event) => setDimensions(boardRows, Number(event.target.value))}
-                />
-              </label>
-            </div>
-
-            <div className="button-row">
-              <button
-                type="button"
-                className="secondary"
-                onClick={createNewGame}
-              >
-                Create New Game
-              </button>
-            </div>
+      <div className="studio-shell">
+        <aside className="studio-preview-column">
+          <ConfigurationBoard
+            draft={draft}
+            catalog={catalog}
+            selectedTool={selectedTool}
+            onSelectTool={setSelectedTool}
+            onPlace={placeTool}
+          />
+          <div className="studio-summary-card">
+            <span>Current Blueprint</span>
+            <strong>{draft.boardRows}x{draft.boardCols} {draft.gambit.enabled ? "Gambit" : "Board"}</strong>
+            <p>{draft.enabledPieces.length} piece types, {title(draft.victory.mode)} victory</p>
+            {draft.specialAbilities.enabled ? <p>{draft.specialAbilities.allowed.length} abilities enabled</p> : null}
           </div>
+        </aside>
 
-          <div className="customization-card">
-            <h3>Quick Presets</h3>
-            <div className="preset-grid">
-              <button type="button" className="secondary" onClick={applyPresetClassic8x8}>
-                Classic 8x8
-              </button>
-              <button type="button" className="secondary" onClick={applyPresetEmpty10x10}>
-                Empty 10x10
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={applyPresetCenteredClassicRectangular}
-              >
-                Centered Classic 8x10
-              </button>
+        <div className="studio-controls">
+          <section className="studio-section">
+            <div className="section-heading"><span>01</span><div><h2>Popular Modes</h2><p>Load a proven starting point, then change anything.</p></div></div>
+            <div className="mode-preset-grid">
+              {catalog.popularModes.map((mode) => (
+                <button type="button" key={mode.id} className={draft.presetId === mode.id ? "selected" : ""} onClick={() => applyPopularMode(mode)}>
+                  <i>{mode.icon}</i><strong>{mode.name}</strong><small>{mode.summary}</small>
+                </button>
+              ))}
+              {FORMATIONS.map((formation) => (
+                <button type="button" key={formation.id} className={draft.presetId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}>
+                  <i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small>
+                </button>
+              ))}
             </div>
-          </div>
+          </section>
 
-          <div className="customization-card">
-            <h3>Game Modes</h3>
-            <p className="palette-hint">One click loads a playable mini-game into preview.</p>
-            <div className="preset-grid variant-grid">
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => applyVariantMode(createNoPawnsBoard)}
-              >
-                No Pawns (8x8)
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => applyVariantMode(createPawnRaceBoard)}
-              >
-                Pawn Race (8x8)
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => applyVariantMode(createKnightSkirmishBoard)}
-              >
-                Knight Skirmish (6x6)
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => applyVariantMode(createHordeBoard)}
-              >
-                Horde (8x8)
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => applyVariantMode(createMiniCastleBoard)}
-              >
-                Castle Siege (8x10)
-              </button>
+          <section className="studio-section">
+            <div className="section-heading"><span>02</span><div><h2>Board Size</h2><p>Use a familiar board or choose any dimensions from 4 to 16.</p></div></div>
+            <div className="dimension-presets">
+              {[8, 10].map((size) => <button type="button" key={size} className={draft.boardRows === size && draft.boardCols === size ? "active" : "secondary"} onClick={() => changeDimensions(size, size)}>{size}x{size}</button>)}
+              <span>Custom</span>
+              <label>Rows<input type="number" min={MIN_DIMENSION} max={MAX_DIMENSION} value={draft.boardRows} onChange={(event) => changeDimensions(event.target.value, draft.boardCols)} /></label>
+              <label>Columns<input type="number" min={MIN_DIMENSION} max={MAX_DIMENSION} value={draft.boardCols} onChange={(event) => changeDimensions(draft.boardRows, event.target.value)} /></label>
             </div>
-            <div className="mode-box">
-              <h4>Score Race Mode</h4>
-              <p className="palette-hint">
-                First player to target points wins. Kings are treated like regular point pieces.
-              </p>
-              <div className="layer-grid two-col">
-                <label className="field-label">
-                  Target Score
-                  <input
-                    type="number"
-                    min="1"
-                    value={scoreRaceTarget}
-                    onChange={(event) => setScoreRaceTarget(event.target.value)}
-                  />
-                </label>
-                <label className="field-label">
-                  King Points
-                  <input
-                    type="number"
-                    min="0"
-                    value={scoreRaceKingPoints}
-                    onChange={(event) => setScoreRaceKingPoints(event.target.value)}
-                  />
-                </label>
-              </div>
-              <button type="button" onClick={applyScoreRaceMode}>
-                Activate Score Race Mode
-              </button>
-            </div>
-          </div>
+          </section>
 
-          <div className="customization-card">
-            <h3>Piece Palette</h3>
-            <p className="palette-hint">Drag onto board, or select and click a square.</p>
-            <div className="piece-palette-grid">
-              <button
-                type="button"
-                className={`palette-tile ${selectedTool?.kind === "erase" ? "active" : ""}`}
-                onClick={() => setSelectedTool({ kind: "erase" })}
-                draggable
-                onDragStart={(event) => {
-                  event.dataTransfer.setData(
-                    "application/chass-piece",
-                    JSON.stringify({ kind: "erase" })
-                  );
-                }}
-              >
-                <span className="palette-symbol">⌫</span>
-                <span className="palette-label">Eraser</span>
-              </button>
-
-              {palettePieces.map((palettePiece) => {
-                const isActive =
-                  selectedTool?.kind === "piece" &&
-                  selectedTool?.type === palettePiece.type &&
-                  selectedTool?.color === palettePiece.color;
-
+          <section className="studio-section">
+            <div className="section-heading"><span>03</span><div><h2>Pieces</h2><p>Enable a piece, set a value of zero or more, then place it on the preview board.</p></div></div>
+            <div className="piece-catalog-grid">
+              {catalog.pieces.map((piece) => {
+                const enabled = draft.enabledPieces.includes(piece.type);
                 return (
-                  <button
-                    type="button"
-                    key={palettePiece.key}
-                    className={`palette-tile ${isActive ? "active" : ""}`}
-                    onClick={() =>
-                      setSelectedTool({
-                        kind: "piece",
-                        type: palettePiece.type,
-                        color: palettePiece.color,
-                      })
-                    }
-                    draggable
-                    onDragStart={(event) => {
-                      event.dataTransfer.setData(
-                        "application/chass-piece",
-                        JSON.stringify({
-                          kind: "piece",
-                          type: palettePiece.type,
-                          color: palettePiece.color,
-                        })
-                      );
-                    }}
-                  >
-                    <span className="palette-symbol">{palettePiece.symbol}</span>
-                    <span className="palette-label">{palettePiece.label}</span>
-                  </button>
+                  <article key={piece.type} className={`piece-config-card ${enabled ? "enabled" : ""} ${piece.isCustom ? "custom" : ""}`}>
+                    <header><span>{piece.icon || piece.symbols.black}</span><div><h3>{piece.name}</h3><small>{piece.isCustom ? "Custom Piece" : "Classic Piece"}</small></div><input aria-label={`Enable ${piece.name}`} type="checkbox" checked={enabled} disabled={piece.type === "king"} onChange={(event) => togglePiece(piece.type, event.target.checked)} /></header>
+                    <p>{piece.description}</p>
+                    <small className="movement-copy">{piece.movement}</small>
+                    <div className="piece-config-fields">
+                      <label>Point Value<input type="number" min="0" step="1" disabled={!enabled} value={draft.pointValues[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, pointValues: { ...current.pointValues, [piece.type]: Math.max(0, Number(event.target.value)) } }))} /></label>
+                      {draft.gambit.enabled && piece.type !== "barricade" ? <label>Army Limit<input type="number" min={piece.type === "king" ? 1 : 0} max={draft.gambit.maxPieces} disabled={!enabled || piece.type === "king"} value={draft.pieceCaps[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, pieceCaps: { ...current.pieceCaps, [piece.type]: Math.max(0, Number(event.target.value)) } }))} /></label> : null}
+                    </div>
+                    {enabled && !draft.gambit.enabled ? (
+                      <div className="piece-color-tools">
+                        {piece.type === "barricade" ? <p className="fixed-piece-note">{piece.symbols.neutral || piece.icon} Spawns automatically in the board's center.</p> : ["white", "black"].map((color) => <button type="button" key={color} className={selectedTool?.type === piece.type && selectedTool?.color === color ? "active" : "secondary"} onClick={() => setSelectedTool({ kind: "piece", type: piece.type, color })}><span>{piece.symbols[color] || piece.icon}</span> {title(color)}</button>)}
+                      </div>
+                    ) : null}
+                  </article>
                 );
               })}
             </div>
-          </div>
-        </aside>
+          </section>
+
+          <section className="studio-section">
+            <div className="section-heading"><span>04</span><div><h2>End Game Logic</h2><p>Choose the single condition that decides when this match is over.</p></div></div>
+            <div className="victory-grid">
+              {catalog.victoryModes.map((mode) => <button type="button" key={mode.id} className={draft.victory.mode === mode.id ? "selected" : ""} onClick={() => setDraft((current) => ({ ...current, victory: { ...current.victory, mode: mode.id } }))}><i>{mode.icon}</i><span><strong>{mode.name}</strong><small>{mode.summary}</small></span></button>)}
+            </div>
+            <div className="conditional-fields">
+              {draft.victory.mode === "point_race" ? <label>Target Score<input type="number" min="1" value={draft.victory.targetPoints} onChange={(event) => setDraft((current) => ({ ...current, victory: { ...current.victory, targetPoints: Math.max(1, Number(event.target.value)) } }))} /><small>The first player to this many captured-piece points wins.</small></label> : null}
+              {draft.victory.mode === "timed" ? <label>Minutes Per Player<input type="number" min="1" max="1440" value={Math.round(draft.victory.timeSeconds / 60)} onChange={(event) => setDraft((current) => ({ ...current, victory: { ...current.victory, timeSeconds: Math.max(60, Number(event.target.value) * 60) } }))} /><small>The server keeps both clocks authoritative.</small></label> : null}
+              {["point_race", "king_capture", "royal_score"].includes(draft.victory.mode) ? <label>King Point Value<input type="number" min="0" value={draft.victory.kingPoints} onChange={(event) => setDraft((current) => ({ ...current, victory: { ...current.victory, kingPoints: Math.max(0, Number(event.target.value)) }, pointValues: { ...current.pointValues, king: Math.max(0, Number(event.target.value)) } }))} /><small>Zero is allowed; this mode does not assume the King is priceless.</small></label> : null}
+            </div>
+          </section>
+
+          <section className="studio-section ability-config-section">
+            <div className="section-heading"><span>05</span><div><h2>Special Abilities</h2><p>When enabled, each player privately chooses one allowed ability before play.</p></div></div>
+            <Toggle checked={draft.specialAbilities.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, specialAbilities: { ...current.specialAbilities, enabled } }))} label="Enable Special Abilities" description="Choices are hidden until both players lock in." />
+            {draft.specialAbilities.enabled ? <div className="ability-option-grid">{catalog.specialAbilities.map((ability) => { const enabled = draft.specialAbilities.allowed.includes(ability.id); return <button type="button" key={ability.id} className={enabled ? "selected" : ""} onClick={() => setDraft((current) => ({ ...current, specialAbilities: { ...current.specialAbilities, allowed: enabled ? current.specialAbilities.allowed.filter((id) => id !== ability.id) : [...current.specialAbilities.allowed, ability.id] } }))}><i>{ability.icon}</i><span><strong>{ability.name}</strong><small>{ability.summary}</small></span><b>{enabled ? "Enabled" : "Off"}</b></button>; })}</div> : null}
+          </section>
+
+          <section className="studio-section gambit-config-section">
+            <div className="section-heading"><span>06</span><div><h2>Chass Gambit</h2><p>Turn on private army construction without giving up any choices above.</p></div></div>
+            <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: enabled ? "gambit" : "custom", gambit: { ...current.gambit, enabled } }))} label="Enable Chass Gambit" description="Players spend their full budget and edit only their closest home rows." />
+            {draft.gambit.enabled ? <div className="gambit-settings-grid">
+              <label>Points Available<input type="number" min="0" value={draft.gambit.budget} onChange={(event) => setDraft((current) => ({ ...current, gambit: { ...current.gambit, budget: Math.max(0, Number(event.target.value)) } }))} /><small>Every player must spend all available points. Debt is impossible.</small></label>
+              <label>Maximum Pieces<input type="number" min="1" max="128" value={draft.gambit.maxPieces} onChange={(event) => setDraft((current) => ({ ...current, gambit: { ...current.gambit, maxPieces: Math.max(1, Number(event.target.value)) } }))} /><small>Default is 16, including the required King.</small></label>
+              <label>Private Setup Rows<input type="number" min="1" max={Math.floor(draft.boardRows / 2)} value={draft.gambit.setupRows} onChange={(event) => setDraft((current) => ({ ...current, gambit: { ...current.gambit, setupRows: clamp(event.target.value, 1, Math.max(1, Math.floor(current.boardRows / 2))) } }))} /><small>Each player can edit only this many rows nearest them.</small></label>
+              <label>Maximum Queens<input type="number" min="0" max={draft.gambit.maxPieces} value={draft.gambit.maxQueens} onChange={(event) => { const value = Math.max(0, Number(event.target.value)); setDraft((current) => ({ ...current, gambit: { ...current.gambit, maxQueens: value }, pieceCaps: { ...current.pieceCaps, queen: value } })); }} /><small>Default is two. Exactly one King remains mandatory.</small></label>
+              <label>Command Point Cap<input type="number" min="0" max="20" value={draft.gambit.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, gambit: { ...current.gambit, commandPointCap: Math.max(0, Number(event.target.value)) } }))} /><small>Limits saved command points from affinity control.</small></label>
+              <Toggle checked={draft.gambit.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, gambit: { ...current.gambit, affinityEnabled } }))} label="Enable Affinity Squares" description="Hold both center squares of your color to earn command points." />
+            </div> : null}
+          </section>
+        </div>
       </div>
 
-      <div className="customization-card">
-        <h3>Layer 1: Basic Setup</h3>
+      <section className="studio-launch-bar">
+        <div><span>Ready To Launch</span><strong>{validationIssues.length ? `${validationIssues.length} setting issue${validationIssues.length === 1 ? "" : "s"}` : "Configuration valid"}</strong><small>{validationIssues[0] || "Choose local hot seat or create a private online invite."}</small></div>
+        <div className="launch-actions"><button type="button" disabled={Boolean(creatingMode) || validationIssues.length > 0} onClick={() => create("local")}>{creatingMode === "local" ? "Building..." : "Start Local Game"}</button><button type="button" className="secondary" disabled={Boolean(creatingMode) || validationIssues.length > 0} onClick={() => create("online")}>{creatingMode === "online" ? "Creating Invite..." : "Create Online Game"}</button></div>
+      </section>
+      {error ? <p className="studio-error">{error}</p> : null}
 
-        <div className="rule-toggle-grid">
-          {basicRuleSet.map((rule) => (
-            <label key={rule.id} className="rule-toggle">
-              <input
-                type="checkbox"
-                checked={Boolean(ruleToggles[rule.id])}
-                onChange={(event) =>
-                  setRuleToggles((current) => ({
-                    ...current,
-                    [rule.id]: event.target.checked,
-                  }))
-                }
-              />
-              <span>
-                <strong>{rule.name}</strong>
-                <small>{rule.description}</small>
-              </span>
-            </label>
-          ))}
-        </div>
-
-        <div className="button-row">
-          <button type="button" onClick={applyBasicChanges}>
-            Apply Basic Settings
-          </button>
-        </div>
-      </div>
-
-      <details className="customization-card" open>
-        <summary>Layer 2: Piece Point Values</summary>
-        <div className="piece-points-grid">
-          {game.pieceDefinitions.map((definition) => (
-            <label key={definition.type} className="field-label">
-              {definition.displayName}
-              <input
-                type="number"
-                value={piecePointsByType[definition.type] ?? ""}
-                onChange={(event) =>
-                  setPiecePointsByType((current) => ({
-                    ...current,
-                    [definition.type]: event.target.value,
-                  }))
-                }
-                placeholder="Leave blank for no points"
-              />
-            </label>
-          ))}
-        </div>
-
-        <button type="button" onClick={applyPointChanges}>
-          Apply Point Values
-        </button>
-      </details>
-
-      <details className="customization-card">
-        <summary>Layer 3: Rule Builder</summary>
-        <div className="builder-preview">
-          <p>
-            IF rook moves AND <strong>{alignedEnemyCount}</strong> enemies aligned
-          </p>
-          <p>THEN capture both (Double Capture Rule)</p>
-        </div>
-
-        <label className="field-label">
-          Aligned Enemies
-          <select
-            value={alignedEnemyCount}
-            onChange={(event) => setAlignedEnemyCount(Number(event.target.value))}
-          >
-            <option value="2">2</option>
-            <option value="3">3</option>
-          </select>
-        </label>
-
-        <button type="button" onClick={applyBuilderRule}>
-          Activate Builder Rule
-        </button>
-      </details>
-
-      <details className="customization-card">
-        <summary>Advanced: Raw Rule JSON</summary>
-        <textarea
-          className="raw-editor"
-          value={rawRules}
-          onChange={(event) => setRawRules(event.target.value)}
-          rows={12}
-        />
-        <button type="button" onClick={applyRawRules}>
-          Apply Raw Rules
-        </button>
-      </details>
-
-      {localError ? <p className="error">{localError}</p> : null}
+      <Rulebook catalog={catalog} />
     </section>
   );
 }

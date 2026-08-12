@@ -35,6 +35,10 @@ export function createGame(payload) {
   });
 }
 
+export function getCatalog() {
+  return request("/game/catalog");
+}
+
 export function joinGame(inviteToken) {
   return request("/game/join", {
     method: "POST",
@@ -48,6 +52,30 @@ export function getGame(gameId, token) {
 
 export function makeMove(gameId, payload, token) {
   return request(`/game/${gameId}/move`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export function useGameAction(gameId, payload, token) {
+  return request(`/game/${gameId}/action`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export function selectAbility(gameId, payload, token) {
+  return request(`/game/${gameId}/ability`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
+export function completeSetupHandoff(gameId, payload, token) {
+  return request(`/game/${gameId}/setup/handoff`, {
     method: "POST",
     body: JSON.stringify(payload),
     token,

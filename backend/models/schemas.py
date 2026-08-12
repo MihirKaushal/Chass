@@ -12,6 +12,7 @@ class Position(BaseModel):
 
 
 class PieceView(BaseModel):
+    pieceId: str
     type: str
     name: str
     color: str
@@ -19,7 +20,11 @@ class PieceView(BaseModel):
     symbol: str
     hasMoved: bool
     isCustom: bool = False
+    icon: str = ""
+    description: str = ""
+    movement: str = ""
     customAttributes: dict[str, Any] = Field(default_factory=dict)
+    runtime: dict[str, Any] = Field(default_factory=dict)
 
 
 class CaptureView(BaseModel):
@@ -75,7 +80,12 @@ class PieceDefinitionView(BaseModel):
     symbols: dict[str, str]
     points: int | None = None
     isCustom: bool = False
+    icon: str = ""
+    description: str = ""
+    movement: str = ""
+    behavior: str = "patterns"
     customAttributes: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
     patterns: list[MovePatternView] = Field(default_factory=list)
 
 
@@ -84,6 +94,8 @@ class GambitConfigView(BaseModel):
     maxPieces: int
     setupRows: int
     commandPointCap: int
+    affinityEnabled: bool = True
+    requireExactBudget: bool = True
     piecePoints: dict[str, int]
     pieceCaps: dict[str, int]
     powerCosts: dict[str, int]
@@ -115,11 +127,66 @@ class GambitView(BaseModel):
     lastPowerExplanation: str | None = None
 
 
+class CountdownView(BaseModel):
+    id: str
+    owner: str
+    kind: str
+    icon: str = ""
+    label: str
+    description: str
+    remainingTurns: int
+    pieceId: str | None = None
+    pieceName: str | None = None
+
+
+class AvailableActionView(BaseModel):
+    id: str
+    actionType: str
+    owner: str
+    icon: str = ""
+    label: str
+    description: str
+    source: Position | None = None
+    target: Position | None = None
+    secondary: Position | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class AbilityStateView(BaseModel):
+    enabled: bool = False
+    allowed: list[str] = Field(default_factory=list)
+    selected: dict[str, str | None] = Field(default_factory=dict)
+    used: dict[str, bool] = Field(default_factory=dict)
+    viewerSelection: str | None = None
+    editableColor: str | None = None
+
+
+class ResultView(BaseModel):
+    reasonCode: str
+    description: str
+    trigger: str
+    winner: str | None = None
+
+
+class ClockView(BaseModel):
+    initialSeconds: int
+    remainingSeconds: dict[str, float]
+    activeColor: str
+    turnStartedAt: datetime
+
+
 class GameResponse(BaseModel):
     id: str
     mode: Literal["local", "online"]
     variant: Literal["classic", "gambit"] = "classic"
-    phase: Literal["lobby", "deployment", "handoff", "play", "finished"] = "play"
+    phase: Literal[
+        "lobby",
+        "ability_selection",
+        "deployment",
+        "handoff",
+        "play",
+        "finished",
+    ] = "play"
     version: int
     ready: bool
     players: dict[str, str]
@@ -137,6 +204,13 @@ class GameResponse(BaseModel):
     winner: str | None = None
     gameStatus: str
     score: dict[str, int]
+    spentScore: dict[str, int] = Field(default_factory=dict)
+    configuration: dict[str, Any] = Field(default_factory=dict)
+    abilities: AbilityStateView = Field(default_factory=AbilityStateView)
+    countdowns: list[CountdownView] = Field(default_factory=list)
+    availableActions: list[AvailableActionView] = Field(default_factory=list)
+    result: ResultView | None = None
+    clock: ClockView | None = None
     gambit: GambitView | None = None
 
 
@@ -161,10 +235,85 @@ class PieceDefinitionPayload(BaseModel):
     displayName: str
     symbols: dict[str, str]
     patterns: list[MovePatternPayload]
-    points: int | None = None
+    points: int | None = Field(default=None, ge=0)
     isCustom: bool = True
     customAttributes: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class ConfigurationPlacement(BaseModel):
+    row: int
+    col: int
+    type: str
+    color: Literal["white", "black", "neutral"]
+
+
+class VictoryConfigPayload(BaseModel):
+    mode: Literal[
+        "checkmate",
+        "king_capture",
+        "timed",
+        "point_race",
+        "elimination",
+        "royal_score",
+    ] = "checkmate"
+    targetPoints: int = Field(default=21, ge=1, le=100000)
+    timeSeconds: int = Field(default=600, ge=30, le=86400)
+    kingPoints: int = Field(default=0, ge=0, le=100000)
+
+
+class SpecialAbilityConfigPayload(BaseModel):
+    enabled: bool = False
+    allowed: list[
+        Literal[
+            "necromancy",
+            "getaway",
+            "eye_for_an_eye",
+            "kamikaze",
+            "episcopal",
+            "power_of_love",
+        ]
+    ] = Field(default_factory=list)
+
+
+class GambitConfigPayload(BaseModel):
+    enabled: bool = False
+    budget: int = Field(default=39, ge=0, le=100000)
+    maxPieces: int = Field(default=16, ge=1, le=128)
+    setupRows: int = Field(default=2, ge=1, le=8)
+    maxQueens: int = Field(default=2, ge=0, le=32)
+    affinityEnabled: bool = True
+    commandPointCap: int = Field(default=3, ge=0, le=20)
+    pieceCaps: dict[str, int] = Field(default_factory=dict)
+
+    @model_validator(mode="after")
+    def validate_piece_caps(self) -> "GambitConfigPayload":
+        if any(value < 0 for value in self.pieceCaps.values()):
+            raise ValueError("Piece limits cannot be negative")
+        return self
+
+
+class GameConfigurationPayload(BaseModel):
+    schemaVersion: int = 1
+    presetId: str = "custom"
+    enabledPieces: list[str] = Field(
+        default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"],
+        min_length=1,
+        max_length=64,
+    )
+    piecePoints: dict[str, int | None] = Field(default_factory=dict)
+    initialLayout: list[ConfigurationPlacement] = Field(default_factory=list, max_length=256)
+    victory: VictoryConfigPayload = Field(default_factory=VictoryConfigPayload)
+    specialAbilities: SpecialAbilityConfigPayload = Field(
+        default_factory=SpecialAbilityConfigPayload
+    )
+    gambit: GambitConfigPayload = Field(default_factory=GambitConfigPayload)
+
+    @model_validator(mode="after")
+    def validate_points(self) -> "GameConfigurationPayload":
+        if any(value is not None and value < 0 for value in self.piecePoints.values()):
+            raise ValueError("Piece points cannot be negative")
+        return self
 
 
 class CreateGameRequest(BaseModel):
@@ -175,12 +324,19 @@ class CreateGameRequest(BaseModel):
     boardCols: int = Field(default=8, ge=4, le=16)
     rules: list[RulePatch] = Field(default_factory=list, max_length=128)
     customPieces: list[PieceDefinitionPayload] = Field(default_factory=list, max_length=64)
+    configuration: GameConfigurationPayload | None = None
 
     @model_validator(mode="after")
     def normalize_dimensions(self) -> "CreateGameRequest":
         if self.boardSize is not None:
             self.boardRows = self.boardSize
             self.boardCols = self.boardSize
+        if self.configuration and self.configuration.gambit.enabled:
+            gambit = self.configuration.gambit
+            if gambit.setupRows > self.boardRows // 2:
+                raise ValueError("Gambit setup rows cannot cross the board midpoint")
+            if gambit.maxPieces > gambit.setupRows * self.boardCols:
+                raise ValueError("Gambit deployment rows do not have enough squares")
         return self
 
 
@@ -189,7 +345,7 @@ class MoveRequest(BaseModel):
     fromCol: int
     toRow: int
     toCol: int
-    promotion: Literal["queen", "rook", "bishop", "knight"] | None = None
+    promotion: Literal["queen", "rook", "bishop", "knight", "kamikaze"] | None = None
     expectedVersion: int | None = Field(default=None, ge=1)
 
 
@@ -217,6 +373,38 @@ class GambitPowerRequest(BaseModel):
     expectedVersion: int | None = Field(default=None, ge=1)
 
 
+class GameActionRequest(BaseModel):
+    actionType: Literal[
+        "catapult_projectile",
+        "move_barricade",
+        "necromancy",
+        "getaway",
+        "eye_for_an_eye",
+        "episcopal",
+    ]
+    source: Position | None = None
+    target: Position | None = None
+    secondary: Position | None = None
+    params: dict[str, Any] = Field(default_factory=dict)
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class AbilitySelectionRequest(BaseModel):
+    abilityId: Literal[
+        "necromancy",
+        "getaway",
+        "eye_for_an_eye",
+        "kamikaze",
+        "episcopal",
+        "power_of_love",
+    ]
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class SetupHandoffRequest(BaseModel):
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
 class UpdateRulesRequest(BaseModel):
     rules: list[RulePatch] = Field(max_length=128)
     expectedVersion: int | None = Field(default=None, ge=1)
@@ -227,7 +415,7 @@ class PieceDefinitionPatch(BaseModel):
     displayName: str | None = None
     symbols: dict[str, str] | None = None
     patterns: list[MovePatternPayload] | None = None
-    points: int | None = None
+    points: int | None = Field(default=None, ge=0)
     isCustom: bool | None = None
     customAttributes: dict[str, Any] | None = None
     metadata: dict[str, Any] | None = None
