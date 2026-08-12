@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections import Counter
 from dataclasses import dataclass
+from datetime import datetime, timezone
 
 from backend.models import (
     Board,
@@ -13,6 +14,7 @@ from backend.models import (
 )
 from backend.rules.base import ValidationResult
 from backend.rules.builtin_rules import opposing_color
+from backend.rules.variant_system import barricade_start_square
 
 
 @dataclass(frozen=True)
@@ -27,11 +29,17 @@ class GambitRuleDescriptor:
 class PointBudgetRule:
     descriptor = GambitRuleDescriptor(
         id="gambit_point_budget",
-        name="39 Point War Chest",
-        description="Each army may spend at most 39 material points during deployment.",
+        name="Point War Chest",
+        description="Each army obeys the configured budget and locks only after spending it all.",
     )
 
-    def issues(self, state: GameState, pieces: list[DeploymentPiece]) -> list[str]:
+    def issues(
+        self,
+        state: GameState,
+        pieces: list[DeploymentPiece],
+        *,
+        require_complete: bool = False,
+    ) -> list[str]:
         gambit = _require_gambit(state)
         unknown = sorted({piece.type for piece in pieces} - gambit.config.piece_points.keys())
         if unknown:
@@ -40,6 +48,10 @@ class PointBudgetRule:
         spent = sum(gambit.config.piece_points[piece.type] for piece in pieces)
         if spent > gambit.config.budget:
             return [f"Army costs {spent} points; the limit is {gambit.config.budget}."]
+        if require_complete and gambit.config.require_exact_budget and spent != gambit.config.budget:
+            return [
+                f"Army must spend all {gambit.config.budget} points; {gambit.config.budget - spent} remain."
+            ]
         return []
 
 
@@ -47,13 +59,16 @@ class DeploymentZoneRule:
     descriptor = GambitRuleDescriptor(
         id="gambit_deployment_zone",
         name="Home Rank Deployment",
-        description="Players may arrange pieces only on the two ranks closest to them.",
+        description="Players may arrange pieces only on their configured home ranks.",
     )
 
     @staticmethod
     def allowed_rows(state: GameState, color: str, row_count: int | None = None) -> set[int]:
         gambit = _require_gambit(state)
-        count = row_count if row_count is not None else gambit.config.setup_rows
+        count = min(
+            state.board.rows,
+            row_count if row_count is not None else gambit.config.setup_rows,
+        )
         if color == "white":
             return set(range(state.board.rows - count, state.board.rows))
         return set(range(count))
@@ -66,12 +81,19 @@ class DeploymentZoneRule:
     ) -> list[str]:
         rows = self.allowed_rows(state, color)
         occupied: set[tuple[int, int]] = set()
+        reserved_barricade = (
+            barricade_start_square(state.board.rows, state.board.cols)
+            if "barricade" in state.configuration.enabled_piece_types
+            else None
+        )
         for piece in pieces:
             if piece.row not in rows:
-                return ["Pieces must stay inside your two home ranks."]
+                return ["Pieces must stay inside your configured home ranks."]
             if not (0 <= piece.col < state.board.cols):
                 return ["Deployment square is outside the board."]
             square = (piece.row, piece.col)
+            if square == reserved_barricade:
+                return ["The center Barricade square is reserved."]
             if square in occupied:
                 return ["Only one piece can occupy a deployment square."]
             occupied.add(square)
@@ -174,13 +196,15 @@ class AffinityControlRule:
         name="Center Affinity",
         description=(
             "Hold both center squares of your color through the opponent's turn to gain "
-            "one command point, up to three."
+            "one command point, up to the configured cap."
         ),
     )
 
     @staticmethod
     def controls(state: GameState, color: str) -> bool:
         gambit = _require_gambit(state)
+        if not gambit.config.affinity_enabled:
+            return False
         for square in gambit.config.affinity_squares[color]:
             piece = state.board.grid[square.row][square.col]
             if piece is None or piece.color != color:
@@ -189,6 +213,9 @@ class AffinityControlRule:
 
     def complete_turn(self, state: GameState, acting_color: str) -> None:
         gambit = _require_gambit(state)
+        if not gambit.config.affinity_enabled:
+            state.current_player = opposing_color(acting_color)
+            return
         gambit.affinity_primed[acting_color] = self.controls(state, acting_color)
 
         next_color = opposing_color(acting_color)
@@ -417,7 +444,11 @@ class GambitRuleSet:
         pieces = gambit.deployments[color]
         issues = [
             *self.deployment_zone.issues(state, color, pieces),
-            *self.point_budget.issues(state, pieces),
+            *self.point_budget.issues(
+                state,
+                pieces,
+                require_complete=require_complete,
+            ),
             *self.piece_limits.issues(
                 state,
                 pieces,
@@ -565,6 +596,9 @@ class GambitRuleSet:
         next_state.phase = "play"
         next_state.game_status = "active"
         next_state.winner = None
+        if next_state.clock is not None:
+            next_state.clock.active_color = "white"
+            next_state.clock.turn_started_at = datetime.now(timezone.utc)
         next_gambit.deployment_undo = {"white": [], "black": []}
         return next_state
 
@@ -659,7 +693,6 @@ class GambitRuleSet:
                 action_type=power,
             )
         )
-        self.complete_turn(next_state, color)
         return next_state, explanation
 
 
@@ -698,6 +731,11 @@ def build_deployment_board(state: GameState) -> Board:
                 standard_start_row = state.board.rows - 2 if color == "white" else 1
                 piece.has_moved = placement.row != standard_start_row
             board.grid[placement.row][placement.col] = piece
+    if "barricade" in state.configuration.enabled_piece_types:
+        row, col = barricade_start_square(state.board.rows, state.board.cols)
+        if board.grid[row][col] is not None:
+            raise ValueError("The center Barricade square must remain empty during deployment.")
+        board.grid[row][col] = create_piece(state, "barricade", "neutral")
     return board
 
 

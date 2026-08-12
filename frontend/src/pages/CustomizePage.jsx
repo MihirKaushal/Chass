@@ -1,25 +1,11 @@
+import LandingNav from "../components/LandingNav";
 import CustomizationPanel from "../components/CustomizationPanel";
 
-function CustomizePage({
-  game,
-  onApplyBasic,
-  onApplyBoardLayout,
-  onApplyPieceCustomization,
-  onApplyRuleBuilder,
-  onApplyRaw,
-  onCreateNewGame,
-}) {
+function CustomizePage({ onCreate, onPlay, initialPreset = "" }) {
   return (
-    <main className="customize-layout">
-      <CustomizationPanel
-        game={game}
-        onApplyBasic={onApplyBasic}
-        onApplyBoardLayout={onApplyBoardLayout}
-        onApplyPieceCustomization={onApplyPieceCustomization}
-        onApplyRuleBuilder={onApplyRuleBuilder}
-        onApplyRaw={onApplyRaw}
-        onCreateNewGame={onCreateNewGame}
-      />
+    <main className="customize-page-shell">
+      <LandingNav active="customize" onPlay={onPlay} onCustomize={() => {}} />
+      <CustomizationPanel onCreate={onCreate} initialPreset={initialPreset} />
     </main>
   );
 }

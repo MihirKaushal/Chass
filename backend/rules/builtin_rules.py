@@ -2,6 +2,13 @@ from __future__ import annotations
 
 from backend.models import GameState, Move
 from backend.rules.base import Rule, RuleContext, ValidationResult
+from backend.rules.variant_system import (
+    FINISHED_STATUSES,
+    direct_king_capture_allowed,
+    finish_game,
+    piece_runtime_active,
+    uses_royal_safety,
+)
 
 
 def opposing_color(color: str) -> str:
@@ -53,7 +60,7 @@ class TurnRule(Rule):
     can_disable = False
 
     def validate(self, state: GameState, move: Move, helper, params: dict) -> ValidationResult:
-        if state.game_status in {"checkmate", "stalemate", "score_target"}:
+        if state.game_status in FINISHED_STATUSES:
             return ValidationResult(is_valid=False, reason="Game is already finished")
 
         piece = state.board.grid[move.from_row][move.from_col]
@@ -124,6 +131,42 @@ class PromotionRule(Rule):
     tier = "basic"
     can_disable = False
 
+    def validate(
+        self,
+        state: GameState,
+        move: Move,
+        helper,
+        params: dict,
+    ) -> ValidationResult:
+        if move.promotion is None:
+            return ValidationResult(is_valid=True)
+        piece = state.board.grid[move.from_row][move.from_col]
+        if piece is None or piece.type != "pawn":
+            return ValidationResult(
+                is_valid=False,
+                reason="Only a Pawn reaching the final rank can promote.",
+            )
+        promotion_row = 0 if piece.color == "white" else state.board.rows - 1
+        if move.to_row != promotion_row:
+            return ValidationResult(
+                is_valid=False,
+                reason="A Pawn can promote only on the final rank.",
+            )
+        if (
+            move.promotion == "kamikaze"
+            and state.abilities.selected.get(piece.color) != "kamikaze"
+        ):
+            return ValidationResult(
+                is_valid=False,
+                reason="Kamikaze is not this player's selected ability.",
+            )
+        if move.promotion != "kamikaze" and move.promotion not in state.piece_definitions:
+            return ValidationResult(
+                is_valid=False,
+                reason=f"{move.promotion.title()} promotion is unavailable.",
+            )
+        return ValidationResult(is_valid=True)
+
     def apply(
         self,
         state: GameState,
@@ -137,6 +180,55 @@ class PromotionRule(Rule):
             return
         promotion_row = 0 if piece.color == "white" else state.board.rows - 1
         if move.to_row != promotion_row:
+            return
+
+        if (
+            move.promotion == "kamikaze"
+            and state.abilities.selected.get(piece.color) == "kamikaze"
+        ):
+            state.board.grid[move.to_row][move.to_col] = None
+            enemy_king_hit = False
+            for direction in (-1, 1):
+                for distance in (1, 2):
+                    target_col = move.to_col + direction * distance
+                    if not 0 <= target_col < state.board.cols:
+                        break
+                    target = state.board.grid[move.to_row][target_col]
+                    if target is not None and target.type == "barricade":
+                        break
+                    if (
+                        target is None
+                        or target.color == piece.color
+                        or target.type == "diplomat"
+                        or piece_runtime_active(
+                            state,
+                            target,
+                            "capture_immune_until_turn",
+                        )
+                    ):
+                        continue
+                    state.board.grid[move.to_row][target_col] = None
+                    context.add_capture(
+                        row=move.to_row,
+                        col=target_col,
+                        piece=target,
+                        reason="Kamikaze blast",
+                    )
+                    enemy_king_hit = enemy_king_hit or target.type == "king"
+            if not context.simulated:
+                context.messages.append("Pawn detonated with Kamikaze.")
+            if enemy_king_hit:
+                finish_game(
+                    state,
+                    status="checkmate",
+                    reason_code="kamikaze",
+                    trigger="special_ability",
+                    winner=piece.color,
+                    description=(
+                        f"{piece.color.title()} won! A Kamikaze Pawn destroyed "
+                        f"{opposing_color(piece.color).title()}'s King."
+                    ),
+                )
             return
 
         promoted_type = move.promotion or "queen"
@@ -174,8 +266,15 @@ class CheckRule(Rule):
         if source_piece is None:
             return ValidationResult(is_valid=False, reason="No piece found at source square")
 
+        if not uses_royal_safety(state):
+            return ValidationResult(is_valid=True)
+
         target_piece = state.board.grid[move.to_row][move.to_col]
-        if target_piece is not None and target_piece.type == "king":
+        if (
+            target_piece is not None
+            and target_piece.type == "king"
+            and not direct_king_capture_allowed(state)
+        ):
             return ValidationResult(
                 is_valid=False,
                 reason="Illegal move: kings cannot be captured directly",
@@ -192,6 +291,10 @@ class CheckRule(Rule):
 
     def evaluate_state(self, state: GameState, helper, params: dict) -> None:
         state.winner = None
+
+        if not uses_royal_safety(state):
+            state.game_status = "active"
+            return
 
         king_position = helper.find_king(state, state.current_player)
         if king_position is None:
@@ -212,6 +315,8 @@ class CheckmateRule(Rule):
     apply_in_simulation = False
 
     def evaluate_state(self, state: GameState, helper, params: dict) -> None:
+        if not uses_royal_safety(state):
+            return
         if state.game_status != "check":
             return
 
@@ -224,6 +329,19 @@ class CheckmateRule(Rule):
 
         state.game_status = "checkmate"
         state.winner = opposing_color(state.current_player)
+        if state.configuration.victory.mode != "royal_score":
+            winner = state.winner
+            finish_game(
+                state,
+                status="checkmate",
+                reason_code="checkmate",
+                trigger="royal_defeat",
+                winner=winner,
+                description=(
+                    f"{winner.title()} won! {winner.title()} checkmated "
+                    f"{state.current_player.title()}'s King."
+                ),
+            )
 
 
 class StalemateRule(Rule):
@@ -247,6 +365,15 @@ class StalemateRule(Rule):
 
         state.game_status = "stalemate"
         state.winner = None
+        state.result = None
+        finish_game(
+            state,
+            status="stalemate",
+            reason_code="stalemate",
+            trigger="no_legal_actions",
+            winner=None,
+            description="Stalemate! Neither player won because the active side has no legal action.",
+        )
 
 
 class ScoreRule(Rule):
@@ -271,7 +398,136 @@ class ScoreRule(Rule):
                 continue
             black_score += piece.points
 
-        state.score = {"white": white_score, "black": black_score}
+        state.score = {
+            "white": max(0, white_score - state.spent_score.get("white", 0)),
+            "black": max(0, black_score - state.spent_score.get("black", 0)),
+        }
+
+
+class ConfigurableVictoryRule(Rule):
+    id = "configured_victory"
+    name = "Configured Victory"
+    description = "Resolves the selected end-game condition and produces a clear result."
+    tier = "basic"
+    can_disable = False
+    apply_in_simulation = False
+
+    @staticmethod
+    def _missing_king(state: GameState, color: str) -> bool:
+        return not any(
+            piece is not None and piece.type == "king" and piece.color == color
+            for row in state.board.grid
+            for piece in row
+        )
+
+    @staticmethod
+    def _army_count(state: GameState, color: str) -> int:
+        return sum(
+            piece is not None and piece.color == color and piece.type != "diplomat"
+            for row in state.board.grid
+            for piece in row
+        )
+
+    def evaluate_state(self, state: GameState, helper, params: dict) -> None:
+        if state.phase not in {"play", "finished"}:
+            return
+        config = state.configuration.victory
+        mode = config.mode
+
+        if mode in {"checkmate", "timed"}:
+            return
+
+        white_king_missing = self._missing_king(state, "white")
+        black_king_missing = self._missing_king(state, "black")
+
+        if mode == "king_capture":
+            if not white_king_missing and not black_king_missing:
+                return
+            winner = None
+            if white_king_missing != black_king_missing:
+                winner = "black" if white_king_missing else "white"
+            finish_game(
+                state,
+                status="king_capture" if winner else "draw",
+                reason_code="king_capture" if winner else "mutual_king_capture",
+                trigger="royal_capture",
+                winner=winner,
+                description=(
+                    f"{winner.title()} won! {winner.title()} captured "
+                    f"{opposing_color(winner).title()}'s King."
+                    if winner
+                    else "Draw! Both Kings were removed."
+                ),
+            )
+            return
+
+        if mode == "point_race":
+            winners = [
+                color
+                for color in ("white", "black")
+                if state.score[color] >= config.target_points
+            ]
+            if not winners:
+                return
+            winner = winners[0] if len(winners) == 1 else None
+            finish_game(
+                state,
+                status="points" if winner else "draw",
+                reason_code="point_target" if winner else "simultaneous_point_target",
+                trigger="score",
+                winner=winner,
+                description=(
+                    f"{winner.title()} won! {winner.title()} reached "
+                    f"{config.target_points} points."
+                    if winner
+                    else f"Draw! Both players reached {config.target_points} points."
+                ),
+            )
+            return
+
+        if mode == "elimination":
+            white_count = self._army_count(state, "white")
+            black_count = self._army_count(state, "black")
+            if white_count and black_count:
+                return
+            winner = None
+            if bool(white_count) != bool(black_count):
+                winner = "white" if white_count else "black"
+            finish_game(
+                state,
+                status="elimination" if winner else "draw",
+                reason_code="total_elimination" if winner else "mutual_elimination",
+                trigger="army_eliminated",
+                winner=winner,
+                description=(
+                    f"{winner.title()} won by eliminating every opposing combat piece."
+                    if winner
+                    else "Draw! Both armies were eliminated."
+                ),
+            )
+            return
+
+        if mode == "royal_score" and (
+            state.game_status == "checkmate" or white_king_missing or black_king_missing
+        ):
+            white_score = state.score["white"]
+            black_score = state.score["black"]
+            winner = None
+            if white_score != black_score:
+                winner = "white" if white_score > black_score else "black"
+            finish_game(
+                state,
+                status="royal_score" if winner else "draw",
+                reason_code="royal_score" if winner else "royal_score_tie",
+                trigger="royal_defeat",
+                winner=winner,
+                description=(
+                    f"{winner.title()} won the Royal Score match with "
+                    f"{state.score[winner]} points."
+                    if winner
+                    else f"Draw! Royal defeat ended the match at {white_score} points each."
+                ),
+            )
 
 
 class ScoreTargetWinRule(Rule):
@@ -286,7 +542,7 @@ class ScoreTargetWinRule(Rule):
     apply_in_simulation = False
 
     def evaluate_state(self, state: GameState, helper, params: dict) -> None:
-        if state.game_status in {"checkmate", "stalemate"}:
+        if state.game_status in FINISHED_STATUSES:
             return
 
         try:
@@ -296,15 +552,27 @@ class ScoreTargetWinRule(Rule):
 
         target_score = max(1, target_score)
 
-        if state.score.get("white", 0) >= target_score:
-            state.winner = "white"
-            state.game_status = "score_target"
+        winners = [
+            color
+            for color in ("white", "black")
+            if state.score.get(color, 0) >= target_score
+        ]
+        if not winners:
             return
 
-        if state.score.get("black", 0) >= target_score:
-            state.winner = "black"
-            state.game_status = "score_target"
-            return
+        winner = winners[0] if len(winners) == 1 else None
+        finish_game(
+            state,
+            status="score_target" if winner else "draw",
+            reason_code="score_target" if winner else "simultaneous_score_target",
+            trigger="score",
+            winner=winner,
+            description=(
+                f"{winner.title()} won! {winner.title()} got to {target_score} points."
+                if winner
+                else f"Draw! Both players got to {target_score} points."
+            ),
+        )
 
 
 class DoubleCaptureRookRule(Rule):
@@ -359,7 +627,16 @@ class DoubleCaptureRookRule(Rule):
                 return
 
             target_piece = state.board.grid[check_row][check_col]
-            if target_piece is None or target_piece.color == moved_piece.color:
+            if (
+                target_piece is None
+                or target_piece.color == moved_piece.color
+                or target_piece.type in {"barricade", "diplomat"}
+                or piece_runtime_active(
+                    state,
+                    target_piece,
+                    "capture_immune_until_turn",
+                )
+            ):
                 return
 
             enemy_chain.append((check_row, check_col, target_piece))
@@ -390,9 +667,10 @@ classic_chess_rules: list[Rule] = [
     CheckRule(),
     CaptureRule(),
     PromotionRule(),
-    CheckmateRule(),
-    StalemateRule(),
     ScoreRule(),
+    CheckmateRule(),
+    ConfigurableVictoryRule(),
+    StalemateRule(),
 ]
 
 variant_rules: list[Rule] = [

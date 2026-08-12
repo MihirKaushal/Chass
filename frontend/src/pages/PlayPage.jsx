@@ -1,7 +1,15 @@
 import ChessBoard from "../components/ChessBoard";
 import MoveHistoryPanel from "../components/MoveHistoryPanel";
 
-function PlayPage({ game, selectedSquare, onSquareClick, boardFlipped, interactive }) {
+function PlayPage({
+  game,
+  selectedSquare,
+  onSquareClick,
+  boardFlipped,
+  interactive,
+  onAction,
+  actionLoading,
+}) {
   const lastMove = game.history.length ? game.history[game.history.length - 1] : null;
 
   return (
@@ -28,6 +36,13 @@ function PlayPage({ game, selectedSquare, onSquareClick, boardFlipped, interacti
         gameStatus={game.gameStatus}
         winner={game.winner}
         score={game.score}
+        abilities={game.abilities}
+        countdowns={game.countdowns}
+        availableActions={game.availableActions}
+        clock={game.clock}
+        onAction={onAction}
+        actionLoading={actionLoading}
+        boardRows={game.boardRows ?? game.boardSize}
       />
     </main>
   );

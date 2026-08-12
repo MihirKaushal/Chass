@@ -1,14 +1,44 @@
 from __future__ import annotations
 
+from datetime import datetime
 from typing import Any, Literal
+from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 Color = Literal["white", "black"]
+PieceColor = Literal["white", "black", "neutral"]
 MoveMode = Literal["move", "capture", "both"]
-GameStatus = Literal["active", "check", "checkmate", "stalemate", "score_target"]
+GameStatus = Literal[
+    "active",
+    "check",
+    "checkmate",
+    "stalemate",
+    "score_target",
+    "king_capture",
+    "points",
+    "elimination",
+    "time",
+    "royal_score",
+    "draw",
+]
 GameVariant = Literal["classic", "gambit"]
-GamePhase = Literal["lobby", "deployment", "handoff", "play", "finished"]
+GamePhase = Literal[
+    "lobby",
+    "ability_selection",
+    "deployment",
+    "handoff",
+    "play",
+    "finished",
+]
+VictoryMode = Literal[
+    "checkmate",
+    "king_capture",
+    "timed",
+    "point_race",
+    "elimination",
+    "royal_score",
+]
 
 
 class MovePattern(BaseModel):
@@ -24,22 +54,28 @@ class MovePattern(BaseModel):
 class PieceDefinition(BaseModel):
     type: str
     display_name: str
-    symbols: dict[Color, str]
+    symbols: dict[str, str]
     patterns: list[MovePattern]
     points: int | None = None
     is_custom: bool = False
+    icon: str = ""
+    description: str = ""
+    movement_summary: str = ""
+    behavior: str = "patterns"
     custom_attributes: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
 
 
 class Piece(BaseModel):
+    piece_id: str = Field(default_factory=lambda: str(uuid4()))
     type: str
     name: str = ""
-    color: Color
+    color: PieceColor
     points: int | None = None
     has_moved: bool = False
     is_custom: bool = False
     custom_attributes: dict[str, Any] = Field(default_factory=dict)
+    runtime: dict[str, Any] = Field(default_factory=dict)
 
 
 class Square(BaseModel):
@@ -109,13 +145,63 @@ class Move(BaseModel):
     from_col: int = Field(alias="fromCol")
     to_row: int = Field(alias="toRow")
     to_col: int = Field(alias="toCol")
-    promotion: Literal["queen", "rook", "bishop", "knight"] | None = None
+    promotion: Literal["queen", "rook", "bishop", "knight", "kamikaze"] | None = None
 
 
 class RuleSetting(BaseModel):
     id: str
     enabled: bool = True
     params: dict[str, Any] = Field(default_factory=dict)
+
+
+class VictoryConfig(BaseModel):
+    mode: VictoryMode = "checkmate"
+    target_points: int = Field(default=21, ge=1)
+    time_seconds: int = Field(default=600, ge=30)
+    king_points: int = Field(default=0, ge=0)
+
+
+class SpecialAbilityConfig(BaseModel):
+    enabled: bool = False
+    allowed: list[str] = Field(default_factory=list)
+
+
+class GameConfiguration(BaseModel):
+    schema_version: int = 1
+    preset_id: str = "classic"
+    enabled_piece_types: list[str] = Field(
+        default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"]
+    )
+    initial_layout: list[dict[str, Any]] = Field(default_factory=list)
+    victory: VictoryConfig = Field(default_factory=VictoryConfig)
+    special_abilities: SpecialAbilityConfig = Field(default_factory=SpecialAbilityConfig)
+
+
+class AbilityState(BaseModel):
+    selected: dict[Color, str | None] = Field(
+        default_factory=lambda: {"white": None, "black": None}
+    )
+    used: dict[Color, bool] = Field(
+        default_factory=lambda: {"white": False, "black": False}
+    )
+    active_selection_color: Color = "white"
+    runtime: dict[Color, dict[str, Any]] = Field(
+        default_factory=lambda: {"white": {}, "black": {}}
+    )
+
+
+class GameResult(BaseModel):
+    reason_code: str
+    description: str
+    trigger: str
+    winner: Color | None = None
+
+
+class ClockState(BaseModel):
+    initial_seconds: int
+    remaining_seconds: dict[Color, float]
+    active_color: Color = "white"
+    turn_started_at: datetime
 
 
 class CaptureEvent(BaseModel):
@@ -159,10 +245,12 @@ class DeploymentPiece(BaseModel):
 
 
 class GambitConfig(BaseModel):
-    budget: int = 39
-    max_pieces: int = 16
-    setup_rows: int = 2
-    command_point_cap: int = 3
+    budget: int = Field(default=39, ge=0)
+    max_pieces: int = Field(default=16, ge=1)
+    setup_rows: int = Field(default=2, ge=1)
+    command_point_cap: int = Field(default=3, ge=0)
+    affinity_enabled: bool = True
+    require_exact_budget: bool = True
     piece_points: dict[str, int] = Field(
         default_factory=lambda: {
             "pawn": 1,
@@ -251,6 +339,12 @@ class GameState(BaseModel):
     current_player: Color = "white"
     rules: list[RuleSetting] = Field(default_factory=list)
     piece_definitions: dict[str, PieceDefinition] = Field(default_factory=dict)
+    configuration: GameConfiguration = Field(default_factory=GameConfiguration)
+    abilities: AbilityState = Field(default_factory=AbilityState)
+    turn_counts: dict[Color, int] = Field(
+        default_factory=lambda: {"white": 0, "black": 0}
+    )
+    clock: ClockState | None = None
     history: list[MoveRecord] = Field(default_factory=list)
     captured_pieces: dict[str, list[Piece]] = Field(
         default_factory=lambda: {"white": [], "black": []}
@@ -258,6 +352,10 @@ class GameState(BaseModel):
     winner: Color | None = None
     game_status: GameStatus = "active"
     score: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+    spent_score: dict[Color, int] = Field(
+        default_factory=lambda: {"white": 0, "black": 0}
+    )
+    result: GameResult | None = None
 
     def clone(self) -> "GameState":
         return self.model_copy(deep=True)

@@ -3,7 +3,12 @@ import { useEffect, useState } from "react";
 
 function routeFromPath(pathname) {
   if (/^\/gambit\/?$/.test(pathname)) {
-    return { name: "gambit" };
+    return { name: "customize", preset: "gambit" };
+  }
+
+  if (/^\/customize\/?$/.test(pathname)) {
+    const preset = new URLSearchParams(window.location.search).get("preset") || "";
+    return { name: "customize", preset };
   }
 
   const joinMatch = pathname.match(/^\/join\/([^/]+)\/?$/);

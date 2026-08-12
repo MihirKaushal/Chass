@@ -3,17 +3,18 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ApiError,
   completeGambitHandoff,
+  completeSetupHandoff,
   createGame,
+  getCatalog,
   getGame,
   joinGame,
   makeMove,
   readyGambitDeployment,
   replaceInvite,
   resetGame,
-  updateBoardLayout,
+  selectAbility,
   updateGambitDeployment,
-  updatePieces,
-  updateRules,
+  useGameAction,
   useGambitPower,
 } from "./api/gameApi";
 import OnlineLobby from "./components/OnlineLobby";
@@ -26,15 +27,25 @@ import {
 } from "./gameSession";
 import useGameSocket from "./hooks/useGameSocket";
 import CustomizePage from "./pages/CustomizePage";
-import GambitHomePage from "./pages/GambitHomePage";
 import GambitPage from "./pages/GambitPage";
 import HomePage from "./pages/HomePage";
 import JoinPage from "./pages/JoinPage";
 import PlayPage from "./pages/PlayPage";
+import AbilitySelectionPage, { AbilityHandoffPage } from "./pages/AbilitySelectionPage";
 import { navigate, useRoute } from "./routing";
 
 
-const FINISHED_STATUSES = new Set(["checkmate", "stalemate", "score_target"]);
+const FINISHED_STATUSES = new Set([
+  "checkmate",
+  "stalemate",
+  "score_target",
+  "king_capture",
+  "points",
+  "elimination",
+  "time",
+  "royal_score",
+  "draw",
+]);
 
 function colorLabel(color) {
   return color ? color.charAt(0).toUpperCase() + color.slice(1) : "";
@@ -55,6 +66,9 @@ function findRule(rules, ruleId) {
 }
 
 function buildEndgameMessage(game) {
+  if (game.result?.description) {
+    return game.result.description;
+  }
   const winner = game.winner;
   const winnerLabel = colorLabel(winner);
   const loserLabel = colorLabel(oppositeColor(winner));
@@ -99,8 +113,9 @@ function GameWorkspace({ gameId }) {
   const [session, setSession] = useState(() => loadGameSession(gameId));
   const [game, setGame] = useState(null);
   const gameRef = useRef(null);
-  const [activeTab, setActiveTab] = useState("play");
+  const [catalog, setCatalog] = useState(null);
   const [selectedSquare, setSelectedSquare] = useState(null);
+  const [pendingPromotion, setPendingPromotion] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
   const [error, setError] = useState("");
@@ -116,6 +131,10 @@ function GameWorkspace({ gameId }) {
   const [showEndgameModal, setShowEndgameModal] = useState(false);
   const lastEndgameSignatureRef = useRef("");
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
+
+  useEffect(() => {
+    getCatalog().then(setCatalog).catch(() => {});
+  }, []);
 
   const applyIncomingGame = useCallback(
     (incoming) => {
@@ -213,9 +232,8 @@ function GameWorkspace({ gameId }) {
     );
   }, [game, selectedSquare]);
 
-  const canCustomize =
-    game?.variant !== "gambit" &&
-    (game?.mode === "local" || (game?.mode === "online" && session?.role === "host"));
+  const canReset =
+    game?.mode === "local" || (game?.mode === "online" && session?.role === "host");
   const canMove =
     Boolean(game?.ready) &&
     game?.phase === "play" &&
@@ -224,13 +242,8 @@ function GameWorkspace({ gameId }) {
     !game?.winner;
 
   useEffect(() => {
-    if (!canCustomize && activeTab === "customize") {
-      setActiveTab("play");
-    }
-  }, [activeTab, canCustomize]);
-
-  useEffect(() => {
     setSelectedSquare(null);
+    setPendingPromotion(null);
   }, [game?.version]);
 
   useEffect(() => {
@@ -270,6 +283,35 @@ function GameWorkspace({ gameId }) {
     const timer = window.setTimeout(() => setSocketMessage(""), 4500);
     return () => window.clearTimeout(timer);
   }, [socketMessage]);
+
+  useEffect(() => {
+    if (
+      !game?.clock ||
+      game.phase !== "play" ||
+      FINISHED_STATUSES.has(game.gameStatus)
+    ) {
+      return undefined;
+    }
+
+    const activeColor = game.clock.activeColor;
+    const storedRemaining = Number(game.clock.remainingSeconds?.[activeColor] ?? 0);
+    const startedAt = new Date(game.clock.turnStartedAt).getTime();
+    const elapsedSeconds = Number.isFinite(startedAt)
+      ? Math.max(0, (Date.now() - startedAt) / 1000)
+      : 0;
+    const refreshDelay = Math.max(100, (storedRemaining - elapsedSeconds) * 1000 + 150);
+    const timer = window.setTimeout(() => {
+      refreshGame().catch((requestError) => setError(requestError.message));
+    }, refreshDelay);
+    return () => window.clearTimeout(timer);
+  }, [
+    game?.clock?.activeColor,
+    game?.clock?.remainingSeconds,
+    game?.clock?.turnStartedAt,
+    game?.gameStatus,
+    game?.phase,
+    refreshGame,
+  ]);
 
   useEffect(() => {
     if (!game) {
@@ -349,7 +391,7 @@ function GameWorkspace({ gameId }) {
     return updated;
   };
 
-  const submitMove = async (fromSquare, toSquare) => {
+  const submitMove = async (fromSquare, toSquare, promotion = null) => {
     try {
       await runAction(() =>
         mutate(makeMove, {
@@ -357,6 +399,7 @@ function GameWorkspace({ gameId }) {
           fromCol: fromSquare.col,
           toRow: toSquare.row,
           toCol: toSquare.col,
+          ...(promotion ? { promotion } : {}),
         })
       );
     } catch {
@@ -396,6 +439,38 @@ function GameWorkspace({ gameId }) {
     }
   };
 
+  const handleSpecialAction = async (action) => {
+    try {
+      await runAction(() =>
+        mutate(useGameAction, {
+          actionType: action.actionType,
+          source: action.source,
+          target: action.target,
+          secondary: action.secondary,
+          params: action.params || {},
+        })
+      );
+    } catch {
+      // The shared error banner explains rejected special actions.
+    }
+  };
+
+  const handleAbilitySelection = async (abilityId) => {
+    try {
+      await runAction(() => mutate(selectAbility, { abilityId }));
+    } catch {
+      // The shared error banner explains rejected ability selections.
+    }
+  };
+
+  const handleSetupHandoff = async () => {
+    try {
+      await runAction(() => mutate(completeSetupHandoff, {}));
+    } catch {
+      // The shared error banner explains handoff failures.
+    }
+  };
+
   const handleSquareClick = (row, col) => {
     if (!game || actionLoading || !canMove) {
       return;
@@ -418,7 +493,14 @@ function GameWorkspace({ gameId }) {
       (move) => move.to.row === row && move.to.col === col
     );
     if (chosenMove) {
-      submitMove(selectedSquare, { row, col });
+      const movingPiece = game.board[selectedSquare.row][selectedSquare.col];
+      const finalRank =
+        movingPiece?.color === "white" ? 0 : (game.boardRows ?? game.boardSize) - 1;
+      if (movingPiece?.type === "pawn" && row === finalRank) {
+        setPendingPromotion({ from: selectedSquare, to: { row, col } });
+      } else {
+        submitMove(selectedSquare, { row, col });
+      }
       return;
     }
 
@@ -441,50 +523,6 @@ function GameWorkspace({ gameId }) {
     } catch {
       // The shared error banner explains reset failures.
     }
-  };
-
-  const applyBasicCustomization = async ({ boardRows, boardCols, patches }) =>
-    runAction(async () => {
-      let current = gameRef.current;
-      const currentRows = current.boardRows ?? current.boardSize;
-      const currentCols = current.boardCols ?? current.boardSize;
-
-      if (boardRows !== currentRows || boardCols !== currentCols) {
-        current = await mutate(resetGame, { boardRows, boardCols });
-        setBoardFlipped(false);
-      }
-
-      return mutate(updateRules, { rules: patches });
-    });
-
-  const applyBoardLayoutCustomization = ({ boardRows, boardCols, placements }) =>
-    runAction(() =>
-      mutate(updateBoardLayout, {
-        boardRows,
-        boardCols,
-        placements,
-      })
-    );
-
-  const applyRuleBuilder = (payload) =>
-    runAction(() => mutate(updateRules, payload));
-
-  const applyPieceCustomization = (payload) =>
-    runAction(() => mutate(updatePieces, payload));
-
-  const createReplacementGame = async (dimensions) => {
-    const response = await runAction(() =>
-      createGame({
-        mode: game.mode,
-        boardRows: dimensions.boardRows,
-        boardCols: dimensions.boardCols,
-        rules: [],
-        customPieces: [],
-      })
-    );
-    const nextSession = sessionFromResponse(response);
-    saveGameSession(response.game.id, nextSession);
-    navigate(`/game/${response.game.id}`);
   };
 
   const handleReplaceInvite = async () => {
@@ -535,10 +573,9 @@ function GameWorkspace({ gameId }) {
   return (
     <div className="app-shell">
       <TopNav
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
         onReset={handleReset}
         onHome={() => navigate("/")}
+        onCustomize={() => navigate("/customize")}
         currentPlayer={game.currentPlayer}
         gameStatus={game.gameStatus}
         winner={game.winner}
@@ -546,14 +583,12 @@ function GameWorkspace({ gameId }) {
         onToggleAutoBoardFlip={() => setAutoBoardFlipEnabled((current) => !current)}
         boardFlipped={boardFlipped}
         autoBoardFlipEnabled={autoBoardFlipEnabled}
-        canCustomize={canCustomize}
-        canReset={canCustomize}
+        canReset={canReset}
         mode={game.mode}
         playerColor={session?.color}
         connectionStatus={connectionStatus}
         variant={game.variant}
         phase={game.phase}
-        onOpenGambit={() => navigate("/gambit")}
       />
 
       {game.mode === "online" ? (
@@ -573,7 +608,6 @@ function GameWorkspace({ gameId }) {
       game.ready &&
       game.mode === "online" &&
       game.phase === "play" &&
-      activeTab === "play" &&
       !game.winner ? (
         <p className="turn-notice">
           You are {colorLabel(session?.color)}. Waiting for {colorLabel(game.currentPlayer)} to
@@ -581,7 +615,22 @@ function GameWorkspace({ gameId }) {
         </p>
       ) : null}
 
-      {game.variant === "gambit" ? (
+      {game.phase === "ability_selection" ? (
+        <AbilitySelectionPage
+          game={game}
+          catalog={catalog}
+          onSelect={handleAbilitySelection}
+          actionLoading={actionLoading}
+        />
+      ) : game.phase === "handoff" &&
+        game.configuration?.specialAbilities?.enabled &&
+        !game.abilities?.selected?.black ? (
+        <AbilityHandoffPage
+          game={game}
+          onContinue={handleSetupHandoff}
+          actionLoading={actionLoading}
+        />
+      ) : game.variant === "gambit" ? (
         <GambitPage
           game={game}
           selectedSquare={selectedSquare}
@@ -593,26 +642,60 @@ function GameWorkspace({ gameId }) {
           onReady={handleGambitReady}
           onHandoff={handleGambitHandoff}
           onPower={handleGambitPower}
+          onAction={handleSpecialAction}
         />
-      ) : activeTab === "play" ? (
+      ) : (
         <PlayPage
           game={game}
           selectedSquare={selectedSquare}
           onSquareClick={handleSquareClick}
           boardFlipped={boardFlipped}
           interactive={canMove && !actionLoading}
-        />
-      ) : (
-        <CustomizePage
-          game={game}
-          onApplyBasic={applyBasicCustomization}
-          onApplyBoardLayout={applyBoardLayoutCustomization}
-          onApplyPieceCustomization={applyPieceCustomization}
-          onApplyRuleBuilder={applyRuleBuilder}
-          onApplyRaw={applyRuleBuilder}
-          onCreateNewGame={createReplacementGame}
+          onAction={handleSpecialAction}
+          actionLoading={actionLoading}
         />
       )}
+
+      {pendingPromotion ? (
+        <div className="endgame-modal-backdrop" role="presentation">
+          <div className="promotion-modal" role="dialog" aria-modal="true">
+            <span className="eyebrow">Final Rank Reached</span>
+            <h2>Choose A Pawn Action</h2>
+            <p>Promote normally, or use Kamikaze if that is your selected ability.</p>
+            <div className="promotion-options">
+              {["queen", "rook", "bishop", "knight"].map((pieceType) => (
+                <button
+                  type="button"
+                  key={pieceType}
+                  onClick={() => {
+                    const pending = pendingPromotion;
+                    setPendingPromotion(null);
+                    submitMove(pending.from, pending.to, pieceType);
+                  }}
+                >
+                  {colorLabel(pieceType)}
+                </button>
+              ))}
+              {game.abilities?.selected?.[game.currentPlayer] === "kamikaze" ? (
+                <button
+                  type="button"
+                  className="kamikaze-choice"
+                  onClick={() => {
+                    const pending = pendingPromotion;
+                    setPendingPromotion(null);
+                    submitMove(pending.from, pending.to, "kamikaze");
+                  }}
+                >
+                  ✹ Kamikaze
+                </button>
+              ) : null}
+            </div>
+            <button type="button" className="text-button" onClick={() => setPendingPromotion(null)}>
+              Cancel
+            </button>
+          </div>
+        </div>
+      ) : null}
 
       {showEndgameModal ? (
         <div className="endgame-modal-backdrop" role="presentation">
@@ -621,7 +704,7 @@ function GameWorkspace({ gameId }) {
             <h2>Match Finished</h2>
             <p>{endgameMessage}</p>
             <div className="button-row">
-              {canCustomize ? (
+              {canReset ? (
                 <button type="button" onClick={handleReset}>
                   Play Again
                 </button>
@@ -644,15 +727,19 @@ function GameWorkspace({ gameId }) {
 function App() {
   const route = useRoute();
 
-  const handleCreate = async (mode, variant = "classic") => {
-    const response = await createGame({
-      mode,
-      variant,
-      boardRows: 8,
-      boardCols: 8,
-      rules: [],
-      customPieces: [],
-    });
+  const handleCreate = async (request) => {
+    const payload =
+      typeof request === "string"
+        ? {
+            mode: request,
+            variant: "classic",
+            boardRows: 8,
+            boardCols: 8,
+            rules: [],
+            customPieces: [],
+          }
+        : request;
+    const response = await createGame(payload);
     const session = sessionFromResponse(response);
     saveGameSession(response.game.id, session);
     navigate(`/game/${response.game.id}`);
@@ -679,16 +766,17 @@ function App() {
     return <GameWorkspace key={route.gameId} gameId={route.gameId} />;
   }
 
-  if (route.name === "gambit") {
+  if (route.name === "customize") {
     return (
-      <GambitHomePage
-        onCreate={(mode) => handleCreate(mode, "gambit")}
-        onOpenClassic={() => navigate("/")}
+      <CustomizePage
+        onCreate={handleCreate}
+        onPlay={() => navigate("/")}
+        initialPreset={route.preset}
       />
     );
   }
 
-  return <HomePage onCreate={handleCreate} onOpenGambit={() => navigate("/gambit")} />;
+  return <HomePage onCreate={handleCreate} onCustomize={() => navigate("/customize")} />;
 }
 
 export default App;

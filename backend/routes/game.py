@@ -6,17 +6,20 @@ from fastapi import APIRouter, Header, HTTPException, Request, WebSocket, WebSoc
 from starlette.concurrency import run_in_threadpool
 
 from backend.models.schemas import (
+    AbilitySelectionRequest,
     CreateGameRequest,
     GambitDeploymentRequest,
     GambitHandoffRequest,
     GambitPowerRequest,
     GambitReadyRequest,
+    GameActionRequest,
     GameResponse,
     GameSessionResponse,
     InviteResponse,
     JoinGameRequest,
     MoveRequest,
     ResetGameRequest,
+    SetupHandoffRequest,
     UpdateBoardLayoutRequest,
     UpdatePiecesRequest,
     UpdateRulesRequest,
@@ -70,6 +73,11 @@ async def _broadcast_state(
 async def create_game(payload: CreateGameRequest, request: Request) -> GameSessionResponse:
     rate_limiter.check(request, "create", limit=20, window_seconds=3600)
     return await run_in_threadpool(game_service.create_game, payload)
+
+
+@router.get("/catalog")
+async def get_catalog() -> dict:
+    return game_service.catalog()
 
 
 @router.post("/join", response_model=GameSessionResponse)
@@ -135,12 +143,90 @@ async def make_move(
         viewer_color=game_service.viewer_color(record, token),
     )
     await _broadcast_state(record, last_explanation=explanation)
-    if response.gameStatus in {"checkmate", "stalemate", "score_target"}:
+    if response.phase == "finished":
         await _broadcast_state(
             record,
             event_type="game_ended",
             last_explanation=explanation,
         )
+    return response
+
+
+@router.post("/{game_id}/action", response_model=GameResponse)
+async def use_custom_action(
+    game_id: str,
+    payload: GameActionRequest,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    token = _bearer_token(authorization)
+    rate_limiter.check(
+        request,
+        "game_action",
+        limit=120,
+        window_seconds=60,
+        discriminator=game_id,
+    )
+    record, explanation = await run_in_threadpool(
+        game_service.use_custom_action,
+        game_id,
+        payload,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        last_explanation=explanation,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record, last_explanation=explanation)
+    if response.phase == "finished":
+        await _broadcast_state(
+            record,
+            event_type="game_ended",
+            last_explanation=explanation,
+        )
+    return response
+
+
+@router.post("/{game_id}/ability", response_model=GameResponse)
+async def select_ability(
+    game_id: str,
+    payload: AbilitySelectionRequest,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    token = _bearer_token(authorization)
+    record = await run_in_threadpool(
+        game_service.select_ability,
+        game_id,
+        payload,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record)
+    return response
+
+
+@router.post("/{game_id}/setup/handoff", response_model=GameResponse)
+async def complete_setup_handoff(
+    game_id: str,
+    payload: SetupHandoffRequest,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    token = _bearer_token(authorization)
+    record = await run_in_threadpool(
+        game_service.complete_setup_handoff,
+        game_id,
+        payload,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record)
     return response
 
 
@@ -330,7 +416,7 @@ async def use_gambit_power(
         viewer_color=game_service.viewer_color(record, token),
     )
     await _broadcast_state(record, last_explanation=explanation)
-    if response.gameStatus in {"checkmate", "stalemate", "score_target"}:
+    if response.phase == "finished":
         await _broadcast_state(
             record,
             event_type="game_ended",

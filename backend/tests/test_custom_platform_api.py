@@ -1,0 +1,936 @@
+from __future__ import annotations
+
+from datetime import datetime, timedelta, timezone
+
+
+def auth(token: str) -> dict[str, str]:
+    return {"Authorization": f"Bearer {token}"}
+
+
+def classic_types() -> list[str]:
+    return ["pawn", "knight", "bishop", "rook", "queen", "king"]
+
+
+def configured_game(**overrides) -> dict:
+    configuration = {
+        "schemaVersion": 1,
+        "presetId": "test",
+        "enabledPieces": classic_types(),
+        "piecePoints": {
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+        },
+        "initialLayout": [],
+        "victory": {"mode": "checkmate"},
+        "specialAbilities": {"enabled": False, "allowed": []},
+        "gambit": {"enabled": False},
+    }
+    configuration.update(overrides)
+    return {
+        "mode": "local",
+        "boardRows": 8,
+        "boardCols": 8,
+        "configuration": configuration,
+    }
+
+
+def start_local_ability_game(client, ability: str, **overrides) -> dict:
+    payload = configured_game(
+        specialAbilities={"enabled": True, "allowed": [ability]},
+        **overrides,
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    white = client.post(
+        f"/game/{game['id']}/ability",
+        json={"abilityId": ability, "expectedVersion": game["version"]},
+    ).json()
+    handoff = client.post(
+        f"/game/{game['id']}/setup/handoff",
+        json={"expectedVersion": white["version"]},
+    ).json()
+    black = client.post(
+        f"/game/{game['id']}/ability",
+        json={"abilityId": ability, "expectedVersion": handoff["version"]},
+    )
+    assert black.status_code == 200
+    return black.json()
+
+
+def test_catalog_describes_custom_content(client):
+    response = client.get("/game/catalog")
+    assert response.status_code == 200
+    catalog = response.json()
+
+    assert catalog["schemaVersion"] == 1
+    assert {piece["type"] for piece in catalog["pieces"]} >= {
+        "maharani",
+        "catapult",
+        "barricade",
+        "hypnotizer",
+        "diplomat",
+    }
+    assert {ability["id"] for ability in catalog["specialAbilities"]} == {
+        "necromancy",
+        "getaway",
+        "eye_for_an_eye",
+        "kamikaze",
+        "episcopal",
+        "power_of_love",
+    }
+    assert all(piece["description"] and piece["movement"] for piece in catalog["pieces"])
+
+
+def test_custom_piece_points_reject_negative_values(client):
+    payload = configured_game(piecePoints={"pawn": -1})
+    response = client.post("/game/create", json=payload)
+    assert response.status_code == 422
+
+
+def test_configured_gambit_requires_complete_nonnegative_budget(client):
+    payload = configured_game(
+        gambit={
+            "enabled": True,
+            "budget": 5,
+            "maxPieces": 4,
+            "setupRows": 2,
+            "maxQueens": 1,
+            "affinityEnabled": True,
+            "commandPointCap": 3,
+        }
+    )
+    created = client.post("/game/create", json=payload)
+    assert created.status_code == 200
+    game = created.json()["game"]
+
+    king = client.post(
+        f"/game/{game['id']}/gambit/deployment",
+        json={
+            "action": "place",
+            "row": 7,
+            "col": 4,
+            "pieceType": "king",
+            "expectedVersion": game["version"],
+        },
+    )
+    assert king.status_code == 200
+    ready = client.post(
+        f"/game/{game['id']}/gambit/ready",
+        json={"expectedVersion": king.json()["version"]},
+    )
+    assert ready.status_code == 400
+    assert "spend all 5 points" in ready.json()["detail"]
+
+
+def test_catapult_action_creates_public_countdown_and_tooltip_runtime(client):
+    layout = [
+        {"row": 7, "col": 4, "type": "king", "color": "white"},
+        {"row": 0, "col": 4, "type": "king", "color": "black"},
+        {"row": 6, "col": 4, "type": "catapult", "color": "white"},
+        {"row": 4, "col": 4, "type": "rook", "color": "black"},
+    ]
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "catapult"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "catapult": 5,
+        },
+        initialLayout=layout,
+        victory={"mode": "king_capture", "kingPoints": 1},
+    )
+    created = client.post("/game/create", json=payload)
+    assert created.status_code == 200
+    game = created.json()["game"]
+    projectile = next(
+        action
+        for action in game["availableActions"]
+        if action["actionType"] == "catapult_projectile"
+    )
+
+    fired = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": projectile["actionType"],
+            "source": projectile["source"],
+            "target": projectile["target"],
+            "expectedVersion": game["version"],
+        },
+    )
+    assert fired.status_code == 200
+    updated = fired.json()
+    countdown = next(item for item in updated["countdowns"] if item["kind"] == "catapult")
+    catapult = updated["board"][6][4]
+
+    assert countdown["owner"] == "white"
+    assert countdown["remainingTurns"] == 2
+    assert catapult["runtime"]["catapult_ready_turn_remaining"] == 2
+    assert updated["board"][4][4] is None
+
+
+def test_online_ability_choices_stay_private_until_both_lock(client):
+    payload = configured_game(
+        specialAbilities={
+            "enabled": True,
+            "allowed": ["getaway", "power_of_love"],
+        }
+    )
+    payload["mode"] = "online"
+    created = client.post("/game/create", json=payload).json()
+    joined = client.post(
+        "/game/join",
+        json={"inviteToken": created["inviteToken"]},
+    ).json()
+
+    white_choice = client.post(
+        f"/game/{created['game']['id']}/ability",
+        headers=auth(created["playerToken"]),
+        json={
+            "abilityId": "getaway",
+            "expectedVersion": joined["game"]["version"],
+        },
+    )
+    assert white_choice.status_code == 200
+
+    black_view = client.get(
+        f"/game/{created['game']['id']}",
+        headers=auth(joined["playerToken"]),
+    ).json()
+    assert black_view["abilities"]["selected"]["white"] == "locked"
+
+    black_choice = client.post(
+        f"/game/{created['game']['id']}/ability",
+        headers=auth(joined["playerToken"]),
+        json={
+            "abilityId": "power_of_love",
+            "expectedVersion": black_view["version"],
+        },
+    )
+    assert black_choice.status_code == 200
+    game = black_choice.json()
+    assert game["phase"] == "play"
+    assert game["abilities"]["selected"] == {
+        "white": "getaway",
+        "black": "power_of_love",
+    }
+
+
+def test_point_race_resolves_before_no_move_fallback(client):
+    payload = configured_game(
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 4, "col": 0, "type": "rook", "color": "white"},
+            {"row": 4, "col": 2, "type": "pawn", "color": "black"},
+        ],
+        victory={"mode": "point_race", "targetPoints": 1, "kingPoints": 0},
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+
+    response = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 4,
+            "fromCol": 0,
+            "toRow": 4,
+            "toCol": 2,
+            "expectedVersion": game["version"],
+        },
+    )
+    assert response.status_code == 200
+    finished = response.json()
+    assert finished["gameStatus"] == "points"
+    assert finished["winner"] == "white"
+    assert finished["result"]["reasonCode"] == "point_target"
+
+
+def test_barricade_must_be_single_neutral_and_centered(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "barricade"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "barricade": 0,
+        },
+        initialLayout=[
+            {"row": 7, "col": 4, "type": "king", "color": "white"},
+            {"row": 0, "col": 4, "type": "king", "color": "black"},
+            {"row": 2, "col": 2, "type": "barricade", "color": "neutral"},
+        ],
+    )
+    response = client.post("/game/create", json=payload)
+    assert response.status_code == 400
+    assert "center" in response.json()["detail"]
+
+    payload["configuration"]["initialLayout"][-1] = {
+        "row": 3,
+        "col": 3,
+        "type": "barricade",
+        "color": "white",
+    }
+    response = client.post("/game/create", json=payload)
+    assert response.status_code == 400
+    assert "neutral" in response.json()["detail"]
+
+
+def test_clock_expiry_is_resolved_and_persisted_on_refresh(client):
+    from backend.routes.game import game_service
+
+    payload = configured_game(victory={"mode": "timed", "timeSeconds": 30})
+    created = client.post("/game/create", json=payload).json()["game"]
+    record = game_service.repository.get_game(created["id"])
+    assert record is not None and record.state.clock is not None
+
+    state = record.state.clone()
+    state.clock.remaining_seconds["white"] = 0
+    state.clock.turn_started_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    prepared = game_service.repository.save_game(
+        state,
+        record.version,
+        expires_at=record.expires_at,
+    )
+
+    response = client.get(f"/game/{created['id']}")
+    assert response.status_code == 200
+    finished = response.json()
+    assert finished["version"] == prepared.version + 1
+    assert finished["gameStatus"] == "time"
+    assert finished["winner"] == "black"
+    assert finished["result"]["reasonCode"] == "time_expired"
+
+    persisted = game_service.repository.get_game(created["id"])
+    assert persisted is not None
+    assert persisted.state.phase == "finished"
+    assert persisted.state.result is not None
+    assert persisted.state.result.reason_code == "time_expired"
+
+
+def test_standard_promotion_stays_available_when_piece_is_not_in_starting_catalog(client):
+    payload = configured_game(
+        enabledPieces=["pawn", "king"],
+        piecePoints={"pawn": 1, "king": 0},
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 1, "col": 0, "type": "pawn", "color": "white"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    assert "queen" not in game["configuration"]["enabledPieces"]
+    assert "queen" in {definition["type"] for definition in game["pieceDefinitions"]}
+
+    forged = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 1,
+            "fromCol": 0,
+            "toRow": 0,
+            "toCol": 0,
+            "promotion": "kamikaze",
+            "expectedVersion": game["version"],
+        },
+    )
+    assert forged.status_code == 400
+    assert "selected ability" in forged.json()["detail"]
+
+    promoted = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 1,
+            "fromCol": 0,
+            "toRow": 0,
+            "toCol": 0,
+            "promotion": "queen",
+            "expectedVersion": game["version"],
+        },
+    )
+    assert promoted.status_code == 200
+    assert promoted.json()["board"][0][0]["type"] == "queen"
+
+
+def test_catapult_does_not_attack_while_recovering(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "catapult"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "catapult": 5,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 5, "col": 4, "type": "king", "color": "black"},
+            {"row": 6, "col": 4, "type": "catapult", "color": "white"},
+            {"row": 4, "col": 4, "type": "rook", "color": "black"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    action = next(
+        item
+        for item in game["availableActions"]
+        if item["actionType"] == "catapult_projectile"
+        and item["target"] == {"row": 4, "col": 4}
+    )
+    fired = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": action["actionType"],
+            "source": action["source"],
+            "target": action["target"],
+            "expectedVersion": game["version"],
+        },
+    )
+    assert fired.status_code == 200
+    assert fired.json()["currentPlayer"] == "black"
+    assert fired.json()["gameStatus"] == "active"
+
+
+def test_diplomat_contact_is_public_and_attached_to_piece_runtime(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "diplomat"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "diplomat": 4,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 0, "type": "diplomat", "color": "white"},
+            {"row": 5, "col": 0, "type": "pawn", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "white"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    moved = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 7,
+            "fromCol": 0,
+            "toRow": 7,
+            "toCol": 1,
+            "expectedVersion": game["version"],
+        },
+    )
+    assert moved.status_code == 200
+    updated = moved.json()
+    countdown = next(
+        item for item in updated["countdowns"] if item["kind"] == "diplomat_contact"
+    )
+    diplomat = updated["board"][6][0]
+    assert countdown["owner"] == "white"
+    assert countdown["remainingTurns"] == 1
+    assert diplomat["runtime"]["diplomat_contacts_status"] == [
+        {"targetName": "Pawn", "progress": 1, "required": 2}
+    ]
+
+
+def test_impossible_exact_gambit_budget_is_rejected_before_setup(client):
+    payload = configured_game(
+        enabledPieces=["pawn", "king"],
+        piecePoints={"pawn": 3, "king": 0},
+        gambit={
+            "enabled": True,
+            "budget": 2,
+            "maxPieces": 2,
+            "setupRows": 1,
+            "maxQueens": 0,
+            "affinityEnabled": False,
+            "commandPointCap": 3,
+            "pieceCaps": {"pawn": 1, "king": 1},
+        },
+    )
+    response = client.post("/game/create", json=payload)
+    assert response.status_code == 400
+    assert "cannot be spent exactly" in response.json()["detail"]
+
+
+def test_online_timed_clock_starts_only_after_second_player_joins(client):
+    payload = configured_game(victory={"mode": "timed", "timeSeconds": 30})
+    payload["mode"] = "online"
+    created = client.post("/game/create", json=payload).json()
+    assert created["game"]["phase"] == "lobby"
+
+    joined = client.post(
+        "/game/join",
+        json={"inviteToken": created["inviteToken"]},
+    )
+    assert joined.status_code == 200
+    game = joined.json()["game"]
+    assert game["phase"] == "play"
+    assert game["clock"]["activeColor"] == "white"
+    assert game["clock"]["remainingSeconds"]["white"] > 29
+
+
+def test_timed_gambit_clock_restarts_when_hidden_armies_reveal(client):
+    from backend.routes.game import game_service
+
+    payload = configured_game(
+        enabledPieces=["king"],
+        piecePoints={"king": 0},
+        victory={"mode": "timed", "timeSeconds": 30},
+        gambit={
+            "enabled": True,
+            "budget": 0,
+            "maxPieces": 1,
+            "setupRows": 2,
+            "maxQueens": 0,
+            "affinityEnabled": False,
+            "commandPointCap": 3,
+            "pieceCaps": {"king": 1},
+        },
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    record = game_service.repository.get_game(game["id"])
+    assert record is not None and record.state.clock is not None
+    old_state = record.state.clone()
+    old_state.clock.turn_started_at = datetime.now(timezone.utc) - timedelta(hours=1)
+    prepared = game_service.repository.save_game(
+        old_state,
+        record.version,
+        expires_at=record.expires_at,
+    )
+
+    white_king = client.post(
+        f"/game/{game['id']}/gambit/deployment",
+        json={
+            "action": "place",
+            "row": 7,
+            "col": 4,
+            "pieceType": "king",
+            "expectedVersion": prepared.version,
+        },
+    ).json()
+    white_ready = client.post(
+        f"/game/{game['id']}/gambit/ready",
+        json={"expectedVersion": white_king["version"]},
+    ).json()
+    handoff = client.post(
+        f"/game/{game['id']}/gambit/handoff",
+        json={"expectedVersion": white_ready["version"]},
+    ).json()
+    black_king = client.post(
+        f"/game/{game['id']}/gambit/deployment",
+        json={
+            "action": "place",
+            "row": 0,
+            "col": 4,
+            "pieceType": "king",
+            "expectedVersion": handoff["version"],
+        },
+    ).json()
+    revealed = client.post(
+        f"/game/{game['id']}/gambit/ready",
+        json={"expectedVersion": black_king["version"]},
+    )
+    assert revealed.status_code == 200
+    finished_setup = revealed.json()
+    assert finished_setup["phase"] == "play"
+    assert finished_setup["clock"]["remainingSeconds"]["white"] > 29
+
+
+def test_eye_for_an_eye_removes_matching_pieces_without_scoring(client):
+    game = start_local_ability_game(
+        client,
+        "eye_for_an_eye",
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "white"},
+            {"row": 0, "col": 0, "type": "rook", "color": "black"},
+        ],
+    )
+    action = next(
+        item for item in game["availableActions"] if item["actionType"] == "eye_for_an_eye"
+    )
+    response = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": action["actionType"],
+            "source": action["source"],
+            "target": action["target"],
+            "expectedVersion": game["version"],
+        },
+    )
+    assert response.status_code == 200
+    updated = response.json()
+    assert updated["board"][7][0] is None
+    assert updated["board"][0][0] is None
+    assert updated["score"] == {"white": 0, "black": 0}
+    assert updated["abilities"]["used"]["white"] is True
+
+
+def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
+    game = start_local_ability_game(
+        client,
+        "episcopal",
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 2, "type": "bishop", "color": "white"},
+        ],
+    )
+    action = next(
+        item
+        for item in game["availableActions"]
+        if item["actionType"] == "episcopal"
+        and item["target"] == {"row": 5, "col": 2}
+    )
+    shifted = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": action["actionType"],
+            "source": action["source"],
+            "target": action["target"],
+            "expectedVersion": game["version"],
+        },
+    )
+    assert shifted.status_code == 200
+    updated = shifted.json()
+    countdown = next(item for item in updated["countdowns"] if item["kind"] == "episcopal")
+    assert countdown["remainingTurns"] == 6
+    assert updated["board"][5][2]["runtime"]["episcopal_ready_turn_remaining"] == 6
+
+
+def test_power_of_love_grants_queen_mobility_after_queen_capture(client):
+    game = start_local_ability_game(
+        client,
+        "power_of_love",
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 0, "type": "queen", "color": "white"},
+            {"row": 5, "col": 0, "type": "rook", "color": "black"},
+        ],
+    )
+    white_move = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 7,
+            "fromCol": 7,
+            "toRow": 7,
+            "toCol": 6,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    captured = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 5,
+            "fromCol": 0,
+            "toRow": 6,
+            "toCol": 0,
+            "expectedVersion": white_move["version"],
+        },
+    )
+    assert captured.status_code == 200
+    updated = captured.json()
+    king = updated["board"][7][6]
+    assert king["runtime"]["love_until_turn_remaining"] == 10
+    assert any(
+        move["from"] == {"row": 7, "col": 6}
+        and move["to"] == {"row": 4, "col": 3}
+        for move in updated["validMoves"]
+    )
+
+
+def test_necromancy_spends_score_and_recruits_captured_enemy(client):
+    game = start_local_ability_game(
+        client,
+        "necromancy",
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 4, "col": 0, "type": "rook", "color": "white"},
+            {"row": 4, "col": 2, "type": "pawn", "color": "black"},
+        ],
+    )
+    capture = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 4,
+            "fromCol": 0,
+            "toRow": 4,
+            "toCol": 2,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    black_move = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 0,
+            "fromCol": 7,
+            "toRow": 1,
+            "toCol": 7,
+            "expectedVersion": capture["version"],
+        },
+    ).json()
+    action = next(
+        item
+        for item in black_move["availableActions"]
+        if item["actionType"] == "necromancy"
+    )
+    recruited = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": action["actionType"],
+            "target": action["target"],
+            "params": action["params"],
+            "expectedVersion": black_move["version"],
+        },
+    )
+    assert recruited.status_code == 200
+    updated = recruited.json()
+    revived = updated["board"][action["target"]["row"]][action["target"]["col"]]
+    assert revived["type"] == "pawn"
+    assert revived["color"] == "white"
+    assert updated["spentScore"]["white"] == 1
+    assert updated["score"]["white"] == 0
+
+
+def test_kamikaze_final_rank_blast_ends_game_when_king_is_in_range(client):
+    game = start_local_ability_game(
+        client,
+        "kamikaze",
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 2, "type": "king", "color": "black"},
+            {"row": 1, "col": 0, "type": "pawn", "color": "white"},
+        ],
+    )
+    detonated = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 1,
+            "fromCol": 0,
+            "toRow": 0,
+            "toCol": 0,
+            "promotion": "kamikaze",
+            "expectedVersion": game["version"],
+        },
+    )
+    assert detonated.status_code == 200
+    updated = detonated.json()
+    assert updated["gameStatus"] == "checkmate"
+    assert updated["winner"] == "white"
+    assert updated["result"]["reasonCode"] == "kamikaze"
+
+
+def test_getaway_is_offered_only_as_a_real_checkmate_escape(client):
+    game = start_local_ability_game(
+        client,
+        "getaway",
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "rook", "color": "white"},
+            {"row": 1, "col": 0, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "black"},
+            {"row": 5, "col": 6, "type": "queen", "color": "black"},
+        ],
+    )
+    assert game["gameStatus"] == "check"
+    assert game["validMoves"] == []
+    getaway = next(
+        item for item in game["availableActions"] if item["actionType"] == "getaway"
+    )
+    escaped = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": getaway["actionType"],
+            "source": getaway["source"],
+            "target": getaway["target"],
+            "expectedVersion": game["version"],
+        },
+    )
+    assert escaped.status_code == 200
+    updated = escaped.json()
+    assert updated["board"][0][7]["type"] == "king"
+    assert updated["abilities"]["used"]["white"] is True
+    assert updated["currentPlayer"] == "black"
+
+
+def test_maharani_can_cross_exactly_one_blocker_to_capture(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "maharani"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "maharani": 13,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "maharani", "color": "white"},
+            {"row": 6, "col": 0, "type": "pawn", "color": "white"},
+            {"row": 4, "col": 0, "type": "rook", "color": "black"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    assert any(
+        move["from"] == {"row": 7, "col": 0}
+        and move["to"] == {"row": 4, "col": 0}
+        for move in game["validMoves"]
+    )
+    captured = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 7,
+            "fromCol": 0,
+            "toRow": 4,
+            "toCol": 0,
+            "expectedVersion": game["version"],
+        },
+    )
+    assert captured.status_code == 200
+    assert captured.json()["board"][4][0]["type"] == "maharani"
+
+
+def test_barricade_is_neutral_and_movable_only_through_special_action(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "barricade"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "barricade": 0,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 3, "col": 3, "type": "barricade", "color": "neutral"},
+            {"row": 4, "col": 3, "type": "pawn", "color": "white"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    action = next(
+        item
+        for item in game["availableActions"]
+        if item["actionType"] == "move_barricade"
+        and item["target"] == {"row": 3, "col": 2}
+    )
+    moved = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": action["actionType"],
+            "source": action["source"],
+            "target": action["target"],
+            "expectedVersion": game["version"],
+        },
+    )
+    assert moved.status_code == 200
+    updated = moved.json()
+    assert updated["board"][3][3] is None
+    assert updated["board"][3][2]["color"] == "neutral"
+
+
+def test_hypnotizer_recruits_weak_piece_after_three_owner_turns(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "hypnotizer"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "hypnotizer": 6,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 0, "type": "hypnotizer", "color": "white"},
+            {"row": 5, "col": 0, "type": "pawn", "color": "black"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    sequence = [
+        (7, 7, 7, 6),
+        (0, 7, 0, 6),
+        (7, 6, 7, 7),
+        (0, 6, 0, 7),
+        (7, 7, 7, 6),
+    ]
+    for from_row, from_col, to_row, to_col in sequence:
+        response = client.post(
+            f"/game/{game['id']}/move",
+            json={
+                "fromRow": from_row,
+                "fromCol": from_col,
+                "toRow": to_row,
+                "toCol": to_col,
+                "expectedVersion": game["version"],
+            },
+        )
+        assert response.status_code == 200
+        game = response.json()
+    assert game["board"][5][0]["type"] == "pawn"
+    assert game["board"][5][0]["color"] == "white"
+
+
+def test_diplomat_pacifies_for_five_target_turns_after_second_contact(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "diplomat"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "diplomat": 4,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 0, "type": "diplomat", "color": "white"},
+            {"row": 5, "col": 0, "type": "pawn", "color": "black"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    for from_row, from_col, to_row, to_col in [
+        (7, 7, 7, 6),
+        (0, 7, 0, 6),
+        (7, 6, 7, 7),
+    ]:
+        response = client.post(
+            f"/game/{game['id']}/move",
+            json={
+                "fromRow": from_row,
+                "fromCol": from_col,
+                "toRow": to_row,
+                "toCol": to_col,
+                "expectedVersion": game["version"],
+            },
+        )
+        assert response.status_code == 200
+        game = response.json()
+    pawn = game["board"][5][0]
+    countdown = next(item for item in game["countdowns"] if item["kind"] == "pacified")
+    assert pawn["runtime"]["pacified_until_turn_remaining"] == 5
+    assert countdown["remainingTurns"] == 5
+    assert not any(move["from"] == {"row": 5, "col": 0} for move in game["validMoves"])

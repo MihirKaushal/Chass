@@ -10,13 +10,17 @@ boards and pieces, modular rules, and real-time synchronization.
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
 - Local hot-seat and private online multiplayer
-- Chass Gambit: private 39-point army deployment, center affinity, and command powers
+- Chass Gambit with exact-budget hidden deployment, center affinity, and command powers
+- Maharani, Catapult, Barricade, Hypnotizer, and Diplomat custom pieces
+- Six optional player abilities with private pre-game selection
+- Checkmate, King Capture, Timed, Point Race, Elimination, and Royal Score victories
 - Shareable, one-use game invitation links
 - Live WebSocket updates, reconnect, presence, and state recovery
 - Variable board dimensions and editable starting layouts
-- Configurable piece movement, metadata, and point values
+- Configurable piece metadata, nonnegative point values, and composition limits
 - Toggleable rules, score-target games, and custom rule presets
-- Legal-move highlighting, captured pieces, history, scores, and endgame dialogs
+- Public effect countdowns, detailed piece tooltips, and an in-app Rulebook
+- Legal moves, captured pieces, history, scores, clocks, and contextual endgame dialogs
 - Manual or automatic board flipping
 - Automatic cleanup after 24 hours without game activity
 - Responsive React interface for desktop and mobile
@@ -63,6 +67,8 @@ Repository adapters
 Game rules are handled by a separate rule engine rather than API routes or database code.
 The backend validates moves and remains authoritative during online games. Versioned
 database updates prevent stale moves from one browser from overwriting newer game state.
+The configuration API stores victory, piece, ability, and Gambit settings as one versioned
+contract, while custom actions and passive effects remain separate rule modules.
 Gambit deployments use seat-specific views and revisions so an opponent receives no piece,
 count, edit, or timing data before the atomic reveal.
 Game activity uses a renewable expiration lease, and both repository adapters cascade
@@ -135,10 +141,14 @@ npm run build
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
 | `GET` | `/health` | Service health check |
+| `GET` | `/game/catalog` | Load pieces, abilities, victories, and presets |
 | `POST` | `/game/create` | Create a local or online game |
 | `POST` | `/game/join` | Join through an invitation |
 | `GET` | `/game/{id}` | Load game state |
 | `POST` | `/game/{id}/move` | Submit a move |
+| `POST` | `/game/{id}/action` | Use a custom piece or special-ability action |
+| `POST` | `/game/{id}/ability` | Lock a private player ability |
+| `POST` | `/game/{id}/setup/handoff` | Continue a local private ability handoff |
 | `POST` | `/game/{id}/gambit/deployment` | Place, remove, clear, or undo a hidden army edit |
 | `POST` | `/game/{id}/gambit/ready` | Lock a private deployment and reveal when both are legal |
 | `POST` | `/game/{id}/gambit/handoff` | Continue a local privacy handoff |
