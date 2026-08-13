@@ -7,6 +7,68 @@ from backend.models import MovePattern, PieceDefinition
 
 STANDARD_PIECE_TYPES = ("pawn", "knight", "bishop", "rook", "queen", "king")
 CUSTOM_PIECE_TYPES = ("maharani", "catapult", "barricade", "hypnotizer", "diplomat")
+CLASSIC_BACK_RANK = ("rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook")
+
+
+def classic_layout(rows: int = 8, cols: int = 8) -> list[dict[str, Any]]:
+    if rows < 4 or cols < 8:
+        king_col = cols // 2
+        return [
+            {"row": 0, "col": king_col, "type": "king", "color": "black"},
+            {"row": rows - 1, "col": king_col, "type": "king", "color": "white"},
+        ]
+    start_col = (cols - len(CLASSIC_BACK_RANK)) // 2
+    placements: list[dict[str, Any]] = []
+    for index, piece_type in enumerate(CLASSIC_BACK_RANK):
+        col = start_col + index
+        placements.extend(
+            [
+                {"row": 0, "col": col, "type": piece_type, "color": "black"},
+                {"row": 1, "col": col, "type": "pawn", "color": "black"},
+                {"row": rows - 2, "col": col, "type": "pawn", "color": "white"},
+                {"row": rows - 1, "col": col, "type": piece_type, "color": "white"},
+            ]
+        )
+    return placements
+
+
+def formation_layout(formation_id: str) -> tuple[int, int, list[dict[str, Any]]]:
+    if formation_id == "no_pawns":
+        return 8, 8, [piece for piece in classic_layout() if piece["type"] != "pawn"]
+    if formation_id == "pawn_race":
+        return 8, 8, [
+            piece for piece in classic_layout() if piece["type"] in {"pawn", "king"}
+        ]
+    if formation_id == "knight_skirmish":
+        return 6, 6, [
+            {"row": 0, "col": 2, "type": "king", "color": "black"},
+            {"row": 1, "col": 1, "type": "knight", "color": "black"},
+            {"row": 1, "col": 4, "type": "knight", "color": "black"},
+            {"row": 5, "col": 3, "type": "king", "color": "white"},
+            {"row": 4, "col": 1, "type": "knight", "color": "white"},
+            {"row": 4, "col": 4, "type": "knight", "color": "white"},
+        ]
+    if formation_id == "horde":
+        placements = [piece for piece in classic_layout() if piece["color"] == "black"]
+        placements.append({"row": 7, "col": 4, "type": "king", "color": "white"})
+        placements.extend(
+            {"row": row, "col": col, "type": "pawn", "color": "white"}
+            for row in (4, 5, 6)
+            for col in range(8)
+        )
+        return 8, 8, placements
+    if formation_id == "castle_siege":
+        placements = classic_layout(8, 10)
+        for color, back_row, pawn_row in (("black", 0, 1), ("white", 7, 6)):
+            for col in (0, 9):
+                placements.append(
+                    {"row": back_row, "col": col, "type": "rook", "color": color}
+                )
+                placements.append(
+                    {"row": pawn_row, "col": col, "type": "pawn", "color": color}
+                )
+        return 8, 10, placements
+    return 8, 8, classic_layout()
 
 
 def _queen_patterns() -> list[MovePattern]:
@@ -152,7 +214,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
         "maharani": PieceDefinition(
             type="maharani",
             display_name="Maharani",
-            symbols={"white": "✦", "black": "✦"},
+            symbols={"white": "✧", "black": "✦"},
             icon="✦",
             description=(
                 "A royal powerhouse combining queen and knight mobility with one controlled jump."
@@ -168,13 +230,13 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
             custom_attributes={
                 "rules": ["Queen movement", "Knight movement", "May cross one blocker"],
             },
-            metadata={"family": "chass_custom"},
+            metadata={"family": "chass_custom", "visualKey": "maharani"},
         ),
         "catapult": PieceDefinition(
             type="catapult",
             display_name="Catapult",
-            symbols={"white": "◈", "black": "◈"},
-            icon="🎯",
+            symbols={"white": "◇", "black": "◆"},
+            icon="◈",
             description=(
                 "A forward siege piece that fires over one or two squares, then must recover."
             ),
@@ -197,13 +259,13 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     "Barricades block projectiles",
                 ],
             },
-            metadata={"family": "chass_custom"},
+            metadata={"family": "chass_custom", "visualKey": "catapult"},
         ),
         "barricade": PieceDefinition(
             type="barricade",
             display_name="Barricade",
             symbols={"white": "▦", "black": "▦", "neutral": "▦"},
-            icon="🧱",
+            icon="▦",
             description=(
                 "A neutral wall that blocks movement and projectiles without attacking anything."
             ),
@@ -218,13 +280,17 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
             custom_attributes={
                 "rules": ["Neutral", "Uncapturable", "Blocks jumps and projectiles"],
             },
-            metadata={"family": "chass_custom", "neutral": True},
+            metadata={
+                "family": "chass_custom",
+                "neutral": True,
+                "visualKey": "barricade",
+            },
         ),
         "hypnotizer": PieceDefinition(
             type="hypnotizer",
             display_name="Hypnotizer",
-            symbols={"white": "◉", "black": "◉"},
-            icon="🌀",
+            symbols={"white": "◎", "black": "◉"},
+            icon="◉",
             description=(
                 "A conversion specialist that recruits one adjacent enemy after sustained contact."
             ),
@@ -268,13 +334,13 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     "Contact progress resets if separated",
                 ],
             },
-            metadata={"family": "chass_custom"},
+            metadata={"family": "chass_custom", "visualKey": "hypnotizer"},
         ),
         "diplomat": PieceDefinition(
             type="diplomat",
             display_name="Diplomat",
             symbols={"white": "⚜", "black": "⚜"},
-            icon="🤝",
+            icon="⚜",
             description=(
                 "A protected peacekeeper that temporarily pacifies nearby enemy pieces."
             ),
@@ -306,7 +372,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     "Retires after 5 pacifications",
                 ],
             },
-            metadata={"family": "chass_custom"},
+            metadata={"family": "chass_custom", "visualKey": "diplomat"},
         ),
     }
     return pieces
@@ -322,7 +388,8 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "id": "necromancy",
         "name": "Necromancy",
         "icon": "☠",
-        "summary": "Spend earned score to recruit a captured enemy piece.",
+        "summary": "Spend earned score to recruit a captured enemy piece, then recharge for nine turns.",
+        "cooldownTurns": 9,
         "details": [
             "The recruited piece changes to your color.",
             "Its price is its configured point value and spending lowers your score.",
@@ -334,20 +401,22 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "id": "getaway",
         "name": "Getaway",
         "icon": "⇄",
-        "summary": "Once per game, escape checkmate by swapping the King with a Rook or Queen.",
+        "summary": "Escape checkmate by swapping the King with a Rook or Queen, then recharge for ten turns.",
+        "cooldownTurns": 10,
         "details": [
             "The swap is available only when it produces a legal position.",
             "If no legal partner exists, checkmate ends the game normally.",
-            "The ability is consumed only after a successful swap.",
+            "A successful swap starts a ten-turn cooldown.",
         ],
     },
     {
         "id": "eye_for_an_eye",
         "name": "Eye for an Eye",
         "icon": "⚖",
-        "summary": "Remove an enemy piece by sacrificing your matching piece type.",
+        "summary": "Trade matching pieces, then wait ten turns before using the ability again.",
+        "cooldownTurns": 10,
         "details": [
-            "Usable once per game and consumes the turn.",
+            "A successful trade consumes the turn and starts a ten-turn cooldown.",
             "Kings and neutral pieces cannot be selected.",
             "Neither removal awards score and it cannot be used while in check.",
         ],
@@ -436,6 +505,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "summary": "Standard 8x8 chess with checkmate victory.",
         "boardRows": 8,
         "boardCols": 8,
+        "formationId": "classic",
         "victory": {"mode": "checkmate"},
         "gambit": {"enabled": False},
     },
@@ -446,6 +516,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "summary": "Capture 21 points of material before your opponent.",
         "boardRows": 8,
         "boardCols": 8,
+        "formationId": "classic",
         "victory": {"mode": "point_race", "targetPoints": 21, "kingPoints": 1},
         "gambit": {"enabled": False},
     },
@@ -456,6 +527,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "summary": "Checks are warnings, but the King must actually be captured.",
         "boardRows": 8,
         "boardCols": 8,
+        "formationId": "classic",
         "victory": {"mode": "king_capture", "kingPoints": 1},
         "gambit": {"enabled": False},
     },
@@ -466,6 +538,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "summary": "The last army with a capturable combat piece on the board wins.",
         "boardRows": 8,
         "boardCols": 8,
+        "formationId": "classic",
         "victory": {"mode": "elimination"},
         "gambit": {"enabled": False},
     },
@@ -476,6 +549,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "summary": "Classic checkmate with a ten-minute clock for each player.",
         "boardRows": 8,
         "boardCols": 8,
+        "formationId": "classic",
         "victory": {"mode": "timed", "timeSeconds": 600},
         "gambit": {"enabled": False},
     },
@@ -486,10 +560,82 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "summary": "Secretly spend exactly 39 points to build an army before reveal.",
         "boardRows": 8,
         "boardCols": 8,
+        "formationId": "classic",
         "victory": {"mode": "checkmate"},
         "gambit": {"enabled": True},
     },
 ]
+
+
+FORMATION_PRESETS: list[dict[str, Any]] = [
+    {
+        "id": "no_pawns",
+        "name": "No Pawns",
+        "icon": "♜",
+        "summary": "Classic armies without Pawns, opening every file immediately.",
+        "defaultVictory": "checkmate",
+        "disabledAbilities": {
+            "kamikaze": "Kamikaze requires Pawns.",
+        },
+    },
+    {
+        "id": "pawn_race",
+        "name": "Pawn Race",
+        "icon": "♟",
+        "summary": "Kings and Pawns only, with promotion deciding the attack.",
+        "defaultVictory": "checkmate",
+        "disabledAbilities": {
+            "getaway": "Getaway requires a Rook or Queen.",
+            "episcopal": "Episcopal requires a Bishop.",
+            "power_of_love": "Power of Love requires a Queen.",
+        },
+    },
+    {
+        "id": "knight_skirmish",
+        "name": "Knight Skirmish",
+        "icon": "♞",
+        "summary": "A compact 6x6 duel with two Knights and one King per side.",
+        "defaultVictory": "checkmate",
+        "disabledAbilities": {
+            "getaway": "Getaway requires a Rook or Queen.",
+            "kamikaze": "Kamikaze requires Pawns.",
+            "episcopal": "Episcopal requires a Bishop.",
+            "power_of_love": "Power of Love requires a Queen.",
+        },
+    },
+    {
+        "id": "horde",
+        "name": "Horde",
+        "icon": "⚑",
+        "summary": "A King-led Pawn horde faces a complete classic army.",
+        "defaultVictory": "elimination",
+        "disabledVictoryModes": {
+            "checkmate": "Horde is decided by army elimination, not checkmate.",
+            "timed": "The built-in timed rule also uses checkmate and is unavailable for Horde.",
+            "royal_score": "Royal Score depends on checkmate and is unavailable for Horde.",
+        },
+        "disabledAbilities": {
+            "getaway": "White begins without a Rook or Queen.",
+            "episcopal": "White begins without a Bishop.",
+            "power_of_love": "White begins without a Queen.",
+        },
+    },
+    {
+        "id": "castle_siege",
+        "name": "Castle Siege",
+        "icon": "▦",
+        "summary": "An 8x10 army with four Rooks, two Knights, and ten Pawns per side.",
+        "defaultVictory": "checkmate",
+        "disabledAbilities": {},
+    },
+]
+
+for formation in FORMATION_PRESETS:
+    formation_rows, formation_cols, formation_pieces = formation_layout(formation["id"])
+    formation["boardRows"] = formation_rows
+    formation["boardCols"] = formation_cols
+    formation["initialLayout"] = formation_pieces
+    formation.setdefault("disabledVictoryModes", {})
 
 
 def catalog_payload() -> dict[str, Any]:
@@ -507,15 +653,25 @@ def catalog_payload() -> dict[str, Any]:
                 "description": definition.description,
                 "movement": definition.movement_summary,
                 "rules": definition.custom_attributes.get("rules", []),
+                "visualKey": definition.metadata.get("visualKey", definition.type),
             }
         )
 
     return {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "pieces": pieces,
         "specialAbilities": deepcopy(SPECIAL_ABILITIES),
         "victoryModes": deepcopy(VICTORY_MODES),
         "popularModes": deepcopy(POPULAR_PRESETS),
+        "formations": deepcopy(FORMATION_PRESETS),
+        "limits": {
+            "boardMin": 4,
+            "boardMax": 16,
+            "pointMin": 0,
+            "pointMax": 100000,
+            "timeSecondsMin": 60,
+            "timeSecondsMax": 86400,
+        },
         "gambit": {
             "name": "Chass Gambit",
             "icon": "⚑",

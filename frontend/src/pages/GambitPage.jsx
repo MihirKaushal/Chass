@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 
 import ChessBoard from "../components/ChessBoard";
-import MoveHistoryPanel from "../components/MoveHistoryPanel";
+import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
+import PieceGlyph from "../components/PieceGlyph";
 
 
 const PIECE_ORDER = ["king", "queen", "rook", "bishop", "knight", "pawn"];
@@ -211,7 +212,13 @@ function GambitDeployment({
                 disabled={!editable || actionLoading || atCap}
                 onClick={() => setSelectedPiece(pieceType)}
               >
-                <span className="war-piece-symbol">{definition?.symbols?.[color]}</span>
+                <span className="war-piece-symbol">
+                  <PieceGlyph
+                    type={pieceType}
+                    color={color}
+                    symbol={definition?.symbols?.[color]}
+                  />
+                </span>
                 <span className="war-piece-copy">
                   <strong>{definition?.displayName || title(pieceType)}</strong>
                   <small>{cost === 0 ? "Free" : `${cost} point${cost === 1 ? "" : "s"}`}</small>
@@ -409,7 +416,18 @@ function GambitPlay({
   };
 
   return (
-    <main className="gambit-play-layout">
+    <main className="play-layout play-layout-three-column gambit-play-layout">
+      <EffectsPanel game={game} onAction={onAction} actionLoading={actionLoading}>
+        <CommandPanel
+          game={game}
+          interactive={interactive && !actionLoading}
+          selectedPower={selectedPower}
+          onSelectPower={setSelectedPower}
+          evolveTo={evolveTo}
+          setEvolveTo={setEvolveTo}
+        />
+      </EffectsPanel>
+
       <section className="board-section gambit-battle-board">
         <ChessBoard
           board={game.board}
@@ -427,33 +445,7 @@ function GambitPlay({
         />
       </section>
 
-      <aside className="gambit-play-sidebar">
-        <CommandPanel
-          game={game}
-          interactive={interactive && !actionLoading}
-          selectedPower={selectedPower}
-          onSelectPower={setSelectedPower}
-          evolveTo={evolveTo}
-          setEvolveTo={setEvolveTo}
-        />
-        <MoveHistoryPanel
-          rules={game.rules}
-          history={game.history}
-          capturedPieces={game.capturedPieces}
-          lastMoveExplanation={game.lastMoveExplanation}
-          gameStatus={game.gameStatus}
-          winner={game.winner}
-          score={game.score}
-          abilities={game.abilities}
-          countdowns={game.countdowns}
-          availableActions={game.availableActions}
-          clock={game.clock}
-          onAction={onAction}
-          actionLoading={actionLoading}
-          boardRows={game.boardRows ?? game.boardSize}
-          compactRules
-        />
-      </aside>
+      <GameInfoPanel game={game} />
     </main>
   );
 }

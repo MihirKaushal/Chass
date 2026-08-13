@@ -12,6 +12,7 @@
   --gambit-ink: #102a4c;
   --success: #2f7658;
   --shadow: 0 12px 26px rgba(26, 54, 93, 0.18);
+  --board-long-edge: min(68vh, 680px);
 }
 
 * {
@@ -39,7 +40,7 @@ textarea {
 }
 
 .app-shell {
-  max-width: 1300px;
+  max-width: 1540px;
   margin: 0 auto;
   padding: 1.25rem;
 }
@@ -310,6 +311,14 @@ button.secondary {
   line-height: 1.55;
 }
 
+.landing-intro span {
+  display: block;
+}
+
+.landing-intro span:first-child {
+  white-space: nowrap;
+}
+
 .mode-choice-grid {
   position: relative;
   z-index: 1;
@@ -320,7 +329,7 @@ button.secondary {
 }
 
 .mode-choice-card {
-  min-height: 330px;
+  min-height: 245px;
   display: flex;
   flex-direction: column;
   padding: 1.25rem;
@@ -368,17 +377,6 @@ button.secondary {
 .mode-choice-card.featured button {
   color: var(--deep);
   background: var(--accent-soft);
-}
-
-.mode-number {
-  font-family: "IBM Plex Mono", monospace;
-  color: var(--accent);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.mode-choice-card.featured .mode-number {
-  color: var(--accent-soft);
 }
 
 .landing-error {
@@ -552,10 +550,71 @@ button.secondary {
   background: var(--accent);
 }
 
+.restart-request {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) auto auto;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem 1rem;
+  border: 2px solid rgba(43, 108, 176, 0.34);
+  border-radius: 14px;
+  background: rgba(234, 216, 181, 0.94);
+  box-shadow: var(--shadow);
+}
+
+.restart-request > div:first-child {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.restart-request small {
+  color: rgba(26, 54, 93, 0.68);
+}
+
+.restart-approvals,
+.restart-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.restart-approvals span {
+  padding: 0.32rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(26, 54, 93, 0.08);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+}
+
+.restart-approvals span.approved {
+  color: #1f5e44;
+  background: rgba(47, 118, 88, 0.14);
+}
+
+.restart-actions button {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.45rem 0.65rem;
+  color: white;
+  background: var(--accent);
+  cursor: pointer;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.restart-actions button.secondary {
+  color: var(--deep);
+  border: 1px solid rgba(26, 54, 93, 0.22);
+  background: rgba(255, 255, 255, 0.5);
+}
+
 .play-layout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 340px;
+  grid-template-columns: minmax(230px, 280px) minmax(0, auto) minmax(280px, 330px);
   gap: 1rem;
+  align-items: start;
+  justify-content: center;
 }
 
 .board-section {
@@ -569,8 +628,8 @@ button.secondary {
 }
 
 .board-wrap {
-  width: min(74vh, 85vw);
-  aspect-ratio: 1;
+  position: relative;
+  flex: 0 0 auto;
   animation: board-rise 320ms ease;
 }
 
@@ -736,6 +795,26 @@ button.secondary {
   transition: transform 180ms ease;
 }
 
+.piece-glyph {
+  width: 1em;
+  height: 1em;
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.piece-glyph svg {
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 3.5;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  overflow: visible;
+}
+
 .square:hover .piece {
   transform: scale(1.08);
 }
@@ -788,7 +867,8 @@ button.secondary {
   bottom: calc(100% + 6px);
   transform: translateX(-50%);
   min-width: 150px;
-  max-width: 210px;
+  width: max-content;
+  max-width: min(270px, calc(var(--board-long-edge) - 16px));
   padding: 0.4rem 0.48rem;
   border-radius: 8px;
   border: 1px solid rgba(26, 54, 93, 0.35);
@@ -797,7 +877,7 @@ button.secondary {
   font-size: 0.7rem;
   line-height: 1.25;
   display: none;
-  z-index: 6;
+  z-index: 30;
   pointer-events: none;
   text-align: left;
 }
@@ -805,6 +885,11 @@ button.secondary {
 .piece-tooltip--below {
   top: calc(100% + 6px);
   bottom: auto;
+}
+
+.piece-tooltip--above {
+  top: auto;
+  bottom: calc(100% + 6px);
 }
 
 .piece-tooltip--left {
@@ -832,11 +917,22 @@ button.secondary {
   display: block;
 }
 
+.board-tooltip-anchor {
+  position: absolute;
+  z-index: 90;
+  pointer-events: none;
+}
+
+.board-tooltip-anchor .piece-tooltip {
+  display: block;
+}
+
 .piece.ghost {
   opacity: 0;
 }
 
-.history-panel {
+.history-panel,
+.effects-panel {
   background: var(--panel);
   border: 2px solid rgba(26, 54, 93, 0.2);
   border-radius: 18px;
@@ -844,6 +940,96 @@ button.secondary {
   box-shadow: var(--shadow);
   max-height: calc(100vh - 180px);
   overflow: auto;
+}
+
+.effects-panel {
+  min-width: 0;
+}
+
+.history-panel,
+.effects-panel {
+  scrollbar-color: rgba(43, 108, 176, 0.4) transparent;
+}
+
+.all-effects-reference {
+  padding: 0.65rem;
+  border: 1px solid rgba(26, 54, 93, 0.18);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.32);
+}
+
+.all-effects-reference > summary {
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.all-effects-reference div,
+.active-special-rules {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.all-effects-reference h4 {
+  margin: 0.7rem 0 0;
+}
+
+.all-effects-reference p,
+.active-special-rules p {
+  display: grid;
+  gap: 0.12rem;
+  margin: 0;
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.all-effects-reference p span,
+.all-effects-reference p small,
+.active-special-rules p small {
+  color: rgba(26, 54, 93, 0.68);
+  font-size: 0.68rem;
+}
+
+.captured-glyphs {
+  display: flex;
+  min-height: 1.35rem;
+  flex-wrap: wrap;
+  gap: 0.1rem;
+}
+
+.captured-glyphs .piece-glyph {
+  font-size: 1.3rem;
+}
+
+.clock-readout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.clock-readout span {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem;
+  border: 1px solid rgba(26, 54, 93, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.clock-readout span.active {
+  color: white;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.clock-readout b {
+  font-size: 0.62rem;
+}
+
+.clock-readout strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1rem;
 }
 
 .panel-section {
@@ -1315,9 +1501,6 @@ button.secondary {
 }
 
 .gambit-play-layout {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(320px, 370px);
-  gap: 1rem;
   align-items: start;
 }
 
@@ -1326,12 +1509,11 @@ button.secondary {
   gap: 1rem;
 }
 
-.gambit-play-sidebar .history-panel {
-  max-height: none;
-}
-
 .command-panel {
-  padding: 1rem;
+  margin-bottom: 1rem;
+  padding: 0.85rem;
+  border-width: 1px;
+  box-shadow: none;
 }
 
 .command-pips {
@@ -1536,6 +1718,10 @@ button.secondary {
     grid-template-columns: 1fr;
   }
 
+  .restart-request {
+    grid-template-columns: 1fr;
+  }
+
   .seat-status,
   .invite-controls {
     justify-content: flex-start;
@@ -1543,9 +1729,11 @@ button.secondary {
 
   .play-layout {
     grid-template-columns: 1fr;
+    justify-items: stretch;
   }
 
-  .history-panel {
+  .history-panel,
+  .effects-panel {
     max-height: none;
   }
 
@@ -1558,8 +1746,16 @@ button.secondary {
     position: static;
   }
 
-  .gambit-play-sidebar {
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  .effects-panel {
+    order: 2;
+  }
+
+  .board-section {
+    order: 1;
+  }
+
+  .history-panel {
+    order: 3;
   }
 }
 
@@ -1572,8 +1768,8 @@ button.secondary {
     padding: 0.85rem;
   }
 
-  .board-wrap {
-    width: min(88vw, 84vh);
+  :root {
+    --board-long-edge: min(88vw, 72vh);
   }
 
   .game-meta {
@@ -1749,7 +1945,7 @@ button.secondary {
   display: grid;
   border: 4px solid var(--deep);
   border-radius: 12px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .studio-square {
@@ -1761,6 +1957,19 @@ button.secondary {
   border: 0;
   color: var(--deep);
   cursor: pointer;
+}
+
+.studio-square:hover {
+  z-index: 8;
+}
+
+.studio-square:hover .piece-tooltip,
+.studio-square:focus-visible .piece-tooltip {
+  display: block;
+}
+
+.studio-square.readonly {
+  cursor: default;
 }
 
 .studio-square:disabled {
@@ -1806,6 +2015,21 @@ button.secondary {
   color: #805600;
   border-color: rgba(184, 121, 24, 0.8);
   background: rgba(255, 208, 105, 0.24);
+}
+
+.studio-piece.piece-white.custom {
+  color: #9a6500;
+  background: rgba(255, 244, 208, 0.78);
+}
+
+.studio-piece.piece-black.custom {
+  color: #102a4c;
+  background: rgba(184, 121, 24, 0.3);
+}
+
+.studio-piece.piece-neutral {
+  color: #5f4b2b;
+  background: rgba(234, 216, 181, 0.88);
 }
 
 .studio-rank,
@@ -1962,6 +2186,15 @@ button.secondary {
 .mode-preset-grid small {
   color: rgba(26, 54, 93, 0.68);
   line-height: 1.35;
+}
+
+.formation-heading {
+  margin: 1.15rem 0 0.6rem;
+  font-size: 0.95rem;
+}
+
+.formation-grid button {
+  min-height: 112px;
 }
 
 .dimension-presets {
@@ -2162,6 +2395,14 @@ button.secondary {
   border-color: var(--accent);
   background: rgba(99, 179, 237, 0.17);
   box-shadow: inset 0 0 0 2px rgba(43, 108, 176, 0.14);
+}
+
+.victory-grid button:disabled,
+.ability-option-grid button:disabled {
+  cursor: not-allowed;
+  border-style: dashed;
+  filter: grayscale(0.65);
+  opacity: 0.58;
 }
 
 .victory-grid i,
@@ -2397,12 +2638,22 @@ button.secondary {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.65rem;
+  align-items: start;
 }
 
 .rulebook-entry {
+  align-self: start;
   border: 1px solid rgba(26, 54, 93, 0.18);
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.54);
+}
+
+.validation-invalid {
+  background: rgba(91, 31, 31, 0.97);
+}
+
+.validation-checking {
+  background: rgba(26, 54, 93, 0.88);
 }
 
 .rulebook-entry summary {
@@ -2875,6 +3126,27 @@ button.secondary {
   }
 }
 
+@media (max-width: 1300px) {
+  .play-layout-three-column {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .play-layout-three-column .effects-panel {
+    order: 2;
+    max-height: none;
+  }
+
+  .play-layout-three-column .board-section {
+    order: 1;
+  }
+
+  .play-layout-three-column .history-panel {
+    order: 3;
+    max-height: none;
+  }
+}
+
 @media (max-width: 900px) {
   .studio-shell {
     grid-template-columns: 1fr;
@@ -2918,6 +3190,10 @@ button.secondary {
 
   .studio-hero h1 {
     font-size: 2.2rem;
+  }
+
+  .landing-intro span:first-child {
+    white-space: normal;
   }
 
   .mode-preset-grid,

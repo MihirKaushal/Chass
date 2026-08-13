@@ -55,6 +55,97 @@ def test_local_game_remains_token_free(client):
     assert loaded.json()["version"] == 2
 
 
+def test_game_creation_does_not_wait_for_retention_cleanup(client, monkeypatch):
+    from backend.routes.game import game_service
+
+    def unexpected_cleanup(*_args, **_kwargs):
+        raise AssertionError("game creation must not run global cleanup")
+
+    monkeypatch.setattr(game_service, "cleanup_inactive_games", unexpected_cleanup)
+    created = client.post("/game/create", json={"mode": "local"})
+    assert created.status_code == 200
+
+
+def test_same_device_restart_requires_both_colors(client):
+    game = client.post("/game/create", json={"mode": "local"}).json()["game"]
+    moved = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 6,
+            "fromCol": 4,
+            "toRow": 4,
+            "toCol": 4,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+
+    direct_reset = client.post(
+        f"/game/{game['id']}/reset",
+        json={"expectedVersion": moved["version"]},
+    )
+    assert direct_reset.status_code == 409
+
+    requested = client.post(
+        f"/game/{game['id']}/rematch",
+        json={
+            "action": "request",
+            "color": "white",
+            "expectedVersion": moved["version"],
+        },
+    )
+    assert requested.status_code == 200
+    pending = requested.json()
+    assert pending["history"]
+    assert pending["rematch"]["approvals"] == {"white": True, "black": False}
+
+    accepted = client.post(
+        f"/game/{game['id']}/rematch",
+        json={
+            "action": "accept",
+            "color": "black",
+            "expectedVersion": pending["version"],
+        },
+    )
+    assert accepted.status_code == 200
+    restarted = accepted.json()
+    assert restarted["history"] == []
+    assert restarted["currentPlayer"] == "white"
+    assert restarted["board"][6][4]["type"] == "pawn"
+    assert restarted["rematch"]["status"] == "idle"
+
+
+def test_either_online_player_can_request_restart_and_other_must_approve(client):
+    created = create_online_game(client)
+    joined = client.post(
+        "/game/join",
+        json={"inviteToken": created["inviteToken"]},
+    ).json()
+    game_id = created["game"]["id"]
+
+    requested = client.post(
+        f"/game/{game_id}/rematch",
+        headers=auth(joined["playerToken"]),
+        json={
+            "action": "request",
+            "expectedVersion": joined["game"]["version"],
+        },
+    )
+    assert requested.status_code == 200
+    pending = requested.json()
+    assert pending["rematch"]["requestedBy"] == "black"
+    assert pending["rematch"]["approvals"] == {"white": False, "black": True}
+
+    accepted = client.post(
+        f"/game/{game_id}/rematch",
+        headers=auth(created["playerToken"]),
+        json={"action": "accept", "expectedVersion": pending["version"]},
+    )
+    assert accepted.status_code == 200
+    restarted = accepted.json()
+    assert restarted["history"] == []
+    assert restarted["rematch"]["status"] == "idle"
+
+
 def test_online_invite_and_seat_authorization(client):
     created = create_online_game(client)
     game = created["game"]

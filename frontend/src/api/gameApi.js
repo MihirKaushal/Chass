@@ -1,4 +1,5 @@
 const API_BASE = (import.meta.env.VITE_API_URL || "http://localhost:8000").replace(/\/$/, "");
+let catalogPromise = null;
 
 export class ApiError extends Error {
   constructor(message, status) {
@@ -21,7 +22,11 @@ async function request(path, { token, headers, ...options } = {}) {
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
     const detail =
-      typeof payload.detail === "string" ? payload.detail : "The game server rejected the request.";
+      typeof payload.detail === "string"
+        ? payload.detail
+        : Array.isArray(payload.detail) && payload.detail[0]?.msg
+          ? payload.detail[0].msg
+          : "The game server rejected the request.";
     throw new ApiError(detail, response.status);
   }
 
@@ -36,7 +41,24 @@ export function createGame(payload) {
 }
 
 export function getCatalog() {
-  return request("/game/catalog");
+  if (!catalogPromise) {
+    catalogPromise = request("/game/catalog").catch((error) => {
+      catalogPromise = null;
+      throw error;
+    });
+  }
+  return catalogPromise;
+}
+
+export function warmApi() {
+  return fetch(`${API_BASE}/health`, { method: "GET" }).catch(() => null);
+}
+
+export function validateGameConfiguration(payload) {
+  return request("/game/validate", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  });
 }
 
 export function joinGame(inviteToken) {
@@ -138,8 +160,8 @@ export function updateBoardLayout(gameId, payload, token) {
   });
 }
 
-export function resetGame(gameId, payload = {}, token) {
-  return request(`/game/${gameId}/reset`, {
+export function requestRematch(gameId, payload, token) {
+  return request(`/game/${gameId}/rematch`, {
     method: "POST",
     body: JSON.stringify(payload),
     token,

@@ -1,11 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
+import { warmApi } from "../api/gameApi";
 import LandingNav from "../components/LandingNav";
 
 
 function HomePage({ onCreate, onCustomize }) {
   const [creatingMode, setCreatingMode] = useState("");
   const [error, setError] = useState("");
+
+  useEffect(() => {
+    warmApi();
+  }, []);
 
   const start = async (mode) => {
     setCreatingMode(mode);
@@ -25,22 +30,16 @@ function HomePage({ onCreate, onCustomize }) {
         <div className="landing-copy">
           <span className="eyebrow">Build the rules. Play the board.</span>
           <h1>Chass!</h1>
-          <p>
-            Classic chess when you want it. A flexible rule laboratory when you do not.
-            Choose how your opponent is joining.
+          <p className="landing-intro">
+            <span>Classic chess when you want it. A flexible rule laboratory when you do not.</span>
+            <span>Choose how your opponent is joining.</span>
           </p>
         </div>
 
         <div className="mode-choice-grid">
           <article className="mode-choice-card">
-            <span className="mode-number">01</span>
             <h2>Same Device</h2>
-            <p>Pass one screen between players. No account, invite, or connection required.</p>
-            <ul>
-              <li>Automatic board flipping</li>
-              <li>Full customization access</li>
-              <li>Fast local setup</li>
-            </ul>
+            <p>Pass one screen between players. No account or invite required.</p>
             <button
               type="button"
               disabled={Boolean(creatingMode)}
@@ -51,14 +50,8 @@ function HomePage({ onCreate, onCustomize }) {
           </article>
 
           <article className="mode-choice-card featured">
-            <span className="mode-number">02</span>
             <h2>Invite a Friend</h2>
             <p>Create a private link and play from two browsers, anywhere.</p>
-            <ul>
-              <li>Private one-use invite</li>
-              <li>Live move synchronization</li>
-              <li>Automatic reconnection</li>
-            </ul>
             <button
               type="button"
               disabled={Boolean(creatingMode)}

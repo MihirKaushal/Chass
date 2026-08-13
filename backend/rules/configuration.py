@@ -1,0 +1,337 @@
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+
+from backend.catalog import (
+    FORMATION_PRESETS,
+    build_catalog_piece_definitions,
+    classic_layout,
+)
+from backend.models.schemas import CreateGameRequest
+from backend.rules.variant_system import barricade_start_squares
+
+
+@dataclass
+class ConfigurationValidation:
+    errors: list[str] = field(default_factory=list)
+    warnings: list[str] = field(default_factory=list)
+    disabled_options: dict[str, dict[str, str]] = field(default_factory=dict)
+
+    @property
+    def valid(self) -> bool:
+        return not self.errors
+
+    def as_dict(self) -> dict:
+        return {
+            "valid": self.valid,
+            "errors": list(dict.fromkeys(self.errors)),
+            "warnings": list(dict.fromkeys(self.warnings)),
+            "disabledOptions": self.disabled_options,
+        }
+
+
+def exact_gambit_budget_reachable(
+    budget: int,
+    max_pieces: int,
+    piece_points: dict[str, int],
+    piece_caps: dict[str, int],
+) -> bool:
+    king_cost = piece_points.get("king")
+    if king_cost is None or king_cost > budget or max_pieces < 1:
+        return False
+
+    # Each bit represents a reachable score for an exact piece count.
+    reachable = [0] * (max_pieces + 1)
+    reachable[1] = 1 << king_cost
+    score_mask = (1 << (budget + 1)) - 1
+    for piece_type, cost in piece_points.items():
+        if piece_type == "king" or cost <= 0:
+            continue
+        cap = min(piece_caps.get(piece_type, 0), max_pieces - 1, budget // cost)
+        group_size = 1
+        remaining = cap
+        while remaining > 0:
+            take = min(group_size, remaining)
+            shift = cost * take
+            for count in range(max_pieces - take, 0, -1):
+                reachable[count + take] |= (reachable[count] << shift) & score_mask
+            remaining -= take
+            group_size *= 2
+    target = 1 << budget
+    return any(scores & target for scores in reachable[1:])
+
+
+def _placement_key(piece: dict) -> tuple[int, int, str, str]:
+    return piece["row"], piece["col"], piece["type"], piece["color"]
+
+
+class ConfigurationRuleEngine:
+    def __init__(self) -> None:
+        self._pieces = build_catalog_piece_definitions()
+        self._formations = {item["id"]: item for item in FORMATION_PRESETS}
+
+    def validate(self, request: CreateGameRequest) -> ConfigurationValidation:
+        result = ConfigurationValidation()
+        payload = request.configuration
+        if payload is None:
+            return result
+
+        enabled = set(payload.enabledPieces)
+        unknown = sorted(enabled - set(self._pieces))
+        if unknown:
+            result.errors.append(f"Unknown piece type: {unknown[0]}.")
+        if "king" not in enabled:
+            result.errors.append("The King must remain enabled.")
+
+        if any(
+            value is not None and (not isinstance(value, int) or value < 0)
+            for value in payload.piecePoints.values()
+        ):
+            result.errors.append("Every piece value must be a whole number of zero or more.")
+
+        formation = self._formations.get(payload.formationId)
+        if formation is not None:
+            result.disabled_options = {
+                "victoryModes": dict(formation.get("disabledVictoryModes", {})),
+                "abilities": dict(formation.get("disabledAbilities", {})),
+            }
+            if (request.boardRows, request.boardCols) != (
+                formation["boardRows"],
+                formation["boardCols"],
+            ):
+                result.errors.append(
+                    f"{formation['name']} uses a {formation['boardRows']}x"
+                    f"{formation['boardCols']} board."
+                )
+            if payload.victory.mode in formation.get("disabledVictoryModes", {}):
+                result.errors.append(
+                    formation["disabledVictoryModes"][payload.victory.mode]
+                )
+            if not payload.gambit.enabled:
+                expected = sorted(
+                    (_placement_key(piece) for piece in formation["initialLayout"])
+                )
+                actual = sorted(
+                    (
+                        placement.row,
+                        placement.col,
+                        placement.type,
+                        placement.color,
+                    )
+                    for placement in payload.initialLayout
+                    if placement.type != "barricade"
+                )
+                if actual != expected:
+                    result.errors.append(
+                        f"The board no longer matches {formation['name']}. "
+                        "Choose Custom before editing its formation."
+                    )
+
+        if payload.specialAbilities.enabled:
+            if not payload.specialAbilities.allowed:
+                result.errors.append("Enable at least one ability for players to choose.")
+            disabled_abilities = result.disabled_options.get("abilities", {})
+            for ability in payload.specialAbilities.allowed:
+                if ability in disabled_abilities:
+                    result.errors.append(disabled_abilities[ability])
+
+        max_barricades = max(1, request.boardCols // 2)
+        if "barricade" in enabled:
+            if payload.barricadeCount < 1:
+                result.errors.append("Enable at least one Barricade or turn the piece off.")
+            if payload.barricadeCount > max_barricades:
+                result.errors.append(
+                    f"This board supports at most {max_barricades} starting Barricades."
+                )
+
+        placements = [placement.model_dump() for placement in payload.initialLayout]
+        occupied: set[tuple[int, int]] = set()
+        supplied_barricades = [
+            placement for placement in placements if placement["type"] == "barricade"
+        ]
+        allowed_barricades = set(
+            barricade_start_squares(
+                request.boardRows,
+                request.boardCols,
+                payload.barricadeCount,
+            )
+        )
+        if len(supplied_barricades) > payload.barricadeCount or any(
+            (piece["row"], piece["col"]) not in allowed_barricades
+            for piece in supplied_barricades
+        ):
+            result.errors.append(
+                "Starting Barricades must use the reserved center-line squares."
+            )
+        if "barricade" in enabled and any(
+            (piece["row"], piece["col"]) in allowed_barricades
+            and piece["type"] != "barricade"
+            for piece in placements
+        ):
+            result.errors.append(
+                "Starting Barricade positions must remain empty along the center line."
+            )
+        for placement in placements:
+            square = placement["row"], placement["col"]
+            if not (
+                0 <= placement["row"] < request.boardRows
+                and 0 <= placement["col"] < request.boardCols
+            ):
+                result.errors.append("Every starting piece must be inside the board.")
+            if square in occupied:
+                result.errors.append("Only one piece may occupy each starting square.")
+            occupied.add(square)
+            if placement["type"] not in enabled:
+                result.errors.append(
+                    f"Starting {placement['type'].title()} is not enabled."
+                )
+            if placement["type"] == "barricade" and placement["color"] != "neutral":
+                result.errors.append("Barricades must be neutral.")
+            if placement["type"] != "barricade" and placement["color"] == "neutral":
+                result.errors.append("Only Barricades may be neutral.")
+            if placement["type"] == "pawn" and placement["row"] in {
+                0,
+                request.boardRows - 1,
+            }:
+                result.errors.append("Pawns cannot begin on a promotion rank.")
+
+        if not payload.gambit.enabled:
+            effective = placements or classic_layout(request.boardRows, request.boardCols)
+            for color in ("white", "black"):
+                kings = [
+                    piece
+                    for piece in effective
+                    if piece["type"] == "king" and piece["color"] == color
+                ]
+                if len(kings) != 1:
+                    result.errors.append(f"{color.title()} must begin with exactly one King.")
+            kings = {
+                piece["color"]: (piece["row"], piece["col"])
+                for piece in effective
+                if piece["type"] == "king" and piece["color"] in {"white", "black"}
+            }
+            if len(kings) == 2 and max(
+                abs(kings["white"][0] - kings["black"][0]),
+                abs(kings["white"][1] - kings["black"][1]),
+            ) <= 1:
+                result.errors.append("The two Kings cannot begin on touching squares.")
+            self._validate_ability_prerequisites(payload, effective, result)
+            self._validate_victory_reachability(payload, effective, result)
+        else:
+            self._validate_gambit(request, result)
+
+        return result
+
+    def _validate_ability_prerequisites(self, payload, placements: list[dict], result) -> None:
+        if not payload.specialAbilities.enabled:
+            return
+        types_by_color = {
+            color: {
+                piece["type"]
+                for piece in placements
+                if piece["color"] == color
+            }
+            for color in ("white", "black")
+        }
+        requirements = {
+            "getaway": ({"rook", "queen"}, "Getaway requires a Rook or Queen for both players."),
+            "kamikaze": ({"pawn"}, "Kamikaze requires a Pawn for both players."),
+            "episcopal": ({"bishop"}, "Episcopal requires a Bishop for both players."),
+            "power_of_love": ({"queen"}, "Power of Love requires a Queen for both players."),
+        }
+        for ability in payload.specialAbilities.allowed:
+            requirement = requirements.get(ability)
+            if requirement and any(
+                not (types_by_color[color] & requirement[0])
+                for color in ("white", "black")
+            ):
+                result.warnings.append(requirement[1])
+
+    def _validate_victory_reachability(self, payload, placements: list[dict], result) -> None:
+        mode = payload.victory.mode
+        if mode in {"checkmate", "timed", "royal_score"}:
+            attackers = {
+                color: any(
+                    piece["color"] == color
+                    and piece["type"] not in {"king", "barricade", "diplomat", "hypnotizer"}
+                    for piece in placements
+                )
+                for color in ("white", "black")
+            }
+            if not all(attackers.values()):
+                result.warnings.append(
+                    "Each player needs at least one attacking piece for this victory rule."
+                )
+        if mode == "point_race":
+            totals = {"white": 0, "black": 0}
+            for piece in placements:
+                color = piece["color"]
+                if color not in totals or piece["type"] in {"barricade", "diplomat"}:
+                    continue
+                if piece["type"] == "king":
+                    value = payload.victory.kingPoints
+                else:
+                    default = self._pieces.get(piece["type"])
+                    value = payload.piecePoints.get(
+                        piece["type"], default.points if default else 0
+                    )
+                totals[color] += int(value or 0)
+            reachable = min(totals.values())
+            if payload.victory.targetPoints > reachable:
+                result.errors.append(
+                    f"The point target cannot exceed {reachable}; both players need enough "
+                    "opposing material to reach it."
+                )
+
+    def _validate_gambit(
+        self,
+        request: CreateGameRequest,
+        result: ConfigurationValidation,
+    ) -> None:
+        payload = request.configuration
+        assert payload is not None
+        gambit = payload.gambit
+        if gambit.setupRows > request.boardRows // 2:
+            result.errors.append("Private setup rows cannot cross the board midpoint.")
+        if gambit.maxPieces > gambit.setupRows * request.boardCols:
+            result.errors.append("Deployment rows do not have enough squares for the army cap.")
+        if gambit.maxQueens > max(0, gambit.maxPieces - 1):
+            result.errors.append("The Queen limit must leave one army slot for the King.")
+
+        enabled = set(payload.enabledPieces) - {"barricade"}
+        points = {
+            piece_type: int(
+                payload.piecePoints.get(piece_type, self._pieces[piece_type].points) or 0
+            )
+            for piece_type in enabled
+            if piece_type in self._pieces
+        }
+        caps = {
+            piece_type: int(gambit.pieceCaps.get(piece_type, gambit.maxPieces))
+            for piece_type in enabled
+        }
+        caps["king"] = 1
+        caps["queen"] = gambit.maxQueens
+        if any(cap > gambit.maxPieces for cap in caps.values()):
+            result.errors.append("A piece limit cannot exceed the complete army cap.")
+        if not exact_gambit_budget_reachable(
+            gambit.budget,
+            gambit.maxPieces,
+            points,
+            caps,
+        ):
+            result.errors.append(
+                "The Gambit budget cannot be spent exactly with these piece values and limits."
+            )
+
+        if payload.specialAbilities.enabled:
+            requirements = {
+                "getaway": ({"rook", "queen"}, "Getaway requires an enabled Rook or Queen."),
+                "kamikaze": ({"pawn"}, "Kamikaze requires enabled Pawns."),
+                "episcopal": ({"bishop"}, "Episcopal requires enabled Bishops."),
+                "power_of_love": ({"queen"}, "Power of Love requires enabled Queens."),
+            }
+            for ability in payload.specialAbilities.allowed:
+                requirement = requirements.get(ability)
+                if requirement and not (enabled & requirement[0]):
+                    result.errors.append(requirement[1])

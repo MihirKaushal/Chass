@@ -74,7 +74,7 @@ function TopNav({
         </button>
         {canReset ? (
           <button type="button" onClick={onReset}>
-            {variant === "gambit" ? "Restart Setup" : "Reset"}
+            {variant === "gambit" ? "Request New Setup" : "Request Restart"}
           </button>
         ) : null}
       </div>
