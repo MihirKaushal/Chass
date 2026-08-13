@@ -3,6 +3,8 @@ import { useEffect, useRef, useState } from "react";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
 
+const DOUBLE_TAP_WINDOW_MS = 500;
+
 function ChessBoard({
   board,
   boardRows,
@@ -70,7 +72,16 @@ function ChessBoard({
     onSquareClickRef.current(row, col);
   };
 
-  const handleSquareClick = (row, col, piece, details) => {
+  const showPieceDetails = (squareKey, details) => {
+    const pending = pendingPieceTapRef.current;
+    if (pending) {
+      window.clearTimeout(pending.timer);
+      pendingPieceTapRef.current = null;
+    }
+    setHoveredPiece({ ...details, key: squareKey });
+  };
+
+  const handleSquareClick = (row, col, piece, details, clickCount) => {
     if (!interactive) return;
     if (pieceDetailsMode !== "double-tap" || !piece) {
       const pending = pendingPieceTapRef.current;
@@ -87,10 +98,8 @@ function ChessBoard({
 
     const squareKey = `${row}-${col}`;
     const pending = pendingPieceTapRef.current;
-    if (pending?.key === squareKey) {
-      window.clearTimeout(pending.timer);
-      pendingPieceTapRef.current = null;
-      setHoveredPiece((current) => current?.key === squareKey ? null : { ...details, key: squareKey });
+    if (clickCount >= 2 || pending?.key === squareKey) {
+      showPieceDetails(squareKey, details);
       return;
     }
     if (pending) {
@@ -104,7 +113,7 @@ function ChessBoard({
       if (pendingPieceTapRef.current?.timer !== timer) return;
       pendingPieceTapRef.current = null;
       activateSquare(row, col);
-    }, 260);
+    }, DOUBLE_TAP_WINDOW_MS);
     pendingPieceTapRef.current = { key: squareKey, row, col, timer };
   };
 
@@ -179,7 +188,12 @@ function ChessBoard({
                 type="button"
                 key={key}
                 className={className}
-                onClick={() => handleSquareClick(rowIndex, colIndex, piece, { piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
+                onClick={(event) => handleSquareClick(rowIndex, colIndex, piece, { piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge }, event.detail)}
+                onDoubleClick={(event) => {
+                  if (pieceDetailsMode !== "double-tap" || !piece) return;
+                  event.preventDefault();
+                  showPieceDetails(`${rowIndex}-${colIndex}`, { piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge });
+                }}
                 onMouseEnter={() => pieceDetailsMode === "hover" && piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
                 onMouseLeave={() => pieceDetailsMode === "hover" && setHoveredPiece(null)}
                 onFocus={() => pieceDetailsMode === "hover" && piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
