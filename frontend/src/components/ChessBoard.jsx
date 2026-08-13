@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
@@ -19,8 +19,12 @@ function ChessBoard({
   editableRows = [],
   foggedRows = [],
   showCoordinates = false,
+  pieceDetailsMode = "hover",
 }) {
   const [hoveredPiece, setHoveredPiece] = useState(null);
+  const pendingPieceTapRef = useRef(null);
+  const onSquareClickRef = useRef(onSquareClick);
+  onSquareClickRef.current = onSquareClick;
   const rows = boardRows ?? boardSize ?? board.length;
   const cols = boardCols ?? boardSize ?? (board[0] ? board[0].length : 0);
 
@@ -48,8 +52,61 @@ function ChessBoard({
   const boardHeight = rows >= cols ? longEdge : `calc(${longEdge} * ${rows / cols})`;
 
   useEffect(() => {
+    if (pendingPieceTapRef.current) {
+      window.clearTimeout(pendingPieceTapRef.current.timer);
+      pendingPieceTapRef.current = null;
+    }
     setHoveredPiece(null);
   }, [board, boardFlipped]);
+
+  useEffect(() => () => {
+    if (pendingPieceTapRef.current) {
+      window.clearTimeout(pendingPieceTapRef.current.timer);
+    }
+  }, []);
+
+  const activateSquare = (row, col) => {
+    setHoveredPiece(null);
+    onSquareClickRef.current(row, col);
+  };
+
+  const handleSquareClick = (row, col, piece, details) => {
+    if (!interactive) return;
+    if (pieceDetailsMode !== "double-tap" || !piece) {
+      const pending = pendingPieceTapRef.current;
+      if (pending) {
+        window.clearTimeout(pending.timer);
+        pendingPieceTapRef.current = null;
+        activateSquare(pending.row, pending.col);
+        window.setTimeout(() => activateSquare(row, col), 0);
+      } else {
+        activateSquare(row, col);
+      }
+      return;
+    }
+
+    const squareKey = `${row}-${col}`;
+    const pending = pendingPieceTapRef.current;
+    if (pending?.key === squareKey) {
+      window.clearTimeout(pending.timer);
+      pendingPieceTapRef.current = null;
+      setHoveredPiece((current) => current?.key === squareKey ? null : { ...details, key: squareKey });
+      return;
+    }
+    if (pending) {
+      window.clearTimeout(pending.timer);
+      pendingPieceTapRef.current = null;
+      activateSquare(pending.row, pending.col);
+    }
+
+    setHoveredPiece(null);
+    const timer = window.setTimeout(() => {
+      if (pendingPieceTapRef.current?.timer !== timer) return;
+      pendingPieceTapRef.current = null;
+      activateSquare(row, col);
+    }, 260);
+    pendingPieceTapRef.current = { key: squareKey, row, col, timer };
+  };
 
   return (
     <div
@@ -122,15 +179,15 @@ function ChessBoard({
                 type="button"
                 key={key}
                 className={className}
-                onClick={() => interactive && onSquareClick(rowIndex, colIndex)}
-                onMouseEnter={() => piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
-                onMouseLeave={() => setHoveredPiece(null)}
-                onFocus={() => piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
-                onBlur={() => setHoveredPiece(null)}
+                onClick={() => handleSquareClick(rowIndex, colIndex, piece, { piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
+                onMouseEnter={() => pieceDetailsMode === "hover" && piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
+                onMouseLeave={() => pieceDetailsMode === "hover" && setHoveredPiece(null)}
+                onFocus={() => pieceDetailsMode === "hover" && piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
+                onBlur={() => pieceDetailsMode === "hover" && setHoveredPiece(null)}
                 aria-disabled={!interactive}
                 aria-label={`${String.fromCharCode(97 + colIndex)}${rows - rowIndex}${
                   piece ? `, ${piece.color} ${piece.name}` : ""
-                }`}
+                }${piece && pieceDetailsMode === "double-tap" ? ", double tap for details" : ""}`}
               >
                 {showCoordinates && visibleColIndex === 0 ? (
                   <span className="board-coordinate board-rank">{rows - rowIndex}</span>

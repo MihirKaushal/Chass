@@ -28,7 +28,9 @@ function PlayPage({
           lastMove={lastMove}
           boardFlipped={boardFlipped}
           interactive={interactive}
+          pieceDetailsMode="double-tap"
         />
+        <p className="board-detail-hint">Double-tap or double-click a piece to view details.</p>
       </section>
 
       <GameInfoPanel game={game} />
