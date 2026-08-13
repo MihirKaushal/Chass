@@ -2322,6 +2322,15 @@ button.secondary {
   grid-column: 1;
 }
 
+.board-editor-actions {
+  align-self: center;
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
 .text-button,
 .configuration-studio .text-button {
   align-self: center;
@@ -2333,6 +2342,20 @@ button.secondary {
   background: transparent;
   cursor: pointer;
   font-weight: 700;
+}
+
+.board-editor-actions .text-button {
+  grid-column: auto;
+  grid-row: auto;
+}
+
+.board-editor-actions .clear-board-button {
+  color: #7b1f1f;
+}
+
+.board-editor-actions .text-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.42;
 }
 
 .studio-summary-card {

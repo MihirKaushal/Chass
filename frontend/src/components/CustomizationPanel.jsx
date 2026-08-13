@@ -214,7 +214,7 @@ function previewPiece(placement, definition, points) {
   };
 }
 
-function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlace }) {
+function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlace, onClearBoard }) {
   const definitionMap = useMemo(
     () => new Map(catalog.pieces.map((piece) => [piece.type, piece])),
     [catalog]
@@ -307,9 +307,14 @@ function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlac
                 : "Choose a piece below"}
         </strong>
         {!draft.gambit.enabled ? (
-          <button type="button" className="text-button" onClick={() => onSelectTool({ kind: "erase" })}>
-            Use Eraser
-          </button>
+          <div className="board-editor-actions">
+            <button type="button" className="text-button" onClick={() => onSelectTool({ kind: "erase" })}>
+              Use Eraser
+            </button>
+            <button type="button" className="text-button clear-board-button" disabled={!draft.placements.length} onClick={onClearBoard}>
+              Clear Board
+            </button>
+          </div>
         ) : null}
       </div>
     </div>
@@ -546,6 +551,16 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     });
   };
 
+  const clearBoard = () => {
+    setSelectedTool(null);
+    setDraft((current) => ({
+      ...current,
+      presetId: "custom",
+      formationId: "custom",
+      placements: [],
+    }));
+  };
+
   const create = async (mode) => {
     setCreatingMode(mode);
     setError("");
@@ -582,7 +597,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
       <div className="studio-shell">
         <aside className="studio-preview-column">
-          <ConfigurationBoard draft={draft} catalog={catalog} selectedTool={selectedTool} onSelectTool={setSelectedTool} onPlace={placeTool} />
+          <ConfigurationBoard draft={draft} catalog={catalog} selectedTool={selectedTool} onSelectTool={setSelectedTool} onPlace={placeTool} onClearBoard={clearBoard} />
           <div className="studio-summary-card"><span>Current Game</span><strong>{draft.boardRows}x{draft.boardCols} {draft.gambit.enabled ? "Gambit" : "Board"}</strong><p>{draft.enabledPieces.length} piece types, {title(draft.victory.mode)} victory</p>{draft.specialAbilities.enabled ? <p>{draft.specialAbilities.allowed.length} abilities enabled</p> : null}</div>
         </aside>
 
