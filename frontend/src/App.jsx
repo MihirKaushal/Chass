@@ -18,6 +18,7 @@ import {
   useGambitPower,
 } from "./api/gameApi";
 import OnlineLobby from "./components/OnlineLobby";
+import SiteFooter from "./components/SiteFooter";
 import TopNav from "./components/TopNav";
 import {
   createInviteUrl,
@@ -661,7 +662,7 @@ function GameWorkspace({ gameId }) {
   }
 
   return (
-    <div className="app-shell">
+    <div className="app-shell page-frame">
       <TopNav
         onReset={handleRestartRequest}
         onHome={() => navigate("/")}
@@ -753,6 +754,8 @@ function GameWorkspace({ gameId }) {
           catalog={catalog}
         />
       )}
+
+      <SiteFooter />
 
       {pendingPromotion ? (
         <div className="endgame-modal-backdrop" role="presentation">
