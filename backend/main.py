@@ -26,6 +26,7 @@ async def _cleanup_inactive_games() -> None:
 
 
 async def _cleanup_loop(stop_event: asyncio.Event, interval_seconds: int) -> None:
+    await _cleanup_inactive_games()
     while True:
         try:
             await asyncio.wait_for(stop_event.wait(), timeout=interval_seconds)
@@ -42,7 +43,6 @@ async def lifespan(_: FastAPI):
     else:
         init_db()
 
-    await _cleanup_inactive_games()
     stop_event = asyncio.Event()
     cleanup_task = asyncio.create_task(
         _cleanup_loop(

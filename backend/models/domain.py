@@ -167,8 +167,10 @@ class SpecialAbilityConfig(BaseModel):
 
 
 class GameConfiguration(BaseModel):
-    schema_version: int = 1
+    schema_version: int = 2
     preset_id: str = "classic"
+    formation_id: str = "classic"
+    barricade_count: int = Field(default=1, ge=0)
     enabled_piece_types: list[str] = Field(
         default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"]
     )
@@ -187,6 +189,17 @@ class AbilityState(BaseModel):
     active_selection_color: Color = "white"
     runtime: dict[Color, dict[str, Any]] = Field(
         default_factory=lambda: {"white": {}, "black": {}}
+    )
+    usage_count: dict[Color, dict[str, int]] = Field(
+        default_factory=lambda: {"white": {}, "black": {}}
+    )
+
+
+class RematchState(BaseModel):
+    status: Literal["idle", "pending"] = "idle"
+    requested_by: Color | None = None
+    approvals: dict[Color, bool] = Field(
+        default_factory=lambda: {"white": False, "black": False}
     )
 
 
@@ -355,6 +368,7 @@ class GameState(BaseModel):
     spent_score: dict[Color, int] = Field(
         default_factory=lambda: {"white": 0, "black": 0}
     )
+    rematch: RematchState = Field(default_factory=RematchState)
     result: GameResult | None = None
 
     def clone(self) -> "GameState":

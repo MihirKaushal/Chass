@@ -62,7 +62,11 @@ export default function useGameSocket({
       socket.onmessage = (event) => {
         try {
           const payload = JSON.parse(event.data);
-          if (payload.type === "game_state" || payload.type === "game_ended") {
+          if (
+            payload.type === "game_state" ||
+            payload.type === "game_ended" ||
+            payload.type === "rematch_state"
+          ) {
             if (payload.game) {
               callbacksRef.current.onGame?.(payload.game);
             }

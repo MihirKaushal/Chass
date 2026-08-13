@@ -7,6 +7,7 @@ from starlette.concurrency import run_in_threadpool
 
 from backend.models.schemas import (
     AbilitySelectionRequest,
+    ConfigurationValidationResponse,
     CreateGameRequest,
     GambitDeploymentRequest,
     GambitHandoffRequest,
@@ -18,6 +19,7 @@ from backend.models.schemas import (
     InviteResponse,
     JoinGameRequest,
     MoveRequest,
+    RematchRequest,
     ResetGameRequest,
     SetupHandoffRequest,
     UpdateBoardLayoutRequest,
@@ -73,6 +75,15 @@ async def _broadcast_state(
 async def create_game(payload: CreateGameRequest, request: Request) -> GameSessionResponse:
     rate_limiter.check(request, "create", limit=20, window_seconds=3600)
     return await run_in_threadpool(game_service.create_game, payload)
+
+
+@router.post("/validate", response_model=ConfigurationValidationResponse)
+async def validate_game_configuration(
+    payload: CreateGameRequest,
+    request: Request,
+) -> ConfigurationValidationResponse:
+    rate_limiter.check(request, "validate", limit=120, window_seconds=60)
+    return await run_in_threadpool(game_service.validate_configuration, payload)
 
 
 @router.get("/catalog")
@@ -311,6 +322,27 @@ async def reset_game(
         viewer_color=game_service.viewer_color(record, token),
     )
     await _broadcast_state(record)
+    return response
+
+
+@router.post("/{game_id}/rematch", response_model=GameResponse)
+async def rematch_game(
+    game_id: str,
+    request: RematchRequest,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    token = _bearer_token(authorization)
+    record = await run_in_threadpool(
+        game_service.rematch_game,
+        game_id,
+        request,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record, event_type="rematch_state")
     return response
 
 

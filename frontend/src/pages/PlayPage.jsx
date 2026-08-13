@@ -1,5 +1,5 @@
 import ChessBoard from "../components/ChessBoard";
-import MoveHistoryPanel from "../components/MoveHistoryPanel";
+import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 
 function PlayPage({
   game,
@@ -13,7 +13,9 @@ function PlayPage({
   const lastMove = game.history.length ? game.history[game.history.length - 1] : null;
 
   return (
-    <main className="play-layout">
+    <main className="play-layout play-layout-three-column">
+      <EffectsPanel game={game} onAction={onAction} actionLoading={actionLoading} />
+
       <section className="board-section">
         <ChessBoard
           board={game.board}
@@ -28,22 +30,7 @@ function PlayPage({
         />
       </section>
 
-      <MoveHistoryPanel
-        rules={game.rules}
-        history={game.history}
-        capturedPieces={game.capturedPieces}
-        lastMoveExplanation={game.lastMoveExplanation}
-        gameStatus={game.gameStatus}
-        winner={game.winner}
-        score={game.score}
-        abilities={game.abilities}
-        countdowns={game.countdowns}
-        availableActions={game.availableActions}
-        clock={game.clock}
-        onAction={onAction}
-        actionLoading={actionLoading}
-        boardRows={game.boardRows ?? game.boardSize}
-      />
+      <GameInfoPanel game={game} />
     </main>
   );
 }

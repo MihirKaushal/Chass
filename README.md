@@ -10,13 +10,14 @@ boards and pieces, modular rules, and real-time synchronization.
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
 - Local hot-seat and private online multiplayer
+- Two-player restart approval for local and online matches
 - Chass Gambit with exact-budget hidden deployment, center affinity, and command powers
 - Maharani, Catapult, Barricade, Hypnotizer, and Diplomat custom pieces
 - Six optional player abilities with private pre-game selection
 - Checkmate, King Capture, Timed, Point Race, Elimination, and Royal Score victories
 - Shareable, one-use game invitation links
 - Live WebSocket updates, reconnect, presence, and state recovery
-- Variable board dimensions and editable starting layouts
+- Board dimensions from 4x4 through 16x16 and editable starting layouts
 - Configurable piece metadata, nonnegative point values, and composition limits
 - Toggleable rules, score-target games, and custom rule presets
 - Public effect countdowns, detailed piece tooltips, and an in-app Rulebook
@@ -67,8 +68,9 @@ Repository adapters
 Game rules are handled by a separate rule engine rather than API routes or database code.
 The backend validates moves and remains authoritative during online games. Versioned
 database updates prevent stale moves from one browser from overwriting newer game state.
-The configuration API stores victory, piece, ability, and Gambit settings as one versioned
-contract, while custom actions and passive effects remain separate rule modules.
+The configuration API stores victory, formation, piece, ability, and Gambit settings as one
+versioned contract. A declarative compatibility validator rejects impossible combinations
+before game creation, while custom actions and passive effects remain separate rule modules.
 Gambit deployments use seat-specific views and revisions so an opponent receives no piece,
 count, edit, or timing data before the atomic reveal.
 Game activity uses a renewable expiration lease, and both repository adapters cascade
@@ -142,6 +144,7 @@ npm run build
 | --- | --- | --- |
 | `GET` | `/health` | Service health check |
 | `GET` | `/game/catalog` | Load pieces, abilities, victories, and presets |
+| `POST` | `/game/validate` | Validate a complete configuration and return incompatible options |
 | `POST` | `/game/create` | Create a local or online game |
 | `POST` | `/game/join` | Join through an invitation |
 | `GET` | `/game/{id}` | Load game state |
@@ -156,7 +159,7 @@ npm run build
 | `POST` | `/game/{id}/rules` | Update game rules |
 | `POST` | `/game/{id}/pieces` | Customize pieces |
 | `POST` | `/game/{id}/layout` | Update the board layout |
-| `POST` | `/game/{id}/reset` | Reset the game |
+| `POST` | `/game/{id}/rematch` | Request, approve, decline, or cancel a restart |
 | `POST` | `/game/{id}/invite` | Replace an unused invitation |
 | `WS` | `/game/ws/{id}` | Receive live game updates |
 

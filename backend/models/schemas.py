@@ -50,6 +50,7 @@ class RuleView(BaseModel):
     tier: str
     enabled: bool
     canDisable: bool
+    isSpecial: bool = False
     params: dict[str, Any] = Field(default_factory=dict)
 
 
@@ -157,6 +158,8 @@ class AbilityStateView(BaseModel):
     allowed: list[str] = Field(default_factory=list)
     selected: dict[str, str | None] = Field(default_factory=dict)
     used: dict[str, bool] = Field(default_factory=dict)
+    usageCount: dict[str, dict[str, int]] = Field(default_factory=dict)
+    cooldowns: dict[str, dict[str, int]] = Field(default_factory=dict)
     viewerSelection: str | None = None
     editableColor: str | None = None
 
@@ -173,6 +176,13 @@ class ClockView(BaseModel):
     remainingSeconds: dict[str, float]
     activeColor: str
     turnStartedAt: datetime
+
+
+class RematchView(BaseModel):
+    status: Literal["idle", "pending"] = "idle"
+    requestedBy: str | None = None
+    approvals: dict[str, bool] = Field(default_factory=dict)
+    canRespondAs: str | None = None
 
 
 class GameResponse(BaseModel):
@@ -212,6 +222,7 @@ class GameResponse(BaseModel):
     result: ResultView | None = None
     clock: ClockView | None = None
     gambit: GambitView | None = None
+    rematch: RematchView = Field(default_factory=RematchView)
 
 
 class RulePatch(BaseModel):
@@ -294,8 +305,10 @@ class GambitConfigPayload(BaseModel):
 
 
 class GameConfigurationPayload(BaseModel):
-    schemaVersion: int = 1
+    schemaVersion: int = 2
     presetId: str = "custom"
+    formationId: str = "custom"
+    barricadeCount: int = Field(default=1, ge=0, le=8)
     enabledPieces: list[str] = Field(
         default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"],
         min_length=1,
@@ -313,6 +326,11 @@ class GameConfigurationPayload(BaseModel):
     def validate_points(self) -> "GameConfigurationPayload":
         if any(value is not None and value < 0 for value in self.piecePoints.values()):
             raise ValueError("Piece points cannot be negative")
+        if any(
+            value is not None and value > 100000
+            for value in self.piecePoints.values()
+        ):
+            raise ValueError("Piece points cannot exceed 100000")
         return self
 
 
@@ -438,6 +456,19 @@ class ResetGameRequest(BaseModel):
             self.boardRows = self.boardSize
             self.boardCols = self.boardSize
         return self
+
+
+class RematchRequest(BaseModel):
+    action: Literal["request", "accept", "decline", "cancel"]
+    color: Literal["white", "black"] | None = None
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class ConfigurationValidationResponse(BaseModel):
+    valid: bool
+    errors: list[str] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    disabledOptions: dict[str, dict[str, str]] = Field(default_factory=dict)
 
 
 class BoardPlacement(BaseModel):

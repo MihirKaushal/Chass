@@ -1,60 +1,7 @@
-function PieceTooltip({ piece, placement = "above", edge = "center" }) {
-  if (!piece) {
-    return null;
-  }
+import { useEffect, useState } from "react";
 
-  const customRules =
-    piece.customAttributes?.customRules ||
-    piece.customAttributes?.rules ||
-    [];
-  const runtimeItems = [];
-  if (piece.runtime?.catapult_ready_turn_remaining > 0) {
-    runtimeItems.push(`Projectile ready in ${piece.runtime.catapult_ready_turn_remaining} own turn(s)`);
-  }
-  if (piece.runtime?.pacified_until_turn_remaining > 0) {
-    runtimeItems.push(`Pacified for ${piece.runtime.pacified_until_turn_remaining} more own turn(s)`);
-  }
-  if (piece.runtime?.love_until_turn_remaining > 0) {
-    runtimeItems.push(`Queen mobility for ${piece.runtime.love_until_turn_remaining} more own turn(s)`);
-  }
-  if (piece.runtime?.recruit_target_name) {
-    runtimeItems.push(
-      `Recruiting ${piece.runtime.recruit_target_name}: ${piece.runtime.recruit_progress || 0}/${piece.runtime.recruit_threshold || "?"}`
-    );
-  }
-  if (piece.runtime?.pacifications) {
-    runtimeItems.push(`Diplomat pacifications: ${piece.runtime.pacifications}/5`);
-  }
-  if (piece.runtime?.episcopal_ready_turn_remaining > 0) {
-    runtimeItems.push(`Episcopal ready in ${piece.runtime.episcopal_ready_turn_remaining} own turn(s)`);
-  }
-  (piece.runtime?.diplomat_contacts_status || []).forEach((contact) => {
-    runtimeItems.push(
-      `Contact with ${contact.targetName}: ${contact.progress}/${contact.required}`
-    );
-  });
-
-  return (
-    <div
-      className={`piece-tooltip piece-tooltip--${placement} piece-tooltip--${edge}`}
-      role="tooltip"
-    >
-      <div className="tooltip-title"><i>{piece.icon}</i><strong>{piece.name}</strong></div>
-      <span>Color: {piece.color}</span>
-      <span>Points: {piece.points ?? 0}</span>
-      {piece.description ? <p><b>Role</b>{piece.description}</p> : null}
-      {piece.movement ? <p><b>Movement</b>{piece.movement}</p> : null}
-      {customRules.length ? (
-        <p><b>Special Rules</b>{customRules.join(" · ")}</p>
-      ) : (
-        <span>Special rules: none</span>
-      )}
-      {runtimeItems.length ? (
-        <div className="tooltip-runtime"><b>Live Status</b>{runtimeItems.map((item) => <span key={item}>{item}</span>)}</div>
-      ) : null}
-    </div>
-  );
-}
+import PieceGlyph from "./PieceGlyph";
+import PieceTooltip from "./PieceTooltip";
 
 function ChessBoard({
   board,
@@ -73,6 +20,7 @@ function ChessBoard({
   foggedRows = [],
   showCoordinates = false,
 }) {
+  const [hoveredPiece, setHoveredPiece] = useState(null);
   const rows = boardRows ?? boardSize ?? board.length;
   const cols = boardCols ?? boardSize ?? (board[0] ? board[0].length : 0);
 
@@ -95,14 +43,21 @@ function ChessBoard({
   });
   const editableRowSet = new Set(editableRows);
   const foggedRowSet = new Set(foggedRows);
+  const longEdge = "var(--board-long-edge, min(68vh, 680px))";
+  const boardWidth = cols >= rows ? longEdge : `calc(${longEdge} * ${cols / rows})`;
+  const boardHeight = rows >= cols ? longEdge : `calc(${longEdge} * ${rows / cols})`;
+
+  useEffect(() => {
+    setHoveredPiece(null);
+  }, [board, boardFlipped]);
 
   return (
     <div
       className="board-wrap"
       style={{
-        aspectRatio: `${cols} / ${rows}`,
-        width: `min(85vw, calc(74vh * ${cols / rows}), 820px)`,
-        "--piece-size": `${Math.max(0.72, Math.min(2.1, 18 / cols))}rem`,
+        width: boardWidth,
+        height: boardHeight,
+        "--piece-size": `${Math.max(0.58, Math.min(2.35, 18 / Math.max(rows, cols)))}rem`,
       }}
     >
       <div
@@ -154,11 +109,11 @@ function ChessBoard({
               .filter(Boolean)
               .join(" ");
 
-            const tooltipPlacement = visibleRowIndex === 0 ? "below" : "above";
+            const tooltipPlacement = visibleRowIndex < rows / 2 ? "below" : "above";
             const tooltipEdge =
-              visibleColIndex === 0
+              visibleColIndex < cols / 3
                 ? "left"
-                : visibleColIndex === cols - 1
+                : visibleColIndex >= (cols * 2) / 3
                   ? "right"
                   : "center";
 
@@ -168,6 +123,10 @@ function ChessBoard({
                 key={key}
                 className={className}
                 onClick={() => interactive && onSquareClick(rowIndex, colIndex)}
+                onMouseEnter={() => piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
+                onMouseLeave={() => setHoveredPiece(null)}
+                onFocus={() => piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
+                onBlur={() => setHoveredPiece(null)}
                 aria-disabled={!interactive}
                 aria-label={`${String.fromCharCode(97 + colIndex)}${rows - rowIndex}${
                   piece ? `, ${piece.color} ${piece.name}` : ""
@@ -186,21 +145,33 @@ function ChessBoard({
                     {affinityColor === "white" ? "W" : "B"}
                   </span>
                 ) : null}
-                <span className={pieceClassName}>{piece?.symbol || ""}</span>
+                <span className={pieceClassName}>
+                  {piece ? <PieceGlyph piece={piece} /> : null}
+                </span>
                 {isValidTarget ? <span className="move-dot" /> : null}
                 {isExtraTarget ? <span className="command-target-ring" /> : null}
-                {piece ? (
-                  <PieceTooltip
-                    piece={piece}
-                    placement={tooltipPlacement}
-                    edge={tooltipEdge}
-                  />
-                ) : null}
               </button>
             );
           })
         )}
       </div>
+      {hoveredPiece ? (
+        <div
+          className="board-tooltip-anchor"
+          style={{
+            top: `${(hoveredPiece.visibleRowIndex / rows) * 100}%`,
+            left: `${(hoveredPiece.visibleColIndex / cols) * 100}%`,
+            width: `${100 / cols}%`,
+            height: `${100 / rows}%`,
+          }}
+        >
+          <PieceTooltip
+            piece={hoveredPiece.piece}
+            placement={hoveredPiece.tooltipPlacement}
+            edge={hoveredPiece.tooltipEdge}
+          />
+        </div>
+      ) : null}
     </div>
   );
 }

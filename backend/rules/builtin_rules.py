@@ -320,8 +320,10 @@ class CheckmateRule(Rule):
         if state.game_status != "check":
             return
 
-        legal_moves = helper.get_valid_moves_for_color(state, state.current_player)
-        if legal_moves or helper.has_legal_alternative_action(
+        if helper.has_any_legal_move(
+            state,
+            state.current_player,
+        ) or helper.has_legal_alternative_action(
             state,
             state.current_player,
         ):
@@ -356,8 +358,10 @@ class StalemateRule(Rule):
         if state.game_status != "active":
             return
 
-        legal_moves = helper.get_valid_moves_for_color(state, state.current_player)
-        if legal_moves or helper.has_legal_alternative_action(
+        if helper.has_any_legal_move(
+            state,
+            state.current_player,
+        ) or helper.has_legal_alternative_action(
             state,
             state.current_player,
         ):
@@ -477,10 +481,10 @@ class ConfigurableVictoryRule(Rule):
                 trigger="score",
                 winner=winner,
                 description=(
-                    f"{winner.title()} won! {winner.title()} reached "
+                    f"{winner.title()} won! {winner.title()} got to "
                     f"{config.target_points} points."
                     if winner
-                    else f"Draw! Both players reached {config.target_points} points."
+                    else f"Draw! Both players got to {config.target_points} points."
                 ),
             )
             return

@@ -1,0 +1,57 @@
+import PieceGlyph from "./PieceGlyph";
+
+function title(value) {
+  return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
+}
+
+function PieceTooltip({ piece, placement = "above", edge = "center" }) {
+  if (!piece) return null;
+
+  const customRules = piece.customAttributes?.customRules || piece.customAttributes?.rules || [];
+  const runtimeItems = [];
+  if (piece.runtime?.catapult_ready_turn_remaining > 0) {
+    runtimeItems.push(`Projectile ready in ${piece.runtime.catapult_ready_turn_remaining} own turns`);
+  }
+  if (piece.runtime?.pacified_until_turn_remaining > 0) {
+    runtimeItems.push(`Pacified for ${piece.runtime.pacified_until_turn_remaining} own turns`);
+  }
+  if (piece.runtime?.love_until_turn_remaining > 0) {
+    runtimeItems.push(`Queen mobility for ${piece.runtime.love_until_turn_remaining} own turns`);
+  }
+  if (piece.runtime?.recruit_target_name) {
+    runtimeItems.push(
+      `Recruiting ${piece.runtime.recruit_target_name}: ${piece.runtime.recruit_progress || 0}/${piece.runtime.recruit_threshold || "?"}`
+    );
+  }
+  if (piece.runtime?.pacifications) {
+    runtimeItems.push(`Diplomat pacifications: ${piece.runtime.pacifications}/5`);
+  }
+  if (piece.runtime?.episcopal_ready_turn_remaining > 0) {
+    runtimeItems.push(`Episcopal ready in ${piece.runtime.episcopal_ready_turn_remaining} own turns`);
+  }
+  (piece.runtime?.diplomat_contacts_status || []).forEach((contact) => {
+    runtimeItems.push(`Contact with ${contact.targetName}: ${contact.progress}/${contact.required}`);
+  });
+
+  return (
+    <div className={`piece-tooltip piece-tooltip--${placement} piece-tooltip--${edge}`} role="tooltip">
+      <div className="tooltip-title">
+        <PieceGlyph piece={piece} />
+        <strong>{piece.name}</strong>
+      </div>
+      <span>{title(piece.color)}</span>
+      <span>{piece.points ?? 0} points</span>
+      {piece.description ? <p><b>Role</b>{piece.description}</p> : null}
+      {piece.movement ? <p><b>Movement</b>{piece.movement}</p> : null}
+      {customRules.length ? <p><b>Special Rules</b>{customRules.join(" · ")}</p> : null}
+      {runtimeItems.length ? (
+        <div className="tooltip-runtime">
+          <b>Live Status</b>
+          {runtimeItems.map((item) => <span key={item}>{item}</span>)}
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+export default PieceTooltip;

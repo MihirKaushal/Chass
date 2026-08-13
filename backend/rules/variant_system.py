@@ -8,6 +8,11 @@ from backend.models import CaptureEvent, GameResult, GameState, MoveRecord, Piec
 from backend.rules.movement import in_bounds
 
 ABILITY_ICONS = {ability["id"]: ability["icon"] for ability in SPECIAL_ABILITIES}
+ABILITY_COOLDOWN_TURNS = {
+    "necromancy": 9,
+    "getaway": 10,
+    "eye_for_an_eye": 10,
+}
 FINISHED_STATUSES = {
     "checkmate",
     "stalemate",
@@ -22,7 +27,16 @@ FINISHED_STATUSES = {
 
 
 def barricade_start_square(rows: int, cols: int) -> tuple[int, int]:
-    return max(0, rows // 2 - 1), max(0, cols // 2 - 1)
+    return barricade_start_squares(rows, cols, 1)[0]
+
+
+def barricade_start_squares(rows: int, cols: int, count: int) -> list[tuple[int, int]]:
+    if count <= 0:
+        return []
+    center_row = max(0, rows // 2 - 1)
+    midpoint = (cols - 1) / 2
+    ordered_cols = sorted(range(cols), key=lambda col: (abs(col - midpoint), col))
+    return [(center_row, col) for col in ordered_cols[:count]]
 
 
 def opposing_color(color: str) -> str:
@@ -50,6 +64,25 @@ def piece_runtime_active(state: GameState, piece: Piece, key: str) -> bool:
     except (TypeError, ValueError):
         return False
     return until_turn > state.turn_counts[piece.color]
+
+
+def ability_cooldown_remaining(state: GameState, color: str, ability_id: str) -> int:
+    ready_turn = int(
+        state.abilities.runtime[color].get(f"{ability_id}_ready_turn", 0)
+    )
+    return max(0, ready_turn - state.turn_counts[color])
+
+
+def ability_is_ready(state: GameState, color: str, ability_id: str) -> bool:
+    return ability_cooldown_remaining(state, color, ability_id) == 0
+
+
+def start_ability_cooldown(state: GameState, color: str, ability_id: str) -> None:
+    state.abilities.runtime[color][f"{ability_id}_ready_turn"] = (
+        state.turn_counts[color] + ABILITY_COOLDOWN_TURNS[ability_id] + 1
+    )
+    usage = state.abilities.usage_count[color]
+    usage[ability_id] = int(usage.get(ability_id, 0)) + 1
 
 
 def find_piece(state: GameState, piece_id: str) -> tuple[int, int, Piece] | None:
@@ -384,9 +417,9 @@ class VariantActionRules:
     def _getaway_actions(self, state: GameState, color: str, helper) -> list[dict]:
         if (
             state.abilities.selected.get(color) != "getaway"
-            or state.abilities.used.get(color)
+            or not ability_is_ready(state, color, "getaway")
             or state.game_status != "check"
-            or helper.get_valid_moves_for_color(state, color)
+            or helper.has_any_legal_move(state, color)
         ):
             return []
         king = helper.find_king(state, color)
@@ -411,7 +444,7 @@ class VariantActionRules:
                         "owner": color,
                         "icon": "⇄",
                         "label": f"Getaway with {piece.name}",
-                        "description": "Use the once-per-game royal swap to escape checkmate.",
+                        "description": "Swap out of checkmate, then recharge for ten turns.",
                         "source": {"row": king[0], "col": king[1]},
                         "target": {"row": row, "col": col},
                     }
@@ -457,7 +490,7 @@ class VariantActionRules:
     def _eye_actions(self, state: GameState, color: str, helper) -> list[dict]:
         if (
             state.abilities.selected.get(color) != "eye_for_an_eye"
-            or state.abilities.used.get(color)
+            or not ability_is_ready(state, color, "eye_for_an_eye")
             or helper.is_king_in_check(state, color)
         ):
             return []
@@ -489,7 +522,10 @@ class VariantActionRules:
         return actions
 
     def _necromancy_actions(self, state: GameState, color: str) -> list[dict]:
-        if state.abilities.selected.get(color) != "necromancy":
+        if (
+            state.abilities.selected.get(color) != "necromancy"
+            or not ability_is_ready(state, color, "necromancy")
+        ):
             return []
         revived = set(state.abilities.runtime[color].get("revived_piece_ids", []))
         home_rows = (
@@ -651,6 +687,7 @@ class VariantActionRules:
                 state.board.grid[target[0]][target[1]],
                 state.board.grid[source[0]][source[1]],
             )
+            start_ability_cooldown(state, color, "getaway")
             state.abilities.used[color] = True
             explanation = f"{color.title()} used Getaway and escaped royal defeat."
             piece_type = "king"
@@ -660,6 +697,7 @@ class VariantActionRules:
             victim = self._piece_at(state, target)
             state.board.grid[source[0]][source[1]] = None
             state.board.grid[target[0]][target[1]] = None
+            start_ability_cooldown(state, color, "eye_for_an_eye")
             state.abilities.used[color] = True
             captures.extend(
                 [
@@ -688,6 +726,8 @@ class VariantActionRules:
             revived_ids = list(state.abilities.runtime[color].get("revived_piece_ids", []))
             revived_ids.append(captured.piece_id)
             state.abilities.runtime[color]["revived_piece_ids"] = revived_ids
+            start_ability_cooldown(state, color, "necromancy")
+            state.abilities.used[color] = True
             explanation = f"{color.title()} spent {cost} score to recruit {captured.name}."
             piece_type = captured.type
             source = target
@@ -827,6 +867,21 @@ def public_countdowns(state: GameState) -> list[dict]:
                         "icon": "✝",
                         "label": "Episcopal Recharge",
                         "description": "The Bishop color-shift is recharging.",
+                        "remainingTurns": remaining,
+                    }
+                )
+        selected = state.abilities.selected.get(color)
+        if selected in ABILITY_COOLDOWN_TURNS:
+            remaining = ability_cooldown_remaining(state, color, selected)
+            if remaining > 0:
+                countdowns.append(
+                    {
+                        "id": f"ability:{selected}:{color}",
+                        "owner": color,
+                        "kind": selected,
+                        "icon": ABILITY_ICONS[selected],
+                        "label": f"{selected.replace('_', ' ').title()} Recharge",
+                        "description": "This player ability is recharging.",
                         "remainingTurns": remaining,
                     }
                 )

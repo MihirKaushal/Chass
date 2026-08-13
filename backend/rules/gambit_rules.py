@@ -14,7 +14,7 @@ from backend.models import (
 )
 from backend.rules.base import ValidationResult
 from backend.rules.builtin_rules import opposing_color
-from backend.rules.variant_system import barricade_start_square
+from backend.rules.variant_system import barricade_start_squares
 
 
 @dataclass(frozen=True)
@@ -81,10 +81,14 @@ class DeploymentZoneRule:
     ) -> list[str]:
         rows = self.allowed_rows(state, color)
         occupied: set[tuple[int, int]] = set()
-        reserved_barricade = (
-            barricade_start_square(state.board.rows, state.board.cols)
+        reserved_barricades = set(
+            barricade_start_squares(
+                state.board.rows,
+                state.board.cols,
+                state.configuration.barricade_count,
+            )
             if "barricade" in state.configuration.enabled_piece_types
-            else None
+            else []
         )
         for piece in pieces:
             if piece.row not in rows:
@@ -92,8 +96,8 @@ class DeploymentZoneRule:
             if not (0 <= piece.col < state.board.cols):
                 return ["Deployment square is outside the board."]
             square = (piece.row, piece.col)
-            if square == reserved_barricade:
-                return ["The center Barricade square is reserved."]
+            if square in reserved_barricades:
+                return ["Starting Barricade squares are reserved."]
             if square in occupied:
                 return ["Only one piece can occupy a deployment square."]
             occupied.add(square)
@@ -732,10 +736,16 @@ def build_deployment_board(state: GameState) -> Board:
                 piece.has_moved = placement.row != standard_start_row
             board.grid[placement.row][placement.col] = piece
     if "barricade" in state.configuration.enabled_piece_types:
-        row, col = barricade_start_square(state.board.rows, state.board.cols)
-        if board.grid[row][col] is not None:
-            raise ValueError("The center Barricade square must remain empty during deployment.")
-        board.grid[row][col] = create_piece(state, "barricade", "neutral")
+        for row, col in barricade_start_squares(
+            state.board.rows,
+            state.board.cols,
+            state.configuration.barricade_count,
+        ):
+            if board.grid[row][col] is not None:
+                raise ValueError(
+                    "Starting Barricade squares must remain empty during deployment."
+                )
+            board.grid[row][col] = create_piece(state, "barricade", "neutral")
     return board
 
 

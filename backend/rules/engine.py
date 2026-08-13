@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from backend.models import GameState, Move, MoveOption, MoveRecord, Piece, RuleSetting
 from backend.rules.base import Rule, RuleContext, ValidationResult
 from backend.rules.builtin_rules import classic_chess_rules, opposing_color, variant_rules
+from backend.rules.configuration import ConfigurationRuleEngine
 from backend.rules.gambit_rules import GambitRuleSet
 from backend.rules.movement import generate_piece_attacks, generate_piece_moves
 from backend.rules.variant_system import (
@@ -36,6 +37,7 @@ class RuleEngine:
         self._default_enabled["score_target_win"] = False
         self.gambit = GambitRuleSet()
         self.actions = VariantActionRules()
+        self.configuration = ConfigurationRuleEngine()
 
     def generate_piece_moves(self, state: GameState, row: int, col: int) -> list[MoveOption]:
         return generate_piece_moves(state, row, col)
@@ -191,6 +193,44 @@ class RuleEngine:
 
     def get_valid_moves_for_current_player(self, state: GameState) -> list[MoveOption]:
         return self.get_valid_moves_for_color(state, state.current_player)
+
+    def has_any_legal_move(self, state: GameState, color: str) -> bool:
+        if state.phase not in {"play", "finished"} or state.game_status in FINISHED_STATUSES:
+            return False
+        work_state = state.clone()
+        work_state.current_player = color
+        for row in range(work_state.board.rows):
+            for col in range(work_state.board.cols):
+                piece = work_state.board.grid[row][col]
+                if piece is None or piece.color != color:
+                    continue
+                for candidate in self.generate_piece_moves(work_state, row, col):
+                    moves = [
+                        Move(
+                            fromRow=row,
+                            fromCol=col,
+                            toRow=candidate.to_row,
+                            toCol=candidate.to_col,
+                        )
+                    ]
+                    if (
+                        piece.type == "pawn"
+                        and work_state.abilities.selected.get(color) == "kamikaze"
+                        and candidate.to_row
+                        == (0 if color == "white" else work_state.board.rows - 1)
+                    ):
+                        moves.append(
+                            Move(
+                                fromRow=row,
+                                fromCol=col,
+                                toRow=candidate.to_row,
+                                toCol=candidate.to_col,
+                                promotion="kamikaze",
+                            )
+                        )
+                    if any(self.validate_move(work_state, move).is_valid for move in moves):
+                        return True
+        return False
 
     def get_available_actions(self, state: GameState, color: str | None = None) -> list[dict]:
         action_color = color or state.current_player

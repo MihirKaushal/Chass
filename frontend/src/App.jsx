@@ -11,7 +11,7 @@ import {
   makeMove,
   readyGambitDeployment,
   replaceInvite,
-  resetGame,
+  requestRematch,
   selectAbility,
   updateGambitDeployment,
   useGameAction,
@@ -91,6 +91,61 @@ function buildEndgameMessage(game) {
   return winner ? `${winnerLabel} won!` : "Game over.";
 }
 
+function RestartRequestPanel({ game, playerColor, onRespond, actionLoading }) {
+  if (game.rematch?.status !== "pending") {
+    return null;
+  }
+
+  const approvals = game.rematch.approvals || {};
+  const requestedBy = game.rematch.requestedBy;
+  const onlineApproved = playerColor ? approvals[playerColor] : false;
+  const localUnapproved = ["white", "black"].filter((color) => !approvals[color]);
+
+  return (
+    <section className="restart-request" aria-live="polite">
+      <div>
+        <span className="eyebrow">Restart Requested</span>
+        <strong>{colorLabel(requestedBy)} wants to start this configuration again.</strong>
+        <small>A new game starts only after both players approve.</small>
+      </div>
+      <div className="restart-approvals">
+        {["white", "black"].map((color) => (
+          <span key={color} className={approvals[color] ? "approved" : ""}>
+            {colorLabel(color)}: {approvals[color] ? "Approved" : "Waiting"}
+          </span>
+        ))}
+      </div>
+      <div className="restart-actions">
+        {game.mode === "online" && !onlineApproved ? (
+          <>
+            <button type="button" disabled={actionLoading} onClick={() => onRespond("accept")}>
+              Approve Restart
+            </button>
+            <button type="button" className="secondary" disabled={actionLoading} onClick={() => onRespond("decline")}>
+              Decline
+            </button>
+          </>
+        ) : null}
+        {game.mode === "online" && onlineApproved && requestedBy === playerColor ? (
+          <button type="button" className="secondary" disabled={actionLoading} onClick={() => onRespond("cancel")}>
+            Cancel Request
+          </button>
+        ) : null}
+        {game.mode === "local" ? localUnapproved.map((color) => (
+          <button type="button" key={color} disabled={actionLoading} onClick={() => onRespond("accept", color)}>
+            {colorLabel(color)} Approves
+          </button>
+        )) : null}
+        {game.mode === "local" && requestedBy ? (
+          <button type="button" className="secondary" disabled={actionLoading} onClick={() => onRespond("cancel", requestedBy)}>
+            Cancel Request
+          </button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
 function sessionFromResponse(response) {
   const inviteUrl = response.inviteToken
     ? createInviteUrl(response.inviteToken)
@@ -129,6 +184,7 @@ function GameWorkspace({ gameId }) {
   );
   const [endgameMessage, setEndgameMessage] = useState("");
   const [showEndgameModal, setShowEndgameModal] = useState(false);
+  const [showLocalRestartChooser, setShowLocalRestartChooser] = useState(false);
   const lastEndgameSignatureRef = useRef("");
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
 
@@ -232,8 +288,7 @@ function GameWorkspace({ gameId }) {
     );
   }, [game, selectedSquare]);
 
-  const canReset =
-    game?.mode === "local" || (game?.mode === "online" && session?.role === "host");
+  const canRequestRestart = Boolean(game?.ready && game?.phase !== "lobby");
   const canMove =
     Boolean(game?.ready) &&
     game?.phase === "play" &&
@@ -511,18 +566,51 @@ function GameWorkspace({ gameId }) {
     }
   };
 
-  const handleReset = async () => {
+  const handleRematch = async (action, color = null) => {
     try {
       await runAction(() =>
-        mutate(resetGame, {
-          boardRows: game.boardRows ?? game.boardSize,
-          boardCols: game.boardCols ?? game.boardSize,
+        mutate(requestRematch, {
+          action,
+          ...(color ? { color } : {}),
         })
       );
-      setBoardFlipped(false);
+      setShowLocalRestartChooser(false);
+      setShowEndgameModal(false);
+      if (game.mode === "online") {
+        setBoardFlipped(session?.color === "black");
+      } else if (action === "accept") {
+        setBoardFlipped(false);
+      }
     } catch {
-      // The shared error banner explains reset failures.
+      // The shared error banner explains restart failures.
     }
+  };
+
+  const handleRestartRequest = () => {
+    setShowEndgameModal(false);
+    if (game.mode === "local") {
+      setShowLocalRestartChooser(true);
+      return;
+    }
+    handleRematch("request");
+  };
+
+  const customizeCurrentGame = () => {
+    const configuration = {
+      ...game.configuration,
+      piecePoints: Object.fromEntries(
+        (game.pieceDefinitions || []).map((piece) => [piece.type, piece.points])
+      ),
+    };
+    window.sessionStorage.setItem(
+      "chass-customize-draft",
+      JSON.stringify({
+        boardRows: game.boardRows ?? game.boardSize,
+        boardCols: game.boardCols ?? game.boardSize,
+        configuration,
+      })
+    );
+    navigate("/customize?source=current");
   };
 
   const handleReplaceInvite = async () => {
@@ -573,7 +661,7 @@ function GameWorkspace({ gameId }) {
   return (
     <div className="app-shell">
       <TopNav
-        onReset={handleReset}
+        onReset={handleRestartRequest}
         onHome={() => navigate("/")}
         onCustomize={() => navigate("/customize")}
         currentPlayer={game.currentPlayer}
@@ -583,7 +671,7 @@ function GameWorkspace({ gameId }) {
         onToggleAutoBoardFlip={() => setAutoBoardFlipEnabled((current) => !current)}
         boardFlipped={boardFlipped}
         autoBoardFlipEnabled={autoBoardFlipEnabled}
-        canReset={canReset}
+        canReset={canRequestRestart}
         mode={game.mode}
         playerColor={session?.color}
         connectionStatus={connectionStatus}
@@ -604,6 +692,12 @@ function GameWorkspace({ gameId }) {
       {error ? <p className="global-error">{error}</p> : null}
       {socketMessage ? <p className="sync-message">{socketMessage}</p> : null}
       {actionLoading ? <p className="global-loading">Syncing authoritative game state...</p> : null}
+      <RestartRequestPanel
+        game={game}
+        playerColor={session?.color}
+        onRespond={handleRematch}
+        actionLoading={actionLoading}
+      />
       {!canMove &&
       game.ready &&
       game.mode === "online" &&
@@ -697,6 +791,26 @@ function GameWorkspace({ gameId }) {
         </div>
       ) : null}
 
+      {showLocalRestartChooser ? (
+        <div className="endgame-modal-backdrop" role="presentation">
+          <div className="endgame-modal" role="dialog" aria-modal="true" aria-labelledby="restart-seat-title">
+            <span className="eyebrow">Same-Device Approval</span>
+            <h2 id="restart-seat-title">Who Is Requesting?</h2>
+            <p>The other player must approve before the board resets.</p>
+            <div className="button-row">
+              {["white", "black"].map((color) => (
+                <button type="button" key={color} disabled={actionLoading} onClick={() => handleRematch("request", color)}>
+                  {colorLabel(color)} Requests Restart
+                </button>
+              ))}
+              <button type="button" className="secondary" onClick={() => setShowLocalRestartChooser(false)}>
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
       {showEndgameModal ? (
         <div className="endgame-modal-backdrop" role="presentation">
           <div className="endgame-modal" role="dialog" aria-modal="true" aria-live="polite">
@@ -704,11 +818,17 @@ function GameWorkspace({ gameId }) {
             <h2>Match Finished</h2>
             <p>{endgameMessage}</p>
             <div className="button-row">
-              {canReset ? (
-                <button type="button" onClick={handleReset}>
+              {canRequestRestart ? (
+                <button type="button" onClick={handleRestartRequest}>
                   Play Again
                 </button>
               ) : null}
+              <button type="button" className="secondary" onClick={customizeCurrentGame}>
+                Customize This Game
+              </button>
+              <button type="button" className="secondary" onClick={() => navigate("/")}>
+                Home
+              </button>
               <button
                 type="button"
                 className="secondary"

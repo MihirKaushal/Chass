@@ -13,8 +13,9 @@ def classic_types() -> list[str]:
 
 def configured_game(**overrides) -> dict:
     configuration = {
-        "schemaVersion": 1,
+        "schemaVersion": 2,
         "presetId": "test",
+        "formationId": "custom",
         "enabledPieces": classic_types(),
         "piecePoints": {
             "pawn": 1,
@@ -65,7 +66,7 @@ def test_catalog_describes_custom_content(client):
     assert response.status_code == 200
     catalog = response.json()
 
-    assert catalog["schemaVersion"] == 1
+    assert catalog["schemaVersion"] == 2
     assert {piece["type"] for piece in catalog["pieces"]} >= {
         "maharani",
         "catapult",
@@ -82,10 +83,123 @@ def test_catalog_describes_custom_content(client):
         "power_of_love",
     }
     assert all(piece["description"] and piece["movement"] for piece in catalog["pieces"])
+    assert {formation["id"] for formation in catalog["formations"]} >= {
+        "horde",
+        "castle_siege",
+    }
+    cooldowns = {
+        ability["id"]: ability.get("cooldownTurns")
+        for ability in catalog["specialAbilities"]
+    }
+    assert cooldowns["necromancy"] == 9
+    assert cooldowns["getaway"] == 10
+    assert cooldowns["eye_for_an_eye"] == 10
+
+
+def test_catalog_formations_have_complete_horde_and_castle_armies(client):
+    catalog = client.get("/game/catalog").json()
+    formations = {formation["id"]: formation for formation in catalog["formations"]}
+
+    horde = formations["horde"]["initialLayout"]
+    assert {"row": 7, "col": 4, "type": "king", "color": "white"} in horde
+    assert {"row": 5, "col": 0, "type": "pawn", "color": "white"} in horde
+
+    castle = formations["castle_siege"]["initialLayout"]
+    for color in ("white", "black"):
+        pieces = [piece for piece in castle if piece["color"] == color]
+        assert sum(piece["type"] == "rook" for piece in pieces) == 4
+        assert sum(piece["type"] == "pawn" for piece in pieces) == 10
+        assert sum(piece["type"] == "knight" for piece in pieces) == 2
+
+
+def test_configuration_validation_disables_incompatible_horde_rules(client):
+    catalog = client.get("/game/catalog").json()
+    horde = next(item for item in catalog["formations"] if item["id"] == "horde")
+    payload = configured_game(
+        formationId="horde",
+        initialLayout=horde["initialLayout"],
+        victory={"mode": "checkmate"},
+    )
+
+    invalid = client.post("/game/validate", json=payload)
+    assert invalid.status_code == 200
+    result = invalid.json()
+    assert result["valid"] is False
+    assert "checkmate" in result["disabledOptions"]["victoryModes"]
+    assert any("elimination" in error.lower() for error in result["errors"])
+
+    payload["configuration"]["victory"] = {"mode": "elimination"}
+    valid = client.post("/game/validate", json=payload).json()
+    assert valid["valid"] is True
+
+
+def test_horde_castle_and_sixteen_square_presets_create_playable_boards(client):
+    catalog = client.get("/game/catalog").json()
+    formations = {item["id"]: item for item in catalog["formations"]}
+
+    for formation_id, victory in (("horde", "elimination"), ("castle_siege", "checkmate")):
+        formation = formations[formation_id]
+        payload = configured_game(
+            formationId=formation_id,
+            initialLayout=formation["initialLayout"],
+            victory={"mode": victory},
+        )
+        payload["boardRows"] = formation["boardRows"]
+        payload["boardCols"] = formation["boardCols"]
+        created = client.post("/game/create", json=payload)
+        assert created.status_code == 200
+        assert created.json()["game"]["gameStatus"] in {"active", "check"}
+
+    large = configured_game()
+    large["boardRows"] = 16
+    large["boardCols"] = 16
+    created = client.post("/game/create", json=large)
+    assert created.status_code == 200
+    game = created.json()["game"]
+    assert game["boardRows"] == 16
+    assert game["boardCols"] == 16
+    assert len(game["board"]) == 16
+    assert all(len(row) == 16 for row in game["board"])
+
+
+def test_multiple_barricades_spawn_on_reserved_center_line(client):
+    payload = configured_game(
+        barricadeCount=4,
+        enabledPieces=[*classic_types(), "barricade"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "barricade": 0,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 0, "type": "rook", "color": "white"},
+            {"row": 1, "col": 0, "type": "rook", "color": "black"},
+        ],
+    )
+    created = client.post("/game/create", json=payload)
+    assert created.status_code == 200
+    board = created.json()["game"]["board"]
+    barricades = [
+        (row, col)
+        for row, board_row in enumerate(board)
+        for col, piece in enumerate(board_row)
+        if piece and piece["type"] == "barricade"
+    ]
+    assert barricades == [(3, 2), (3, 3), (3, 4), (3, 5)]
 
 
 def test_custom_piece_points_reject_negative_values(client):
     payload = configured_game(piecePoints={"pawn": -1})
+    response = client.post("/game/create", json=payload)
+    assert response.status_code == 422
+
+    payload = configured_game(piecePoints={"pawn": 100001})
     response = client.post("/game/create", json=payload)
     assert response.status_code == 422
 
@@ -233,6 +347,11 @@ def test_point_race_resolves_before_no_move_fallback(client):
         victory={"mode": "point_race", "targetPoints": 1, "kingPoints": 0},
     )
     game = client.post("/game/create", json=payload).json()["game"]
+    configured_rule = next(
+        rule for rule in game["rules"] if rule["id"] == "configured_victory"
+    )
+    assert configured_rule["name"] == "Point Race"
+    assert configured_rule["isSpecial"] is True
 
     response = client.post(
         f"/game/{game['id']}/move",
@@ -576,6 +695,12 @@ def test_eye_for_an_eye_removes_matching_pieces_without_scoring(client):
     assert updated["board"][0][0] is None
     assert updated["score"] == {"white": 0, "black": 0}
     assert updated["abilities"]["used"]["white"] is True
+    assert updated["abilities"]["cooldowns"]["white"]["eye_for_an_eye"] == 10
+    assert updated["abilities"]["usageCount"]["white"]["eye_for_an_eye"] == 1
+    assert any(
+        item["kind"] == "eye_for_an_eye" and item["remainingTurns"] == 10
+        for item in updated["countdowns"]
+    )
 
 
 def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
@@ -704,6 +829,11 @@ def test_necromancy_spends_score_and_recruits_captured_enemy(client):
     assert revived["color"] == "white"
     assert updated["spentScore"]["white"] == 1
     assert updated["score"]["white"] == 0
+    assert updated["abilities"]["cooldowns"]["white"]["necromancy"] == 9
+    assert any(
+        item["kind"] == "necromancy" and item["remainingTurns"] == 9
+        for item in updated["countdowns"]
+    )
 
 
 def test_kamikaze_final_rank_blast_ends_game_when_king_is_in_range(client):
@@ -764,6 +894,11 @@ def test_getaway_is_offered_only_as_a_real_checkmate_escape(client):
     updated = escaped.json()
     assert updated["board"][0][7]["type"] == "king"
     assert updated["abilities"]["used"]["white"] is True
+    assert updated["abilities"]["cooldowns"]["white"]["getaway"] == 10
+    assert any(
+        item["kind"] == "getaway" and item["remainingTurns"] == 10
+        for item in updated["countdowns"]
+    )
     assert updated["currentPlayer"] == "black"
 
 
