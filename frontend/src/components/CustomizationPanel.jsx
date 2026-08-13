@@ -561,6 +561,19 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     }));
   };
 
+  const toggleSpecialAbilities = (enabled) => {
+    const allowed = enabled
+      ? catalog.specialAbilities
+          .filter((ability) => !disabledAbilities[ability.id])
+          .map((ability) => ability.id)
+      : [];
+    setDraft((current) => ({
+      ...current,
+      presetId: "custom",
+      specialAbilities: { enabled, allowed },
+    }));
+  };
+
   const create = async (mode) => {
     setCreatingMode(mode);
     setError("");
@@ -661,7 +674,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
           <section className="studio-section ability-config-section">
             <SectionHeading title="Special Abilities" description="Each player privately chooses one allowed ability before play." />
-            <Toggle checked={draft.specialAbilities.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, enabled } }))} label="Enable Special Abilities" description="Selections are revealed after both players lock in." />
+            <Toggle checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
             {draft.specialAbilities.enabled ? <div className="ability-option-grid">{catalog.specialAbilities.map((ability) => { const enabled = draft.specialAbilities.allowed.includes(ability.id); const reason = disabledAbilities[ability.id]; return <button type="button" key={ability.id} className={enabled ? "selected" : ""} disabled={Boolean(reason)} title={reason || ""} onClick={() => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, allowed: enabled ? current.specialAbilities.allowed.filter((id) => id !== ability.id) : [...current.specialAbilities.allowed, ability.id] } }))}><i>{ability.icon}</i><span><strong>{ability.name}</strong><small>{reason || ability.summary}</small></span><b>{reason ? "Unavailable" : enabled ? "Enabled" : "Off"}</b></button>; })}</div> : null}
           </section>
 
