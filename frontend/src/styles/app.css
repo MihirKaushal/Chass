@@ -398,6 +398,70 @@ button.secondary {
   font-size: 0.75rem;
 }
 
+.join-code-entry {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 0.6rem;
+  margin-top: 1rem;
+}
+
+.join-code-toggle {
+  border: 1px solid rgba(43, 108, 176, 0.24);
+  border-radius: 10px;
+  padding: 0.58rem 1rem;
+  color: var(--deep);
+  background: rgba(43, 108, 176, 0.12);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.join-code-entry form {
+  width: min(430px, 100%);
+  display: grid;
+  gap: 0.3rem;
+  padding: 0.8rem;
+  border: 1px solid rgba(26, 54, 93, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.48);
+}
+
+.join-code-entry form > label {
+  color: rgba(26, 54, 93, 0.72);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.join-code-entry form > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.45rem;
+}
+
+.join-code-entry input {
+  min-width: 0;
+  border: 1px solid rgba(26, 54, 93, 0.3);
+  border-radius: 8px;
+  padding: 0.55rem 0.65rem;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.8);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.82rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.join-code-entry form button {
+  border: 0;
+  border-radius: 8px;
+  padding: 0.55rem 0.8rem;
+  color: white;
+  background: var(--accent);
+  cursor: pointer;
+  font-weight: 700;
+}
+
 .join-card,
 .loading-card {
   width: min(560px, 100%);
@@ -492,6 +556,18 @@ button.secondary {
   gap: 0.25rem;
   font-size: 0.72rem;
   font-weight: 600;
+}
+
+.invite-controls .invite-code-field {
+  min-width: 120px;
+  max-width: 150px;
+}
+
+.invite-code-field input {
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-align: center;
 }
 
 .invite-controls input {

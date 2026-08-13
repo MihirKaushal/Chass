@@ -61,10 +61,14 @@ export function validateGameConfiguration(payload) {
   });
 }
 
-export function joinGame(inviteToken) {
+export function joinGame(inviteCredential) {
+  const compactCode = inviteCredential.trim().replace(/[\s-]/g, "");
+  const payload = /^[a-z0-9]{8}$/i.test(compactCode)
+    ? { inviteCode: compactCode.toUpperCase() }
+    : { inviteToken: inviteCredential };
   return request("/game/join", {
     method: "POST",
-    body: JSON.stringify({ inviteToken }),
+    body: JSON.stringify(payload),
   });
 }
 

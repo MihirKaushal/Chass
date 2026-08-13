@@ -4,8 +4,10 @@ import { warmApi } from "../api/gameApi";
 import LandingNav from "../components/LandingNav";
 
 
-function HomePage({ onCreate, onCustomize }) {
+function HomePage({ onCreate, onCustomize, onJoinCode }) {
   const [creatingMode, setCreatingMode] = useState("");
+  const [showCodeEntry, setShowCodeEntry] = useState(false);
+  const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
 
   useEffect(() => {
@@ -21,6 +23,17 @@ function HomePage({ onCreate, onCustomize }) {
       setError(requestError.message);
       setCreatingMode("");
     }
+  };
+
+  const joinWithCode = (event) => {
+    event.preventDefault();
+    const normalized = inviteCode.replace(/[^a-z0-9]/gi, "").toUpperCase();
+    if (normalized.length !== 8) {
+      setError("Enter the eight-character invite code.");
+      return;
+    }
+    setError("");
+    onJoinCode(normalized);
   };
 
   return (
@@ -60,6 +73,40 @@ function HomePage({ onCreate, onCustomize }) {
               {creatingMode === "online" ? "Opening room..." : "Create Online Game"}
             </button>
           </article>
+        </div>
+
+        <div className="join-code-entry">
+          <button
+            type="button"
+            className="secondary join-code-toggle"
+            onClick={() => {
+              setShowCodeEntry((current) => !current);
+              setError("");
+            }}
+          >
+            Enter Invite Code
+          </button>
+          {showCodeEntry ? (
+            <form onSubmit={joinWithCode}>
+              <label htmlFor="invite-code">Invite Code</label>
+              <div>
+                <input
+                  id="invite-code"
+                  type="text"
+                  value={inviteCode}
+                  autoFocus
+                  autoComplete="off"
+                  inputMode="text"
+                  maxLength="9"
+                  placeholder="ABCD1234"
+                  onChange={(event) => setInviteCode(
+                    event.target.value.replace(/[^a-z0-9-]/gi, "").toUpperCase()
+                  )}
+                />
+                <button type="submit">Join Game</button>
+              </div>
+            </form>
+          ) : null}
         </div>
 
         {error ? <p className="landing-error">{error}</p> : null}

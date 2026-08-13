@@ -11,17 +11,18 @@ function OnlineLobby({
   const [copyState, setCopyState] = useState("");
   const isHost = session?.role === "host";
   const inviteUrl = session?.inviteUrl;
+  const inviteCode = session?.inviteCode || session?.inviteToken;
 
-  const copyInvite = async () => {
-    if (!inviteUrl) {
+  const copyInvite = async (value, successMessage) => {
+    if (!value) {
       return;
     }
 
     try {
-      await navigator.clipboard.writeText(inviteUrl);
-      setCopyState("Invite copied");
+      await navigator.clipboard.writeText(value);
+      setCopyState(successMessage);
     } catch {
-      setCopyState("Select and copy the link below");
+      setCopyState("Select and copy from the field above");
     }
   };
 
@@ -50,11 +51,18 @@ function OnlineLobby({
           {inviteUrl ? (
             <>
               <label>
-                Share this private invite
+                Share this private link
                 <input type="text" value={inviteUrl} readOnly onFocus={(event) => event.target.select()} />
               </label>
-              <button type="button" onClick={copyInvite}>
+              <button type="button" onClick={() => copyInvite(inviteUrl, "Invite link copied")}>
                 Copy Invite Link
+              </button>
+              <label className="invite-code-field">
+                Invite code
+                <input type="text" value={inviteCode || ""} readOnly onFocus={(event) => event.target.select()} />
+              </label>
+              <button type="button" onClick={() => copyInvite(inviteCode, "Invite code copied")}>
+                Copy Invite Code
               </button>
             </>
           ) : (
