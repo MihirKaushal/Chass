@@ -488,7 +488,7 @@ class VariantActionRules:
         actions = []
         for row, board_row in enumerate(state.board.grid):
             for col, piece in enumerate(board_row):
-                if piece is None or piece.color != color or piece.type not in {"rook", "queen"}:
+                if piece is None or piece.color != color or piece.type != "queen":
                     continue
                 trial = state.clone()
                 trial.board.grid[king[0]][king[1]], trial.board.grid[row][col] = (
@@ -504,7 +504,7 @@ class VariantActionRules:
                         "owner": color,
                         "icon": "⇄",
                         "label": f"Getaway with {piece.name}",
-                        "description": "Swap out of checkmate, then recharge for ten turns.",
+                        "description": "Swap the King with your Queen, then recharge for ten turns.",
                         "source": {"row": king[0], "col": king[1]},
                         "target": {"row": row, "col": col},
                     }

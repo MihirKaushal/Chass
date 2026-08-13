@@ -401,9 +401,10 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "id": "getaway",
         "name": "Getaway",
         "icon": "⇄",
-        "summary": "Escape checkmate by swapping the King with a Rook or Queen, then recharge for ten turns.",
+        "summary": "Escape checkmate by swapping the King with your Queen, then recharge for ten turns.",
         "cooldownTurns": 10,
         "details": [
+            "Only a Queen of the same color can be the swap partner.",
             "The swap is available only when it produces a legal position.",
             "If no legal partner exists, checkmate ends the game normally.",
             "A successful swap starts a ten-turn cooldown.",
@@ -586,7 +587,7 @@ FORMATION_PRESETS: list[dict[str, Any]] = [
         "summary": "Kings and Pawns only, with promotion deciding the attack.",
         "defaultVictory": "checkmate",
         "disabledAbilities": {
-            "getaway": "Getaway requires a Rook or Queen.",
+            "getaway": "Getaway requires a Queen.",
             "episcopal": "Episcopal requires a Bishop.",
             "power_of_love": "Power of Love requires a Queen.",
         },
@@ -598,7 +599,7 @@ FORMATION_PRESETS: list[dict[str, Any]] = [
         "summary": "A compact 6x6 duel with two Knights and one King per side.",
         "defaultVictory": "checkmate",
         "disabledAbilities": {
-            "getaway": "Getaway requires a Rook or Queen.",
+            "getaway": "Getaway requires a Queen.",
             "kamikaze": "Kamikaze requires Pawns.",
             "episcopal": "Episcopal requires a Bishop.",
             "power_of_love": "Power of Love requires a Queen.",
@@ -616,7 +617,7 @@ FORMATION_PRESETS: list[dict[str, Any]] = [
             "royal_score": "Royal Score depends on checkmate and is unavailable for Horde.",
         },
         "disabledAbilities": {
-            "getaway": "White begins without a Rook or Queen.",
+            "getaway": "White begins without a Queen.",
             "episcopal": "White begins without a Bishop.",
             "power_of_love": "White begins without a Queen.",
         },

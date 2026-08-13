@@ -97,6 +97,12 @@ def test_catalog_describes_custom_content(client):
     assert cooldowns["getaway"] == 10
     assert cooldowns["eye_for_an_eye"] == 10
     assert cooldowns["episcopal"] == 6
+    getaway = next(
+        ability for ability in catalog["specialAbilities"] if ability["id"] == "getaway"
+    )
+    assert "Queen" in getaway["summary"]
+    assert "Rook" not in getaway["summary"]
+    assert any("Only a Queen" in detail for detail in getaway["details"])
 
 
 def test_catalog_formations_have_complete_horde_and_castle_armies(client):
@@ -134,6 +140,23 @@ def test_configuration_validation_disables_incompatible_horde_rules(client):
     payload["configuration"]["victory"] = {"mode": "elimination"}
     valid = client.post("/game/validate", json=payload).json()
     assert valid["valid"] is True
+
+
+def test_configuration_warns_when_getaway_players_have_no_queens(client):
+    payload = configured_game(
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 7, "col": 0, "type": "rook", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 0, "col": 0, "type": "rook", "color": "black"},
+        ],
+        specialAbilities={"enabled": True, "allowed": ["getaway"]},
+    )
+
+    result = client.post("/game/validate", json=payload).json()
+
+    assert result["valid"] is True
+    assert "Getaway requires a Queen for both players." in result["warnings"]
 
 
 def test_horde_castle_and_sixteen_square_presets_create_playable_boards(client):
@@ -938,13 +961,14 @@ def test_kamikaze_final_rank_blast_ends_game_when_king_is_in_range(client):
     assert updated["result"]["reasonCode"] == "kamikaze"
 
 
-def test_getaway_is_offered_only_as_a_real_checkmate_escape(client):
+def test_getaway_swaps_the_king_with_a_queen_to_escape_checkmate(client):
     game = start_local_ability_game(
         client,
         "getaway",
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
-            {"row": 0, "col": 7, "type": "rook", "color": "white"},
+            {"row": 0, "col": 7, "type": "queen", "color": "white"},
+            {"row": 1, "col": 6, "type": "pawn", "color": "white"},
             {"row": 1, "col": 0, "type": "king", "color": "black"},
             {"row": 7, "col": 0, "type": "rook", "color": "black"},
             {"row": 5, "col": 6, "type": "queen", "color": "black"},
@@ -967,6 +991,7 @@ def test_getaway_is_offered_only_as_a_real_checkmate_escape(client):
     assert escaped.status_code == 200
     updated = escaped.json()
     assert updated["board"][0][7]["type"] == "king"
+    assert updated["board"][7][7]["type"] == "queen"
     assert updated["abilities"]["used"]["white"] is True
     assert updated["abilities"]["cooldowns"]["white"]["getaway"] == 10
     assert any(
@@ -974,6 +999,27 @@ def test_getaway_is_offered_only_as_a_real_checkmate_escape(client):
         for item in updated["countdowns"]
     )
     assert updated["currentPlayer"] == "black"
+
+
+def test_getaway_does_not_offer_a_rook_swap(client):
+    game = start_local_ability_game(
+        client,
+        "getaway",
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "rook", "color": "white"},
+            {"row": 1, "col": 6, "type": "pawn", "color": "white"},
+            {"row": 1, "col": 0, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "black"},
+            {"row": 5, "col": 6, "type": "queen", "color": "black"},
+        ],
+    )
+
+    assert game["gameStatus"] == "checkmate"
+    assert game["winner"] == "black"
+    assert not any(
+        item["actionType"] == "getaway" for item in game["availableActions"]
+    )
 
 
 def test_maharani_can_cross_exactly_one_blocker_to_capture(client):

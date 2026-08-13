@@ -203,7 +203,7 @@ class ConfigurationRuleEngine:
             for color in ("white", "black")
         }
         requirements = {
-            "getaway": ({"rook", "queen"}, "Getaway requires a Rook or Queen for both players."),
+            "getaway": ({"queen"}, "Getaway requires a Queen for both players."),
             "kamikaze": ({"pawn"}, "Kamikaze requires a Pawn for both players."),
             "episcopal": ({"bishop"}, "Episcopal requires a Bishop for both players."),
             "power_of_love": ({"queen"}, "Power of Love requires a Queen for both players."),
@@ -290,7 +290,7 @@ class ConfigurationRuleEngine:
 
         if payload.specialAbilities.enabled:
             requirements = {
-                "getaway": ({"rook", "queen"}, "Getaway requires an enabled Rook or Queen."),
+                "getaway": ({"queen"}, "Getaway requires an enabled Queen."),
                 "kamikaze": ({"pawn"}, "Kamikaze requires enabled Pawns."),
                 "episcopal": ({"bishop"}, "Episcopal requires enabled Bishops."),
                 "power_of_love": ({"queen"}, "Power of Love requires enabled Queens."),
