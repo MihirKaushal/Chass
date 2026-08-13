@@ -443,7 +443,9 @@ function GambitPlay({
           extraTargets={powerTargets}
           affinitySquares={game.gambit.config.affinitySquares}
           showCoordinates
+          pieceDetailsMode="double-tap"
         />
+        <p className="board-detail-hint">Double-tap or double-click a piece to view details.</p>
       </section>
 
       <GameInfoPanel game={game} />

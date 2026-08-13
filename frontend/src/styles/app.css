@@ -725,6 +725,7 @@ button.secondary {
   border: none;
   padding: 0;
   cursor: pointer;
+  touch-action: manipulation;
 }
 
 .square.readonly {
@@ -1001,6 +1002,14 @@ button.secondary {
 
 .board-tooltip-anchor .piece-tooltip {
   display: block;
+}
+
+.board-detail-hint {
+  margin: 0.7rem 0 0;
+  color: rgba(26, 54, 93, 0.62);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.64rem;
+  text-align: center;
 }
 
 .piece.ghost {
