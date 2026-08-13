@@ -91,6 +91,7 @@ from backend.rules import RuleEngine
 from backend.rules.variant_system import (
     FINISHED_STATUSES,
     ability_cooldown_remaining,
+    affinity_start_squares,
     barricade_start_squares,
     public_countdowns,
 )
@@ -313,19 +314,9 @@ def _sync_piece_metadata(game_state: GameState) -> None:
 
 
 def _center_affinity_squares(board_rows: int, board_cols: int) -> dict[str, list[BoardCoordinate]]:
-    upper_row = max(0, board_rows // 2 - 1)
-    lower_row = min(board_rows - 1, board_rows // 2)
-    left_col = max(0, board_cols // 2 - 1)
-    right_col = min(board_cols - 1, board_cols // 2)
     return {
-        "white": [
-            BoardCoordinate(row=lower_row, col=right_col),
-            BoardCoordinate(row=upper_row, col=left_col),
-        ],
-        "black": [
-            BoardCoordinate(row=lower_row, col=left_col),
-            BoardCoordinate(row=upper_row, col=right_col),
-        ],
+        color: [BoardCoordinate(row=row, col=col) for row, col in squares]
+        for color, squares in affinity_start_squares(board_rows, board_cols).items()
     }
 
 
@@ -469,8 +460,8 @@ def _configured_board(
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        "Starting Barricade positions must remain empty along the "
-                        "center line."
+                        "Starting Barricade positions must remain empty in the "
+                        "center of the board."
                     ),
                 )
             board.grid[row][col] = _create_piece_instance(
@@ -489,7 +480,7 @@ def _configured_board(
     for raw in configuration.initial_layout:
         placement = BoardPlacement.model_validate(raw)
         if placement.type == "barricade":
-            # Barricades use deterministic center-line placement from the count setting.
+            # Barricades use deterministic central placement from the count setting.
             continue
         if (placement.row, placement.col) in seen:
             raise HTTPException(status_code=400, detail="Only one piece may occupy each square.")

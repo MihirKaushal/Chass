@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
+import { affinitySquares, barricadeSquares } from "../boardGeometry";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
 
@@ -50,15 +51,6 @@ function centeredResize(placements, oldRows, oldCols, rows, cols) {
     .filter((piece) => piece.type !== "barricade")
     .map((piece) => ({ ...piece, row: piece.row + rowOffset, col: piece.col + colOffset }))
     .filter((piece) => piece.row >= 0 && piece.row < rows && piece.col >= 0 && piece.col < cols);
-}
-
-function barricadeSquares(rows, cols, count) {
-  const centerRow = Math.max(0, Math.floor(rows / 2) - 1);
-  const midpoint = (cols - 1) / 2;
-  return Array.from({ length: cols }, (_, col) => col)
-    .sort((left, right) => Math.abs(left - midpoint) - Math.abs(right - midpoint) || left - right)
-    .slice(0, count)
-    .map((col) => ({ row: centerRow, col }));
 }
 
 function defaultDraft(catalog) {
@@ -244,6 +236,13 @@ function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlac
       : []
     ).map((square) => [`${square.row}-${square.col}`, { ...square, type: "barricade", color: "neutral" }])
   );
+  const affinityMap = new Set(
+    draft.gambit.enabled && draft.gambit.affinityEnabled
+      ? Object.values(affinitySquares(draft.boardRows, draft.boardCols))
+          .flat()
+          .map((square) => `${square.row}-${square.col}`)
+      : []
+  );
 
   return (
     <div className="studio-preview-stack">
@@ -262,19 +261,7 @@ function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlac
               const placement = barricadeMap.get(`${row}-${col}`) || placementMap.get(`${row}-${col}`);
               const definition = placement ? definitionMap.get(placement.type) : null;
               const piece = previewPiece(placement, definition, draft.pointValues[placement?.type]);
-              const affinityRows = [
-                Math.max(0, Math.floor(draft.boardRows / 2) - 1),
-                Math.min(draft.boardRows - 1, Math.floor(draft.boardRows / 2)),
-              ];
-              const affinityCols = [
-                Math.max(0, Math.floor(draft.boardCols / 2) - 1),
-                Math.min(draft.boardCols - 1, Math.floor(draft.boardCols / 2)),
-              ];
-              const affinity =
-                draft.gambit.enabled &&
-                draft.gambit.affinityEnabled &&
-                affinityRows.includes(row) &&
-                affinityCols.includes(col);
+              const affinity = affinityMap.has(`${row}-${col}`);
               const tooltipPlacement = row < draft.boardRows / 2 ? "below" : "above";
               const tooltipEdge = col < draft.boardCols / 3 ? "left" : col >= (draft.boardCols * 2) / 3 ? "right" : "center";
               return (
@@ -635,7 +622,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                       {draft.gambit.enabled && piece.type !== "barricade" ? <label>Army Limit<input type="number" min={piece.type === "king" ? 1 : 0} max={draft.gambit.maxPieces} disabled={!enabled || piece.type === "king"} value={draft.pieceCaps[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pieceCaps: { ...current.pieceCaps, [piece.type]: Math.max(0, Number(event.target.value)) } }))} /></label> : null}
                       {enabled && piece.type === "barricade" ? <label>Starting Walls<input type="number" min="1" max={Math.max(1, Math.floor(draft.boardCols / 2))} value={draft.barricadeCount} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", barricadeCount: clamp(event.target.value, 1, Math.max(1, Math.floor(current.boardCols / 2))) }))} /></label> : null}
                     </div>
-                    {enabled && !draft.gambit.enabled ? <div className="piece-color-tools">{piece.type === "barricade" ? <p className="fixed-piece-note"><PieceGlyph type="barricade" color="neutral" symbol={piece.symbols.neutral} /> Starting walls occupy reserved center-line squares.</p> : ["white", "black"].map((color) => <button type="button" key={color} className={selectedTool?.type === piece.type && selectedTool?.color === color ? "active" : "secondary"} onClick={() => setSelectedTool({ kind: "piece", type: piece.type, color })}><PieceGlyph type={piece.type} color={color} symbol={piece.symbols[color] || piece.icon} /> {title(color)}</button>)}</div> : null}
+                    {enabled && !draft.gambit.enabled ? <div className="piece-color-tools">{piece.type === "barricade" ? <p className="fixed-piece-note"><PieceGlyph type="barricade" color="neutral" symbol={piece.symbols.neutral} /> Starting walls occupy reserved central squares.</p> : ["white", "black"].map((color) => <button type="button" key={color} className={selectedTool?.type === piece.type && selectedTool?.color === color ? "active" : "secondary"} onClick={() => setSelectedTool({ kind: "piece", type: piece.type, color })}><PieceGlyph type={piece.type} color={color} symbol={piece.symbols[color] || piece.icon} /> {title(color)}</button>)}</div> : null}
                   </article>
                 );
               })}
