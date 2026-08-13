@@ -9,12 +9,13 @@ function PlayPage({
   interactive,
   onAction,
   actionLoading,
+  catalog,
 }) {
   const lastMove = game.history.length ? game.history[game.history.length - 1] : null;
 
   return (
     <main className="play-layout play-layout-three-column">
-      <EffectsPanel game={game} onAction={onAction} actionLoading={actionLoading} />
+      <EffectsPanel game={game} catalog={catalog} onAction={onAction} actionLoading={actionLoading} />
 
       <section className="board-section">
         <ChessBoard
