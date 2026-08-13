@@ -240,6 +240,7 @@ function ChessBoard({
             piece={hoveredPiece.piece}
             placement={hoveredPiece.tooltipPlacement}
             edge={hoveredPiece.tooltipEdge}
+            onClose={pieceDetailsMode === "double-tap" ? () => setHoveredPiece(null) : null}
           />
         </div>
       ) : null}

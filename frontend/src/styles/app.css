@@ -1004,6 +1004,37 @@ button.secondary {
   display: block;
 }
 
+.piece-tooltip--closable {
+  padding-right: 1.75rem;
+  pointer-events: auto;
+}
+
+.piece-tooltip-close {
+  position: absolute;
+  top: 0.3rem;
+  right: 0.3rem;
+  width: 1.15rem;
+  height: 1.15rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  font-size: 0.85rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.piece-tooltip-close:hover,
+.piece-tooltip-close:focus-visible {
+  color: var(--deep);
+  background: var(--accent-soft);
+  outline: none;
+}
+
 .board-detail-hint {
   margin: 0.7rem 0 0;
   color: rgba(26, 54, 93, 0.62);

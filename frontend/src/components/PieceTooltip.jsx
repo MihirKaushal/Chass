@@ -4,7 +4,7 @@ function title(value) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
 }
 
-function PieceTooltip({ piece, placement = "above", edge = "center" }) {
+function PieceTooltip({ piece, placement = "above", edge = "center", onClose = null }) {
   if (!piece) return null;
 
   const customRules = piece.customAttributes?.customRules || piece.customAttributes?.rules || [];
@@ -34,7 +34,24 @@ function PieceTooltip({ piece, placement = "above", edge = "center" }) {
   });
 
   return (
-    <div className={`piece-tooltip piece-tooltip--${placement} piece-tooltip--${edge}`} role="tooltip">
+    <div
+      className={`piece-tooltip piece-tooltip--${placement} piece-tooltip--${edge} ${onClose ? "piece-tooltip--closable" : ""}`}
+      role={onClose ? "dialog" : "tooltip"}
+      aria-label={onClose ? `${piece.name} details` : undefined}
+    >
+      {onClose ? (
+        <button
+          type="button"
+          className="piece-tooltip-close"
+          aria-label="Close piece details"
+          onClick={(event) => {
+            event.stopPropagation();
+            onClose();
+          }}
+        >
+          ×
+        </button>
+      ) : null}
       <div className="tooltip-title">
         <PieceGlyph piece={piece} />
         <strong>{piece.name}</strong>
