@@ -11,7 +11,7 @@ boards and pieces, modular rules, and real-time synchronization.
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
-- Chass Gambit with exact-budget hidden deployment, center affinity, and command powers
+- Chass Gambit with maximum-budget hidden deployment, center affinity, and command powers
 - Maharani, Catapult, Barricade, Hypnotizer, and Diplomat custom pieces
 - Six optional player abilities with private pre-game selection
 - Checkmate, King Capture, Timed, Point Race, Elimination, and Royal Score victories

@@ -682,7 +682,7 @@ def catalog_payload() -> dict[str, Any]:
             ),
             "details": [
                 "Each player edits only the configured home rows.",
-                "Each army must contain exactly one King and spend its complete point budget.",
+                "Each army must contain exactly one King and stay within its point limit.",
                 "Armies remain hidden until both players lock in.",
                 "Holding both affinity squares of your color earns command points.",
                 "Command points buy Reinforce, Evolve, and Stronghold actions.",

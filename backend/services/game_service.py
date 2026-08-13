@@ -88,7 +88,6 @@ from backend.repositories import (
     create_game_repository,
 )
 from backend.rules import RuleEngine
-from backend.rules.configuration import exact_gambit_budget_reachable
 from backend.rules.variant_system import (
     FINISHED_STATUSES,
     ability_cooldown_remaining,
@@ -339,8 +338,6 @@ def _configuration_from_request(request: CreateGameRequest) -> tuple[
         )
         gambit = GambitState() if request.variant == "gambit" else None
         if gambit is not None:
-            # Legacy API callers retain the original at-most budget behavior. The
-            # new versioned configuration path requires spending the full budget.
             gambit.config.require_exact_budget = False
             gambit.config.affinity_squares = _center_affinity_squares(
                 request.boardRows,
@@ -415,7 +412,7 @@ def _configuration_from_request(request: CreateGameRequest) -> tuple[
         gambit.config.setup_rows = payload.gambit.setupRows
         gambit.config.command_point_cap = payload.gambit.commandPointCap
         gambit.config.affinity_enabled = payload.gambit.affinityEnabled
-        gambit.config.require_exact_budget = True
+        gambit.config.require_exact_budget = False
         gambit.config.piece_points = {
             piece_type: int(definitions[piece_type].points or 0)
             for piece_type in payload.enabledPieces
@@ -432,18 +429,10 @@ def _configuration_from_request(request: CreateGameRequest) -> tuple[
         default_caps["queen"] = payload.gambit.maxQueens
         default_caps["barricade"] = 0
         gambit.config.piece_caps = default_caps
-        if not exact_gambit_budget_reachable(
-            gambit.config.budget,
-            gambit.config.max_pieces,
-            gambit.config.piece_points,
-            gambit.config.piece_caps,
-        ):
+        if gambit.config.piece_points.get("king", 0) > gambit.config.budget:
             raise HTTPException(
                 status_code=400,
-                detail=(
-                    "The Gambit budget cannot be spent exactly with the enabled "
-                    "piece values and limits."
-                ),
+                detail="The Gambit point limit must include the required King.",
             )
         gambit.config.affinity_squares = _center_affinity_squares(
             request.boardRows,
@@ -1765,7 +1754,7 @@ class GameService:
                     setupRows=gambit.config.setup_rows,
                     commandPointCap=gambit.config.command_point_cap,
                     affinityEnabled=gambit.config.affinity_enabled,
-                    requireExactBudget=gambit.config.require_exact_budget,
+                    requireExactBudget=False,
                     piecePoints=gambit.config.piece_points,
                     pieceCaps=gambit.config.piece_caps,
                     powerCosts=gambit.config.power_costs,

@@ -96,7 +96,7 @@ class GambitConfigView(BaseModel):
     setupRows: int
     commandPointCap: int
     affinityEnabled: bool = True
-    requireExactBudget: bool = True
+    requireExactBudget: bool = False
     piecePoints: dict[str, int]
     pieceCaps: dict[str, int]
     powerCosts: dict[str, int]
