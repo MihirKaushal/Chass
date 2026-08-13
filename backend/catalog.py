@@ -558,7 +558,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "id": "gambit",
         "name": "Chass Gambit",
         "icon": "⚑",
-        "summary": "Secretly spend exactly 39 points to build an army before reveal.",
+        "summary": "Secretly build an army worth up to a maximum of 39 points before reveal.",
         "boardRows": 8,
         "boardCols": 8,
         "formationId": "classic",
