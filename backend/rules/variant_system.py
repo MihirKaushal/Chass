@@ -30,13 +30,73 @@ def barricade_start_square(rows: int, cols: int) -> tuple[int, int]:
     return barricade_start_squares(rows, cols, 1)[0]
 
 
-def barricade_start_squares(rows: int, cols: int, count: int) -> list[tuple[int, int]]:
-    if count <= 0:
+def centered_board_squares(rows: int, cols: int, count: int) -> list[tuple[int, int]]:
+    """Return a rotation-balanced cluster on the board's central row or rows."""
+    if rows <= 0 or cols <= 0 or count <= 0:
         return []
-    center_row = max(0, rows // 2 - 1)
-    midpoint = (cols - 1) / 2
-    ordered_cols = sorted(range(cols), key=lambda col: (abs(col - midpoint), col))
-    return [(center_row, col) for col in ordered_cols[:count]]
+
+    center_rows = [rows // 2] if rows % 2 else [rows // 2 - 1, rows // 2]
+    candidates = {(row, col) for row in center_rows for col in range(cols)}
+    limit = min(count, len(candidates))
+
+    def rotate(square: tuple[int, int]) -> tuple[int, int]:
+        return rows - 1 - square[0], cols - 1 - square[1]
+
+    def distance(square: tuple[int, int]) -> int:
+        # Doubled coordinates avoid floating-point center calculations.
+        return (2 * square[0] - (rows - 1)) ** 2 + (
+            2 * square[1] - (cols - 1)
+        ) ** 2
+
+    fixed = sorted(square for square in candidates if rotate(square) == square)
+    pairs: set[tuple[tuple[int, int], tuple[int, int]]] = set()
+    for square in candidates:
+        partner = rotate(square)
+        if partner == square or partner not in candidates:
+            continue
+        pairs.add(tuple(sorted((square, partner))))
+    ordered_pairs = sorted(pairs, key=lambda pair: (distance(pair[0]), pair))
+
+    selected: list[tuple[int, int]] = []
+    if limit % 2 and fixed:
+        selected.append(fixed[0])
+    for pair in ordered_pairs:
+        remaining = limit - len(selected)
+        if remaining <= 0:
+            break
+        if remaining >= 2:
+            selected.extend(pair)
+        else:
+            # An odd count on an even-height board cannot be perfectly
+            # rotationally symmetric, so alternate the unavoidable bias.
+            selected.append(pair[(len(selected) // 2) % 2])
+    return selected
+
+
+def barricade_start_squares(rows: int, cols: int, count: int) -> list[tuple[int, int]]:
+    return centered_board_squares(rows, cols, count)
+
+
+def affinity_start_squares(
+    rows: int,
+    cols: int,
+) -> dict[str, list[tuple[int, int]]]:
+    if rows % 2:
+        line = sorted(centered_board_squares(rows, cols, 4), key=lambda item: item[1])
+        return {
+            "white": [line[0], line[2]],
+            "black": [line[1], line[3]],
+        }
+
+    upper_row, lower_row = rows // 2 - 1, rows // 2
+    center_cols = sorted(
+        col for _, col in centered_board_squares(1, cols, 2)
+    )
+    left_col, right_col = center_cols
+    return {
+        "white": [(upper_row, left_col), (lower_row, right_col)],
+        "black": [(upper_row, right_col), (lower_row, left_col)],
+    }
 
 
 def opposing_color(color: str) -> str:

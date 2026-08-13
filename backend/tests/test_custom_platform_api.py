@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
+from backend.rules.variant_system import affinity_start_squares, barricade_start_squares
+
 
 def auth(token: str) -> dict[str, str]:
     return {"Authorization": f"Bearer {token}"}
@@ -163,7 +165,7 @@ def test_horde_castle_and_sixteen_square_presets_create_playable_boards(client):
     assert all(len(row) == 16 for row in game["board"])
 
 
-def test_multiple_barricades_spawn_on_reserved_center_line(client):
+def test_multiple_barricades_spawn_in_the_board_center(client):
     payload = configured_game(
         barricadeCount=4,
         enabledPieces=[*classic_types(), "barricade"],
@@ -192,7 +194,51 @@ def test_multiple_barricades_spawn_on_reserved_center_line(client):
         for col, piece in enumerate(board_row)
         if piece and piece["type"] == "barricade"
     ]
-    assert barricades == [(3, 2), (3, 3), (3, 4), (3, 5)]
+    assert barricades == [(3, 3), (3, 4), (4, 3), (4, 4)]
+
+
+def test_center_geometry_adapts_to_even_and_odd_board_heights(client):
+    assert set(barricade_start_squares(8, 8, 4)) == {
+        (3, 3),
+        (3, 4),
+        (4, 3),
+        (4, 4),
+    }
+    assert set(barricade_start_squares(7, 7, 4)) == {
+        (3, 1),
+        (3, 2),
+        (3, 4),
+        (3, 5),
+    }
+    assert affinity_start_squares(8, 8) == {
+        "white": [(3, 3), (4, 4)],
+        "black": [(3, 4), (4, 3)],
+    }
+    assert affinity_start_squares(7, 7) == {
+        "white": [(3, 1), (3, 4)],
+        "black": [(3, 2), (3, 5)],
+    }
+
+    payload = configured_game(
+        gambit={
+            "enabled": True,
+            "budget": 39,
+            "maxPieces": 14,
+            "setupRows": 2,
+            "maxQueens": 2,
+            "affinityEnabled": True,
+            "commandPointCap": 3,
+        }
+    )
+    payload["boardRows"] = 7
+    payload["boardCols"] = 7
+    created = client.post("/game/create", json=payload)
+    assert created.status_code == 200
+    affinity = created.json()["game"]["gambit"]["config"]["affinitySquares"]
+    assert affinity == {
+        "white": [{"row": 3, "col": 1}, {"row": 3, "col": 4}],
+        "black": [{"row": 3, "col": 2}, {"row": 3, "col": 5}],
+    }
 
 
 def test_custom_piece_points_reject_negative_values(client):
@@ -396,7 +442,7 @@ def test_barricade_must_be_single_neutral_and_centered(client):
     )
     response = client.post("/game/create", json=payload)
     assert response.status_code == 400
-    assert "center" in response.json()["detail"]
+    assert "central" in response.json()["detail"]
 
     payload["configuration"]["initialLayout"][-1] = {
         "row": 3,

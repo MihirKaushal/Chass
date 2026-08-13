@@ -130,7 +130,7 @@ class ConfigurationRuleEngine:
             for piece in supplied_barricades
         ):
             result.errors.append(
-                "Starting Barricades must use the reserved center-line squares."
+                "Starting Barricades must use the reserved central squares."
             )
         if "barricade" in enabled and any(
             (piece["row"], piece["col"]) in allowed_barricades
@@ -138,7 +138,7 @@ class ConfigurationRuleEngine:
             for piece in placements
         ):
             result.errors.append(
-                "Starting Barricade positions must remain empty along the center line."
+                "Starting Barricade positions must remain empty in the board center."
             )
         for placement in placements:
             square = placement["row"], placement["col"]
