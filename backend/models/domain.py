@@ -263,7 +263,9 @@ class GambitConfig(BaseModel):
     setup_rows: int = Field(default=2, ge=1)
     command_point_cap: int = Field(default=3, ge=0)
     affinity_enabled: bool = True
-    require_exact_budget: bool = True
+    # Retained for backward-compatible state loading. New games always treat
+    # the budget as a maximum rather than an exact spending requirement.
+    require_exact_budget: bool = False
     piece_points: dict[str, int] = Field(
         default_factory=lambda: {
             "pawn": 1,

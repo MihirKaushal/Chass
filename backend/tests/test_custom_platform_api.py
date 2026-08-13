@@ -205,7 +205,7 @@ def test_custom_piece_points_reject_negative_values(client):
     assert response.status_code == 422
 
 
-def test_configured_gambit_requires_complete_nonnegative_budget(client):
+def test_configured_gambit_allows_locking_in_below_maximum_budget(client):
     payload = configured_game(
         gambit={
             "enabled": True,
@@ -232,12 +232,17 @@ def test_configured_gambit_requires_complete_nonnegative_budget(client):
         },
     )
     assert king.status_code == 200
+    setup = king.json()
+    assert setup["gambit"]["setupSummary"]["pointsSpent"] == 0
+    assert setup["gambit"]["setupSummary"]["pointsRemaining"] == 5
     ready = client.post(
         f"/game/{game['id']}/gambit/ready",
-        json={"expectedVersion": king.json()["version"]},
+        json={"expectedVersion": setup["version"]},
     )
-    assert ready.status_code == 400
-    assert "spend all 5 points" in ready.json()["detail"]
+    assert ready.status_code == 200
+    locked = ready.json()
+    assert locked["phase"] == "handoff"
+    assert locked["gambit"]["config"]["requireExactBudget"] is False
 
 
 def test_catapult_action_creates_public_countdown_and_tooltip_runtime(client):
@@ -563,7 +568,7 @@ def test_diplomat_contact_is_public_and_attached_to_piece_runtime(client):
     ]
 
 
-def test_impossible_exact_gambit_budget_is_rejected_before_setup(client):
+def test_gambit_point_limit_does_not_require_an_exact_piece_total(client):
     payload = configured_game(
         enabledPieces=["pawn", "king"],
         piecePoints={"pawn": 3, "king": 0},
@@ -579,8 +584,30 @@ def test_impossible_exact_gambit_budget_is_rejected_before_setup(client):
         },
     )
     response = client.post("/game/create", json=payload)
+    assert response.status_code == 200
+    game = response.json()["game"]
+    assert game["gambit"]["config"]["budget"] == 2
+    assert game["gambit"]["config"]["requireExactBudget"] is False
+
+
+def test_gambit_point_limit_must_cover_the_required_king(client):
+    payload = configured_game(
+        enabledPieces=["king"],
+        piecePoints={"king": 3},
+        gambit={
+            "enabled": True,
+            "budget": 2,
+            "maxPieces": 1,
+            "setupRows": 1,
+            "maxQueens": 0,
+            "affinityEnabled": False,
+            "commandPointCap": 3,
+            "pieceCaps": {"king": 1},
+        },
+    )
+    response = client.post("/game/create", json=payload)
     assert response.status_code == 400
-    assert "cannot be spent exactly" in response.json()["detail"]
+    assert "required King" in response.json()["detail"]
 
 
 def test_online_timed_clock_starts_only_after_second_player_joins(client):

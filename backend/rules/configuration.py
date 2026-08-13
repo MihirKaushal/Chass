@@ -30,37 +30,6 @@ class ConfigurationValidation:
         }
 
 
-def exact_gambit_budget_reachable(
-    budget: int,
-    max_pieces: int,
-    piece_points: dict[str, int],
-    piece_caps: dict[str, int],
-) -> bool:
-    king_cost = piece_points.get("king")
-    if king_cost is None or king_cost > budget or max_pieces < 1:
-        return False
-
-    # Each bit represents a reachable score for an exact piece count.
-    reachable = [0] * (max_pieces + 1)
-    reachable[1] = 1 << king_cost
-    score_mask = (1 << (budget + 1)) - 1
-    for piece_type, cost in piece_points.items():
-        if piece_type == "king" or cost <= 0:
-            continue
-        cap = min(piece_caps.get(piece_type, 0), max_pieces - 1, budget // cost)
-        group_size = 1
-        remaining = cap
-        while remaining > 0:
-            take = min(group_size, remaining)
-            shift = cost * take
-            for count in range(max_pieces - take, 0, -1):
-                reachable[count + take] |= (reachable[count] << shift) & score_mask
-            remaining -= take
-            group_size *= 2
-    target = 1 << budget
-    return any(scores & target for scores in reachable[1:])
-
-
 def _placement_key(piece: dict) -> tuple[int, int, str, str]:
     return piece["row"], piece["col"], piece["type"], piece["color"]
 
@@ -314,14 +283,9 @@ class ConfigurationRuleEngine:
         caps["queen"] = gambit.maxQueens
         if any(cap > gambit.maxPieces for cap in caps.values()):
             result.errors.append("A piece limit cannot exceed the complete army cap.")
-        if not exact_gambit_budget_reachable(
-            gambit.budget,
-            gambit.maxPieces,
-            points,
-            caps,
-        ):
+        if points.get("king", 0) > gambit.budget:
             result.errors.append(
-                "The Gambit budget cannot be spent exactly with these piece values and limits."
+                "The Gambit point limit must be high enough to include the required King."
             )
 
         if payload.specialAbilities.enabled:

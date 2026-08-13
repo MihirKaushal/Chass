@@ -30,15 +30,13 @@ class PointBudgetRule:
     descriptor = GambitRuleDescriptor(
         id="gambit_point_budget",
         name="Point War Chest",
-        description="Each army obeys the configured budget and locks only after spending it all.",
+        description="Each army may spend any amount up to the configured point limit.",
     )
 
     def issues(
         self,
         state: GameState,
         pieces: list[DeploymentPiece],
-        *,
-        require_complete: bool = False,
     ) -> list[str]:
         gambit = _require_gambit(state)
         unknown = sorted({piece.type for piece in pieces} - gambit.config.piece_points.keys())
@@ -48,10 +46,6 @@ class PointBudgetRule:
         spent = sum(gambit.config.piece_points[piece.type] for piece in pieces)
         if spent > gambit.config.budget:
             return [f"Army costs {spent} points; the limit is {gambit.config.budget}."]
-        if require_complete and gambit.config.require_exact_budget and spent != gambit.config.budget:
-            return [
-                f"Army must spend all {gambit.config.budget} points; {gambit.config.budget - spent} remain."
-            ]
         return []
 
 
@@ -451,7 +445,6 @@ class GambitRuleSet:
             *self.point_budget.issues(
                 state,
                 pieces,
-                require_complete=require_complete,
             ),
             *self.piece_limits.issues(
                 state,
