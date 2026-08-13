@@ -4,7 +4,7 @@ Chass! is a full-stack browser chess platform for classic games and configurable
 variants. It supports local two-player games, private link-or-code multiplayer, custom
 boards and pieces, modular rules, and real-time synchronization.
 
-**Live site:** [https://chass-rho.vercel.app](https://chass-rho.vercel.app)
+**Live site:** [https://playchass.vercel.app](https://playchass.vercel.app)
 
 ## Features
 
@@ -200,8 +200,8 @@ security-rule, rollback, and verification steps.
 After Vercel deploys, set both Render values to the production frontend URL:
 
 ```text
-FRONTEND_URL=https://chass-rho.vercel.app
-ALLOWED_ORIGINS=https://chass-rho.vercel.app
+FRONTEND_URL=https://playchass.vercel.app
+ALLOWED_ORIGINS=https://playchass.vercel.app
 ```
 
 Render services may sleep when idle, but Firestore does not require manual unpausing.
