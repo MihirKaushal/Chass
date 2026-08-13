@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import func, select
@@ -153,6 +154,9 @@ def test_online_invite_and_seat_authorization(client):
 
     assert created["playerColor"] == "white"
     assert created["role"] == "host"
+    assert created["inviteCode"] == created["inviteToken"]
+    assert re.fullmatch(r"[2-9A-HJ-NP-Z]{8}", created["inviteCode"])
+    assert created["inviteUrl"].endswith(f"/join/{created['inviteCode']}")
     assert created["inviteToken"] not in str(game)
     assert game["ready"] is False
     assert game["players"] == {"white": "joined", "black": "open"}
@@ -172,10 +176,8 @@ def test_online_invite_and_seat_authorization(client):
     )
     assert waiting_move.status_code == 409
 
-    joined = client.post(
-        "/game/join",
-        json={"inviteToken": created["inviteToken"]},
-    )
+    display_code = f"{created['inviteCode'][:4]}-{created['inviteCode'][4:]}".lower()
+    joined = client.post("/game/join", json={"inviteCode": display_code})
     assert joined.status_code == 200
     black_session = joined.json()
     assert black_session["playerColor"] == "black"
@@ -302,6 +304,8 @@ def test_host_can_replace_unused_invite(client):
     assert replacement.status_code == 200
     next_invite = replacement.json()
     assert next_invite["inviteToken"] != created["inviteToken"]
+    assert next_invite["inviteCode"] == next_invite["inviteToken"]
+    assert re.fullmatch(r"[2-9A-HJ-NP-Z]{8}", next_invite["inviteCode"])
     assert "/join/" in next_invite["inviteUrl"]
 
     old_join = client.post("/game/join", json={"inviteToken": created["inviteToken"]})

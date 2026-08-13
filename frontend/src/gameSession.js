@@ -15,6 +15,7 @@ export function saveGameSession(gameId, session) {
     color: session.color || null,
     role: session.role,
     inviteToken: session.inviteToken || null,
+    inviteCode: session.inviteCode || null,
     inviteUrl: session.inviteUrl || null,
     inviteExpiresAt: session.inviteExpiresAt || null,
   };

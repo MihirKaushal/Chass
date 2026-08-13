@@ -1,7 +1,7 @@
 # Chass!
 
 Chass! is a full-stack browser chess platform for classic games and configurable chess
-variants. It supports local two-player games, private invite-link multiplayer, custom
+variants. It supports local two-player games, private link-or-code multiplayer, custom
 boards and pieces, modular rules, and real-time synchronization.
 
 **Live site:** [https://chass-rho.vercel.app](https://chass-rho.vercel.app)
@@ -15,7 +15,7 @@ boards and pieces, modular rules, and real-time synchronization.
 - Maharani, Catapult, Barricade, Hypnotizer, and Diplomat custom pieces
 - Six optional player abilities with private pre-game selection
 - Checkmate, King Capture, Timed, Point Race, Elimination, and Royal Score victories
-- Shareable, one-use game invitation links
+- Shareable, one-use game invitation links and invite codes
 - Live WebSocket updates, reconnect, presence, and state recovery
 - Board dimensions from 4x4 through 16x16 and editable starting layouts
 - Configurable piece metadata, nonnegative point values, and composition limits

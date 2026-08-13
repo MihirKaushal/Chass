@@ -159,6 +159,7 @@ function sessionFromResponse(response) {
     color: response.playerColor,
     role: response.role,
     inviteToken: response.inviteToken,
+    inviteCode: response.inviteCode || response.inviteToken || null,
     inviteUrl,
     inviteExpiresAt: response.inviteExpiresAt,
   };
@@ -618,6 +619,7 @@ function GameWorkspace({ gameId }) {
       const invite = await runAction(() => replaceInvite(gameId, session?.token));
       const updatedSession = updateGameSession(gameId, {
         inviteToken: invite.inviteToken,
+        inviteCode: invite.inviteCode || invite.inviteToken,
         inviteUrl: createInviteUrl(invite.inviteToken),
         inviteExpiresAt: invite.inviteExpiresAt,
       });
@@ -898,7 +900,13 @@ function App() {
     );
   }
 
-  return <HomePage onCreate={handleCreate} onCustomize={() => navigate("/customize")} />;
+  return (
+    <HomePage
+      onCreate={handleCreate}
+      onCustomize={() => navigate("/customize")}
+      onJoinCode={(inviteCode) => navigate(`/join/${encodeURIComponent(inviteCode)}`)}
+    />
+  );
 }
 
 export default App;

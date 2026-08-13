@@ -486,7 +486,14 @@ class UpdateBoardLayoutRequest(BaseModel):
 
 
 class JoinGameRequest(BaseModel):
-    inviteToken: str = Field(min_length=20, max_length=256)
+    inviteToken: str | None = Field(default=None, min_length=8, max_length=256)
+    inviteCode: str | None = Field(default=None, min_length=8, max_length=12)
+
+    @model_validator(mode="after")
+    def validate_invite_credential(self) -> "JoinGameRequest":
+        if bool(self.inviteToken) == bool(self.inviteCode):
+            raise ValueError("Provide either an invite link token or an invite code")
+        return self
 
 
 class GameSessionResponse(BaseModel):
@@ -495,11 +502,13 @@ class GameSessionResponse(BaseModel):
     playerColor: str | None = None
     role: str
     inviteToken: str | None = None
+    inviteCode: str | None = None
     inviteUrl: str | None = None
     inviteExpiresAt: datetime | None = None
 
 
 class InviteResponse(BaseModel):
     inviteToken: str
+    inviteCode: str
     inviteUrl: str
     inviteExpiresAt: datetime

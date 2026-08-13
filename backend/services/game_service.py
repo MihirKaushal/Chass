@@ -94,7 +94,12 @@ from backend.rules.variant_system import (
     barricade_start_squares,
     public_countdowns,
 )
-from backend.security import generate_token, hash_token
+from backend.security import (
+    generate_invite_code,
+    generate_token,
+    hash_token,
+    normalize_invite_credential,
+)
 
 DEFAULT_PIECE_POINTS: dict[str, int | None] = {
     "pawn": 1,
@@ -776,7 +781,7 @@ class GameService:
             )
 
         host_token = generate_token()
-        invite_token = generate_token()
+        invite_token = generate_invite_code()
         invite_expires_at = now + timedelta(hours=settings.invite_ttl_hours)
         record = self.repository.create_game(
             game_state,
@@ -792,6 +797,7 @@ class GameService:
             playerColor="white",
             role="host",
             inviteToken=invite_token,
+            inviteCode=invite_token,
             inviteUrl=self._invite_url(invite_token),
             inviteExpiresAt=invite_expires_at,
         )
@@ -799,9 +805,12 @@ class GameService:
     def join_game(self, request: JoinGameRequest) -> GameSessionResponse:
         player_token = generate_token()
         now = datetime.now(timezone.utc)
+        invite_credential = normalize_invite_credential(
+            request.inviteCode or request.inviteToken or ""
+        )
         try:
             record = self.repository.claim_invite(
-                hash_token(request.inviteToken),
+                hash_token(invite_credential),
                 hash_token(player_token),
                 self._expiration_deadline(now),
                 self._inactive_before(now),
@@ -866,7 +875,7 @@ class GameService:
         if authorized.record.ready:
             raise HTTPException(status_code=409, detail="This game already has two players")
 
-        invite_token = generate_token()
+        invite_token = generate_invite_code()
         now = datetime.now(timezone.utc)
         expires_at = now + timedelta(hours=get_settings().invite_ttl_hours)
         try:
@@ -880,6 +889,7 @@ class GameService:
             raise HTTPException(status_code=410, detail=str(error)) from error
         return InviteResponse(
             inviteToken=invite_token,
+            inviteCode=invite_token,
             inviteUrl=self._invite_url(invite_token),
             inviteExpiresAt=expires_at,
         )
