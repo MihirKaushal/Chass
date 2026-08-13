@@ -383,6 +383,7 @@ function GambitPlay({
   actionLoading,
   onPower,
   onAction,
+  catalog,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
   const [evolveTo, setEvolveTo] = useState("knight");
@@ -417,7 +418,7 @@ function GambitPlay({
 
   return (
     <main className="play-layout play-layout-three-column gambit-play-layout">
-      <EffectsPanel game={game} onAction={onAction} actionLoading={actionLoading}>
+      <EffectsPanel game={game} catalog={catalog} onAction={onAction} actionLoading={actionLoading}>
         <CommandPanel
           game={game}
           interactive={interactive && !actionLoading}

@@ -437,6 +437,7 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "name": "Episcopal",
         "icon": "✝",
         "summary": "Every six turns, shift a Bishop one square onto the opposite color.",
+        "cooldownTurns": 6,
         "details": [
             "The shift is horizontal or vertical and may capture an enemy on its destination.",
             "It consumes the turn and must leave the King safe.",

@@ -737,6 +737,7 @@ function GameWorkspace({ gameId }) {
           onHandoff={handleGambitHandoff}
           onPower={handleGambitPower}
           onAction={handleSpecialAction}
+          catalog={catalog}
         />
       ) : (
         <PlayPage
@@ -747,6 +748,7 @@ function GameWorkspace({ gameId }) {
           interactive={canMove && !actionLoading}
           onAction={handleSpecialAction}
           actionLoading={actionLoading}
+          catalog={catalog}
         />
       )}
 

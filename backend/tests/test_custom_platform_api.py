@@ -94,6 +94,7 @@ def test_catalog_describes_custom_content(client):
     assert cooldowns["necromancy"] == 9
     assert cooldowns["getaway"] == 10
     assert cooldowns["eye_for_an_eye"] == 10
+    assert cooldowns["episcopal"] == 6
 
 
 def test_catalog_formations_have_complete_horde_and_castle_armies(client):

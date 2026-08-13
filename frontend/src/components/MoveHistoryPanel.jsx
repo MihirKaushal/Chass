@@ -6,6 +6,17 @@ function title(value) {
   return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
 }
 
+function label(value) {
+  return title(String(value).replace(/([a-z0-9])([A-Z])/g, "$1 $2"));
+}
+
+function formatValue(value) {
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.map(label).join(", ");
+  if (value && typeof value === "object") return JSON.stringify(value);
+  return label(value);
+}
+
 function squareLabel(position, rows = 8) {
   if (!position) return "";
   return `${String.fromCharCode(65 + position.col)}${rows - position.row}`;
@@ -78,27 +89,6 @@ function CapturedPieces({ capturedPieces }) {
   );
 }
 
-function AbilityLoadouts({ abilities }) {
-  if (!abilities?.enabled || !abilities.selected) return null;
-  return (
-    <section className="panel-section ability-loadouts">
-      <h3>Player Abilities</h3>
-      {["white", "black"].map((color) => {
-        const ability = abilities.selected[color];
-        const cooldown = abilities.cooldowns?.[color]?.[ability] || 0;
-        const uses = abilities.usageCount?.[color]?.[ability] || 0;
-        return (
-          <div key={color}>
-            <span><b>{title(color)}</b><strong>{title(ability) || "Hidden"}</strong></span>
-            <small>{ability === "locked" ? "Locked" : cooldown ? `${cooldown} own turns` : "Ready"}</small>
-            {uses ? <em>{uses} use{uses === 1 ? "" : "s"}</em> : null}
-          </div>
-        );
-      })}
-    </section>
-  );
-}
-
 function CountdownPanel({ countdowns = [] }) {
   if (!countdowns.length) return null;
   return (
@@ -154,46 +144,178 @@ function ActionPanel({ actions = [], onAction, actionLoading, boardRows }) {
   );
 }
 
-function RuleEffectsReference({ rules = [], pieceDefinitions = [], abilities }) {
-  const specialRules = rules.filter((rule) => rule.isSpecial || rule.tier !== "basic");
-  const customPieces = pieceDefinitions.filter((piece) => piece.isCustom);
-  if (!specialRules.length && !customPieces.length && !abilities?.enabled) return null;
+function EffectDisclosure({ title: heading, itemKeys, children, emptyDescription }) {
+  const hasItems = itemKeys.length > 0;
+  const signature = itemKeys.join("|");
+  const [open, setOpen] = useState(hasItems);
+
+  useEffect(() => {
+    setOpen(hasItems);
+  }, [hasItems, signature]);
+
   return (
-    <details className="panel-section all-effects-reference">
-      <summary>All Rules And Effects</summary>
-      {specialRules.length ? (
-        <div><h4>Special Rules</h4>{specialRules.map((rule) => <p key={rule.id}><b>{rule.name}</b><span>{rule.enabled ? "Enabled" : "Disabled"}</span><small>{rule.description}</small></p>)}</div>
-      ) : null}
-      {customPieces.length ? (
-        <div><h4>Custom Pieces</h4>{customPieces.map((piece) => <p key={piece.type}><b>{piece.displayName}</b><small>{piece.movement}</small></p>)}</div>
-      ) : null}
-      {abilities?.enabled ? (
-        <div><h4>Allowed Abilities</h4>{abilities.allowed.map((ability) => <p key={ability}><b>{title(ability)}</b><small>{Object.values(abilities.selected || {}).includes(ability) ? "Selected in this match" : "Available at setup"}</small></p>)}</div>
-      ) : null}
+    <details
+      className={`panel-section effect-disclosure ${hasItems ? "has-enabled-effects" : "is-empty"}`}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary>
+        <span>{heading}</span>
+        <small>{hasItems ? `${itemKeys.length} Enabled` : "None Enabled"}</small>
+      </summary>
+      {hasItems ? children : <p className="effect-empty-state">{emptyDescription}</p>}
     </details>
   );
 }
 
-function ActiveSpecialRules({ rules = [] }) {
-  const active = rules.filter((rule) => rule.enabled && (rule.isSpecial || rule.tier !== "basic"));
-  if (!active.length) return null;
+function SpecialRulesDisclosure({ game }) {
+  const activeRules = (game.rules || []).filter(
+    (rule) => rule.enabled && (rule.isSpecial || rule.tier !== "basic")
+  );
   return (
-    <section className="panel-section active-special-rules">
-      <h3>Special Rules</h3>
-      {active.map((rule) => <p key={rule.id}><strong>{rule.name}</strong><small>{rule.description}</small></p>)}
-    </section>
+    <EffectDisclosure
+      title="Special Rules"
+      itemKeys={activeRules.map((rule) => rule.id)}
+      emptyDescription="No special rules are enabled for this match."
+    >
+      <div className="effect-disclosure-list">
+        {activeRules.map((rule) => {
+          const configuredVictory = rule.id === "configured_victory"
+            ? Object.fromEntries(
+                Object.entries(game.configuration?.victory || {}).filter(
+                  ([key, value]) => key !== "mode" && value != null
+                )
+              )
+            : {};
+          const params = Object.entries({ ...configuredVictory, ...(rule.params || {}) });
+          return (
+            <article className="effect-reference-card" key={rule.id}>
+              <header><strong>{rule.name}</strong><span>Enabled</span></header>
+              <p>{rule.description}</p>
+              {params.length ? (
+                <dl className="effect-metadata">
+                  {params.map(([key, value]) => (
+                    <div key={key}><dt>{label(key)}</dt><dd>{formatValue(value)}</dd></div>
+                  ))}
+                </dl>
+              ) : null}
+            </article>
+          );
+        })}
+      </div>
+    </EffectDisclosure>
   );
 }
 
-export function EffectsPanel({ game, onAction, actionLoading, children }) {
+function CustomPiecesDisclosure({ game }) {
+  const enabledTypes = new Set(game.configuration?.enabledPieces || []);
+  const customPieces = (game.pieceDefinitions || []).filter(
+    (piece) => piece.isCustom && enabledTypes.has(piece.type)
+  );
+  const boardPieces = (game.board || []).flat().filter(Boolean);
+
+  return (
+    <EffectDisclosure
+      title="Custom Pieces"
+      itemKeys={customPieces.map((piece) => piece.type)}
+      emptyDescription="No custom pieces are enabled for this match."
+    >
+      <div className="effect-disclosure-list">
+        {customPieces.map((piece) => {
+          const pieceIds = new Set(
+            boardPieces.filter((boardPiece) => boardPiece.type === piece.type).map((boardPiece) => boardPiece.pieceId)
+          );
+          const countdowns = (game.countdowns || []).filter(
+            (countdown) => countdown.kind === piece.type || pieceIds.has(countdown.pieceId)
+          );
+          const rules = piece.customAttributes?.rules || [];
+          return (
+            <article className="effect-reference-card" key={piece.type}>
+              <header className="effect-piece-heading">
+                <span><PieceGlyph piece={{ ...piece, color: "black", name: piece.displayName }} /><strong>{piece.displayName}</strong></span>
+                <b>{piece.points == null ? "No Point Value" : `${piece.points} Point${piece.points === 1 ? "" : "s"}`}</b>
+              </header>
+              <p>{piece.description}</p>
+              <small className="effect-movement"><b>Movement</b>{piece.movement}</small>
+              {rules.length ? <small className="effect-rule-copy"><b>Behavior</b>{rules.join(" · ")}</small> : null}
+              {countdowns.map((countdown) => (
+                <div className="effect-live-status" key={countdown.id}>
+                  <span>{title(countdown.owner)}: {countdown.label}</span>
+                  <b>{countdown.remainingTurns} turn{countdown.remainingTurns === 1 ? "" : "s"}</b>
+                </div>
+              ))}
+            </article>
+          );
+        })}
+      </div>
+    </EffectDisclosure>
+  );
+}
+
+function SpecialAbilitiesDisclosure({ abilities, catalog }) {
+  const selected = abilities?.selected || {};
+  const abilityIds = [...new Set(
+    Object.values(selected).filter((abilityId) => abilityId && abilityId !== "locked")
+  )];
+  const definitions = new Map(
+    (catalog?.specialAbilities || []).map((ability) => [ability.id, ability])
+  );
+
+  return (
+    <EffectDisclosure
+      title="Special Abilities"
+      itemKeys={abilityIds}
+      emptyDescription="No special abilities are enabled for this match."
+    >
+      <div className="effect-disclosure-list">
+        {abilityIds.map((abilityId) => {
+          const definition = definitions.get(abilityId);
+          const owners = ["white", "black"].filter((color) => selected[color] === abilityId);
+          return (
+            <article className="effect-reference-card" key={abilityId}>
+              <header>
+                <strong>{definition?.icon ? `${definition.icon} ` : ""}{definition?.name || title(abilityId)}</strong>
+                {definition?.cooldownTurns ? <span>{definition.cooldownTurns}-Turn Cooldown</span> : <span>Enabled</span>}
+              </header>
+              <p>{definition?.summary || "A selected special ability for this match."}</p>
+              <div className="ability-owner-statuses">
+                {owners.map((color) => {
+                  const remaining = abilities.cooldowns?.[color]?.[abilityId] || 0;
+                  const uses = abilities.usageCount?.[color]?.[abilityId] || 0;
+                  return (
+                    <div key={color}>
+                      <strong>{title(color)}</strong>
+                      <span>{remaining ? `${remaining} own turns remaining` : "Ready"}</span>
+                      <small>{uses} use{uses === 1 ? "" : "s"}</small>
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </EffectDisclosure>
+  );
+}
+
+function EnabledEffects({ game, catalog }) {
+  return (
+    <div className="enabled-effects" aria-label="Enabled match options">
+      <SpecialRulesDisclosure game={game} />
+      <CustomPiecesDisclosure game={game} />
+      <SpecialAbilitiesDisclosure abilities={game.abilities} catalog={catalog} />
+    </div>
+  );
+}
+
+export function EffectsPanel({ game, catalog, onAction, actionLoading, children }) {
   return (
     <aside className="effects-panel">
       {children}
-      <AbilityLoadouts abilities={game.abilities} />
       <CountdownPanel countdowns={game.countdowns} />
       <ActionPanel actions={game.availableActions} onAction={onAction} actionLoading={actionLoading} boardRows={game.boardRows ?? game.boardSize} />
-      <ActiveSpecialRules rules={game.rules} />
-      <RuleEffectsReference rules={game.rules} pieceDefinitions={game.pieceDefinitions} abilities={game.abilities} />
+      <EnabledEffects game={game} catalog={catalog} />
     </aside>
   );
 }
