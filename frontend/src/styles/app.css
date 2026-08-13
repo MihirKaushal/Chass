@@ -51,6 +51,36 @@ textarea {
   place-items: center;
 }
 
+.page-frame {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-frame > main {
+  flex: 1 0 auto;
+}
+
+.page-frame > .landing-shell {
+  min-height: 0;
+}
+
+.site-footer {
+  width: min(1580px, calc(100% - 2rem));
+  margin: auto auto 0;
+  padding: 0.8rem 0 1rem;
+  color: rgba(26, 54, 93, 0.68);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.68rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-align: left;
+}
+
+.app-shell.page-frame .site-footer {
+  width: 100%;
+}
+
 .top-nav {
   display: grid;
   grid-template-columns: auto auto minmax(240px, 1fr);
