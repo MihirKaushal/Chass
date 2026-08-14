@@ -146,6 +146,20 @@ class GambitView(BaseModel):
     draftCanPass: bool = False
 
 
+class AffinityView(BaseModel):
+    enabled: bool = False
+    commandPointCap: int = 3
+    powerCosts: dict[str, int] = Field(default_factory=dict)
+    powerUsageCaps: dict[str, int] = Field(default_factory=dict)
+    squares: dict[str, list[Position]] = Field(default_factory=dict)
+    commandPoints: dict[str, int] = Field(default_factory=dict)
+    primed: dict[str, bool] = Field(default_factory=dict)
+    controlled: dict[str, bool] = Field(default_factory=dict)
+    powerUsage: dict[str, dict[str, int]] = Field(default_factory=dict)
+    legalPowerTargets: dict[str, list[Position]] = Field(default_factory=dict)
+    lastPowerExplanation: str | None = None
+
+
 class CenterDominionView(BaseModel):
     targetRounds: int
     progress: dict[str, int]
@@ -249,6 +263,7 @@ class GameResponse(BaseModel):
     result: ResultView | None = None
     clock: ClockView | None = None
     gambit: GambitView | None = None
+    affinity: AffinityView = Field(default_factory=AffinityView)
     centerDominion: CenterDominionView | None = None
     rematch: RematchView = Field(default_factory=RematchView)
 
@@ -317,14 +332,20 @@ class SpecialAbilityConfigPayload(BaseModel):
     ] = Field(default_factory=list)
 
 
+class CustomRulesConfigPayload(BaseModel):
+    affinityEnabled: bool = False
+    commandPointCap: int = Field(default=3, ge=0, le=20)
+
+
 class GambitConfigPayload(BaseModel):
     enabled: bool = False
     budget: int = Field(default=39, ge=0, le=100000)
     maxPieces: int = Field(default=16, ge=1, le=128)
     setupRows: int = Field(default=2, ge=1, le=8)
     maxQueens: int = Field(default=2, ge=0, le=32)
-    affinityEnabled: bool = True
-    commandPointCap: int = Field(default=3, ge=0, le=20)
+    # Legacy aliases retained so saved configurations continue to load.
+    affinityEnabled: bool | None = None
+    commandPointCap: int | None = Field(default=None, ge=0, le=20)
     pieceCaps: dict[str, int] = Field(default_factory=dict)
     draftEnabled: bool = False
     draftPool: dict[str, int] = Field(default_factory=dict)
@@ -353,6 +374,7 @@ class GameConfigurationPayload(BaseModel):
     piecePoints: dict[str, int | None] = Field(default_factory=dict)
     initialLayout: list[ConfigurationPlacement] = Field(default_factory=list, max_length=256)
     victory: VictoryConfigPayload = Field(default_factory=VictoryConfigPayload)
+    customRules: CustomRulesConfigPayload = Field(default_factory=CustomRulesConfigPayload)
     specialAbilities: SpecialAbilityConfigPayload = Field(
         default_factory=SpecialAbilityConfigPayload
     )

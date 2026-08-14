@@ -449,8 +449,9 @@ async def complete_gambit_handoff(
     return response
 
 
+@router.post("/{game_id}/command", response_model=GameResponse)
 @router.post("/{game_id}/gambit/power", response_model=GameResponse)
-async def use_gambit_power(
+async def use_command_power(
     game_id: str,
     payload: GambitPowerRequest,
     request: Request,
@@ -459,13 +460,13 @@ async def use_gambit_power(
     token = _bearer_token(authorization)
     rate_limiter.check(
         request,
-        "gambit_power",
+        "command_power",
         limit=120,
         window_seconds=60,
         discriminator=game_id,
     )
     record, explanation = await run_in_threadpool(
-        game_service.use_gambit_power,
+        game_service.use_command_power,
         game_id,
         payload,
         token,

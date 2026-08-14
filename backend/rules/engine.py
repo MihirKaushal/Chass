@@ -240,12 +240,12 @@ class RuleEngine:
         return self.actions.available_actions(state, action_color, self)
 
     def has_legal_alternative_action(self, state: GameState, color: str) -> bool:
-        gambit_power = (
-            state.variant == "gambit"
+        command_power = (
+            state.configuration.custom_rules.affinity_enabled
             and state.phase == "play"
             and self.gambit.has_legal_power(state, color, self)
         )
-        return gambit_power or self.actions.has_legal_action(state, color, self)
+        return command_power or self.actions.has_legal_action(state, color, self)
 
     def clock_snapshot(self, state: GameState) -> dict | None:
         if state.clock is None:
@@ -322,10 +322,7 @@ class RuleEngine:
         state.turn_counts[acting_color] += 1
         for rule, setting in self._iter_enabled_rules(state):
             rule.complete_turn(state, acting_color, self, setting.params)
-        if state.variant == "gambit" and state.gambit is not None:
-            self.gambit.complete_turn(state, acting_color)
-        else:
-            state.current_player = opposing_color(acting_color)
+        self.gambit.complete_turn(state, acting_color)
         if state.clock is not None:
             state.clock.active_color = state.current_player
             state.clock.turn_started_at = datetime.now(timezone.utc)
@@ -412,7 +409,7 @@ class RuleEngine:
         next_state.history[-1].explanation = explanation
         return next_state, explanation
 
-    def apply_gambit_power(
+    def apply_command_power(
         self,
         state: GameState,
         color: str,
@@ -439,6 +436,25 @@ class RuleEngine:
         self.evaluate_state(next_state)
         explanation = self._append_status(explanation, next_state)
         next_state.history[-1].explanation = explanation
-        if next_state.gambit is not None:
-            next_state.gambit.last_power_explanation = explanation
+        next_state.affinity.last_power_explanation = explanation
         return next_state, explanation
+
+    def apply_gambit_power(
+        self,
+        state: GameState,
+        color: str,
+        *,
+        power: str,
+        row: int,
+        col: int,
+        evolve_to: str | None,
+    ) -> tuple[GameState, str]:
+        """Compatibility alias for clients created before affinity became a custom rule."""
+        return self.apply_command_power(
+            state,
+            color,
+            power=power,
+            row=row,
+            col=col,
+            evolve_to=evolve_to,
+        )

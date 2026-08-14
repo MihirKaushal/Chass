@@ -16,7 +16,7 @@ import {
   updateGambitDeployment,
   updateGambitDraft,
   useGameAction,
-  useGambitPower,
+  useCommandPower,
 } from "./api/gameApi";
 import OnlineLobby from "./components/OnlineLobby";
 import SiteFooter from "./components/SiteFooter";
@@ -498,9 +498,9 @@ function GameWorkspace({ gameId }) {
     }
   };
 
-  const handleGambitPower = async (payload) => {
+  const handleCommandPower = async (payload) => {
     try {
-      await runAction(() => mutate(useGambitPower, payload));
+      await runAction(() => mutate(useCommandPower, payload));
     } catch {
       // The shared error banner explains rejected command actions.
     }
@@ -749,7 +749,7 @@ function GameWorkspace({ gameId }) {
           onDraft={handleGambitDraft}
           onReady={handleGambitReady}
           onHandoff={handleGambitHandoff}
-          onPower={handleGambitPower}
+          onPower={handleCommandPower}
           onAction={handleSpecialAction}
           catalog={catalog}
         />
@@ -762,6 +762,7 @@ function GameWorkspace({ gameId }) {
           interactive={canMove && !actionLoading}
           onAction={handleSpecialAction}
           actionLoading={actionLoading}
+          onPower={handleCommandPower}
           catalog={catalog}
         />
       )}

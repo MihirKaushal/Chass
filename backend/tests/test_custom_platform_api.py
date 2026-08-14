@@ -108,6 +108,42 @@ def test_catalog_describes_custom_content(client):
     assert catalog["gambit"]["draftDetails"]
 
 
+def test_affinity_custom_rule_is_available_in_classic_games(client):
+    response = client.post(
+        "/game/create",
+        json=configured_game(
+            customRules={"affinityEnabled": True, "commandPointCap": 4},
+        ),
+    )
+    assert response.status_code == 200
+    game = response.json()["game"]
+
+    assert game["variant"] == "classic"
+    assert game["configuration"]["customRules"] == {
+        "affinityEnabled": True,
+        "commandPointCap": 4,
+    }
+    assert game["affinity"]["enabled"] is True
+    assert game["affinity"]["commandPointCap"] == 4
+    assert game["affinity"]["squares"] == {
+        "white": [{"row": 3, "col": 3}, {"row": 4, "col": 4}],
+        "black": [{"row": 3, "col": 4}, {"row": 4, "col": 3}],
+    }
+    assert any(rule["id"] == "affinity_control" for rule in game["rules"])
+
+    command = client.post(
+        f"/game/{game['id']}/command",
+        json={
+            "power": "reinforce",
+            "row": 6,
+            "col": 0,
+            "expectedVersion": game["version"],
+        },
+    )
+    assert command.status_code == 400
+    assert "requires 1 command points" in command.json()["detail"]
+
+
 def test_catalog_formations_have_complete_horde_and_castle_armies(client):
     catalog = client.get("/game/catalog").json()
     formations = {formation["id"]: formation for formation in catalog["formations"]}

@@ -1,10 +1,12 @@
 from .domain import (
     AbilityState,
+    AffinityState,
     Board,
     BoardCoordinate,
     CaptureEvent,
     CenterDominionState,
     ClockState,
+    CustomRulesConfig,
     DeploymentPiece,
     GambitConfig,
     GambitState,
@@ -30,10 +32,12 @@ from .domain import (
 
 __all__ = [
     "AbilityState",
+    "AffinityState",
     "Board",
     "BoardCoordinate",
     "CaptureEvent",
     "CenterDominionState",
+    "CustomRulesConfig",
     "ClockState",
     "DeploymentPiece",
     "GambitConfig",

@@ -2,7 +2,14 @@ from __future__ import annotations
 
 import asyncio
 
-from backend.models import Board, GambitState, GameState, Move
+from backend.models import (
+    Board,
+    CustomRulesConfig,
+    GambitState,
+    GameConfiguration,
+    GameState,
+    Move,
+)
 from backend.models.schemas import CreateGameRequest
 from backend.realtime import GameSocketManager, SocketIdentity
 from backend.rules import RuleEngine
@@ -646,16 +653,18 @@ def test_illegal_hidden_opening_returns_generic_handoff(client):
     assert board_piece_count(game) == 0
 
 
-def test_affinity_awards_one_point_and_reinforce_consumes_the_turn():
+def test_classic_affinity_awards_one_point_and_reinforce_consumes_the_turn():
     engine = RuleEngine()
     definitions = build_default_piece_definitions()
     board = Board(rows=8, cols=8, grid=[[None for _ in range(8)] for _ in range(8)])
     state = GameState(
-        id="gambit-rule-test",
+        id="classic-affinity-rule-test",
         board=board,
-        variant="gambit",
+        variant="classic",
         phase="play",
-        gambit=GambitState(),
+        configuration=GameConfiguration(
+            custom_rules=CustomRulesConfig(affinity_enabled=True),
+        ),
         piece_definitions=definitions,
         rules=engine.default_rule_settings(),
     )
@@ -669,17 +678,16 @@ def test_affinity_awards_one_point_and_reinforce_consumes_the_turn():
         state,
         Move(fromRow=7, fromCol=4, toRow=6, toCol=4),
     )
-    assert state.gambit is not None
-    assert state.gambit.affinity_primed["white"] is True
+    assert state.affinity.primed["white"] is True
 
     state, _ = engine.apply_move(
         state,
         Move(fromRow=0, fromCol=7, toRow=1, toCol=7),
     )
     assert state.current_player == "white"
-    assert state.gambit.command_points["white"] == 1
+    assert state.affinity.command_points["white"] == 1
 
-    state, explanation = engine.apply_gambit_power(
+    state, explanation = engine.apply_command_power(
         state,
         "white",
         power="reinforce",
@@ -688,8 +696,8 @@ def test_affinity_awards_one_point_and_reinforce_consumes_the_turn():
         evolve_to=None,
     )
     assert state.current_player == "black"
-    assert state.gambit.command_points["white"] == 0
-    assert state.gambit.power_usage["white"]["reinforce"] == 1
+    assert state.affinity.command_points["white"] == 0
+    assert state.affinity.power_usage["white"]["reinforce"] == 1
     assert state.board.grid[7][0].type == "pawn"
     assert state.board.grid[7][0].has_moved is True
     assert state.history[-1].action_type == "reinforce"
@@ -716,9 +724,9 @@ def test_evolve_and_stronghold_apply_through_command_rules():
     engine, evolve_state = make_gambit_play_state()
     assert evolve_state.gambit is not None
     evolve_state.board.grid[4][0] = create_piece(evolve_state, "pawn", "white")
-    evolve_state.gambit.command_points["white"] = 2
+    evolve_state.affinity.command_points["white"] = 2
 
-    evolved, _ = engine.apply_gambit_power(
+    evolved, _ = engine.apply_command_power(
         evolve_state,
         "white",
         power="evolve",
@@ -727,13 +735,13 @@ def test_evolve_and_stronghold_apply_through_command_rules():
         evolve_to="bishop",
     )
     assert evolved.board.grid[4][0].type == "bishop"
-    assert evolved.gambit.command_points["white"] == 0
-    assert evolved.gambit.power_usage["white"]["evolve"] == 1
+    assert evolved.affinity.command_points["white"] == 0
+    assert evolved.affinity.power_usage["white"]["evolve"] == 1
 
     engine, stronghold_state = make_gambit_play_state()
     assert stronghold_state.gambit is not None
-    stronghold_state.gambit.command_points["white"] = 3
-    fortified, _ = engine.apply_gambit_power(
+    stronghold_state.affinity.command_points["white"] = 3
+    fortified, _ = engine.apply_command_power(
         stronghold_state,
         "white",
         power="stronghold",
@@ -743,15 +751,15 @@ def test_evolve_and_stronghold_apply_through_command_rules():
     )
     assert fortified.board.grid[5][0].type == "rook"
     assert fortified.board.grid[5][0].has_moved is True
-    assert fortified.gambit.command_points["white"] == 0
-    assert fortified.gambit.power_usage["white"]["stronghold"] == 1
+    assert fortified.affinity.command_points["white"] == 0
+    assert fortified.affinity.power_usage["white"]["stronghold"] == 1
 
 
 def test_command_power_can_resolve_check_and_prevent_false_checkmate():
     engine, state = make_gambit_play_state()
     assert state.gambit is not None
     state.board.grid[0][4] = create_piece(state, "rook", "black")
-    state.gambit.command_points["white"] = 1
+    state.affinity.command_points["white"] = 1
     assert engine.is_king_in_check(state, "white") is True
 
     engine.evaluate_state(state)
@@ -761,7 +769,7 @@ def test_command_power_can_resolve_check_and_prevent_false_checkmate():
         for target in engine.gambit.legal_power_targets(state, "white", engine)["reinforce"]
     )
 
-    rescued, _ = engine.apply_gambit_power(
+    rescued, _ = engine.apply_command_power(
         state,
         "white",
         power="reinforce",
@@ -782,7 +790,7 @@ def test_checkmate_rule_counts_legal_command_power_as_an_escape():
     state.board.grid[0][7] = create_piece(state, "rook", "black")
     state.board.grid[7][6] = create_piece(state, "pawn", "white")
     state.board.grid[6][6] = create_piece(state, "pawn", "white")
-    state.gambit.command_points["white"] = 1
+    state.affinity.command_points["white"] = 1
 
     engine.evaluate_state(state)
     assert state.game_status == "check"

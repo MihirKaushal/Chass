@@ -20,10 +20,12 @@ from backend.catalog import (
 from backend.config import get_settings
 from backend.models import (
     AbilityState,
+    AffinityState,
     Board,
     BoardCoordinate,
     CenterDominionState,
     ClockState,
+    CustomRulesConfig,
     GambitState,
     GameConfiguration,
     GameState,
@@ -39,6 +41,7 @@ from backend.models import (
 from backend.models.schemas import (
     AbilitySelectionRequest,
     AbilityStateView,
+    AffinityView,
     AvailableActionView,
     BoardPlacement,
     CaptureView,
@@ -356,6 +359,10 @@ def _configuration_from_request(
         definitions = build_default_piece_definitions()
         configuration = GameConfiguration(
             preset_id="gambit" if request.variant == "gambit" else "classic",
+            custom_rules=CustomRulesConfig(
+                affinity_enabled=request.variant == "gambit",
+                command_point_cap=3,
+            ),
         )
         gambit = GambitState() if request.variant == "gambit" else None
         if gambit is not None:
@@ -400,6 +407,22 @@ def _configuration_from_request(
             raise HTTPException(status_code=400, detail="Piece points cannot be negative.")
         definitions[piece_type] = definition
 
+    custom_rules_explicit = "customRules" in payload.model_fields_set
+    legacy_affinity_explicit = "affinityEnabled" in payload.gambit.model_fields_set
+    affinity_enabled = payload.customRules.affinityEnabled
+    command_point_cap = payload.customRules.commandPointCap
+    if not custom_rules_explicit and legacy_affinity_explicit:
+        affinity_enabled = bool(payload.gambit.affinityEnabled)
+        command_point_cap = (
+            payload.gambit.commandPointCap
+            if payload.gambit.commandPointCap is not None
+            else 3
+        )
+    elif not custom_rules_explicit and payload.gambit.enabled:
+        # Older clients treated affinity as part of Gambit and omitted the field.
+        affinity_enabled = True
+        command_point_cap = 3
+
     configuration = GameConfiguration(
         schema_version=payload.schemaVersion,
         preset_id=payload.presetId,
@@ -413,6 +436,10 @@ def _configuration_from_request(
             time_seconds=payload.victory.timeSeconds,
             king_points=payload.victory.kingPoints,
             dominion_rounds=payload.victory.dominionRounds,
+        ),
+        custom_rules=CustomRulesConfig(
+            affinity_enabled=affinity_enabled,
+            command_point_cap=command_point_cap,
         ),
         special_abilities=SpecialAbilityConfig(
             enabled=payload.specialAbilities.enabled,
@@ -443,8 +470,8 @@ def _configuration_from_request(
         gambit.config.budget = payload.gambit.budget
         gambit.config.max_pieces = payload.gambit.maxPieces
         gambit.config.setup_rows = payload.gambit.setupRows
-        gambit.config.command_point_cap = payload.gambit.commandPointCap
-        gambit.config.affinity_enabled = payload.gambit.affinityEnabled
+        gambit.config.command_point_cap = configuration.custom_rules.command_point_cap
+        gambit.config.affinity_enabled = configuration.custom_rules.affinity_enabled
         gambit.config.draft_enabled = payload.gambit.draftEnabled
         gambit.config.require_exact_budget = False
         gambit.config.piece_points = {
@@ -1184,7 +1211,7 @@ class GameService:
             raise HTTPException(status_code=400, detail=str(error)) from error
         return self._save(next_state, expected_version)
 
-    def use_gambit_power(
+    def use_command_power(
         self,
         game_id: str,
         request: GambitPowerRequest,
@@ -1192,8 +1219,11 @@ class GameService:
     ) -> tuple[GameRecord, str]:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
-        if record.state.variant != "gambit":
-            raise HTTPException(status_code=409, detail="This is not a Chass Gambit game.")
+        if not record.state.configuration.custom_rules.affinity_enabled:
+            raise HTTPException(
+                status_code=409,
+                detail="Affinity Squares are not enabled for this game.",
+            )
         if record.mode == "online":
             if authorized.player is None or authorized.player.color != record.state.current_player:
                 raise HTTPException(
@@ -1206,7 +1236,7 @@ class GameService:
 
         expected_version = self._expected_version(record, request.expectedVersion)
         try:
-            next_state, explanation = self.engine.apply_gambit_power(
+            next_state, explanation = self.engine.apply_command_power(
                 record.state,
                 color,
                 power=request.power,
@@ -1233,6 +1263,15 @@ class GameService:
             ),
         )
         return saved, explanation
+
+    def use_gambit_power(
+        self,
+        game_id: str,
+        request: GambitPowerRequest,
+        player_token: str | None = None,
+    ) -> tuple[GameRecord, str]:
+        """Compatibility alias for the original Gambit-only endpoint."""
+        return self.use_command_power(game_id, request, player_token)
 
     def move_piece(
         self,
@@ -1361,6 +1400,7 @@ class GameService:
             game_state.current_player = "white"
             game_state.abilities = AbilityState()
             game_state.center_dominion = CenterDominionState()
+            game_state.affinity = AffinityState()
             game_state.turn_counts = {"white": 0, "black": 0}
             game_state.history = []
             game_state.captured_pieces = {"white": [], "black": []}
@@ -1395,6 +1435,7 @@ class GameService:
         )
         game_state.abilities = AbilityState()
         game_state.center_dominion = CenterDominionState()
+        game_state.affinity = AffinityState()
         game_state.turn_counts = {"white": 0, "black": 0}
         game_state.history = []
         game_state.captured_pieces = {"white": [], "black": []}
@@ -1529,6 +1570,7 @@ class GameService:
         game_state.game_status = "active"
         game_state.score = {"white": 0, "black": 0}
         game_state.center_dominion = CenterDominionState()
+        game_state.affinity = AffinityState()
         game_state.result = None
 
         self.engine.evaluate_state(game_state)
@@ -1556,6 +1598,14 @@ class GameService:
                 "kingPoints": game_state.configuration.victory.king_points,
                 "dominionRounds": game_state.configuration.victory.dominion_rounds,
             },
+            "customRules": {
+                "affinityEnabled": (
+                    game_state.configuration.custom_rules.affinity_enabled
+                ),
+                "commandPointCap": (
+                    game_state.configuration.custom_rules.command_point_cap
+                ),
+            },
             "specialAbilities": {
                 "enabled": game_state.configuration.special_abilities.enabled,
                 "allowed": game_state.configuration.special_abilities.allowed,
@@ -1568,8 +1618,12 @@ class GameService:
                         "maxPieces": game_state.gambit.config.max_pieces,
                         "setupRows": game_state.gambit.config.setup_rows,
                         "maxQueens": game_state.gambit.config.piece_caps.get("queen", 0),
-                        "affinityEnabled": game_state.gambit.config.affinity_enabled,
-                        "commandPointCap": game_state.gambit.config.command_point_cap,
+                        "affinityEnabled": (
+                            game_state.configuration.custom_rules.affinity_enabled
+                        ),
+                        "commandPointCap": (
+                            game_state.configuration.custom_rules.command_point_cap
+                        ),
                         "pieceCaps": game_state.gambit.config.piece_caps,
                         "draftEnabled": game_state.gambit.config.draft_enabled,
                         "draftPool": game_state.gambit.config.draft_pool,
@@ -1769,6 +1823,21 @@ class GameService:
                 for rule in self.engine.gambit.available_rules(game_state)
             )
 
+        if game_state.configuration.custom_rules.affinity_enabled:
+            rule_views.extend(
+                RuleView(
+                    id=rule.id,
+                    name=rule.name,
+                    description=rule.description,
+                    tier=rule.tier,
+                    enabled=True,
+                    canDisable=False,
+                    isSpecial=True,
+                    params={},
+                )
+                for rule in self.engine.gambit.available_command_rules()
+            )
+
         history_views = []
         for item in game_state.history:
             history_views.append(
@@ -1801,6 +1870,46 @@ class GameService:
 
         if last_explanation is None and game_state.history:
             last_explanation = game_state.history[-1].explanation
+
+        affinity_config = game_state.configuration.custom_rules
+        affinity_squares = affinity_start_squares(
+            game_state.board.rows,
+            game_state.board.cols,
+        )
+        command_viewer = viewer_color if record.mode == "online" else game_state.current_player
+        legal_power_targets: dict[str, list[Position]] = {
+            power: [] for power in affinity_config.power_costs
+        }
+        if (
+            affinity_config.affinity_enabled
+            and game_state.phase == "play"
+            and command_viewer == game_state.current_player
+        ):
+            raw_targets = self.engine.gambit.legal_power_targets(
+                game_state,
+                game_state.current_player,
+                self.engine,
+            )
+            legal_power_targets = {
+                power: [Position(**target) for target in targets]
+                for power, targets in raw_targets.items()
+            }
+        affinity_view = AffinityView(
+            enabled=affinity_config.affinity_enabled,
+            commandPointCap=affinity_config.command_point_cap,
+            powerCosts=affinity_config.power_costs,
+            powerUsageCaps=affinity_config.power_usage_caps,
+            squares={
+                color: [Position(row=row, col=col) for row, col in squares]
+                for color, squares in affinity_squares.items()
+            },
+            commandPoints=game_state.affinity.command_points,
+            primed=game_state.affinity.primed,
+            controlled=self.engine.gambit.affinity_control(game_state),
+            powerUsage=game_state.affinity.power_usage,
+            legalPowerTargets=legal_power_targets,
+            lastPowerExplanation=game_state.affinity.last_power_explanation,
+        )
 
         gambit_view = None
         if game_state.variant == "gambit" and game_state.gambit is not None:
@@ -1835,20 +1944,6 @@ class GameService:
             ):
                 editable_color = effective_viewer
 
-            legal_power_targets: dict[str, list[Position]] = {
-                power: [] for power in gambit.config.power_costs
-            }
-            if game_state.phase == "play" and effective_viewer == game_state.current_player:
-                raw_targets = self.engine.gambit.legal_power_targets(
-                    game_state,
-                    effective_viewer,
-                    self.engine,
-                )
-                legal_power_targets = {
-                    power: [Position(**target) for target in targets]
-                    for power, targets in raw_targets.items()
-                }
-
             draft_summary = {
                 color: GambitDraftPlayerView(
                     **self.engine.gambit.shared_draft.summary(game_state, color)
@@ -1874,18 +1969,18 @@ class GameService:
                     budget=gambit.config.budget,
                     maxPieces=gambit.config.max_pieces,
                     setupRows=gambit.config.setup_rows,
-                    commandPointCap=gambit.config.command_point_cap,
-                    affinityEnabled=gambit.config.affinity_enabled,
+                    commandPointCap=affinity_config.command_point_cap,
+                    affinityEnabled=affinity_config.affinity_enabled,
                     requireExactBudget=False,
                     draftEnabled=gambit.config.draft_enabled,
                     draftPool=gambit.config.draft_pool,
                     piecePoints=gambit.config.piece_points,
                     pieceCaps=gambit.config.piece_caps,
-                    powerCosts=gambit.config.power_costs,
-                    powerUsageCaps=gambit.config.power_usage_caps,
+                    powerCosts=affinity_config.power_costs,
+                    powerUsageCaps=affinity_config.power_usage_caps,
                     affinitySquares={
-                        color: [Position(row=square.row, col=square.col) for square in squares]
-                        for color, squares in gambit.config.affinity_squares.items()
+                        color: [Position(row=row, col=col) for row, col in squares]
+                        for color, squares in affinity_squares.items()
                     },
                 ),
                 viewerColor=effective_viewer,
@@ -1893,12 +1988,12 @@ class GameService:
                 deploymentReady=gambit.deployment_ready,
                 setupSummary=setup_summary,
                 setupMessage=gambit.setup_message,
-                commandPoints=gambit.command_points,
-                affinityPrimed=gambit.affinity_primed,
+                commandPoints=game_state.affinity.command_points,
+                affinityPrimed=game_state.affinity.primed,
                 affinityControlled=self.engine.gambit.affinity_control(game_state),
-                powerUsage=gambit.power_usage,
+                powerUsage=game_state.affinity.power_usage,
                 legalPowerTargets=legal_power_targets,
-                lastPowerExplanation=gambit.last_power_explanation,
+                lastPowerExplanation=game_state.affinity.last_power_explanation,
                 draftActiveColor=gambit.draft_active_color,
                 draftPicks=gambit.draft_picks,
                 draftPoolRemaining=gambit.draft_pool_remaining,
@@ -2088,6 +2183,7 @@ class GameService:
                 else None
             ),
             gambit=gambit_view,
+            affinity=affinity_view,
             centerDominion=center_dominion_view,
             rematch=RematchView(
                 status=game_state.rematch.status,

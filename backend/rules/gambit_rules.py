@@ -14,7 +14,7 @@ from backend.models import (
 )
 from backend.rules.base import ValidationResult
 from backend.rules.builtin_rules import opposing_color
-from backend.rules.variant_system import barricade_start_squares
+from backend.rules.variant_system import affinity_start_squares, barricade_start_squares
 
 
 @dataclass(frozen=True)
@@ -58,10 +58,12 @@ class DeploymentZoneRule:
 
     @staticmethod
     def allowed_rows(state: GameState, color: str, row_count: int | None = None) -> set[int]:
-        gambit = _require_gambit(state)
+        configured_rows = (
+            state.gambit.config.setup_rows if state.gambit is not None else 2
+        )
         count = min(
             state.board.rows,
-            row_count if row_count is not None else gambit.config.setup_rows,
+            row_count if row_count is not None else configured_rows,
         )
         if color == "white":
             return set(range(state.board.rows - count, state.board.rows))
@@ -351,70 +353,75 @@ class OpeningSafetyRule:
 
 class AffinityControlRule:
     descriptor = GambitRuleDescriptor(
-        id="gambit_affinity_control",
-        name="Center Affinity",
+        id="affinity_control",
+        name="Affinity Squares",
         description=(
             "Hold both center squares of your color through the opponent's turn to gain "
             "one command point, up to the configured cap."
         ),
+        tier="custom",
     )
 
     @staticmethod
     def controls(state: GameState, color: str) -> bool:
-        gambit = _require_gambit(state)
-        if not gambit.config.affinity_enabled:
+        if not state.configuration.custom_rules.affinity_enabled:
             return False
-        for square in gambit.config.affinity_squares[color]:
-            piece = state.board.grid[square.row][square.col]
+        squares = affinity_start_squares(state.board.rows, state.board.cols)
+        for row, col in squares[color]:
+            piece = state.board.grid[row][col]
             if piece is None or piece.color != color:
                 return False
         return True
 
     def complete_turn(self, state: GameState, acting_color: str) -> None:
-        gambit = _require_gambit(state)
-        if not gambit.config.affinity_enabled:
+        if not state.configuration.custom_rules.affinity_enabled:
             state.current_player = opposing_color(acting_color)
             return
-        gambit.affinity_primed[acting_color] = self.controls(state, acting_color)
+        state.affinity.primed[acting_color] = self.controls(state, acting_color)
 
         next_color = opposing_color(acting_color)
         state.current_player = next_color
-        if gambit.affinity_primed[next_color] and self.controls(state, next_color):
-            current = gambit.command_points[next_color]
-            gambit.command_points[next_color] = min(
-                gambit.config.command_point_cap,
+        if state.affinity.primed[next_color] and self.controls(state, next_color):
+            current = state.affinity.command_points[next_color]
+            state.affinity.command_points[next_color] = min(
+                state.configuration.custom_rules.command_point_cap,
                 current + 1,
             )
-        gambit.affinity_primed[next_color] = False
+        state.affinity.primed[next_color] = False
 
 
 class CommandPointRule:
     descriptor = GambitRuleDescriptor(
-        id="gambit_command_points",
+        id="command_points",
         name="Command Points",
         description="Command powers spend earned points and consume the player's full turn.",
+        tier="custom",
     )
 
     def validate(self, state: GameState, color: str, power: str) -> ValidationResult:
-        gambit = _require_gambit(state)
+        config = state.configuration.custom_rules
+        if not config.affinity_enabled:
+            return ValidationResult(False, "Affinity Squares are disabled for this game.")
         if state.phase != "play":
             return ValidationResult(False, "Command powers are available only during play.")
         if state.current_player != color:
             return ValidationResult(False, f"It is {state.current_player}'s turn.")
-        cost = gambit.config.power_costs[power]
-        if gambit.command_points[color] < cost:
+        cost = config.power_costs[power]
+        if state.affinity.command_points[color] < cost:
             return ValidationResult(False, f"{power.title()} requires {cost} command points.")
-        used = gambit.power_usage[color].get(power, 0)
-        cap = gambit.config.power_usage_caps[power]
+        used = state.affinity.power_usage[color].get(power, 0)
+        cap = config.power_usage_caps[power]
         if used >= cap:
             return ValidationResult(False, f"{power.title()} has reached its game limit.")
         return ValidationResult(True)
 
     @staticmethod
     def spend(state: GameState, color: str, power: str) -> None:
-        gambit = _require_gambit(state)
-        gambit.command_points[color] -= gambit.config.power_costs[power]
-        gambit.power_usage[color][power] = gambit.power_usage[color].get(power, 0) + 1
+        config = state.configuration.custom_rules
+        state.affinity.command_points[color] -= config.power_costs[power]
+        state.affinity.power_usage[color][power] = (
+            state.affinity.power_usage[color].get(power, 0) + 1
+        )
 
 
 class GambitPowerRule:
@@ -586,6 +593,8 @@ class GambitRuleSet:
             self.deployment_zone.descriptor,
             self.piece_limits.descriptor,
             self.opening_safety.descriptor,
+        ]
+        self._command_descriptors = [
             self.affinity.descriptor,
             self.command_points.descriptor,
             *(rule.descriptor for rule in self.power_rules.values()),
@@ -600,6 +609,9 @@ class GambitRuleSet:
         if state is not None and state.gambit is not None and state.gambit.config.draft_enabled:
             descriptors.extend(self._draft_descriptors)
         return descriptors
+
+    def available_command_rules(self) -> list[GambitRuleDescriptor]:
+        return list(self._command_descriptors)
 
     @staticmethod
     def preparation_phase(gambit: GambitState) -> str:
@@ -860,8 +872,7 @@ class GambitRuleSet:
         next_state = state.clone()
         explanation = rule.apply_to_board(next_state, color, row, col, evolve_to)
         self.command_points.spend(next_state, color, power)
-        next_gambit = _require_gambit(next_state)
-        next_gambit.last_power_explanation = explanation
+        next_state.affinity.last_power_explanation = explanation
         next_state.history.append(
             MoveRecord(
                 move_number=len(next_state.history) + 1,

@@ -140,8 +140,8 @@ export function completeGambitHandoff(gameId, payload, token) {
   });
 }
 
-export function useGambitPower(gameId, payload, token) {
-  return request(`/game/${gameId}/gambit/power`, {
+export function useCommandPower(gameId, payload, token) {
+  return request(`/game/${gameId}/command`, {
     method: "POST",
     body: JSON.stringify(payload),
     token,
