@@ -10,7 +10,6 @@ from backend.rules.movement import in_bounds
 ABILITY_ICONS = {ability["id"]: ability["icon"] for ability in SPECIAL_ABILITIES}
 ABILITY_COOLDOWN_TURNS = {
     "necromancy": 9,
-    "getaway": 10,
     "eye_for_an_eye": 10,
 }
 FINISHED_STATUSES = {
@@ -477,7 +476,7 @@ class VariantActionRules:
     def _getaway_actions(self, state: GameState, color: str, helper) -> list[dict]:
         if (
             state.abilities.selected.get(color) != "getaway"
-            or not ability_is_ready(state, color, "getaway")
+            or state.abilities.used.get(color, False)
             or state.game_status != "check"
             or helper.has_any_legal_move(state, color)
         ):
@@ -504,7 +503,7 @@ class VariantActionRules:
                         "owner": color,
                         "icon": "⇄",
                         "label": f"Getaway with {piece.name}",
-                        "description": "Swap the King with your Queen, then recharge for ten turns.",
+                        "description": "Use your one Getaway to swap the King with your Queen.",
                         "source": {"row": king[0], "col": king[1]},
                         "target": {"row": row, "col": col},
                     }
@@ -747,8 +746,9 @@ class VariantActionRules:
                 state.board.grid[target[0]][target[1]],
                 state.board.grid[source[0]][source[1]],
             )
-            start_ability_cooldown(state, color, "getaway")
             state.abilities.used[color] = True
+            usage = state.abilities.usage_count[color]
+            usage["getaway"] = int(usage.get("getaway", 0)) + 1
             explanation = f"{color.title()} used Getaway and escaped royal defeat."
             piece_type = "king"
         elif action_type == "eye_for_an_eye":

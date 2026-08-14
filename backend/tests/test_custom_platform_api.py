@@ -94,7 +94,7 @@ def test_catalog_describes_custom_content(client):
         for ability in catalog["specialAbilities"]
     }
     assert cooldowns["necromancy"] == 9
-    assert cooldowns["getaway"] == 10
+    assert cooldowns["getaway"] is None
     assert cooldowns["eye_for_an_eye"] == 10
     assert cooldowns["episcopal"] == 6
     getaway = next(
@@ -103,6 +103,7 @@ def test_catalog_describes_custom_content(client):
     assert "Queen" in getaway["summary"]
     assert "Rook" not in getaway["summary"]
     assert any("Only a Queen" in detail for detail in getaway["details"])
+    assert getaway["usageLimit"] == 1
 
 
 def test_catalog_formations_have_complete_horde_and_castle_armies(client):
@@ -993,11 +994,9 @@ def test_getaway_swaps_the_king_with_a_queen_to_escape_checkmate(client):
     assert updated["board"][0][7]["type"] == "king"
     assert updated["board"][7][7]["type"] == "queen"
     assert updated["abilities"]["used"]["white"] is True
-    assert updated["abilities"]["cooldowns"]["white"]["getaway"] == 10
-    assert any(
-        item["kind"] == "getaway" and item["remainingTurns"] == 10
-        for item in updated["countdowns"]
-    )
+    assert updated["abilities"]["cooldowns"]["white"].get("getaway") is None
+    assert not any(item["kind"] == "getaway" for item in updated["countdowns"])
+    assert updated["abilities"]["usageCount"]["white"]["getaway"] == 1
     assert updated["currentPlayer"] == "black"
 
 
