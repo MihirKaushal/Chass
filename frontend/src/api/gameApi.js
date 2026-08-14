@@ -116,6 +116,14 @@ export function updateGambitDeployment(gameId, payload, token) {
   });
 }
 
+export function updateGambitDraft(gameId, payload, token) {
+  return request(`/game/${gameId}/gambit/draft`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
 export function readyGambitDeployment(gameId, payload, token) {
   return request(`/game/${gameId}/gambit/ready`, {
     method: "POST",

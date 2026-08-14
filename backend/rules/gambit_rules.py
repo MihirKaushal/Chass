@@ -137,6 +137,156 @@ class PieceLimitRule:
         return issues
 
 
+class SharedDraftRule:
+    descriptor = GambitRuleDescriptor(
+        id="gambit_shared_draft",
+        name="Shared Army Draft",
+        description=(
+            "Players alternate public picks from a shared pool before privately deploying "
+            "only the pieces they drafted."
+        ),
+    )
+
+    @staticmethod
+    def summary(state: GameState, color: str) -> dict:
+        gambit = _require_gambit(state)
+        picks = gambit.draft_picks[color]
+        counts = Counter(picks)
+        spent = sum(gambit.config.piece_points.get(piece_type, 0) for piece_type in picks)
+        return {
+            "pointsSpent": spent,
+            "pointsRemaining": max(0, gambit.config.budget - spent),
+            "pieceCount": len(picks),
+            "counts": dict(counts),
+            "hasKing": counts.get("king", 0) == 1,
+        }
+
+    def pick_issue(self, state: GameState, color: str, piece_type: str) -> str | None:
+        gambit = _require_gambit(state)
+        if not gambit.config.draft_enabled or state.phase != "draft":
+            return "The shared draft is not active right now."
+        if color != gambit.draft_active_color:
+            return f"It is {gambit.draft_active_color.title()}'s draft pick."
+        if gambit.draft_passed[color]:
+            return "This army is already locked."
+        if piece_type == "barricade" or piece_type not in gambit.config.piece_points:
+            return "That piece is not available in this draft."
+        if gambit.draft_pool_remaining.get(piece_type, 0) <= 0:
+            return f"No {piece_type.title()} remains in the shared pool."
+
+        picks = gambit.draft_picks[color]
+        counts = Counter(picks)
+        if len(picks) >= gambit.config.max_pieces:
+            return f"Army may contain at most {gambit.config.max_pieces} pieces."
+        cap = gambit.config.piece_caps.get(piece_type, 0)
+        if counts.get(piece_type, 0) >= cap:
+            return f"Your {piece_type.title()} limit is {cap}."
+
+        spent = sum(gambit.config.piece_points.get(item, 0) for item in picks)
+        cost = gambit.config.piece_points[piece_type]
+        if spent + cost > gambit.config.budget:
+            return f"That pick would exceed the {gambit.config.budget}-point limit."
+
+        if counts.get("king", 0) == 0 and piece_type != "king":
+            king_cost = gambit.config.piece_points.get("king", 0)
+            if len(picks) + 1 >= gambit.config.max_pieces:
+                return "Keep one army slot available for the required King."
+            if spent + cost + king_cost > gambit.config.budget:
+                return "Keep enough points available for the required King."
+        return None
+
+    def options(self, state: GameState, color: str) -> list[str]:
+        gambit = _require_gambit(state)
+        return [
+            piece_type
+            for piece_type in gambit.config.draft_pool
+            if self.pick_issue(state, color, piece_type) is None
+        ]
+
+    def can_pass(self, state: GameState, color: str) -> bool:
+        gambit = _require_gambit(state)
+        return (
+            gambit.config.draft_enabled
+            and state.phase == "draft"
+            and gambit.draft_active_color == color
+            and not gambit.draft_passed[color]
+            and Counter(gambit.draft_picks[color]).get("king", 0) == 1
+        )
+
+    def apply(
+        self,
+        state: GameState,
+        color: str,
+        *,
+        action: str,
+        piece_type: str | None,
+    ) -> GameState:
+        gambit = _require_gambit(state)
+        if not gambit.config.draft_enabled or state.phase != "draft":
+            raise ValueError("The shared draft is not active right now.")
+        if color != gambit.draft_active_color:
+            raise ValueError(f"It is {gambit.draft_active_color.title()}'s draft pick.")
+
+        next_state = state.clone()
+        next_gambit = _require_gambit(next_state)
+        if action == "pick":
+            if not piece_type:
+                raise ValueError("Choose a piece from the shared pool.")
+            issue = self.pick_issue(state, color, piece_type)
+            if issue:
+                raise ValueError(issue)
+            next_gambit.draft_picks[color].append(piece_type)
+            next_gambit.draft_pool_remaining[piece_type] -= 1
+        elif action == "pass":
+            if not self.can_pass(state, color):
+                raise ValueError("Draft exactly one King before locking your army.")
+            next_gambit.draft_passed[color] = True
+        else:
+            raise ValueError("Unsupported draft action.")
+
+        other = opposing_color(color)
+        if all(next_gambit.draft_passed.values()):
+            next_state.phase = "deployment"
+            next_gambit.active_deployment_color = "white"
+        elif next_gambit.draft_passed[other]:
+            next_gambit.draft_active_color = color
+        else:
+            next_gambit.draft_active_color = other
+        return next_state
+
+
+class DraftInventoryRule:
+    descriptor = GambitRuleDescriptor(
+        id="gambit_draft_inventory",
+        name="Drafted Army Inventory",
+        description="Private deployment must place every piece selected during the shared draft.",
+    )
+
+    def issues(
+        self,
+        state: GameState,
+        color: str,
+        pieces: list[DeploymentPiece],
+        *,
+        require_complete: bool,
+    ) -> list[str]:
+        gambit = _require_gambit(state)
+        if not gambit.config.draft_enabled:
+            return []
+        drafted = Counter(gambit.draft_picks[color])
+        deployed = Counter(piece.type for piece in pieces)
+        for piece_type, count in deployed.items():
+            if count > drafted.get(piece_type, 0):
+                available = drafted.get(piece_type, 0)
+                return [
+                    f"Only {available} drafted {piece_type.title()} "
+                    f"{'is' if available == 1 else 'copies are'} available."
+                ]
+        if require_complete and deployed != drafted:
+            return ["Place every drafted piece before locking the army."]
+        return []
+
+
 class HiddenDeploymentRule:
     descriptor = GambitRuleDescriptor(
         id="gambit_hidden_deployment",
@@ -405,6 +555,8 @@ class GambitRuleSet:
         self.point_budget = PointBudgetRule()
         self.deployment_zone = DeploymentZoneRule()
         self.piece_limits = PieceLimitRule()
+        self.shared_draft = SharedDraftRule()
+        self.draft_inventory = DraftInventoryRule()
         self.hidden_deployment = HiddenDeploymentRule()
         self.opening_safety = OpeningSafetyRule()
         self.affinity = AffinityControlRule()
@@ -427,9 +579,20 @@ class GambitRuleSet:
             self.command_points.descriptor,
             *(rule.descriptor for rule in self.power_rules.values()),
         ]
+        self._draft_descriptors = [
+            self.shared_draft.descriptor,
+            self.draft_inventory.descriptor,
+        ]
 
-    def available_rules(self) -> list[GambitRuleDescriptor]:
-        return list(self._descriptors)
+    def available_rules(self, state: GameState | None = None) -> list[GambitRuleDescriptor]:
+        descriptors = list(self._descriptors)
+        if state is not None and state.gambit is not None and state.gambit.config.draft_enabled:
+            descriptors.extend(self._draft_descriptors)
+        return descriptors
+
+    @staticmethod
+    def preparation_phase(gambit: GambitState) -> str:
+        return "draft" if gambit.config.draft_enabled else "deployment"
 
     def setup_issues(
         self,
@@ -448,6 +611,12 @@ class GambitRuleSet:
             ),
             *self.piece_limits.issues(
                 state,
+                pieces,
+                require_complete=require_complete,
+            ),
+            *self.draft_inventory.issues(
+                state,
+                color,
                 pieces,
                 require_complete=require_complete,
             ),
@@ -549,6 +718,12 @@ class GambitRuleSet:
             *self.deployment_zone.issues(state, color, candidate),
             *self.point_budget.issues(state, candidate),
             *self.piece_limits.issues(state, candidate, require_complete=False),
+            *self.draft_inventory.issues(
+                state,
+                color,
+                candidate,
+                require_complete=False,
+            ),
         ]
 
     def mark_ready(self, state: GameState, color: str, *, mode: str, helper) -> GameState:
@@ -625,10 +800,7 @@ class GambitRuleSet:
         self.affinity.complete_turn(state, acting_color)
 
     def affinity_control(self, state: GameState) -> dict[str, bool]:
-        return {
-            color: self.affinity.controls(state, color)
-            for color in ("white", "black")
-        }
+        return {color: self.affinity.controls(state, color) for color in ("white", "black")}
 
     def legal_power_targets(self, state: GameState, color: str, helper) -> dict[str, list[dict]]:
         targets: dict[str, list[dict]] = {}
@@ -735,9 +907,7 @@ def build_deployment_board(state: GameState) -> Board:
             state.configuration.barricade_count,
         ):
             if board.grid[row][col] is not None:
-                raise ValueError(
-                    "Starting Barricade squares must remain empty during deployment."
-                )
+                raise ValueError("Starting Barricade squares must remain empty during deployment.")
             board.grid[row][col] = create_piece(state, "barricade", "neutral")
     return board
 

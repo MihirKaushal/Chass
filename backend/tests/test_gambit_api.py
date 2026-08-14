@@ -29,6 +29,37 @@ def board_piece_count(game: dict) -> int:
     return sum(piece is not None for row in game["board"] for piece in row)
 
 
+def draft_gambit_payload(mode: str = "local") -> dict:
+    return {
+        "mode": mode,
+        "variant": "gambit",
+        "boardRows": 8,
+        "boardCols": 8,
+        "configuration": {
+            "schemaVersion": 2,
+            "presetId": "draft_gambit",
+            "formationId": "classic",
+            "enabledPieces": ["rook", "queen", "king"],
+            "piecePoints": {"rook": 5, "queen": 1, "king": 0},
+            "initialLayout": [],
+            "victory": {"mode": "checkmate"},
+            "specialAbilities": {"enabled": False, "allowed": []},
+            "gambit": {
+                "enabled": True,
+                "budget": 5,
+                "maxPieces": 2,
+                "setupRows": 2,
+                "maxQueens": 1,
+                "affinityEnabled": False,
+                "commandPointCap": 0,
+                "pieceCaps": {"rook": 1, "queen": 1, "king": 1},
+                "draftEnabled": True,
+                "draftPool": {"rook": 2, "queen": 1, "king": 2},
+            },
+        },
+    }
+
+
 def deploy_standard_local(client, game_id: str, color: str, version: int) -> int:
     back_row = 7 if color == "white" else 0
     pawn_row = 6 if color == "white" else 1
@@ -60,6 +91,260 @@ def deploy_standard_local(client, game_id: str, color: str, version: int) -> int
         assert response.status_code == 200
         version = response.json()["version"]
     return version
+
+
+def test_local_draft_gambit_flows_into_private_drafted_army_deployment(client):
+    created = client.post("/game/create", json=draft_gambit_payload())
+    assert created.status_code == 200
+    game = created.json()["game"]
+    game_id = game["id"]
+    assert game["phase"] == "draft"
+    assert game["gambit"]["draftActiveColor"] == "white"
+    assert game["gambit"]["draftPoolRemaining"] == {
+        "rook": 2,
+        "queen": 1,
+        "king": 2,
+    }
+    assert game["gambit"]["draftCanPass"] is False
+
+    version = game["version"]
+    for piece_type in ("king", "king", "rook", "rook"):
+        picked = client.post(
+            f"/game/{game_id}/gambit/draft",
+            json={
+                "action": "pick",
+                "pieceType": piece_type,
+                "expectedVersion": version,
+            },
+        )
+        assert picked.status_code == 200
+        game = picked.json()
+        version = game["version"]
+
+    assert game["gambit"]["draftPicks"] == {
+        "white": ["king", "rook"],
+        "black": ["king", "rook"],
+    }
+    assert game["gambit"]["draftSummary"]["white"]["pointsSpent"] == 5
+
+    for color in ("white", "black"):
+        assert game["gambit"]["draftActiveColor"] == color
+        passed = client.post(
+            f"/game/{game_id}/gambit/draft",
+            json={"action": "pass", "expectedVersion": version},
+        )
+        assert passed.status_code == 200
+        game = passed.json()
+        version = game["version"]
+
+    assert game["phase"] == "deployment"
+    assert game["gambit"]["editableColor"] == "white"
+
+    undrafted = client.post(
+        f"/game/{game_id}/gambit/deployment",
+        json={
+            "action": "place",
+            "row": 7,
+            "col": 3,
+            "pieceType": "queen",
+            "expectedVersion": version,
+        },
+    )
+    assert undrafted.status_code == 400
+    assert "drafted" in undrafted.json()["detail"]
+
+    for row, col, piece_type in ((7, 4, "king"), (7, 0, "rook")):
+        placed = client.post(
+            f"/game/{game_id}/gambit/deployment",
+            json={
+                "action": "place",
+                "row": row,
+                "col": col,
+                "pieceType": piece_type,
+                "expectedVersion": version,
+            },
+        )
+        assert placed.status_code == 200
+        version = placed.json()["version"]
+    white_ready = client.post(
+        f"/game/{game_id}/gambit/ready",
+        json={"expectedVersion": version},
+    ).json()
+    assert white_ready["phase"] == "handoff"
+
+    handoff = client.post(
+        f"/game/{game_id}/gambit/handoff",
+        json={"expectedVersion": white_ready["version"]},
+    ).json()
+    version = handoff["version"]
+    for row, col, piece_type in ((0, 4, "king"), (0, 0, "rook")):
+        placed = client.post(
+            f"/game/{game_id}/gambit/deployment",
+            json={
+                "action": "place",
+                "row": row,
+                "col": col,
+                "pieceType": piece_type,
+                "expectedVersion": version,
+            },
+        )
+        assert placed.status_code == 200
+        version = placed.json()["version"]
+    black_ready = client.post(
+        f"/game/{game_id}/gambit/ready",
+        json={"expectedVersion": version},
+    )
+    assert black_ready.status_code == 200
+    finished_setup = black_ready.json()
+    assert finished_setup["phase"] == "play"
+    assert board_piece_count(finished_setup) == 4
+
+
+def test_online_draft_gambit_enforces_alternating_player_seats(client):
+    created = client.post("/game/create", json=draft_gambit_payload("online")).json()
+    joined = client.post(
+        "/game/join",
+        json={"inviteToken": created["inviteToken"]},
+    ).json()
+    game_id = created["game"]["id"]
+    game = joined["game"]
+    assert game["phase"] == "draft"
+
+    white_pick = client.post(
+        f"/game/{game_id}/gambit/draft",
+        headers=auth(created["playerToken"]),
+        json={
+            "action": "pick",
+            "pieceType": "king",
+            "expectedVersion": game["version"],
+        },
+    )
+    assert white_pick.status_code == 200
+    after_white = white_pick.json()
+
+    wrong_seat = client.post(
+        f"/game/{game_id}/gambit/draft",
+        headers=auth(created["playerToken"]),
+        json={
+            "action": "pick",
+            "pieceType": "rook",
+            "expectedVersion": after_white["version"],
+        },
+    )
+    assert wrong_seat.status_code == 403
+
+    black_pick = client.post(
+        f"/game/{game_id}/gambit/draft",
+        headers=auth(joined["playerToken"]),
+        json={
+            "action": "pick",
+            "pieceType": "king",
+            "expectedVersion": after_white["version"],
+        },
+    )
+    assert black_pick.status_code == 200
+    assert black_pick.json()["gambit"]["draftActiveColor"] == "white"
+
+
+def test_draft_army_cannot_lock_without_its_king(client):
+    game = client.post("/game/create", json=draft_gambit_payload()).json()["game"]
+
+    locked = client.post(
+        f"/game/{game['id']}/gambit/draft",
+        json={"action": "pass", "expectedVersion": game["version"]},
+    )
+
+    assert locked.status_code == 400
+    assert "exactly one King" in locked.json()["detail"]
+
+
+def test_draft_configuration_requires_exactly_two_shared_kings(client):
+    payload = draft_gambit_payload()
+    payload["configuration"]["gambit"]["draftPool"]["king"] = 1
+
+    validation = client.post("/game/validate", json=payload)
+
+    assert validation.status_code == 200
+    result = validation.json()
+    assert result["valid"] is False
+    assert "exactly two Kings" in result["errors"][0]
+
+
+def test_special_ability_selection_continues_into_shared_draft(client):
+    payload = draft_gambit_payload()
+    payload["configuration"]["specialAbilities"] = {
+        "enabled": True,
+        "allowed": ["getaway"],
+    }
+    game = client.post("/game/create", json=payload).json()["game"]
+    assert game["phase"] == "ability_selection"
+
+    white_choice = client.post(
+        f"/game/{game['id']}/ability",
+        json={"abilityId": "getaway", "expectedVersion": game["version"]},
+    ).json()
+    assert white_choice["phase"] == "handoff"
+    handoff = client.post(
+        f"/game/{game['id']}/setup/handoff",
+        json={"expectedVersion": white_choice["version"]},
+    ).json()
+    assert handoff["phase"] == "ability_selection"
+    black_choice = client.post(
+        f"/game/{game['id']}/ability",
+        json={"abilityId": "getaway", "expectedVersion": handoff["version"]},
+    )
+
+    assert black_choice.status_code == 200
+    drafted = black_choice.json()
+    assert drafted["phase"] == "draft"
+    assert drafted["gambit"]["draftActiveColor"] == "white"
+
+
+def test_draft_gambit_rematch_restores_the_shared_pool(client):
+    game = client.post("/game/create", json=draft_gambit_payload()).json()["game"]
+    version = game["version"]
+    for piece_type in ("king", "king"):
+        picked = client.post(
+            f"/game/{game['id']}/gambit/draft",
+            json={
+                "action": "pick",
+                "pieceType": piece_type,
+                "expectedVersion": version,
+            },
+        )
+        assert picked.status_code == 200
+        version = picked.json()["version"]
+
+    requested = client.post(
+        f"/game/{game['id']}/rematch",
+        json={
+            "action": "request",
+            "color": "white",
+            "expectedVersion": version,
+        },
+    )
+    assert requested.status_code == 200
+    pending = requested.json()
+    restarted = client.post(
+        f"/game/{game['id']}/rematch",
+        json={
+            "action": "accept",
+            "color": "black",
+            "expectedVersion": pending["version"],
+        },
+    )
+
+    assert restarted.status_code == 200
+    reset_game = restarted.json()
+    assert reset_game["phase"] == "draft"
+    assert reset_game["gambit"]["draftActiveColor"] == "white"
+    assert reset_game["gambit"]["draftPicks"] == {"white": [], "black": []}
+    assert reset_game["gambit"]["draftPassed"] == {"white": False, "black": False}
+    assert reset_game["gambit"]["draftPoolRemaining"] == {
+        "rook": 2,
+        "queen": 1,
+        "king": 2,
+    }
 
 
 def test_local_gambit_hides_armies_until_legal_reveal(client):

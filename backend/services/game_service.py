@@ -11,6 +11,7 @@ from fastapi import HTTPException
 from backend.catalog import (
     VICTORY_MODES,
     build_catalog_piece_definitions,
+    build_default_draft_pool,
     catalog_payload,
 )
 from backend.catalog import (
@@ -48,6 +49,8 @@ from backend.models.schemas import (
     CreateGameRequest,
     GambitConfigView,
     GambitDeploymentRequest,
+    GambitDraftPlayerView,
+    GambitDraftRequest,
     GambitHandoffRequest,
     GambitPowerRequest,
     GambitReadyRequest,
@@ -191,7 +194,16 @@ def _initial_board(
     grid = board.grid
 
     if board_cols > 8:
-        classic_back_rank = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"]
+        classic_back_rank = [
+            "rook",
+            "knight",
+            "bishop",
+            "queen",
+            "king",
+            "bishop",
+            "knight",
+            "rook",
+        ]
         col_start = (board_cols - len(classic_back_rank)) // 2
         piece_columns = [col_start + index for index in range(len(classic_back_rank))]
         black_back_rank = classic_back_rank
@@ -203,7 +215,9 @@ def _initial_board(
 
     if board_rows >= 1:
         for index, col in enumerate(piece_columns):
-            grid[0][col] = _create_piece_instance(black_back_rank[index], "black", piece_definitions)
+            grid[0][col] = _create_piece_instance(
+                black_back_rank[index], "black", piece_definitions
+            )
 
     if board_rows >= 2:
         for col in piece_columns:
@@ -215,7 +229,9 @@ def _initial_board(
 
     if board_rows >= 1:
         for index, col in enumerate(piece_columns):
-            grid[board_rows - 1][col] = _create_piece_instance(white_back_rank[index], "white", piece_definitions)
+            grid[board_rows - 1][col] = _create_piece_instance(
+                white_back_rank[index], "white", piece_definitions
+            )
 
     return board
 
@@ -233,7 +249,12 @@ def _normalize_placement(
         allowed_colors.add("neutral")
     if placement.color not in allowed_colors:
         raise HTTPException(status_code=400, detail=f"Unsupported piece color: {placement.color}")
-    if placement.row < 0 or placement.row >= board_rows or placement.col < 0 or placement.col >= board_cols:
+    if (
+        placement.row < 0
+        or placement.row >= board_rows
+        or placement.col < 0
+        or placement.col >= board_cols
+    ):
         raise HTTPException(status_code=400, detail="Placement out of board bounds")
     return placement
 
@@ -322,7 +343,9 @@ def _center_affinity_squares(board_rows: int, board_cols: int) -> dict[str, list
     }
 
 
-def _configuration_from_request(request: CreateGameRequest) -> tuple[
+def _configuration_from_request(
+    request: CreateGameRequest,
+) -> tuple[
     GameConfiguration,
     dict[str, PieceDefinition],
     GambitState | None,
@@ -405,12 +428,24 @@ def _configuration_from_request(request: CreateGameRequest) -> tuple[
                 status_code=400,
                 detail=f"Piece limit is not enabled: {unknown_caps[0]}",
             )
+        unknown_draft_pool = sorted(set(payload.gambit.draftPool) - enabled_types)
+        if unknown_draft_pool:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Draft pool piece is not enabled: {unknown_draft_pool[0]}",
+            )
+        if "barricade" in payload.gambit.draftPool:
+            raise HTTPException(
+                status_code=400,
+                detail="Barricades are neutral and cannot enter the army draft.",
+            )
         gambit = GambitState()
         gambit.config.budget = payload.gambit.budget
         gambit.config.max_pieces = payload.gambit.maxPieces
         gambit.config.setup_rows = payload.gambit.setupRows
         gambit.config.command_point_cap = payload.gambit.commandPointCap
         gambit.config.affinity_enabled = payload.gambit.affinityEnabled
+        gambit.config.draft_enabled = payload.gambit.draftEnabled
         gambit.config.require_exact_budget = False
         gambit.config.piece_points = {
             piece_type: int(definitions[piece_type].points or 0)
@@ -428,6 +463,10 @@ def _configuration_from_request(request: CreateGameRequest) -> tuple[
         default_caps["queen"] = payload.gambit.maxQueens
         default_caps["barricade"] = 0
         gambit.config.piece_caps = default_caps
+        draft_pool = build_default_draft_pool(enabled_types)
+        draft_pool.update(payload.gambit.draftPool)
+        gambit.config.draft_pool = draft_pool
+        gambit.draft_pool_remaining = dict(draft_pool)
         if gambit.config.piece_points.get("king", 0) > gambit.config.budget:
             raise HTTPException(
                 status_code=400,
@@ -463,8 +502,7 @@ def _configured_board(
                 raise HTTPException(
                     status_code=400,
                     detail=(
-                        "Starting Barricade positions must remain empty in the "
-                        "center of the board."
+                        "Starting Barricade positions must remain empty in the center of the board."
                     ),
                 )
             board.grid[row][col] = _create_piece_instance(
@@ -693,27 +731,24 @@ class GameService:
 
         is_gambit = gambit_state is not None or request.variant == "gambit"
         request.variant = "gambit" if is_gambit else "classic"
-        abilities_enabled = configuration.special_abilities.enabled
-        initial_phase = (
-            "lobby"
-            if request.mode == "online"
-            and (
-                is_gambit
-                or abilities_enabled
-                or configuration.victory.mode == "timed"
-            )
-            else (
-                "ability_selection"
-                if abilities_enabled
-                else ("deployment" if is_gambit else "play")
-            )
-        )
         if is_gambit and gambit_state is None:
             gambit_state = GambitState()
             gambit_state.config.affinity_squares = _center_affinity_squares(
                 request.boardRows,
                 request.boardCols,
             )
+        abilities_enabled = configuration.special_abilities.enabled
+        gambit_preparation_phase = (
+            self.engine.gambit.preparation_phase(gambit_state)
+            if gambit_state is not None
+            else "play"
+        )
+        initial_phase = (
+            "lobby"
+            if request.mode == "online"
+            and (is_gambit or abilities_enabled or configuration.victory.mode == "timed")
+            else ("ability_selection" if abilities_enabled else gambit_preparation_phase)
+        )
         if configuration.victory.mode in {"point_race", "king_capture", "royal_score"}:
             piece_definitions["king"].points = configuration.victory.king_points
 
@@ -817,7 +852,11 @@ class GameService:
             next_state.phase = (
                 "ability_selection"
                 if next_state.configuration.special_abilities.enabled
-                else ("deployment" if next_state.variant == "gambit" else "play")
+                else (
+                    self.engine.gambit.preparation_phase(next_state.gambit)
+                    if next_state.gambit is not None
+                    else "play"
+                )
             )
             if next_state.gambit is not None:
                 next_version = record.version + 1
@@ -910,7 +949,9 @@ class GameService:
         if not config.enabled or state.phase != "ability_selection":
             raise HTTPException(status_code=409, detail="Ability selection is not active.")
         if request.abilityId not in config.allowed:
-            raise HTTPException(status_code=400, detail="That ability is not enabled for this game.")
+            raise HTTPException(
+                status_code=400, detail="That ability is not enabled for this game."
+            )
         if record.mode == "online" and not record.ready:
             raise HTTPException(status_code=409, detail="Waiting for the second player to join.")
 
@@ -925,7 +966,11 @@ class GameService:
             next_state.abilities.active_selection_color = "black"
             next_state.phase = "handoff"
         elif all(next_state.abilities.selected.values()):
-            next_state.phase = "deployment" if next_state.variant == "gambit" else "play"
+            next_state.phase = (
+                self.engine.gambit.preparation_phase(next_state.gambit)
+                if next_state.gambit is not None
+                else "play"
+            )
             if next_state.variant == "gambit" and next_state.gambit is not None:
                 next_state.gambit.active_deployment_color = "white"
             if next_state.clock is not None:
@@ -952,7 +997,7 @@ class GameService:
         ):
             next_state.phase = "ability_selection"
         elif next_state.variant == "gambit":
-            next_state.phase = "deployment"
+            next_state.phase = self.engine.gambit.preparation_phase(next_state.gambit)
         else:
             next_state.phase = "play"
         if next_state.phase == "play":
@@ -970,7 +1015,9 @@ class GameService:
         color = record.state.current_player
         if record.mode == "online":
             if not record.ready:
-                raise HTTPException(status_code=409, detail="Waiting for the second player to join.")
+                raise HTTPException(
+                    status_code=409, detail="Waiting for the second player to join."
+                )
             if authorized.player is None or authorized.player.color != color:
                 raise HTTPException(status_code=403, detail=f"Only {color} can act right now.")
         expected = self._expected_version(record, request.expectedVersion)
@@ -1009,6 +1056,45 @@ class GameService:
                 raise HTTPException(status_code=403, detail="A player seat is required.")
             return authorized.player.color
         return state.gambit.active_deployment_color
+
+    def update_gambit_draft(
+        self,
+        game_id: str,
+        request: GambitDraftRequest,
+        player_token: str | None = None,
+    ) -> GameRecord:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        state = record.state
+        if state.gambit is None or not state.gambit.config.draft_enabled:
+            raise HTTPException(status_code=409, detail="This game has no shared draft.")
+        if record.mode == "online":
+            if not record.ready:
+                raise HTTPException(
+                    status_code=409, detail="Waiting for the second player to join."
+                )
+            if authorized.player is None:
+                raise HTTPException(status_code=403, detail="A player seat is required.")
+            color = authorized.player.color
+            if color != state.gambit.draft_active_color:
+                raise HTTPException(
+                    status_code=403,
+                    detail=f"It is {state.gambit.draft_active_color.title()}'s draft pick.",
+                )
+        else:
+            color = state.gambit.draft_active_color
+
+        expected_version = self._expected_version(record, request.expectedVersion)
+        try:
+            next_state = self.engine.gambit.shared_draft.apply(
+                state,
+                color,
+                action=request.action,
+                piece_type=request.pieceType,
+            )
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        return self._save(next_state, expected_version)
 
     def update_gambit_deployment(
         self,
@@ -1250,6 +1336,7 @@ class GameService:
                 if game_state.gambit is not None
                 else None
             )
+            reset_gambit = GambitState(config=config) if config is not None else GambitState()
             game_state.board = _empty_board(game_state.board.rows, game_state.board.cols)
             game_state.phase = (
                 "lobby"
@@ -1257,10 +1344,10 @@ class GameService:
                 else (
                     "ability_selection"
                     if game_state.configuration.special_abilities.enabled
-                    else "deployment"
+                    else self.engine.gambit.preparation_phase(reset_gambit)
                 )
             )
-            game_state.gambit = GambitState(config=config) if config is not None else GambitState()
+            game_state.gambit = reset_gambit
             game_state.gambit.deployment_versions = {
                 "white": record.version + 1,
                 "black": record.version + 1,
@@ -1298,9 +1385,7 @@ class GameService:
         )
         game_state.current_player = "white"
         game_state.phase = (
-            "ability_selection"
-            if game_state.configuration.special_abilities.enabled
-            else "play"
+            "ability_selection" if game_state.configuration.special_abilities.enabled else "play"
         )
         game_state.abilities = AbilityState()
         game_state.center_dominion = CenterDominionState()
@@ -1374,11 +1459,15 @@ class GameService:
             proposal.approvals[actor] = True
         elif request.action == "accept":
             if proposal.status != "pending":
-                raise HTTPException(status_code=409, detail="There is no restart request to accept.")
+                raise HTTPException(
+                    status_code=409, detail="There is no restart request to accept."
+                )
             proposal.approvals[actor] = True
         elif request.action == "decline":
             if proposal.status != "pending":
-                raise HTTPException(status_code=409, detail="There is no restart request to decline.")
+                raise HTTPException(
+                    status_code=409, detail="There is no restart request to decline."
+                )
             state.rematch = RematchState()
         elif request.action == "cancel":
             if proposal.status != "pending" or proposal.requested_by != actor:
@@ -1476,6 +1565,8 @@ class GameService:
                         "affinityEnabled": game_state.gambit.config.affinity_enabled,
                         "commandPointCap": game_state.gambit.config.command_point_cap,
                         "pieceCaps": game_state.gambit.config.piece_caps,
+                        "draftEnabled": game_state.gambit.config.draft_enabled,
+                        "draftPool": game_state.gambit.config.draft_pool,
                     }
                     if game_state.gambit is not None
                     else {}
@@ -1562,8 +1653,7 @@ class GameService:
                 mode=record.mode,
             )
             board_grid = [
-                [None for _ in range(game_state.board.cols)]
-                for _ in range(game_state.board.rows)
+                [None for _ in range(game_state.board.cols)] for _ in range(game_state.board.rows)
             ]
             if visible_deployment_color is not None:
                 for placement in visible_pieces:
@@ -1624,11 +1714,7 @@ class GameService:
 
         settings_map = {setting.id: setting for setting in game_state.rules}
         victory_mode_view = next(
-            (
-                mode
-                for mode in VICTORY_MODES
-                if mode["id"] == game_state.configuration.victory.mode
-            ),
+            (mode for mode in VICTORY_MODES if mode["id"] == game_state.configuration.victory.mode),
             None,
         )
         rule_views = []
@@ -1674,7 +1760,7 @@ class GameService:
                     isSpecial=True,
                     params={},
                 )
-                for rule in self.engine.gambit.available_rules()
+                for rule in self.engine.gambit.available_rules(game_state)
             )
 
         history_views = []
@@ -1719,7 +1805,11 @@ class GameService:
                 else (
                     visible_deployment_color
                     if game_state.phase in {"lobby", "deployment", "handoff"}
-                    else game_state.current_player
+                    else (
+                        gambit.draft_active_color
+                        if game_state.phase == "draft"
+                        else game_state.current_player
+                    )
                 )
             )
             setup_summary = None
@@ -1742,10 +1832,7 @@ class GameService:
             legal_power_targets: dict[str, list[Position]] = {
                 power: [] for power in gambit.config.power_costs
             }
-            if (
-                game_state.phase == "play"
-                and effective_viewer == game_state.current_player
-            ):
+            if game_state.phase == "play" and effective_viewer == game_state.current_player:
                 raw_targets = self.engine.gambit.legal_power_targets(
                     game_state,
                     effective_viewer,
@@ -1756,6 +1843,26 @@ class GameService:
                     for power, targets in raw_targets.items()
                 }
 
+            draft_summary = {
+                color: GambitDraftPlayerView(
+                    **self.engine.gambit.shared_draft.summary(game_state, color)
+                )
+                for color in ("white", "black")
+            }
+            draft_can_act = (
+                game_state.phase == "draft"
+                and record.ready
+                and (record.mode == "local" or viewer_color == gambit.draft_active_color)
+            )
+            draft_options = (
+                self.engine.gambit.shared_draft.options(
+                    game_state,
+                    gambit.draft_active_color,
+                )
+                if game_state.phase == "draft"
+                else []
+            )
+
             gambit_view = GambitView(
                 config=GambitConfigView(
                     budget=gambit.config.budget,
@@ -1764,15 +1871,14 @@ class GameService:
                     commandPointCap=gambit.config.command_point_cap,
                     affinityEnabled=gambit.config.affinity_enabled,
                     requireExactBudget=False,
+                    draftEnabled=gambit.config.draft_enabled,
+                    draftPool=gambit.config.draft_pool,
                     piecePoints=gambit.config.piece_points,
                     pieceCaps=gambit.config.piece_caps,
                     powerCosts=gambit.config.power_costs,
                     powerUsageCaps=gambit.config.power_usage_caps,
                     affinitySquares={
-                        color: [
-                            Position(row=square.row, col=square.col)
-                            for square in squares
-                        ]
+                        color: [Position(row=square.row, col=square.col) for square in squares]
                         for color, squares in gambit.config.affinity_squares.items()
                     },
                 ),
@@ -1787,6 +1893,20 @@ class GameService:
                 powerUsage=gambit.power_usage,
                 legalPowerTargets=legal_power_targets,
                 lastPowerExplanation=gambit.last_power_explanation,
+                draftActiveColor=gambit.draft_active_color,
+                draftPicks=gambit.draft_picks,
+                draftPoolRemaining=gambit.draft_pool_remaining,
+                draftPassed=gambit.draft_passed,
+                draftSummary=draft_summary,
+                draftOptions=draft_options,
+                draftCanAct=draft_can_act,
+                draftCanPass=(
+                    draft_can_act
+                    and self.engine.gambit.shared_draft.can_pass(
+                        game_state,
+                        gambit.draft_active_color,
+                    )
+                ),
             )
 
         response_phase = game_state.phase
@@ -1814,8 +1934,12 @@ class GameService:
             ability_viewer = viewer_color
         elif game_state.phase in {"ability_selection", "handoff"}:
             ability_viewer = game_state.abilities.active_selection_color
-        elif game_state.variant == "gambit" and game_state.phase == "deployment":
-            ability_viewer = visible_deployment_color
+        elif game_state.variant == "gambit" and game_state.phase in {"draft", "deployment"}:
+            ability_viewer = (
+                game_state.gambit.draft_active_color
+                if game_state.phase == "draft" and game_state.gambit is not None
+                else visible_deployment_color
+            )
         else:
             ability_viewer = game_state.current_player
         choices_revealed = game_state.phase in {"play", "finished"}

@@ -36,6 +36,105 @@ function setupRowsFor(color, rows, count) {
   return Array.from({ length: count }, (_, index) => index);
 }
 
+function DraftGambit({ game, actionLoading, onDraft }) {
+  const gambit = game.gambit;
+  const activeColor = gambit.draftActiveColor;
+  const options = new Set(gambit.draftOptions || []);
+  const definitionMap = useMemo(
+    () => new Map(game.pieceDefinitions.map((definition) => [definition.type, definition])),
+    [game.pieceDefinitions]
+  );
+  const pieceTypes = Object.keys(gambit.config.draftPool || {}).sort((left, right) => {
+    const leftIndex = PIECE_ORDER.indexOf(left);
+    const rightIndex = PIECE_ORDER.indexOf(right);
+    if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
+    if (leftIndex === -1) return 1;
+    if (rightIndex === -1) return -1;
+    return leftIndex - rightIndex;
+  });
+  const waitingForPlayer = game.mode === "online" && !game.ready;
+
+  return (
+    <main className="draft-gambit-shell">
+      <header className="draft-gambit-hero">
+        <div>
+          <span className="eyebrow">Shared Army Draft</span>
+          <h1>{waitingForPlayer ? "Waiting For Black" : `${title(activeColor)} To Pick`}</h1>
+          <p>Selections are public and final. After both armies lock, each player privately arranges only the pieces they drafted.</p>
+        </div>
+        <div className={`draft-turn-seal ${activeColor}`} aria-label={`${title(activeColor)} draft turn`}>
+          {activeColor === "white" ? "W" : "B"}
+        </div>
+      </header>
+
+      <section className="draft-army-board" aria-label="Drafted armies">
+        {["white", "black"].map((color) => {
+          const summary = gambit.draftSummary?.[color];
+          const picks = gambit.draftPicks?.[color] || [];
+          return (
+            <article key={color} className={`draft-army-card ${color} ${gambit.draftPassed?.[color] ? "locked" : ""}`}>
+              <header>
+                <span><i className={`seat-dot ${color}`} /><strong>{title(color)} Army</strong></span>
+                <b>{gambit.draftPassed?.[color] ? "Locked" : color === activeColor && !waitingForPlayer ? "Picking" : "Waiting"}</b>
+              </header>
+              <div className="draft-army-pieces">
+                {picks.length ? picks.map((pieceType, index) => {
+                  const definition = definitionMap.get(pieceType);
+                  return (
+                    <span key={`${pieceType}-${index}`} title={definition?.displayName || title(pieceType)}>
+                      <PieceGlyph type={pieceType} color={color} symbol={definition?.symbols?.[color]} />
+                    </span>
+                  );
+                }) : <small>No pieces drafted yet.</small>}
+              </div>
+              <footer>
+                <span><b>{summary?.pointsSpent || 0}</b> / {gambit.config.budget} points</span>
+                <span><b>{summary?.pieceCount || 0}</b> / {gambit.config.maxPieces} pieces</span>
+                <span className={summary?.hasKing ? "complete" : "required"}>{summary?.hasKing ? "King secured" : "King required"}</span>
+              </footer>
+            </article>
+          );
+        })}
+      </section>
+
+      <section className="shared-pool-panel">
+        <header>
+          <div><span className="eyebrow">Available To Both Players</span><h2>Shared Piece Pool</h2></div>
+          <small>{waitingForPlayer ? "Draft begins when both players connect." : gambit.draftCanAct ? "Choose one legal piece." : `Waiting for ${title(activeColor)}.`}</small>
+        </header>
+        <div className="shared-pool-grid">
+          {pieceTypes.map((pieceType) => {
+            const definition = definitionMap.get(pieceType);
+            const remaining = gambit.draftPoolRemaining?.[pieceType] || 0;
+            const total = gambit.config.draftPool[pieceType] || 0;
+            const legal = options.has(pieceType);
+            const cost = gambit.config.piecePoints[pieceType] || 0;
+            return (
+              <button
+                type="button"
+                key={pieceType}
+                className="draft-pool-piece"
+                disabled={!gambit.draftCanAct || actionLoading || !legal}
+                onClick={() => onDraft({ action: "pick", pieceType })}
+              >
+                <span className="draft-pool-glyph"><PieceGlyph type={pieceType} color={activeColor} symbol={definition?.symbols?.[activeColor]} /></span>
+                <span><strong>{definition?.displayName || title(pieceType)}</strong><small>{cost} point{cost === 1 ? "" : "s"}</small></span>
+                <b>{remaining}/{total}</b>
+              </button>
+            );
+          })}
+        </div>
+        <div className="draft-lock-row">
+          <p>Locking ends your draft permanently. You may spend less than the maximum, but your army must contain exactly one King.</p>
+          <button type="button" disabled={!gambit.draftCanPass || actionLoading} onClick={() => onDraft({ action: "pass" })}>
+            {actionLoading ? "Updating Draft..." : `Lock ${title(activeColor)} Army`}
+          </button>
+        </div>
+      </section>
+    </main>
+  );
+}
+
 function GambitHandoff({ game, onHandoff, actionLoading }) {
   const ready = game.gambit.deploymentReady;
   const nextColor = ready.white && !ready.black ? "black" : "white";
@@ -97,7 +196,9 @@ function GambitDeployment({
   );
   const availablePieceTypes = useMemo(() => {
     const enabled = (game.configuration?.enabledPieces || PIECE_ORDER).filter(
-      (pieceType) => pieceType !== "barricade"
+      (pieceType) => pieceType !== "barricade" && (
+        !gambit.config.draftEnabled || (gambit.draftPicks?.[color] || []).includes(pieceType)
+      )
     );
     return [...enabled].sort((left, right) => {
       const leftIndex = PIECE_ORDER.indexOf(left);
@@ -107,7 +208,7 @@ function GambitDeployment({
       if (rightIndex === -1) return -1;
       return leftIndex - rightIndex;
     });
-  }, [game.configuration?.enabledPieces]);
+  }, [color, gambit.config.draftEnabled, gambit.draftPicks, game.configuration?.enabledPieces]);
   const rows = game.boardRows ?? game.boardSize;
   const ownRows = setupRowsFor(color, rows, gambit.config.setupRows);
   const opponentRows = setupRowsFor(
@@ -117,6 +218,7 @@ function GambitDeployment({
   );
   const summary = gambit.setupSummary;
   const counts = summary?.counts || {};
+  const draftedCounts = gambit.draftSummary?.[color]?.counts || {};
 
   const handleSquare = (row, col) => {
     if (!editable || actionLoading || !ownRows.includes(row)) {
@@ -201,7 +303,9 @@ function GambitDeployment({
           {availablePieceTypes.map((pieceType) => {
             const definition = definitionMap.get(pieceType);
             const cost = gambit.config.piecePoints[pieceType];
-            const cap = gambit.config.pieceCaps[pieceType];
+            const cap = gambit.config.draftEnabled
+              ? (draftedCounts[pieceType] || 0)
+              : gambit.config.pieceCaps[pieceType];
             const count = counts[pieceType] || 0;
             const atCap = count >= cap;
             return (
@@ -454,6 +558,19 @@ function GambitPlay({
 }
 
 function GambitPage(props) {
+  if (
+    props.game.gambit.config.draftEnabled &&
+    ["lobby", "draft"].includes(props.game.phase)
+  ) {
+    return (
+      <DraftGambit
+        game={props.game}
+        actionLoading={props.actionLoading}
+        onDraft={props.onDraft}
+      />
+    );
+  }
+
   if (props.game.phase === "handoff") {
     return (
       <GambitHandoff

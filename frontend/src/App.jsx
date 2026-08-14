@@ -14,6 +14,7 @@ import {
   requestRematch,
   selectAbility,
   updateGambitDeployment,
+  updateGambitDraft,
   useGameAction,
   useGambitPower,
 } from "./api/gameApi";
@@ -473,6 +474,14 @@ function GameWorkspace({ gameId }) {
     }
   };
 
+  const handleGambitDraft = async (payload) => {
+    try {
+      await runAction(() => mutate(updateGambitDraft, payload));
+    } catch {
+      // The shared error banner explains rejected draft actions.
+    }
+  };
+
   const handleGambitReady = async () => {
     try {
       await runAction(() => mutate(readyGambitDeployment, {}));
@@ -737,6 +746,7 @@ function GameWorkspace({ gameId }) {
           interactive={canMove && !actionLoading}
           actionLoading={actionLoading}
           onDeploymentChange={handleDeploymentChange}
+          onDraft={handleGambitDraft}
           onReady={handleGambitReady}
           onHandoff={handleGambitHandoff}
           onPower={handleGambitPower}
