@@ -275,7 +275,7 @@ function SpecialAbilitiesDisclosure({ abilities, catalog }) {
             <article className="effect-reference-card" key={abilityId}>
               <header>
                 <strong>{definition?.icon ? `${definition.icon} ` : ""}{definition?.name || title(abilityId)}</strong>
-                {definition?.cooldownTurns ? <span>{definition.cooldownTurns}-Turn Cooldown</span> : <span>Enabled</span>}
+                {definition?.usageLimit ? <span>{definition.usageLimit === 1 ? "One Use" : `${definition.usageLimit} Uses`}</span> : definition?.cooldownTurns ? <span>{definition.cooldownTurns}-Turn Cooldown</span> : <span>Enabled</span>}
               </header>
               <p>{definition?.summary || "A selected special ability for this match."}</p>
               <div className="ability-owner-statuses">
@@ -285,7 +285,7 @@ function SpecialAbilitiesDisclosure({ abilities, catalog }) {
                   return (
                     <div key={color}>
                       <strong>{title(color)}</strong>
-                      <span>{remaining ? `${remaining} own turns remaining` : "Ready"}</span>
+                      <span>{remaining ? `${remaining} own turns remaining` : definition?.usageLimit && uses >= definition.usageLimit ? "Used" : "Ready"}</span>
                       <small>{uses} use{uses === 1 ? "" : "s"}</small>
                     </div>
                   );

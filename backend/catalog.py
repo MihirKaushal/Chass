@@ -401,13 +401,13 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "id": "getaway",
         "name": "Getaway",
         "icon": "⇄",
-        "summary": "Escape checkmate by swapping the King with your Queen, then recharge for ten turns.",
-        "cooldownTurns": 10,
+        "summary": "Once per match, escape checkmate by swapping the King with your Queen.",
+        "usageLimit": 1,
         "details": [
             "Only a Queen of the same color can be the swap partner.",
             "The swap is available only when it produces a legal position.",
             "If no legal partner exists, checkmate ends the game normally.",
-            "A successful swap starts a ten-turn cooldown.",
+            "Each player may complete one successful Getaway per match.",
         ],
     },
     {
