@@ -479,6 +479,55 @@ class VariantActionRules:
                         )
         return actions
 
+    def _barricade_demolition_actions(
+        self,
+        state: GameState,
+        color: str,
+    ) -> list[dict]:
+        actions: list[dict] = []
+        directions = ((-1, 0), (1, 0), (0, -1), (0, 1))
+        for row, board_row in enumerate(state.board.grid):
+            for col, piece in enumerate(board_row):
+                if piece is None or piece.color != color or piece.type != "rook":
+                    continue
+                for dr, dc in directions:
+                    target_row, target_col = row + dr, col + dc
+                    while in_bounds(
+                        state.board.rows,
+                        state.board.cols,
+                        target_row,
+                        target_col,
+                    ):
+                        target = state.board.grid[target_row][target_col]
+                        if target is None:
+                            target_row += dr
+                            target_col += dc
+                            continue
+                        if target.type == "barricade":
+                            actions.append(
+                                {
+                                    "id": (
+                                        f"demolish:{piece.piece_id}:"
+                                        f"{target_row}:{target_col}"
+                                    ),
+                                    "actionType": "demolish_barricade",
+                                    "owner": color,
+                                    "icon": "✹",
+                                    "label": "Demolish Barricade",
+                                    "description": (
+                                        "Sacrifice this Rook to remove the first Barricade "
+                                        "on its clear rank or file. No points are scored."
+                                    ),
+                                    "source": {"row": row, "col": col},
+                                    "target": {
+                                        "row": target_row,
+                                        "col": target_col,
+                                    },
+                                }
+                            )
+                        break
+        return actions
+
     def _getaway_actions(self, state: GameState, color: str, helper) -> list[dict]:
         if (
             state.abilities.selected.get(color) != "getaway"
@@ -644,6 +693,7 @@ class VariantActionRules:
         actions = [
             *self._catapult_actions(state, color),
             *self._barricade_actions(state, color),
+            *self._barricade_demolition_actions(state, color),
             *self._getaway_actions(state, color, helper),
             *self._episcopal_actions(state, color),
             *self._eye_actions(state, color, helper),
@@ -734,6 +784,34 @@ class VariantActionRules:
             barricade.has_moved = True
             explanation = f"{color.title()} repositioned the Barricade."
             piece_type = "barricade"
+        elif action_type == "demolish_barricade":
+            assert source is not None and target is not None
+            rook = self._piece_at(state, source)
+            barricade = self._piece_at(state, target)
+            if rook.type != "rook" or rook.color != color or barricade.type != "barricade":
+                raise ValueError("A Rook can demolish only a visible Barricade.")
+            state.board.grid[source[0]][source[1]] = None
+            state.board.grid[target[0]][target[1]] = None
+            captures.extend(
+                [
+                    CaptureEvent(
+                        row=target[0],
+                        col=target[1],
+                        piece=barricade,
+                        reason="Rook demolition",
+                    ),
+                    CaptureEvent(
+                        row=source[0],
+                        col=source[1],
+                        piece=rook,
+                        reason="Rook demolition sacrifice",
+                    ),
+                ]
+            )
+            explanation = (
+                f"{color.title()} sacrificed a Rook to demolish the Barricade."
+            )
+            piece_type = "rook"
         elif action_type == "episcopal":
             assert source is not None and target is not None
             bishop = self._piece_at(state, source)
@@ -807,7 +885,7 @@ class VariantActionRules:
             return explanation
 
         scored_captures = captures
-        if action_type == "eye_for_an_eye":
+        if action_type in {"eye_for_an_eye", "demolish_barricade"}:
             scored_captures = []
         if captures:
             trigger_power_of_love(state, captures)

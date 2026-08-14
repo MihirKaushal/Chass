@@ -405,6 +405,7 @@ class GambitPowerRequest(BaseModel):
 class GameActionRequest(BaseModel):
     actionType: Literal[
         "catapult_projectile",
+        "demolish_barricade",
         "move_barricade",
         "necromancy",
         "getaway",
