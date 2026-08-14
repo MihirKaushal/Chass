@@ -365,6 +365,47 @@ function SectionHeading({ title: heading, description }) {
   return <div className="section-heading"><div><h2>{heading}</h2><p>{description}</p></div></div>;
 }
 
+function DisclosureArrow() {
+  return <span className="disclosure-arrow" aria-hidden="true" />;
+}
+
+function CollapsibleStudioSection({ title: heading, description, className = "", children }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <details
+      className={`studio-section studio-disclosure ${className}`.trim()}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary>
+        <SectionHeading title={heading} description={description} />
+        <DisclosureArrow />
+      </summary>
+      <div className="studio-disclosure-body">{children}</div>
+    </details>
+  );
+}
+
+function RulebookSection({ id, title: heading, description, className = "", children }) {
+  const [open, setOpen] = useState(true);
+
+  return (
+    <details
+      className={`rulebook-section rulebook-disclosure ${className}`.trim()}
+      id={id}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary className="rulebook-section-heading">
+        <div><h3>{heading}</h3><p>{description}</p></div>
+        <DisclosureArrow />
+      </summary>
+      <div className="rulebook-disclosure-body">{children}</div>
+    </details>
+  );
+}
+
 function Rulebook({ catalog }) {
   return (
     <section className="rulebook" id="rulebook">
@@ -377,13 +418,13 @@ function Rulebook({ catalog }) {
         <nav aria-label="Rulebook sections">
           <a href="#rulebook-pieces">Pieces</a>
           <a href="#rulebook-victory">Victory</a>
+          <a href="#rulebook-custom-rules">Custom Rules</a>
           <a href="#rulebook-abilities">Abilities</a>
           <a href="#rulebook-gambit">Gambit</a>
         </nav>
       </header>
 
-      <article className="rulebook-section" id="rulebook-pieces">
-        <div className="rulebook-section-heading"><div><h3>Piece Encyclopedia</h3><p>Movement, value, and special behavior.</p></div></div>
+      <RulebookSection id="rulebook-pieces" title="Piece Encyclopedia" description="Movement, value, and special behavior.">
         <div className="rulebook-entry-grid">
           {catalog.pieces.map((piece) => (
             <details className="rulebook-entry" key={piece.type}>
@@ -399,17 +440,29 @@ function Rulebook({ catalog }) {
             </details>
           ))}
         </div>
-      </article>
+      </RulebookSection>
 
-      <article className="rulebook-section" id="rulebook-victory">
-        <div className="rulebook-section-heading"><div><h3>Victory Rules</h3><p>What ends a match and decides its result.</p></div></div>
+      <RulebookSection id="rulebook-victory" title="Victory Rules" description="What ends a match and decides its result.">
         <div className="rulebook-strip">
           {catalog.victoryModes.map((mode) => <div key={mode.id}><i>{mode.icon}</i><strong>{mode.name}</strong><p>{mode.summary}</p></div>)}
         </div>
-      </article>
+      </RulebookSection>
 
-      <article className="rulebook-section" id="rulebook-abilities">
-        <div className="rulebook-section-heading"><div><h3>Special Ability Codex</h3><p>Each player privately chooses one enabled ability.</p></div></div>
+      <RulebookSection id="rulebook-custom-rules" title="Custom Rules" description="Optional board-wide systems that work with any compatible game mode.">
+        <div className="rulebook-gambit-copy">
+          <div>
+            <h4>Affinity Squares</h4>
+            <p>Each color receives two adaptive center squares. Hold both squares assigned to your color through the opponent&apos;s turn to earn one command point.</p>
+            <p>Spend one point for a Pawn, two to evolve a Pawn, or three for a Rook. A command uses the normal turn and must leave the King safe.</p>
+          </div>
+          <div>
+            <h4>Command Point Cap</h4>
+            <p>The cap controls how many unused command points a player may save. It defaults to three and can be changed without enabling Chass Gambit.</p>
+          </div>
+        </div>
+      </RulebookSection>
+
+      <RulebookSection id="rulebook-abilities" title="Special Ability Codex" description="Each player privately chooses the configured number of enabled abilities.">
         <div className="rulebook-entry-grid">
           {catalog.specialAbilities.map((ability) => (
             <details className="rulebook-entry ability-entry" key={ability.id}>
@@ -419,28 +472,21 @@ function Rulebook({ catalog }) {
             </details>
           ))}
         </div>
-      </article>
+      </RulebookSection>
 
-      <article className="rulebook-section" id="rulebook-gambit">
-        <div className="rulebook-section-heading"><div><h3>{catalog.gambit.icon} {catalog.gambit.name}</h3><p>{catalog.gambit.summary}</p></div></div>
+      <RulebookSection id="rulebook-gambit" title={`${catalog.gambit.icon} ${catalog.gambit.name}`} description={catalog.gambit.summary}>
         <div className="rulebook-gambit-copy">
           <ol>{catalog.gambit.details.map((detail) => <li key={detail}>{detail}</li>)}</ol>
-          <div>
-            <h4>Affinity And Command</h4>
-            <p>Hold both center squares assigned to your color through the opponent&apos;s turn to earn one command point.</p>
-            <p>Spend one point for a Pawn, two to evolve a Pawn, or three for a Rook. A command uses the normal turn and must leave the King safe.</p>
-          </div>
           <div>
             <h4>Draft Gambit</h4>
             <ol>{catalog.gambit.draftDetails.map((detail) => <li key={detail}>{detail}</li>)}</ol>
           </div>
         </div>
-      </article>
+      </RulebookSection>
 
-      <article className="rulebook-section countdown-reference">
-        <div className="rulebook-section-heading"><div><h3>Turns And Countdowns</h3><p>How timed effects are counted.</p></div></div>
+      <RulebookSection title="Turns And Countdowns" description="How timed effects are counted." className="countdown-reference">
         <p>Countdowns decrease when the affected player completes a turn. Both players see active timers in the Play sidebar and in piece tooltips.</p>
-      </article>
+      </RulebookSection>
     </section>
   );
 }
@@ -654,8 +700,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         </aside>
 
         <div className="studio-controls">
-          <section className="studio-section">
-            <SectionHeading title="Popular Modes" description="Load a complete starting configuration." />
+          <CollapsibleStudioSection title="Popular Modes" description="Load a complete starting configuration.">
             <div className="mode-preset-grid">
               {catalog.popularModes.map((mode) => <button type="button" key={mode.id} className={draft.presetId === mode.id ? "selected" : ""} onClick={() => applyPopularMode(mode)}><i>{mode.icon}</i><strong>{mode.name}</strong><small>{mode.summary}</small></button>)}
             </div>
@@ -663,20 +708,18 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             <div className="mode-preset-grid formation-grid">
               {catalog.formations.map((formation) => <button type="button" key={formation.id} className={draft.formationId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}><i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small></button>)}
             </div>
-          </section>
+          </CollapsibleStudioSection>
 
-          <section className="studio-section">
-            <SectionHeading title="Board Size" description="Choose a preset or set dimensions from 4 to 16." />
+          <CollapsibleStudioSection title="Board Size" description="Choose a preset or set dimensions from 4 to 16.">
             <div className="dimension-presets">
               {[8, 10, 16].map((size) => <button type="button" key={size} className={draft.boardRows === size && draft.boardCols === size ? "active" : "secondary"} onClick={() => changeDimensions(size, size)}>{size}x{size}</button>)}
               <span>Custom</span>
               <label>Rows<input type="number" min={MIN_DIMENSION} max={MAX_DIMENSION} value={draft.boardRows} onChange={(event) => changeDimensions(event.target.value, draft.boardCols)} /></label>
               <label>Columns<input type="number" min={MIN_DIMENSION} max={MAX_DIMENSION} value={draft.boardCols} onChange={(event) => changeDimensions(draft.boardRows, event.target.value)} /></label>
             </div>
-          </section>
+          </CollapsibleStudioSection>
 
-          <section className="studio-section">
-            <SectionHeading title="Pieces" description="Enable pieces, set values of zero or more, and edit the starting board." />
+          <CollapsibleStudioSection title="Pieces" description="Enable pieces, set values of zero or more, and edit the starting board.">
             <div className="piece-catalog-grid">
               {catalog.pieces.map((piece) => {
                 const enabled = draft.enabledPieces.includes(piece.type);
@@ -695,10 +738,9 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                 );
               })}
             </div>
-          </section>
+          </CollapsibleStudioSection>
 
-          <section className="studio-section">
-            <SectionHeading title="End Game Logic" description="Choose the condition that decides the result." />
+          <CollapsibleStudioSection title="End Game Logic" description="Choose the condition that decides the result.">
             <div className="victory-grid">
               {catalog.victoryModes.map((mode) => {
                 const reason = disabledVictoryModes[mode.id];
@@ -712,27 +754,24 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
               {draft.victory.mode === "check_race" ? <label>Checks To Win<input type="number" min="1" max="100" value={draft.victory.checkTarget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, checkTarget: clamp(event.target.value, 1, 100) } }))} /><small>The first player to give this many checks wins. Checkmate also wins immediately.</small></label> : null}
               {["point_race", "king_capture", "royal_score"].includes(draft.victory.mode) ? <label>King Point Value<input type="number" min="0" value={draft.victory.kingPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, kingPoints: Math.max(0, Number(event.target.value)) }, pointValues: { ...current.pointValues, king: Math.max(0, Number(event.target.value)) } }))} /><small>Zero is allowed in non-classic victory modes.</small></label> : null}
             </div>
-          </section>
+          </CollapsibleStudioSection>
 
-          <section className="studio-section ability-config-section">
-            <SectionHeading title="Custom Rules" description="Add optional board-wide systems to any game mode." />
+          <CollapsibleStudioSection title="Custom Rules" description="Add optional board-wide systems to any game mode." className="ability-config-section">
             <Toggle checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Control both center squares of your color to earn command points." />
             {draft.customRules.affinityEnabled ? <div className="conditional-fields">
               <label>Command Point Cap<input type="number" min="0" max="20" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clamp(event.target.value, 0, 20) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
             </div> : null}
-          </section>
+          </CollapsibleStudioSection>
 
-          <section className="studio-section ability-config-section">
-            <SectionHeading title="Special Abilities" description="Each player privately chooses the configured number of allowed abilities before play." />
+          <CollapsibleStudioSection title="Special Abilities" description="Each player privately chooses the configured number of allowed abilities before play." className="ability-config-section">
             <Toggle checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
             {draft.specialAbilities.enabled ? <>
               <div className="conditional-fields"><label>Abilities Per Player<input type="number" min="1" max={Math.max(1, draft.specialAbilities.allowed.length)} value={draft.specialAbilities.maxPerPlayer} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, maxPerPlayer: clamp(event.target.value, 1, Math.max(1, current.specialAbilities.allowed.length)) } }))} /><small>How many abilities each player selects. The default is 1.</small></label></div>
               <div className="ability-option-grid">{catalog.specialAbilities.map((ability) => { const enabled = draft.specialAbilities.allowed.includes(ability.id); const reason = disabledAbilities[ability.id]; return <button type="button" key={ability.id} className={enabled ? "selected" : ""} disabled={Boolean(reason) || (enabled && draft.specialAbilities.allowed.length <= draft.specialAbilities.maxPerPlayer)} title={reason || ""} onClick={() => setDraft((current) => { const allowed = enabled ? current.specialAbilities.allowed.filter((id) => id !== ability.id) : [...current.specialAbilities.allowed, ability.id]; return { ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, allowed } }; })}><i>{ability.icon}</i><span><strong>{ability.name}</strong><small>{reason || ability.summary}</small></span><b>{reason ? "Unavailable" : enabled ? "Enabled" : "Off"}</b></button>; })}</div>
             </> : null}
-          </section>
+          </CollapsibleStudioSection>
 
-          <section className="studio-section gambit-config-section">
-            <SectionHeading title="Chass Gambit" description="Add private army construction to this board and ruleset." />
+          <CollapsibleStudioSection title="Chass Gambit" description="Add private army construction to this board and ruleset." className="gambit-config-section">
             <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled, draftEnabled: enabled ? current.gambit.draftEnabled : false } }))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
             {draft.gambit.enabled ? <div className="gambit-settings-grid">
               <label>Maximum Points<input type="number" min="0" value={draft.gambit.budget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, budget: Math.max(0, Number(event.target.value)) } }))} /><small>Players may spend less, but cannot exceed this limit.</small></label>
@@ -741,7 +780,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
               <label>Maximum Queens<input type="number" min="0" max={Math.max(0, draft.gambit.maxPieces - 1)} value={draft.gambit.maxQueens} onChange={(event) => { const value = Math.max(0, Number(event.target.value)); setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, maxQueens: value }, pieceCaps: { ...current.pieceCaps, queen: value } })); }} /><small>At least one army slot remains for the King.</small></label>
               <Toggle checked={draft.gambit.draftEnabled} onChange={(draftEnabled) => setDraft((current) => ({ ...current, presetId: draftEnabled ? "draft_gambit" : "custom", gambit: { ...current.gambit, draftEnabled, draftPool: { ...current.gambit.draftPool, king: 2 } } }))} label="Enable Shared Draft" description="Alternate public picks from one shared pool before each player privately arranges their drafted army." />
             </div> : null}
-          </section>
+          </CollapsibleStudioSection>
         </div>
       </div>
 
