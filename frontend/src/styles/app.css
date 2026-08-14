@@ -1421,6 +1421,54 @@ button.secondary {
   font-size: 0.88rem;
 }
 
+.dominion-readout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+}
+
+.dominion-readout > strong,
+.dominion-readout > small {
+  grid-column: 1 / -1;
+}
+
+.dominion-readout > small {
+  color: rgba(26, 54, 93, 0.66);
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.dominion-readout > span {
+  display: grid;
+  gap: 0.12rem;
+  padding: 0.48rem;
+  border: 1px solid rgba(26, 54, 93, 0.15);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.dominion-readout > span.controlled {
+  border-color: rgba(43, 108, 176, 0.52);
+  background: rgba(99, 179, 237, 0.15);
+}
+
+.dominion-readout b,
+.dominion-readout em {
+  font-style: normal;
+  font-size: 0.7rem;
+}
+
+.dominion-readout em {
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 700;
+}
+
+.dominion-readout span small {
+  color: rgba(26, 54, 93, 0.62);
+  font-size: 0.58rem;
+}
+
 .customization-panel {
   width: min(1180px, 100%);
   background: rgba(234, 216, 181, 0.66);

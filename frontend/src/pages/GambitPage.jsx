@@ -158,7 +158,7 @@ function GambitDeployment({
           lastMove={null}
           boardFlipped={boardFlipped}
           interactive={editable && !actionLoading}
-          affinitySquares={gambit.config.affinitySquares}
+          affinitySquares={game.centerDominion?.squares || gambit.config.affinitySquares}
           editableRows={ownRows}
           foggedRows={opponentRows}
           showCoordinates
@@ -441,7 +441,7 @@ function GambitPlay({
           boardFlipped={boardFlipped}
           interactive={interactive && !actionLoading}
           extraTargets={powerTargets}
-          affinitySquares={game.gambit.config.affinitySquares}
+          affinitySquares={game.centerDominion?.squares || game.gambit.config.affinitySquares}
           showCoordinates
           pieceDetailsMode="double-tap"
         />

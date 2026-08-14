@@ -128,6 +128,14 @@ class GambitView(BaseModel):
     lastPowerExplanation: str | None = None
 
 
+class CenterDominionView(BaseModel):
+    targetRounds: int
+    progress: dict[str, int]
+    primed: dict[str, bool]
+    controlled: dict[str, bool]
+    squares: dict[str, list[Position]]
+
+
 class CountdownView(BaseModel):
     id: str
     owner: str
@@ -222,6 +230,7 @@ class GameResponse(BaseModel):
     result: ResultView | None = None
     clock: ClockView | None = None
     gambit: GambitView | None = None
+    centerDominion: CenterDominionView | None = None
     rematch: RematchView = Field(default_factory=RematchView)
 
 
@@ -267,10 +276,12 @@ class VictoryConfigPayload(BaseModel):
         "point_race",
         "elimination",
         "royal_score",
+        "center_dominion",
     ] = "checkmate"
     targetPoints: int = Field(default=21, ge=1, le=100000)
     timeSeconds: int = Field(default=600, ge=30, le=86400)
     kingPoints: int = Field(default=0, ge=0, le=100000)
+    dominionRounds: int = Field(default=3, ge=1, le=20)
 
 
 class SpecialAbilityConfigPayload(BaseModel):

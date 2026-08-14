@@ -71,7 +71,7 @@ function defaultDraft(catalog) {
     pointValues,
     pieceCaps,
     placements: classicLayout(8, 8),
-    victory: { mode: "checkmate", targetPoints: 21, timeSeconds: 600, kingPoints: 0 },
+    victory: { mode: "checkmate", targetPoints: 21, timeSeconds: 600, kingPoints: 0, dominionRounds: 3 },
     specialAbilities: { enabled: false, allowed: [] },
     gambit: {
       enabled: false,
@@ -237,7 +237,8 @@ function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlac
     ).map((square) => [`${square.row}-${square.col}`, { ...square, type: "barricade", color: "neutral" }])
   );
   const affinityMap = new Set(
-    draft.gambit.enabled && draft.gambit.affinityEnabled
+    draft.victory.mode === "center_dominion" ||
+      (draft.gambit.enabled && draft.gambit.affinityEnabled)
       ? Object.values(affinitySquares(draft.boardRows, draft.boardCols))
           .flat()
           .map((square) => `${square.row}-${square.col}`)
@@ -668,6 +669,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             <div className="conditional-fields">
               {draft.victory.mode === "point_race" ? <label>Target Score<input type="number" min="1" value={draft.victory.targetPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, targetPoints: Math.max(1, Number(event.target.value)) } }))} /><small>Captured-piece points needed to win.</small></label> : null}
               {draft.victory.mode === "timed" ? <label>Minutes Per Player<input type="number" min="1" max="1440" value={Math.round(draft.victory.timeSeconds / 60)} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, timeSeconds: Math.max(60, Number(event.target.value) * 60) } }))} /><small>The server controls both clocks.</small></label> : null}
+              {draft.victory.mode === "center_dominion" ? <label>Rounds To Hold<input type="number" min="1" max="20" value={draft.victory.dominionRounds} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, dominionRounds: clamp(event.target.value, 1, 20) } }))} /><small>Both marked squares must stay occupied through this many opponent turns. Checkmate also wins.</small></label> : null}
               {["point_race", "king_capture", "royal_score"].includes(draft.victory.mode) ? <label>King Point Value<input type="number" min="0" value={draft.victory.kingPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, kingPoints: Math.max(0, Number(event.target.value)) }, pointValues: { ...current.pointValues, king: Math.max(0, Number(event.target.value)) } }))} /><small>Zero is allowed in non-classic victory modes.</small></label> : null}
             </div>
           </section>

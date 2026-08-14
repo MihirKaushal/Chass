@@ -4,6 +4,7 @@ from backend.models import GameState, Move
 from backend.rules.base import Rule, RuleContext, ValidationResult
 from backend.rules.variant_system import (
     FINISHED_STATUSES,
+    affinity_start_squares,
     direct_king_capture_allowed,
     finish_game,
     piece_runtime_active,
@@ -509,6 +510,8 @@ class ConfigurableVictoryRule(Rule):
                     else "Draw! Both armies were eliminated."
                 ),
             )
+
+
             return
 
         if mode == "royal_score" and (
@@ -532,6 +535,73 @@ class ConfigurableVictoryRule(Rule):
                     else f"Draw! Royal defeat ended the match at {white_score} points each."
                 ),
             )
+
+
+class CenterDominionRule(Rule):
+    id = "center_dominion"
+    name = "Center Dominion"
+    description = (
+        "Hold both marked center squares through the opponent's turn for the configured "
+        "number of consecutive rounds."
+    )
+    tier = "basic"
+    can_disable = False
+    apply_in_simulation = False
+
+    @staticmethod
+    def squares(state: GameState) -> dict[str, list[tuple[int, int]]]:
+        return affinity_start_squares(state.board.rows, state.board.cols)
+
+    def controls(self, state: GameState, color: str) -> bool:
+        return all(
+            (piece := state.board.grid[row][col]) is not None and piece.color == color
+            for row, col in self.squares(state)[color]
+        )
+
+    def complete_turn(self, state: GameState, acting_color: str, helper, params: dict) -> None:
+        if state.configuration.victory.mode != "center_dominion":
+            return
+
+        opponent = opposing_color(acting_color)
+        opponent_controls = self.controls(state, opponent)
+        if state.center_dominion.primed[opponent] and opponent_controls:
+            state.center_dominion.progress[opponent] += 1
+        elif not opponent_controls:
+            state.center_dominion.progress[opponent] = 0
+        state.center_dominion.primed[opponent] = False
+
+        acting_controls = self.controls(state, acting_color)
+        if not acting_controls:
+            state.center_dominion.progress[acting_color] = 0
+        state.center_dominion.primed[acting_color] = acting_controls
+
+    def evaluate_state(self, state: GameState, helper, params: dict) -> None:
+        if state.configuration.victory.mode != "center_dominion":
+            return
+        if state.game_status in FINISHED_STATUSES:
+            return
+        target = state.configuration.victory.dominion_rounds
+        winner = next(
+            (
+                color
+                for color in ("white", "black")
+                if state.center_dominion.progress[color] >= target
+            ),
+            None,
+        )
+        if winner is None:
+            return
+        finish_game(
+            state,
+            status="center_dominion",
+            reason_code="center_dominion",
+            trigger="center_control",
+            winner=winner,
+            description=(
+                f"{winner.title()} won! {winner.title()} held both center squares for "
+                f"{target} consecutive rounds."
+            ),
+        )
 
 
 class ScoreTargetWinRule(Rule):
@@ -672,6 +742,7 @@ classic_chess_rules: list[Rule] = [
     CaptureRule(),
     PromotionRule(),
     ScoreRule(),
+    CenterDominionRule(),
     CheckmateRule(),
     ConfigurableVictoryRule(),
     StalemateRule(),

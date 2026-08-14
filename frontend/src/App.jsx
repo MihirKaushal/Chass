@@ -45,6 +45,7 @@ const FINISHED_STATUSES = new Set([
   "elimination",
   "time",
   "royal_score",
+  "center_dominion",
   "draw",
 ]);
 

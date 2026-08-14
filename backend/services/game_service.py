@@ -21,6 +21,7 @@ from backend.models import (
     AbilityState,
     Board,
     BoardCoordinate,
+    CenterDominionState,
     ClockState,
     GambitState,
     GameConfiguration,
@@ -40,6 +41,7 @@ from backend.models.schemas import (
     AvailableActionView,
     BoardPlacement,
     CaptureView,
+    CenterDominionView,
     ClockView,
     ConfigurationValidationResponse,
     CountdownView,
@@ -387,6 +389,7 @@ def _configuration_from_request(request: CreateGameRequest) -> tuple[
             target_points=payload.victory.targetPoints,
             time_seconds=payload.victory.timeSeconds,
             king_points=payload.victory.kingPoints,
+            dominion_rounds=payload.victory.dominionRounds,
         ),
         special_abilities=SpecialAbilityConfig(
             enabled=payload.specialAbilities.enabled,
@@ -1264,6 +1267,7 @@ class GameService:
             }
             game_state.current_player = "white"
             game_state.abilities = AbilityState()
+            game_state.center_dominion = CenterDominionState()
             game_state.turn_counts = {"white": 0, "black": 0}
             game_state.history = []
             game_state.captured_pieces = {"white": [], "black": []}
@@ -1299,6 +1303,7 @@ class GameService:
             else "play"
         )
         game_state.abilities = AbilityState()
+        game_state.center_dominion = CenterDominionState()
         game_state.turn_counts = {"white": 0, "black": 0}
         game_state.history = []
         game_state.captured_pieces = {"white": [], "black": []}
@@ -1428,6 +1433,8 @@ class GameService:
         game_state.winner = None
         game_state.game_status = "active"
         game_state.score = {"white": 0, "black": 0}
+        game_state.center_dominion = CenterDominionState()
+        game_state.result = None
 
         self.engine.evaluate_state(game_state)
         return self._save(game_state, expected_version)
@@ -1452,6 +1459,7 @@ class GameService:
                 "targetPoints": game_state.configuration.victory.target_points,
                 "timeSeconds": game_state.configuration.victory.time_seconds,
                 "kingPoints": game_state.configuration.victory.king_points,
+                "dominionRounds": game_state.configuration.victory.dominion_rounds,
             },
             "specialAbilities": {
                 "enabled": game_state.configuration.special_abilities.enabled,
@@ -1785,6 +1793,23 @@ class GameService:
         if game_state.game_status in FINISHED_STATUSES:
             response_phase = "finished"
 
+        center_dominion_view = None
+        if game_state.configuration.victory.mode == "center_dominion":
+            center_squares = self.engine.center_dominion.squares(game_state)
+            center_dominion_view = CenterDominionView(
+                targetRounds=game_state.configuration.victory.dominion_rounds,
+                progress=game_state.center_dominion.progress,
+                primed=game_state.center_dominion.primed,
+                controlled={
+                    color: self.engine.center_dominion.controls(game_state, color)
+                    for color in ("white", "black")
+                },
+                squares={
+                    color: [Position(row=row, col=col) for row, col in squares]
+                    for color, squares in center_squares.items()
+                },
+            )
+
         if record.mode == "online":
             ability_viewer = viewer_color
         elif game_state.phase in {"ability_selection", "handoff"}:
@@ -1933,6 +1958,7 @@ class GameService:
                 else None
             ),
             gambit=gambit_view,
+            centerDominion=center_dominion_view,
             rematch=RematchView(
                 status=game_state.rematch.status,
                 requestedBy=game_state.rematch.requested_by,
