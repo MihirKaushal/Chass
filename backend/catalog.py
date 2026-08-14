@@ -6,7 +6,14 @@ from typing import Any
 from backend.models import MovePattern, PieceDefinition
 
 STANDARD_PIECE_TYPES = ("pawn", "knight", "bishop", "rook", "queen", "king")
-CUSTOM_PIECE_TYPES = ("maharani", "catapult", "barricade", "hypnotizer", "diplomat")
+CUSTOM_PIECE_TYPES = (
+    "maharani",
+    "catapult",
+    "barricade",
+    "hypnotizer",
+    "diplomat",
+    "cannibal",
+)
 CLASSIC_BACK_RANK = ("rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook")
 DEFAULT_DRAFT_POOL_COUNTS = {
     "pawn": 16,
@@ -397,6 +404,47 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
             },
             metadata={"family": "chass_custom", "visualKey": "diplomat"},
         ),
+        "cannibal": PieceDefinition(
+            type="cannibal",
+            display_name="Cannibal",
+            symbols={"white": "◖", "black": "◗"},
+            icon="◗",
+            description=(
+                "A shape-stealing piece that consumes pieces behind it, including allies, "
+                "then borrows their movement for five of its own moves."
+            ),
+            movement_summary=(
+                "Normally moves one square in any direction, but consumes only directly "
+                "backward or diagonally backward. After consuming, it uses the victim's "
+                "movement for five Cannibal moves and cannot capture during that form."
+            ),
+            points=6,
+            is_custom=True,
+            behavior="cannibal",
+            patterns=[
+                MovePattern(dr=dr, dc=dc, relative_to_color=False)
+                for dr, dc in (
+                    (-1, -1),
+                    (-1, 0),
+                    (-1, 1),
+                    (0, -1),
+                    (0, 1),
+                    (1, -1),
+                    (1, 0),
+                    (1, 1),
+                )
+            ],
+            custom_attributes={
+                "rules": [
+                    "May consume allied or enemy pieces only behind it",
+                    "Borrows the consumed piece's movement for 5 Cannibal moves",
+                    "Cannot capture while using borrowed movement",
+                    "Consuming another Cannibal grants Queen mobility",
+                    "Cannot be revived by Necromancy",
+                ],
+            },
+            metadata={"family": "chass_custom", "visualKey": "cannibal"},
+        ),
     }
     return pieces
 
@@ -416,7 +464,7 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "details": [
             "The recruited piece changes to your color.",
             "Its price is its configured point value and spending lowers your score.",
-            "Kings, neutral pieces, and unaffordable pieces cannot be recruited.",
+            "Kings, Cannibals, neutral pieces, and unaffordable pieces cannot be recruited.",
             "Deployment requires an empty square in your home rows and consumes a turn.",
         ],
     },

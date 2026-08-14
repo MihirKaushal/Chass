@@ -185,6 +185,7 @@ class CountdownView(BaseModel):
     label: str
     description: str
     remainingTurns: int
+    unit: Literal["turn", "move"] = "turn"
     pieceId: str | None = None
     pieceName: str | None = None
 

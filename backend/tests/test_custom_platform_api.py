@@ -79,6 +79,7 @@ def test_catalog_describes_custom_content(client):
         "barricade",
         "hypnotizer",
         "diplomat",
+        "cannibal",
     }
     assert {ability["id"] for ability in catalog["specialAbilities"]} == {
         "necromancy",
@@ -1247,6 +1248,227 @@ def test_getaway_does_not_offer_a_rook_swap(client):
     assert game["gameStatus"] == "checkmate"
     assert game["winner"] == "black"
     assert not any(item["actionType"] == "getaway" for item in game["availableActions"])
+
+
+def test_cannibal_borrows_mobility_for_exactly_five_own_moves(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "cannibal"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "cannibal": 6,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 0, "type": "king", "color": "black"},
+            {"row": 4, "col": 3, "type": "cannibal", "color": "white"},
+            {"row": 5, "col": 3, "type": "rook", "color": "white"},
+            {"row": 5, "col": 6, "type": "pawn", "color": "black"},
+            {"row": 6, "col": 4, "type": "pawn", "color": "black"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    consumed = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 4,
+            "fromCol": 3,
+            "toRow": 5,
+            "toCol": 3,
+            "expectedVersion": game["version"],
+        },
+    )
+    assert consumed.status_code == 200
+    state = consumed.json()
+    cannibal = state["board"][5][3]
+    assert cannibal["runtime"]["cannibal_form"] == "rook"
+    assert cannibal["runtime"]["cannibal_moves_remaining"] == 5
+    assert state["score"] == {"white": 0, "black": 0}
+    assert state["capturedPieces"]["white"] == []
+    countdown = next(item for item in state["countdowns"] if item["kind"] == "cannibal")
+    assert countdown["remainingTurns"] == 5
+    assert countdown["unit"] == "move"
+
+    black_col = 0
+    cannibal_col = 3
+    for expected_remaining, next_cannibal_col in zip(
+        (4, 3, 2, 1, 0),
+        (4, 3, 4, 3, 4),
+        strict=True,
+    ):
+        next_black_col = 1 - black_col
+        black_move = client.post(
+            f"/game/{game['id']}/move",
+            json={
+                "fromRow": 0,
+                "fromCol": black_col,
+                "toRow": 0,
+                "toCol": next_black_col,
+                "expectedVersion": state["version"],
+            },
+        )
+        assert black_move.status_code == 200
+        state = black_move.json()
+        black_col = next_black_col
+
+        powered_targets = {
+            (move["to"]["row"], move["to"]["col"])
+            for move in state["validMoves"]
+            if move["from"] == {"row": 5, "col": cannibal_col}
+        }
+        assert (5, 6) not in powered_targets
+        assert (5, next_cannibal_col) in powered_targets
+
+        cannibal_move = client.post(
+            f"/game/{game['id']}/move",
+            json={
+                "fromRow": 5,
+                "fromCol": cannibal_col,
+                "toRow": 5,
+                "toCol": next_cannibal_col,
+                "expectedVersion": state["version"],
+            },
+        )
+        assert cannibal_move.status_code == 200
+        state = cannibal_move.json()
+        cannibal_col = next_cannibal_col
+        runtime = state["board"][5][cannibal_col]["runtime"]
+        if expected_remaining:
+            assert runtime["cannibal_moves_remaining"] == expected_remaining
+        else:
+            assert "cannibal_moves_remaining" not in runtime
+            assert "cannibal_form" not in runtime
+
+    next_black_col = 1 - black_col
+    state = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 0,
+            "fromCol": black_col,
+            "toRow": 0,
+            "toCol": next_black_col,
+            "expectedVersion": state["version"],
+        },
+    ).json()
+    base_targets = {
+        (move["to"]["row"], move["to"]["col"])
+        for move in state["validMoves"]
+        if move["from"] == {"row": 5, "col": cannibal_col}
+    }
+    assert (6, 4) in base_targets
+
+    enemy_consumed = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 5,
+            "fromCol": cannibal_col,
+            "toRow": 6,
+            "toCol": 4,
+            "expectedVersion": state["version"],
+        },
+    ).json()
+    assert enemy_consumed["score"]["white"] == 1
+    assert enemy_consumed["capturedPieces"]["white"][0]["type"] == "pawn"
+    assert enemy_consumed["board"][6][4]["runtime"]["cannibal_form"] == "pawn"
+
+
+def test_cannibal_super_state_uses_queen_mobility(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "cannibal"],
+        piecePoints={**{piece: 0 for piece in classic_types()}, "cannibal": 6},
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 0, "type": "king", "color": "black"},
+            {"row": 4, "col": 3, "type": "cannibal", "color": "white"},
+            {"row": 5, "col": 3, "type": "cannibal", "color": "white"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    state = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 4,
+            "fromCol": 3,
+            "toRow": 5,
+            "toCol": 3,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    runtime = state["board"][5][3]["runtime"]
+    assert runtime["cannibal_super_state"] is True
+    assert runtime["cannibal_form"] == "queen"
+    assert runtime["cannibal_moves_remaining"] == 5
+
+    state = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 0,
+            "fromCol": 0,
+            "toRow": 0,
+            "toCol": 1,
+            "expectedVersion": state["version"],
+        },
+    ).json()
+    targets = {
+        (move["to"]["row"], move["to"]["col"])
+        for move in state["validMoves"]
+        if move["from"] == {"row": 5, "col": 3}
+    }
+    assert (5, 7) in targets
+    assert (2, 6) in targets
+
+
+def test_necromancy_cannot_revive_a_captured_cannibal(client):
+    game = start_local_ability_game(
+        client,
+        "necromancy",
+        enabledPieces=[*classic_types(), "cannibal"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "cannibal": 6,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 4, "col": 0, "type": "rook", "color": "white"},
+            {"row": 4, "col": 4, "type": "cannibal", "color": "black"},
+        ],
+    )
+    captured = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 4,
+            "fromCol": 0,
+            "toRow": 4,
+            "toCol": 4,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    assert captured["capturedPieces"]["white"][0]["type"] == "cannibal"
+
+    white_turn = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 0,
+            "fromCol": 7,
+            "toRow": 0,
+            "toCol": 6,
+            "expectedVersion": captured["version"],
+        },
+    ).json()
+    assert not any(
+        action["actionType"] == "necromancy"
+        for action in white_turn["availableActions"]
+    )
 
 
 def test_maharani_can_cross_exactly_one_blocker_to_capture(client):

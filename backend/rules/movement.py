@@ -215,6 +215,121 @@ def _maharani_jump_attacks(
     return attacks
 
 
+def _cannibal_can_consume(state: GameState, target: Piece) -> bool:
+    if target.type in {"barricade", "diplomat"}:
+        return False
+    return not _runtime_active(state, target, "capture_immune_until_turn")
+
+
+def _cannibal_powered_moves(
+    state: GameState,
+    row: int,
+    col: int,
+    piece: Piece,
+) -> list[MoveOption]:
+    inherited_type = str(piece.runtime.get("cannibal_form", ""))
+    if not inherited_type or inherited_type == "cannibal":
+        inherited_type = "queen"
+    definition = state.piece_definitions.get(inherited_type)
+    if definition is None:
+        return []
+
+    proxy = piece.model_copy(deep=True)
+    proxy.type = inherited_type
+    proxy.name = definition.display_name
+    proxy.has_moved = True
+    proxy.runtime = {}
+    state.board.grid[row][col] = proxy
+    try:
+        inherited = generate_piece_moves(state, row, col)
+    finally:
+        state.board.grid[row][col] = piece
+
+    return [
+        MoveOption(
+            from_row=row,
+            from_col=col,
+            to_row=option.to_row,
+            to_col=option.to_col,
+            explanation=f"Cannibal using {definition.display_name} mobility",
+        )
+        for option in inherited
+        if state.board.grid[option.to_row][option.to_col] is None
+    ]
+
+
+def _cannibal_moves(
+    state: GameState,
+    row: int,
+    col: int,
+    piece: Piece,
+) -> list[MoveOption]:
+    if int(piece.runtime.get("cannibal_moves_remaining", 0)) > 0:
+        return _cannibal_powered_moves(state, row, col, piece)
+
+    moves: list[MoveOption] = []
+    backward = 1 if piece.color == "white" else -1
+    edible_squares = {(row + backward, col + dc) for dc in (-1, 0, 1)}
+    for dr in (-1, 0, 1):
+        for dc in (-1, 0, 1):
+            if dr == 0 and dc == 0:
+                continue
+            target_row, target_col = row + dr, col + dc
+            if not in_bounds(
+                state.board.rows,
+                state.board.cols,
+                target_row,
+                target_col,
+            ):
+                continue
+            target = state.board.grid[target_row][target_col]
+            if target is None:
+                moves.append(
+                    MoveOption(
+                        from_row=row,
+                        from_col=col,
+                        to_row=target_row,
+                        to_col=target_col,
+                        explanation="Cannibal movement",
+                    )
+                )
+            elif (
+                (target_row, target_col) in edible_squares
+                and _cannibal_can_consume(state, target)
+            ):
+                moves.append(
+                    MoveOption(
+                        from_row=row,
+                        from_col=col,
+                        to_row=target_row,
+                        to_col=target_col,
+                        captures=[{"row": target_row, "col": target_col, "piece": target}],
+                        explanation=f"Cannibal consumes {target.name}",
+                    )
+                )
+    return moves
+
+
+def _cannibal_attacks(
+    state: GameState,
+    row: int,
+    col: int,
+    piece: Piece,
+) -> set[tuple[int, int]]:
+    if int(piece.runtime.get("cannibal_moves_remaining", 0)) > 0:
+        return set()
+    backward = 1 if piece.color == "white" else -1
+    attacks: set[tuple[int, int]] = set()
+    for dc in (-1, 0, 1):
+        target_row, target_col = row + backward, col + dc
+        if not in_bounds(state.board.rows, state.board.cols, target_row, target_col):
+            continue
+        target = state.board.grid[target_row][target_col]
+        if target is None or _cannibal_can_consume(state, target):
+            attacks.add((target_row, target_col))
+    return attacks
+
+
 def generate_piece_moves(state: GameState, row: int, col: int) -> list[MoveOption]:
     if not in_bounds(state.board.rows, state.board.cols, row, col):
         return []
@@ -232,6 +347,8 @@ def generate_piece_moves(state: GameState, row: int, col: int) -> list[MoveOptio
     definition = state.piece_definitions.get(piece.type)
     if definition is None:
         return []
+    if piece.type == "cannibal":
+        return _cannibal_moves(state, row, col, piece)
 
     move_options: list[MoveOption] = []
     for pattern in _patterns_for_piece(state, piece):
@@ -355,6 +472,8 @@ def generate_piece_attacks(state: GameState, row: int, col: int) -> set[tuple[in
         return set()
     if piece.type in {"barricade", "hypnotizer", "diplomat"}:
         return set()
+    if piece.type == "cannibal":
+        return _cannibal_attacks(state, row, col, piece)
 
     attacks = _pattern_attack_squares(state, row, col, piece)
     if piece.type == "maharani":

@@ -688,7 +688,7 @@ class VariantActionRules:
             cost = captured.points or 0
             if (
                 captured.piece_id in revived
-                or captured.type in {"king", "barricade"}
+                or captured.type in {"king", "barricade", "cannibal"}
                 or cost > state.score[color]
             ):
                 continue
@@ -969,6 +969,35 @@ def public_countdowns(state: GameState) -> list[dict]:
                             "label": label,
                             "description": description,
                             "remainingTurns": remaining,
+                            "pieceId": piece.piece_id,
+                            "pieceName": piece.name,
+                        }
+                    )
+
+            if piece.type == "cannibal":
+                remaining_moves = int(
+                    piece.runtime.get("cannibal_moves_remaining", 0)
+                )
+                if remaining_moves > 0:
+                    form_name = str(
+                        piece.runtime.get("cannibal_form_name", "borrowed")
+                    )
+                    countdowns.append(
+                        {
+                            "id": f"cannibal-form:{piece.piece_id}",
+                            "owner": piece.color,
+                            "kind": "cannibal",
+                            "icon": "◗",
+                            "label": (
+                                "Cannibal Super State"
+                                if piece.runtime.get("cannibal_super_state")
+                                else "Cannibal Borrowed Form"
+                            ),
+                            "description": (
+                                f"Using {form_name} mobility and unable to consume."
+                            ),
+                            "remainingTurns": remaining_moves,
+                            "unit": "move",
                             "pieceId": piece.piece_id,
                             "pieceName": piece.name,
                         }
