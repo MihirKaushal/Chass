@@ -175,6 +175,17 @@ class SpecialAbilityConfig(BaseModel):
     allowed: list[str] = Field(default_factory=list)
 
 
+class CustomRulesConfig(BaseModel):
+    affinity_enabled: bool = False
+    command_point_cap: int = Field(default=3, ge=0)
+    power_costs: dict[str, int] = Field(
+        default_factory=lambda: {"reinforce": 1, "evolve": 2, "stronghold": 3}
+    )
+    power_usage_caps: dict[str, int] = Field(
+        default_factory=lambda: {"reinforce": 2, "evolve": 2, "stronghold": 1}
+    )
+
+
 class GameConfiguration(BaseModel):
     schema_version: int = 2
     preset_id: str = "classic"
@@ -185,6 +196,7 @@ class GameConfiguration(BaseModel):
     )
     initial_layout: list[dict[str, Any]] = Field(default_factory=list)
     victory: VictoryConfig = Field(default_factory=VictoryConfig)
+    custom_rules: CustomRulesConfig = Field(default_factory=CustomRulesConfig)
     special_abilities: SpecialAbilityConfig = Field(default_factory=SpecialAbilityConfig)
 
 
@@ -198,6 +210,18 @@ class AbilityState(BaseModel):
     usage_count: dict[Color, dict[str, int]] = Field(
         default_factory=lambda: {"white": {}, "black": {}}
     )
+
+
+class AffinityState(BaseModel):
+    command_points: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+    primed: dict[Color, bool] = Field(default_factory=lambda: {"white": False, "black": False})
+    power_usage: dict[Color, dict[str, int]] = Field(
+        default_factory=lambda: {
+            "white": {"reinforce": 0, "evolve": 0, "stronghold": 0},
+            "black": {"reinforce": 0, "evolve": 0, "stronghold": 0},
+        }
+    )
+    last_power_explanation: str | None = None
 
 
 class RematchState(BaseModel):
@@ -378,6 +402,7 @@ class GameState(BaseModel):
     piece_definitions: dict[str, PieceDefinition] = Field(default_factory=dict)
     configuration: GameConfiguration = Field(default_factory=GameConfiguration)
     center_dominion: CenterDominionState = Field(default_factory=CenterDominionState)
+    affinity: AffinityState = Field(default_factory=AffinityState)
     abilities: AbilityState = Field(default_factory=AbilityState)
     turn_counts: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
     clock: ClockState | None = None
@@ -391,6 +416,31 @@ class GameState(BaseModel):
     spent_score: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
     rematch: RematchState = Field(default_factory=RematchState)
     result: GameResult | None = None
+
+    @model_validator(mode="after")
+    def migrate_legacy_gambit_affinity(self) -> "GameState":
+        if (
+            self.gambit is not None
+            and self.gambit.config.affinity_enabled
+            and not self.configuration.custom_rules.affinity_enabled
+        ):
+            self.configuration.custom_rules.affinity_enabled = True
+            self.configuration.custom_rules.command_point_cap = (
+                self.gambit.config.command_point_cap
+            )
+            self.configuration.custom_rules.power_costs = dict(
+                self.gambit.config.power_costs
+            )
+            self.configuration.custom_rules.power_usage_caps = dict(
+                self.gambit.config.power_usage_caps
+            )
+            self.affinity.command_points = dict(self.gambit.command_points)
+            self.affinity.primed = dict(self.gambit.affinity_primed)
+            self.affinity.power_usage = {
+                color: dict(usage) for color, usage in self.gambit.power_usage.items()
+            }
+            self.affinity.last_power_explanation = self.gambit.last_power_explanation
+        return self
 
     def clone(self) -> "GameState":
         return self.model_copy(deep=True)

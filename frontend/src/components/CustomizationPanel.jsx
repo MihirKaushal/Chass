@@ -77,6 +77,7 @@ function defaultDraft(catalog) {
     pieceCaps,
     placements: classicLayout(8, 8),
     victory: { mode: "checkmate", targetPoints: 21, timeSeconds: 600, kingPoints: 0, dominionRounds: 3 },
+    customRules: { affinityEnabled: false, commandPointCap: 3 },
     specialAbilities: { enabled: false, allowed: [] },
     gambit: {
       enabled: false,
@@ -84,8 +85,6 @@ function defaultDraft(catalog) {
       maxPieces: 16,
       setupRows: 2,
       maxQueens: 2,
-      affinityEnabled: true,
-      commandPointCap: 3,
       draftEnabled: false,
       draftPool,
     },
@@ -125,6 +124,18 @@ function loadSavedDraft(catalog) {
         ? configuration.initialLayout
         : classicLayout(boardRows, boardCols),
       victory: { ...base.victory, ...(configuration.victory || {}) },
+      customRules: {
+        ...base.customRules,
+        ...(
+          configuration.customRules ||
+          (gambit.affinityEnabled !== undefined
+            ? {
+                affinityEnabled: gambit.affinityEnabled,
+                commandPointCap: gambit.commandPointCap ?? 3,
+              }
+            : {})
+        ),
+      },
       specialAbilities: {
         ...base.specialAbilities,
         ...(configuration.specialAbilities || {}),
@@ -171,6 +182,7 @@ function applyModeToDraft(current, mode, catalog) {
     barricadeCount: defaults.barricadeCount,
     placements: layout,
     victory: { ...current.victory, ...mode.victory },
+    customRules: { ...defaults.customRules, ...(mode.customRules || {}) },
     specialAbilities: { enabled: false, allowed: [] },
     gambit: { ...defaults.gambit, enabled: false, draftEnabled: false, ...mode.gambit },
   };
@@ -195,6 +207,7 @@ function buildRequest(draft, mode = "local") {
         ? []
         : draft.placements.filter((piece) => piece.type !== "barricade"),
       victory: draft.victory,
+      customRules: draft.customRules,
       specialAbilities: draft.specialAbilities,
       gambit: {
         ...draft.gambit,
@@ -253,8 +266,7 @@ function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlac
     ).map((square) => [`${square.row}-${square.col}`, { ...square, type: "barricade", color: "neutral" }])
   );
   const affinityMap = new Set(
-    draft.victory.mode === "center_dominion" ||
-      (draft.gambit.enabled && draft.gambit.affinityEnabled)
+    draft.victory.mode === "center_dominion" || draft.customRules.affinityEnabled
       ? Object.values(affinitySquares(draft.boardRows, draft.boardCols))
           .flat()
           .map((square) => `${square.row}-${square.col}`)
@@ -696,6 +708,14 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
           </section>
 
           <section className="studio-section ability-config-section">
+            <SectionHeading title="Custom Rules" description="Add optional board-wide systems to any game mode." />
+            <Toggle checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Control both center squares of your color to earn command points." />
+            {draft.customRules.affinityEnabled ? <div className="conditional-fields">
+              <label>Command Point Cap<input type="number" min="0" max="20" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clamp(event.target.value, 0, 20) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
+            </div> : null}
+          </section>
+
+          <section className="studio-section ability-config-section">
             <SectionHeading title="Special Abilities" description="Each player privately chooses one allowed ability before play." />
             <Toggle checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
             {draft.specialAbilities.enabled ? <div className="ability-option-grid">{catalog.specialAbilities.map((ability) => { const enabled = draft.specialAbilities.allowed.includes(ability.id); const reason = disabledAbilities[ability.id]; return <button type="button" key={ability.id} className={enabled ? "selected" : ""} disabled={Boolean(reason)} title={reason || ""} onClick={() => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, allowed: enabled ? current.specialAbilities.allowed.filter((id) => id !== ability.id) : [...current.specialAbilities.allowed, ability.id] } }))}><i>{ability.icon}</i><span><strong>{ability.name}</strong><small>{reason || ability.summary}</small></span><b>{reason ? "Unavailable" : enabled ? "Enabled" : "Off"}</b></button>; })}</div> : null}
@@ -709,8 +729,6 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
               <label>Maximum Pieces<input type="number" min="1" max="128" value={draft.gambit.maxPieces} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, maxPieces: Math.max(1, Number(event.target.value)) } }))} /><small>Includes the required King.</small></label>
               <label>Private Setup Rows<input type="number" min="1" max={Math.floor(draft.boardRows / 2)} value={draft.gambit.setupRows} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, setupRows: clamp(event.target.value, 1, Math.max(1, Math.floor(current.boardRows / 2))) } }))} /><small>Rows nearest each player that they may edit.</small></label>
               <label>Maximum Queens<input type="number" min="0" max={Math.max(0, draft.gambit.maxPieces - 1)} value={draft.gambit.maxQueens} onChange={(event) => { const value = Math.max(0, Number(event.target.value)); setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, maxQueens: value }, pieceCaps: { ...current.pieceCaps, queen: value } })); }} /><small>At least one army slot remains for the King.</small></label>
-              <label>Command Point Cap<input type="number" min="0" max="20" value={draft.gambit.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, commandPointCap: Math.max(0, Number(event.target.value)) } }))} /><small>Maximum command points a player may save.</small></label>
-              <Toggle checked={draft.gambit.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, affinityEnabled } }))} label="Enable Affinity Squares" description="Control both center squares of your color to earn command points." />
               <Toggle checked={draft.gambit.draftEnabled} onChange={(draftEnabled) => setDraft((current) => ({ ...current, presetId: draftEnabled ? "draft_gambit" : "custom", gambit: { ...current.gambit, draftEnabled, draftPool: { ...current.gambit.draftPool, king: 2 } } }))} label="Enable Shared Draft" description="Alternate public picks from one shared pool before each player privately arranges their drafted army." />
             </div> : null}
           </section>

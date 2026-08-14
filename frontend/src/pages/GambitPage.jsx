@@ -262,13 +262,13 @@ function GambitDeployment({
           lastMove={null}
           boardFlipped={boardFlipped}
           interactive={editable && !actionLoading}
-          affinitySquares={game.centerDominion?.squares || gambit.config.affinitySquares}
+          affinitySquares={game.affinity.enabled ? game.affinity.squares : (game.centerDominion?.squares || {})}
           editableRows={ownRows}
           foggedRows={opponentRows}
           showCoordinates
         />
 
-        {gambit.config.affinityEnabled ? (
+        {game.affinity.enabled ? (
           <div className="affinity-legend">
             <span><i className="affinity-swatch white" /> White affinity squares</span>
             <span><i className="affinity-swatch black" /> Black affinity squares</span>
@@ -392,12 +392,12 @@ function GambitDeployment({
   );
 }
 
-function CommandPanel({ game, interactive, selectedPower, onSelectPower, evolveTo, setEvolveTo }) {
-  const gambit = game.gambit;
-  const color = gambit.viewerColor || game.currentPlayer;
-  const points = gambit.commandPoints[color] || 0;
-  const controlled = gambit.affinityControlled[color];
-  const primed = gambit.affinityPrimed[color];
+export function CommandPanel({ game, interactive, selectedPower, onSelectPower, evolveTo, setEvolveTo }) {
+  const affinity = game.affinity;
+  const color = game.gambit?.viewerColor || game.currentPlayer;
+  const points = affinity.commandPoints[color] || 0;
+  const controlled = affinity.controlled[color];
+  const primed = affinity.primed[color];
 
   return (
     <section className="command-panel">
@@ -406,8 +406,8 @@ function CommandPanel({ game, interactive, selectedPower, onSelectPower, evolveT
           <span className="eyebrow">{title(color)} command</span>
           <h2>Command Points</h2>
         </div>
-        <div className="command-pips" aria-label={`${points} of ${gambit.config.commandPointCap} command points`}>
-          {Array.from({ length: gambit.config.commandPointCap }).map((_, index) => (
+        <div className="command-pips" aria-label={`${points} of ${affinity.commandPointCap} command points`}>
+          {Array.from({ length: affinity.commandPointCap }).map((_, index) => (
             <i key={index} className={index < points ? "filled" : ""} />
           ))}
         </div>
@@ -416,7 +416,7 @@ function CommandPanel({ game, interactive, selectedPower, onSelectPower, evolveT
       <div className={`affinity-readout ${controlled ? "controlled" : ""}`}>
         <strong>{controlled ? "Affinity held" : "Affinity contested"}</strong>
         <span>
-          {!gambit.config.affinityEnabled
+          {!affinity.enabled
             ? "Affinity squares are disabled for this game."
             : primed
             ? "Keep both squares through the enemy turn to earn 1 point."
@@ -426,10 +426,10 @@ function CommandPanel({ game, interactive, selectedPower, onSelectPower, evolveT
 
       <div className="power-list">
         {Object.entries(POWER_COPY).map(([power, copy]) => {
-          const cost = gambit.config.powerCosts[power];
-          const usage = gambit.powerUsage[color]?.[power] || 0;
-          const cap = gambit.config.powerUsageCaps[power];
-          const targets = gambit.legalPowerTargets[power] || [];
+          const cost = affinity.powerCosts[power];
+          const usage = affinity.powerUsage[color]?.[power] || 0;
+          const cap = affinity.powerUsageCaps[power];
+          const targets = affinity.legalPowerTargets[power] || [];
           const available = interactive && points >= cost && usage < cap && targets.length > 0;
           return (
             <button
@@ -495,7 +495,7 @@ function GambitPlay({
   const [evolveTo, setEvolveTo] = useState("knight");
   const lastMove = game.history.length ? game.history[game.history.length - 1] : null;
   const powerTargets = selectedPower
-    ? game.gambit.legalPowerTargets[selectedPower] || []
+    ? game.affinity.legalPowerTargets[selectedPower] || []
     : [];
   const powerTargetSet = useMemo(
     () => new Set(powerTargets.map((target) => `${target.row}-${target.col}`)),
@@ -547,7 +547,7 @@ function GambitPlay({
           boardFlipped={boardFlipped}
           interactive={interactive && !actionLoading}
           extraTargets={powerTargets}
-          affinitySquares={game.centerDominion?.squares || game.gambit.config.affinitySquares}
+          affinitySquares={game.affinity.enabled ? game.affinity.squares : (game.centerDominion?.squares || {})}
           showCoordinates
           pieceDetailsMode="double-tap"
         />

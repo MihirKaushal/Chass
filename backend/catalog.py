@@ -607,6 +607,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "boardCols": 8,
         "formationId": "classic",
         "victory": {"mode": "checkmate"},
+        "customRules": {"affinityEnabled": True, "commandPointCap": 3},
         "gambit": {"enabled": True, "draftEnabled": False},
     },
     {
@@ -621,6 +622,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "boardCols": 8,
         "formationId": "classic",
         "victory": {"mode": "checkmate"},
+        "customRules": {"affinityEnabled": True, "commandPointCap": 3},
         "gambit": {"enabled": True, "draftEnabled": True},
     },
 ]
@@ -742,8 +744,7 @@ def catalog_payload() -> dict[str, Any]:
                 "Each player edits only the configured home rows.",
                 "Each army must contain exactly one King and stay within its point limit.",
                 "Armies remain hidden until both players lock in.",
-                "Holding both affinity squares of your color earns command points.",
-                "Command points buy Reinforce, Evolve, and Stronghold actions.",
+                "Optional custom rules can add affinity squares and command powers.",
             ],
             "draftDetails": [
                 "Each army begins with its required King already assigned.",
