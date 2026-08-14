@@ -148,6 +148,21 @@ class SharedDraftRule:
     )
 
     @staticmethod
+    def initialize(gambit: GambitState) -> GambitState:
+        if not gambit.config.draft_enabled or any(gambit.draft_picks.values()):
+            return gambit
+
+        remaining = dict(gambit.draft_pool_remaining or gambit.config.draft_pool)
+        if remaining.get("king", 0) != 2:
+            raise ValueError("Draft Gambit requires one starting King for each army.")
+
+        initialized = gambit.model_copy(deep=True)
+        initialized.draft_picks = {"white": ["king"], "black": ["king"]}
+        initialized.draft_pool_remaining = remaining
+        initialized.draft_pool_remaining["king"] = 0
+        return initialized
+
+    @staticmethod
     def summary(state: GameState, color: str) -> dict:
         gambit = _require_gambit(state)
         picks = gambit.draft_picks[color]
@@ -169,6 +184,8 @@ class SharedDraftRule:
             return f"It is {gambit.draft_active_color.title()}'s draft pick."
         if gambit.draft_passed[color]:
             return "This army is already locked."
+        if piece_type == "king":
+            return "Each army already has its required King."
         if piece_type == "barricade" or piece_type not in gambit.config.piece_points:
             return "That piece is not available in this draft."
         if gambit.draft_pool_remaining.get(piece_type, 0) <= 0:
@@ -187,12 +204,6 @@ class SharedDraftRule:
         if spent + cost > gambit.config.budget:
             return f"That pick would exceed the {gambit.config.budget}-point limit."
 
-        if counts.get("king", 0) == 0 and piece_type != "king":
-            king_cost = gambit.config.piece_points.get("king", 0)
-            if len(picks) + 1 >= gambit.config.max_pieces:
-                return "Keep one army slot available for the required King."
-            if spent + cost + king_cost > gambit.config.budget:
-                return "Keep enough points available for the required King."
         return None
 
     def options(self, state: GameState, color: str) -> list[str]:
@@ -239,7 +250,7 @@ class SharedDraftRule:
             next_gambit.draft_pool_remaining[piece_type] -= 1
         elif action == "pass":
             if not self.can_pass(state, color):
-                raise ValueError("Draft exactly one King before locking your army.")
+                raise ValueError("The army must include its assigned King before locking.")
             next_gambit.draft_passed[color] = True
         else:
             raise ValueError("Unsupported draft action.")
@@ -593,6 +604,9 @@ class GambitRuleSet:
     @staticmethod
     def preparation_phase(gambit: GambitState) -> str:
         return "draft" if gambit.config.draft_enabled else "deployment"
+
+    def initialize_preparation(self, gambit: GambitState) -> GambitState:
+        return self.shared_draft.initialize(gambit)
 
     def setup_issues(
         self,

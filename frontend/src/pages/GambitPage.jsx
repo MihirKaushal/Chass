@@ -44,7 +44,9 @@ function DraftGambit({ game, actionLoading, onDraft }) {
     () => new Map(game.pieceDefinitions.map((definition) => [definition.type, definition])),
     [game.pieceDefinitions]
   );
-  const pieceTypes = Object.keys(gambit.config.draftPool || {}).sort((left, right) => {
+  const pieceTypes = Object.keys(gambit.config.draftPool || {}).filter(
+    (pieceType) => pieceType !== "king"
+  ).sort((left, right) => {
     const leftIndex = PIECE_ORDER.indexOf(left);
     const rightIndex = PIECE_ORDER.indexOf(right);
     if (leftIndex === -1 && rightIndex === -1) return left.localeCompare(right);
@@ -60,7 +62,7 @@ function DraftGambit({ game, actionLoading, onDraft }) {
         <div>
           <span className="eyebrow">Shared Army Draft</span>
           <h1>{waitingForPlayer ? "Waiting For Black" : `${title(activeColor)} To Pick`}</h1>
-          <p>Selections are public and final. After both armies lock, each player privately arranges only the pieces they drafted.</p>
+          <p>Each army starts with its required King. Remaining selections are public and final, followed by private deployment.</p>
         </div>
         <div className={`draft-turn-seal ${activeColor}`} aria-label={`${title(activeColor)} draft turn`}>
           {activeColor === "white" ? "W" : "B"}
@@ -125,7 +127,7 @@ function DraftGambit({ game, actionLoading, onDraft }) {
           })}
         </div>
         <div className="draft-lock-row">
-          <p>Locking ends your draft permanently. You may spend less than the maximum, but your army must contain exactly one King.</p>
+          <p>Locking ends your draft permanently. Your King is already secured, and you may spend less than the maximum.</p>
           <button type="button" disabled={!gambit.draftCanPass || actionLoading} onClick={() => onDraft({ action: "pass" })}>
             {actionLoading ? "Updating Draft..." : `Lock ${title(activeColor)} Army`}
           </button>

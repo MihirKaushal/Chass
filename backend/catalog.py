@@ -614,8 +614,8 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "name": "Draft Gambit",
         "icon": "◈",
         "summary": (
-            "Alternate picks from one shared piece pool, then privately deploy the "
-            "army you drafted."
+            "Begin with one King each, alternate picks from a shared pool, then privately "
+            "deploy the armies."
         ),
         "boardRows": 8,
         "boardCols": 8,
@@ -746,9 +746,9 @@ def catalog_payload() -> dict[str, Any]:
                 "Command points buy Reinforce, Evolve, and Stronghold actions.",
             ],
             "draftDetails": [
-                "Players alternate public selections from one shared piece pool.",
-                "Each drafted army must contain exactly one King and stay within its limits.",
-                "A player may lock below the maximum point budget after drafting a King.",
+                "Each army begins with its required King already assigned.",
+                "Players alternate public selections of the remaining pieces from one shared pool.",
+                "A player may lock below the maximum point budget at any time.",
                 "After both players lock, each army is arranged privately in its home rows.",
             ],
         },

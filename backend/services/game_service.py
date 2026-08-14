@@ -737,6 +737,11 @@ class GameService:
                 request.boardRows,
                 request.boardCols,
             )
+        if gambit_state is not None:
+            try:
+                gambit_state = self.engine.gambit.initialize_preparation(gambit_state)
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
         abilities_enabled = configuration.special_abilities.enabled
         gambit_preparation_phase = (
             self.engine.gambit.preparation_phase(gambit_state)
@@ -1337,6 +1342,7 @@ class GameService:
                 else None
             )
             reset_gambit = GambitState(config=config) if config is not None else GambitState()
+            reset_gambit = self.engine.gambit.initialize_preparation(reset_gambit)
             game_state.board = _empty_board(game_state.board.rows, game_state.board.cols)
             game_state.phase = (
                 "lobby"
