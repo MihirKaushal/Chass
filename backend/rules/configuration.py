@@ -96,6 +96,11 @@ class ConfigurationRuleEngine:
         if payload.specialAbilities.enabled:
             if not payload.specialAbilities.allowed:
                 result.errors.append("Enable at least one ability for players to choose.")
+            unique_abilities = set(payload.specialAbilities.allowed)
+            if payload.specialAbilities.maxPerPlayer > len(unique_abilities):
+                result.errors.append(
+                    "Abilities per player cannot exceed the number of enabled abilities."
+                )
             disabled_abilities = result.disabled_options.get("abilities", {})
             for ability in payload.specialAbilities.allowed:
                 if ability in disabled_abilities:

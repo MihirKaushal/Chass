@@ -6,16 +6,35 @@ function AbilitySelectionPage({ game, catalog, onSelect, actionLoading }) {
   const color = game.abilities.editableColor || "white";
   const allowed = new Set(game.abilities.allowed);
   const abilities = (catalog?.specialAbilities || []).filter((ability) => allowed.has(ability.id));
+  const maxChoices = game.abilities.maxPerPlayer || 1;
+  const [choices, setChoices] = useState([]);
+
+  useEffect(() => {
+    setChoices([]);
+  }, [color, game.id]);
+
+  const toggleChoice = (abilityId) => {
+    setChoices((current) => {
+      if (current.includes(abilityId)) {
+        return current.filter((item) => item !== abilityId);
+      }
+      if (current.length >= maxChoices) {
+        return current;
+      }
+      return [...current, abilityId];
+    });
+  };
+  const choiceLabel = maxChoices === 1 ? "One Ability" : `${maxChoices} Abilities`;
 
   return (
     <main className="ability-selection-shell">
       <section className="ability-selection-card">
         <header>
           <span className="eyebrow">Private Loadout</span>
-          <h1>{title(color)}, Choose One Ability</h1>
+          <h1>{title(color)}, Choose {choiceLabel}</h1>
           <p>
-            Your choice locks immediately. The opponent sees only that you are ready until both
-            players have selected.
+            Build your private loadout, then lock every choice together. The opponent sees only
+            that you are ready until both players have selected.
           </p>
         </header>
         {!game.ready && game.mode === "online" ? (
@@ -26,25 +45,35 @@ function AbilitySelectionPage({ game, catalog, onSelect, actionLoading }) {
             <button
               type="button"
               key={ability.id}
+              className={choices.includes(ability.id) ? "selected" : ""}
               disabled={actionLoading || !game.ready || !game.abilities.editableColor}
-              onClick={() => onSelect(ability.id)}
+              onClick={() => toggleChoice(ability.id)}
             >
               <i>{ability.icon}</i>
               <span><strong>{ability.name}</strong><small>{ability.summary}</small></span>
-              <b>Choose</b>
+              <b>{choices.includes(ability.id) ? "Selected" : "Choose"}</b>
             </button>
           ))}
         </div>
-        {game.abilities.viewerSelection ? (
-          <p className="ability-locked">Your choice is locked. Waiting for the other player.</p>
-        ) : null}
+        {game.abilities.viewerSelection?.length ? (
+          <p className="ability-locked">Your loadout is locked. Waiting for the other player.</p>
+        ) : (
+          <button
+            type="button"
+            className="ability-lock-button"
+            disabled={actionLoading || !game.ready || !game.abilities.editableColor || choices.length !== maxChoices}
+            onClick={() => onSelect(choices)}
+          >
+            {actionLoading ? "Locking Loadout..." : `Lock ${choices.length} / ${maxChoices}`}
+          </button>
+        )}
       </section>
     </main>
   );
 }
 
 function AbilityHandoffPage({ game, onContinue, actionLoading }) {
-  const nextColor = game.abilities.selected.white && !game.abilities.selected.black ? "black" : "white";
+  const nextColor = game.abilities.selected.white?.length && !game.abilities.selected.black?.length ? "black" : "white";
   return (
     <main className="gambit-handoff-shell">
       <section className="gambit-handoff-card">
@@ -62,3 +91,4 @@ function AbilityHandoffPage({ game, onContinue, actionLoading }) {
 
 export { AbilityHandoffPage };
 export default AbilitySelectionPage;
+import { useEffect, useState } from "react";

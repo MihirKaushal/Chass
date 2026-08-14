@@ -50,6 +50,11 @@ function MatchClock({ clock }) {
 }
 
 function GameStateSummary({ gameStatus, winner, score, abilities, clock, centerDominion }) {
+  const abilityNames = (selection) => {
+    if (!Array.isArray(selection) || !selection.length) return "Hidden";
+    if (selection.includes("locked")) return "Locked";
+    return selection.map(title).join(", ");
+  };
   return (
     <section className="panel-section">
       <h3>Game State</h3>
@@ -58,7 +63,7 @@ function GameStateSummary({ gameStatus, winner, score, abilities, clock, centerD
         <span><b>Winner</b>{title(winner) || "None"}</span>
         <span><b>Score</b>{score?.white ?? 0} / {score?.black ?? 0}</span>
         {abilities?.enabled ? (
-          <span><b>Abilities</b>{title(abilities.selected?.white) || "Hidden"} / {title(abilities.selected?.black) || "Hidden"}</span>
+          <span><b>Abilities</b>{abilityNames(abilities.selected?.white)} / {abilityNames(abilities.selected?.black)}</span>
         ) : null}
       </div>
       <MatchClock clock={clock} />
@@ -268,7 +273,7 @@ function CustomPiecesDisclosure({ game }) {
 function SpecialAbilitiesDisclosure({ abilities, catalog }) {
   const selected = abilities?.selected || {};
   const abilityIds = [...new Set(
-    Object.values(selected).filter((abilityId) => abilityId && abilityId !== "locked")
+    Object.values(selected).flatMap((items) => Array.isArray(items) ? items : []).filter((abilityId) => abilityId !== "locked")
   )];
   const definitions = new Map(
     (catalog?.specialAbilities || []).map((ability) => [ability.id, ability])
@@ -283,7 +288,7 @@ function SpecialAbilitiesDisclosure({ abilities, catalog }) {
       <div className="effect-disclosure-list">
         {abilityIds.map((abilityId) => {
           const definition = definitions.get(abilityId);
-          const owners = ["white", "black"].filter((color) => selected[color] === abilityId);
+          const owners = ["white", "black"].filter((color) => selected[color]?.includes(abilityId));
           return (
             <article className="effect-reference-card" key={abilityId}>
               <header>

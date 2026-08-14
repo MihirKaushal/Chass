@@ -101,6 +101,7 @@ from backend.rules.variant_system import (
     ability_cooldown_remaining,
     affinity_start_squares,
     barricade_start_squares,
+    has_ability,
     public_countdowns,
 )
 from backend.security import (
@@ -444,6 +445,7 @@ def _configuration_from_request(
         special_abilities=SpecialAbilityConfig(
             enabled=payload.specialAbilities.enabled,
             allowed=list(dict.fromkeys(payload.specialAbilities.allowed)),
+            max_per_player=payload.specialAbilities.maxPerPlayer,
         ),
     )
 
@@ -980,7 +982,16 @@ class GameService:
         config = state.configuration.special_abilities
         if not config.enabled or state.phase != "ability_selection":
             raise HTTPException(status_code=409, detail="Ability selection is not active.")
-        if request.abilityId not in config.allowed:
+        choices = list(request.abilityIds or [])
+        if len(choices) != config.max_per_player:
+            raise HTTPException(
+                status_code=400,
+                detail=(
+                    f"Choose exactly {config.max_per_player} special "
+                    f"abilit{'y' if config.max_per_player == 1 else 'ies'}."
+                ),
+            )
+        if any(ability_id not in config.allowed for ability_id in choices):
             raise HTTPException(
                 status_code=400, detail="That ability is not enabled for this game."
             )
@@ -988,11 +999,11 @@ class GameService:
             raise HTTPException(status_code=409, detail="Waiting for the second player to join.")
 
         color = self._setup_color(authorized)
-        if state.abilities.selected[color] is not None:
+        if state.abilities.selected[color]:
             raise HTTPException(status_code=409, detail="This ability choice is already locked.")
         expected = self._expected_version(record, request.expectedVersion)
         next_state = state.clone()
-        next_state.abilities.selected[color] = request.abilityId
+        next_state.abilities.selected[color] = choices
 
         if record.mode == "local" and color == "white":
             next_state.abilities.active_selection_color = "black"
@@ -1025,7 +1036,7 @@ class GameService:
         next_state = record.state.clone()
         if (
             next_state.configuration.special_abilities.enabled
-            and next_state.abilities.selected["black"] is None
+            and not next_state.abilities.selected["black"]
         ):
             next_state.phase = "ability_selection"
         elif next_state.variant == "gambit":
@@ -1609,6 +1620,9 @@ class GameService:
             "specialAbilities": {
                 "enabled": game_state.configuration.special_abilities.enabled,
                 "allowed": game_state.configuration.special_abilities.allowed,
+                "maxPerPlayer": (
+                    game_state.configuration.special_abilities.max_per_player
+                ),
             },
             "gambit": {
                 "enabled": game_state.gambit is not None,
@@ -1660,7 +1674,7 @@ class GameService:
                         )
                 if (
                     piece.type == "bishop"
-                    and game_state.abilities.selected.get(piece.color) == "episcopal"
+                    and has_ability(game_state, piece.color, "episcopal")
                 ):
                     ready_turn = int(
                         game_state.abilities.runtime[piece.color].get(
@@ -2045,13 +2059,16 @@ class GameService:
             ability_viewer = game_state.current_player
         choices_revealed = game_state.phase in {"play", "finished"}
         selected_view = (
-            dict(game_state.abilities.selected)
+            {
+                color: list(game_state.abilities.selected[color])
+                for color in ("white", "black")
+            }
             if choices_revealed
             else {
                 color: (
-                    game_state.abilities.selected[color]
+                    list(game_state.abilities.selected[color])
                     if color == ability_viewer
-                    else ("locked" if game_state.abilities.selected[color] else None)
+                    else (["locked"] if game_state.abilities.selected[color] else [])
                 )
                 for color in ("white", "black")
             }
@@ -2060,7 +2077,7 @@ class GameService:
         if (
             game_state.phase == "ability_selection"
             and ability_viewer in {"white", "black"}
-            and game_state.abilities.selected[ability_viewer] is None
+            and not game_state.abilities.selected[ability_viewer]
         ):
             ability_editable_color = ability_viewer
 
@@ -2139,15 +2156,15 @@ class GameService:
             abilities=AbilityStateView(
                 enabled=game_state.configuration.special_abilities.enabled,
                 allowed=game_state.configuration.special_abilities.allowed,
+                maxPerPlayer=game_state.configuration.special_abilities.max_per_player,
                 selected=selected_view,
                 used=game_state.abilities.used,
                 usageCount=game_state.abilities.usage_count,
                 cooldowns={
                     color: {
                         ability_id: remaining
-                        for ability_id in [game_state.abilities.selected.get(color)]
-                        if ability_id is not None
-                        and (
+                        for ability_id in game_state.abilities.selected.get(color, [])
+                        if (
                             remaining := ability_cooldown_remaining(
                                 game_state,
                                 color,
@@ -2159,9 +2176,9 @@ class GameService:
                     for color in ("white", "black")
                 },
                 viewerSelection=(
-                    game_state.abilities.selected.get(ability_viewer)
+                    list(game_state.abilities.selected.get(ability_viewer, []))
                     if ability_viewer in {"white", "black"}
-                    else None
+                    else []
                 ),
                 editableColor=ability_editable_color,
             ),

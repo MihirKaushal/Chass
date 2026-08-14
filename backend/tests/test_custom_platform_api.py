@@ -407,7 +407,8 @@ def test_online_ability_choices_stay_private_until_both_lock(client):
     payload = configured_game(
         specialAbilities={
             "enabled": True,
-            "allowed": ["getaway", "power_of_love"],
+            "allowed": ["getaway", "power_of_love", "kamikaze", "episcopal"],
+            "maxPerPlayer": 2,
         }
     )
     payload["mode"] = "online"
@@ -421,7 +422,7 @@ def test_online_ability_choices_stay_private_until_both_lock(client):
         f"/game/{created['game']['id']}/ability",
         headers=auth(created["playerToken"]),
         json={
-            "abilityId": "getaway",
+            "abilityIds": ["getaway", "kamikaze"],
             "expectedVersion": joined["game"]["version"],
         },
     )
@@ -431,13 +432,14 @@ def test_online_ability_choices_stay_private_until_both_lock(client):
         f"/game/{created['game']['id']}",
         headers=auth(joined["playerToken"]),
     ).json()
-    assert black_view["abilities"]["selected"]["white"] == "locked"
+    assert black_view["abilities"]["selected"]["white"] == ["locked"]
+    assert black_view["abilities"]["maxPerPlayer"] == 2
 
     black_choice = client.post(
         f"/game/{created['game']['id']}/ability",
         headers=auth(joined["playerToken"]),
         json={
-            "abilityId": "power_of_love",
+            "abilityIds": ["power_of_love", "episcopal"],
             "expectedVersion": black_view["version"],
         },
     )
@@ -445,9 +447,26 @@ def test_online_ability_choices_stay_private_until_both_lock(client):
     game = black_choice.json()
     assert game["phase"] == "play"
     assert game["abilities"]["selected"] == {
-        "white": "getaway",
-        "black": "power_of_love",
+        "white": ["getaway", "kamikaze"],
+        "black": ["power_of_love", "episcopal"],
     }
+
+
+def test_ability_count_cannot_exceed_enabled_choices(client):
+    response = client.post(
+        "/game/validate",
+        json=configured_game(
+            specialAbilities={
+                "enabled": True,
+                "allowed": ["getaway"],
+                "maxPerPlayer": 2,
+            }
+        ),
+    )
+    assert response.status_code == 200
+    result = response.json()
+    assert result["valid"] is False
+    assert any("cannot exceed" in error for error in result["errors"])
 
 
 def test_point_race_resolves_before_no_move_fallback(client):
@@ -882,7 +901,7 @@ def test_eye_for_an_eye_removes_matching_pieces_without_scoring(client):
     assert updated["board"][7][0] is None
     assert updated["board"][0][0] is None
     assert updated["score"] == {"white": 0, "black": 0}
-    assert updated["abilities"]["used"]["white"] is True
+    assert updated["abilities"]["used"]["white"]["eye_for_an_eye"] is True
     assert updated["abilities"]["cooldowns"]["white"]["eye_for_an_eye"] == 10
     assert updated["abilities"]["usageCount"]["white"]["eye_for_an_eye"] == 1
     assert any(
@@ -1077,7 +1096,7 @@ def test_getaway_swaps_the_king_with_a_queen_to_escape_checkmate(client):
     updated = escaped.json()
     assert updated["board"][0][7]["type"] == "king"
     assert updated["board"][7][7]["type"] == "queen"
-    assert updated["abilities"]["used"]["white"] is True
+    assert updated["abilities"]["used"]["white"]["getaway"] is True
     assert updated["abilities"]["cooldowns"]["white"].get("getaway") is None
     assert not any(item["kind"] == "getaway" for item in updated["countdowns"])
     assert updated["abilities"]["usageCount"]["white"]["getaway"] == 1

@@ -7,6 +7,7 @@ from backend.rules.variant_system import (
     affinity_start_squares,
     direct_king_capture_allowed,
     finish_game,
+    has_ability,
     piece_runtime_active,
     uses_royal_safety,
 )
@@ -155,7 +156,7 @@ class PromotionRule(Rule):
             )
         if (
             move.promotion == "kamikaze"
-            and state.abilities.selected.get(piece.color) != "kamikaze"
+            and not has_ability(state, piece.color, "kamikaze")
         ):
             return ValidationResult(
                 is_valid=False,
@@ -185,7 +186,7 @@ class PromotionRule(Rule):
 
         if (
             move.promotion == "kamikaze"
-            and state.abilities.selected.get(piece.color) == "kamikaze"
+            and has_ability(state, piece.color, "kamikaze")
         ):
             state.board.grid[move.to_row][move.to_col] = None
             enemy_king_hit = False

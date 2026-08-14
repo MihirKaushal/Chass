@@ -196,11 +196,12 @@ class AvailableActionView(BaseModel):
 class AbilityStateView(BaseModel):
     enabled: bool = False
     allowed: list[str] = Field(default_factory=list)
-    selected: dict[str, str | None] = Field(default_factory=dict)
-    used: dict[str, bool] = Field(default_factory=dict)
+    maxPerPlayer: int = 1
+    selected: dict[str, list[str]] = Field(default_factory=dict)
+    used: dict[str, dict[str, bool]] = Field(default_factory=dict)
     usageCount: dict[str, dict[str, int]] = Field(default_factory=dict)
     cooldowns: dict[str, dict[str, int]] = Field(default_factory=dict)
-    viewerSelection: str | None = None
+    viewerSelection: list[str] = Field(default_factory=list)
     editableColor: str | None = None
 
 
@@ -320,6 +321,7 @@ class VictoryConfigPayload(BaseModel):
 
 class SpecialAbilityConfigPayload(BaseModel):
     enabled: bool = False
+    maxPerPlayer: int = Field(default=1, ge=1, le=6)
     allowed: list[
         Literal[
             "necromancy",
@@ -470,6 +472,14 @@ class GameActionRequest(BaseModel):
 
 
 class AbilitySelectionRequest(BaseModel):
+    abilityIds: list[Literal[
+        "necromancy",
+        "getaway",
+        "eye_for_an_eye",
+        "kamikaze",
+        "episcopal",
+        "power_of_love",
+    ]] | None = Field(default=None, min_length=1, max_length=6)
     abilityId: Literal[
         "necromancy",
         "getaway",
@@ -477,8 +487,18 @@ class AbilitySelectionRequest(BaseModel):
         "kamikaze",
         "episcopal",
         "power_of_love",
-    ]
+    ] | None = None
     expectedVersion: int | None = Field(default=None, ge=1)
+
+    @model_validator(mode="after")
+    def normalize_selection(self) -> "AbilitySelectionRequest":
+        if self.abilityIds is None:
+            if self.abilityId is None:
+                raise ValueError("Choose at least one ability")
+            self.abilityIds = [self.abilityId]
+        if len(set(self.abilityIds)) != len(self.abilityIds):
+            raise ValueError("Ability choices must be unique")
+        return self
 
 
 class SetupHandoffRequest(BaseModel):
