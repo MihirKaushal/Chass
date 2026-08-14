@@ -522,9 +522,9 @@ function GameWorkspace({ gameId }) {
     }
   };
 
-  const handleAbilitySelection = async (abilityId) => {
+  const handleAbilitySelection = async (abilityIds) => {
     try {
-      await runAction(() => mutate(selectAbility, { abilityId }));
+      await runAction(() => mutate(selectAbility, { abilityIds }));
     } catch {
       // The shared error banner explains rejected ability selections.
     }
@@ -731,7 +731,7 @@ function GameWorkspace({ gameId }) {
         />
       ) : game.phase === "handoff" &&
         game.configuration?.specialAbilities?.enabled &&
-        !game.abilities?.selected?.black ? (
+        !game.abilities?.selected?.black?.length ? (
         <AbilityHandoffPage
           game={game}
           onContinue={handleSetupHandoff}

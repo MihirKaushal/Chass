@@ -138,6 +138,18 @@ def ability_cooldown_remaining(state: GameState, color: str, ability_id: str) ->
     return max(0, ready_turn - state.turn_counts[color])
 
 
+def has_ability(state: GameState, color: str, ability_id: str) -> bool:
+    return ability_id in state.abilities.selected.get(color, [])
+
+
+def ability_was_used(state: GameState, color: str, ability_id: str) -> bool:
+    return bool(state.abilities.used.get(color, {}).get(ability_id, False))
+
+
+def mark_ability_used(state: GameState, color: str, ability_id: str) -> None:
+    state.abilities.used[color][ability_id] = True
+
+
 def ability_is_ready(state: GameState, color: str, ability_id: str) -> bool:
     return ability_cooldown_remaining(state, color, ability_id) == 0
 
@@ -165,7 +177,7 @@ def trigger_power_of_love(state: GameState, captures: list[CaptureEvent]) -> Non
         if capture.piece.type == "queen" and capture.piece.color in {"white", "black"}
     }
     for color in queen_colors:
-        if state.abilities.selected.get(color) != "power_of_love":
+        if not has_ability(state, color, "power_of_love"):
             continue
         for row in state.board.grid:
             for piece in row:
@@ -530,8 +542,8 @@ class VariantActionRules:
 
     def _getaway_actions(self, state: GameState, color: str, helper) -> list[dict]:
         if (
-            state.abilities.selected.get(color) != "getaway"
-            or state.abilities.used.get(color, False)
+            not has_ability(state, color, "getaway")
+            or ability_was_used(state, color, "getaway")
             or state.game_status != "check"
             or helper.has_any_legal_move(state, color)
         ):
@@ -566,7 +578,7 @@ class VariantActionRules:
         return actions
 
     def _episcopal_actions(self, state: GameState, color: str) -> list[dict]:
-        if state.abilities.selected.get(color) != "episcopal":
+        if not has_ability(state, color, "episcopal"):
             return []
         ready_turn = int(state.abilities.runtime[color].get("episcopal_ready_turn", 0))
         if state.turn_counts[color] < ready_turn:
@@ -603,7 +615,7 @@ class VariantActionRules:
 
     def _eye_actions(self, state: GameState, color: str, helper) -> list[dict]:
         if (
-            state.abilities.selected.get(color) != "eye_for_an_eye"
+            not has_ability(state, color, "eye_for_an_eye")
             or not ability_is_ready(state, color, "eye_for_an_eye")
             or helper.is_king_in_check(state, color)
         ):
@@ -637,7 +649,7 @@ class VariantActionRules:
 
     def _necromancy_actions(self, state: GameState, color: str) -> list[dict]:
         if (
-            state.abilities.selected.get(color) != "necromancy"
+            not has_ability(state, color, "necromancy")
             or not ability_is_ready(state, color, "necromancy")
         ):
             return []
@@ -830,7 +842,7 @@ class VariantActionRules:
                 state.board.grid[target[0]][target[1]],
                 state.board.grid[source[0]][source[1]],
             )
-            state.abilities.used[color] = True
+            mark_ability_used(state, color, "getaway")
             usage = state.abilities.usage_count[color]
             usage["getaway"] = int(usage.get("getaway", 0)) + 1
             explanation = f"{color.title()} used Getaway and escaped royal defeat."
@@ -842,7 +854,7 @@ class VariantActionRules:
             state.board.grid[source[0]][source[1]] = None
             state.board.grid[target[0]][target[1]] = None
             start_ability_cooldown(state, color, "eye_for_an_eye")
-            state.abilities.used[color] = True
+            mark_ability_used(state, color, "eye_for_an_eye")
             captures.extend(
                 [
                     CaptureEvent(row=target[0], col=target[1], piece=victim, reason="Eye for an Eye"),
@@ -871,7 +883,7 @@ class VariantActionRules:
             revived_ids.append(captured.piece_id)
             state.abilities.runtime[color]["revived_piece_ids"] = revived_ids
             start_ability_cooldown(state, color, "necromancy")
-            state.abilities.used[color] = True
+            mark_ability_used(state, color, "necromancy")
             explanation = f"{color.title()} spent {cost} score to recruit {captured.name}."
             piece_type = captured.type
             source = target
@@ -999,7 +1011,7 @@ def public_countdowns(state: GameState) -> list[dict]:
                     )
 
     for color in ("white", "black"):
-        if state.abilities.selected.get(color) == "episcopal":
+        if has_ability(state, color, "episcopal"):
             ready = int(state.abilities.runtime[color].get("episcopal_ready_turn", 0))
             remaining = ready - state.turn_counts[color]
             if remaining > 0:
@@ -1014,8 +1026,9 @@ def public_countdowns(state: GameState) -> list[dict]:
                         "remainingTurns": remaining,
                     }
                 )
-        selected = state.abilities.selected.get(color)
-        if selected in ABILITY_COOLDOWN_TURNS:
+        for selected in state.abilities.selected.get(color, []):
+            if selected not in ABILITY_COOLDOWN_TURNS:
+                continue
             remaining = ability_cooldown_remaining(state, color, selected)
             if remaining > 0:
                 countdowns.append(

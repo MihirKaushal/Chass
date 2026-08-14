@@ -173,6 +173,7 @@ class CenterDominionState(BaseModel):
 class SpecialAbilityConfig(BaseModel):
     enabled: bool = False
     allowed: list[str] = Field(default_factory=list)
+    max_per_player: int = Field(default=1, ge=1)
 
 
 class CustomRulesConfig(BaseModel):
@@ -201,15 +202,48 @@ class GameConfiguration(BaseModel):
 
 
 class AbilityState(BaseModel):
-    selected: dict[Color, str | None] = Field(
-        default_factory=lambda: {"white": None, "black": None}
+    selected: dict[Color, list[str]] = Field(
+        default_factory=lambda: {"white": [], "black": []}
     )
-    used: dict[Color, bool] = Field(default_factory=lambda: {"white": False, "black": False})
+    used: dict[Color, dict[str, bool]] = Field(
+        default_factory=lambda: {"white": {}, "black": {}}
+    )
     active_selection_color: Color = "white"
     runtime: dict[Color, dict[str, Any]] = Field(default_factory=lambda: {"white": {}, "black": {}})
     usage_count: dict[Color, dict[str, int]] = Field(
         default_factory=lambda: {"white": {}, "black": {}}
     )
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_single_ability_state(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        migrated = dict(value)
+        raw_selected = migrated.get("selected") or {}
+        selected = {
+            color: (
+                list(raw_selected.get(color, []))
+                if isinstance(raw_selected.get(color, []), list)
+                else ([raw_selected[color]] if raw_selected.get(color) else [])
+            )
+            for color in ("white", "black")
+        }
+        migrated["selected"] = selected
+
+        raw_used = migrated.get("used") or {}
+        migrated["used"] = {
+            color: (
+                dict(raw_used.get(color, {}))
+                if isinstance(raw_used.get(color, {}), dict)
+                else {
+                    ability_id: bool(raw_used.get(color))
+                    for ability_id in selected[color]
+                }
+            )
+            for color in ("white", "black")
+        }
+        return migrated
 
 
 class AffinityState(BaseModel):

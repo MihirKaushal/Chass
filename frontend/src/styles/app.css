@@ -3470,6 +3470,12 @@ button.secondary {
   background: rgba(99, 179, 237, 0.15);
 }
 
+.ability-selection-grid button.selected {
+  border-color: var(--accent);
+  background: rgba(99, 179, 237, 0.22);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
 .ability-selection-grid i {
   font-style: normal;
   font-size: 1.55rem;
@@ -3495,6 +3501,24 @@ button.secondary {
   border-radius: 10px;
   background: rgba(99, 179, 237, 0.13);
   font-weight: 600;
+}
+
+.ability-lock-button {
+  display: block;
+  min-width: 190px;
+  margin: 1rem 0 0 auto;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.72rem 1rem;
+  color: white;
+  background: var(--accent);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ability-lock-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
 }
 
 .panel-heading-row {

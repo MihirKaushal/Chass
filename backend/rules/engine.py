@@ -13,6 +13,7 @@ from backend.rules.variant_system import (
     FINISHED_STATUSES,
     VariantActionRules,
     finish_game,
+    has_ability,
     process_end_of_turn_effects,
     trigger_power_of_love,
 )
@@ -177,7 +178,7 @@ class RuleEngine:
                     ]
                     if (
                         piece.type == "pawn"
-                        and work_state.abilities.selected.get(color) == "kamikaze"
+                        and has_ability(work_state, color, "kamikaze")
                         and candidate.to_row
                         == (0 if color == "white" else work_state.board.rows - 1)
                     ):
@@ -218,7 +219,7 @@ class RuleEngine:
                     ]
                     if (
                         piece.type == "pawn"
-                        and work_state.abilities.selected.get(color) == "kamikaze"
+                        and has_ability(work_state, color, "kamikaze")
                         and candidate.to_row
                         == (0 if color == "white" else work_state.board.rows - 1)
                     ):

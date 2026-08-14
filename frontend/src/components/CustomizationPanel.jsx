@@ -78,7 +78,7 @@ function defaultDraft(catalog) {
     placements: classicLayout(8, 8),
     victory: { mode: "checkmate", targetPoints: 21, timeSeconds: 600, kingPoints: 0, dominionRounds: 3 },
     customRules: { affinityEnabled: false, commandPointCap: 3 },
-    specialAbilities: { enabled: false, allowed: [] },
+    specialAbilities: { enabled: false, allowed: [], maxPerPlayer: 1 },
     gambit: {
       enabled: false,
       budget: 39,
@@ -183,7 +183,7 @@ function applyModeToDraft(current, mode, catalog) {
     placements: layout,
     victory: { ...current.victory, ...mode.victory },
     customRules: { ...defaults.customRules, ...(mode.customRules || {}) },
-    specialAbilities: { enabled: false, allowed: [] },
+    specialAbilities: { enabled: false, allowed: [], maxPerPlayer: 1 },
     gambit: { ...defaults.gambit, enabled: false, draftEnabled: false, ...mode.gambit },
   };
 }
@@ -603,7 +603,12 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     setDraft((current) => ({
       ...current,
       presetId: "custom",
-      specialAbilities: { enabled, allowed },
+      specialAbilities: {
+        ...current.specialAbilities,
+        enabled,
+        allowed,
+        maxPerPlayer: Math.min(current.specialAbilities.maxPerPlayer, Math.max(1, allowed.length)),
+      },
     }));
   };
 
@@ -716,9 +721,12 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
           </section>
 
           <section className="studio-section ability-config-section">
-            <SectionHeading title="Special Abilities" description="Each player privately chooses one allowed ability before play." />
+            <SectionHeading title="Special Abilities" description="Each player privately chooses the configured number of allowed abilities before play." />
             <Toggle checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
-            {draft.specialAbilities.enabled ? <div className="ability-option-grid">{catalog.specialAbilities.map((ability) => { const enabled = draft.specialAbilities.allowed.includes(ability.id); const reason = disabledAbilities[ability.id]; return <button type="button" key={ability.id} className={enabled ? "selected" : ""} disabled={Boolean(reason)} title={reason || ""} onClick={() => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, allowed: enabled ? current.specialAbilities.allowed.filter((id) => id !== ability.id) : [...current.specialAbilities.allowed, ability.id] } }))}><i>{ability.icon}</i><span><strong>{ability.name}</strong><small>{reason || ability.summary}</small></span><b>{reason ? "Unavailable" : enabled ? "Enabled" : "Off"}</b></button>; })}</div> : null}
+            {draft.specialAbilities.enabled ? <>
+              <div className="conditional-fields"><label>Abilities Per Player<input type="number" min="1" max={Math.max(1, draft.specialAbilities.allowed.length)} value={draft.specialAbilities.maxPerPlayer} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, maxPerPlayer: clamp(event.target.value, 1, Math.max(1, current.specialAbilities.allowed.length)) } }))} /><small>How many abilities each player selects. The default is 1.</small></label></div>
+              <div className="ability-option-grid">{catalog.specialAbilities.map((ability) => { const enabled = draft.specialAbilities.allowed.includes(ability.id); const reason = disabledAbilities[ability.id]; return <button type="button" key={ability.id} className={enabled ? "selected" : ""} disabled={Boolean(reason) || (enabled && draft.specialAbilities.allowed.length <= draft.specialAbilities.maxPerPlayer)} title={reason || ""} onClick={() => setDraft((current) => { const allowed = enabled ? current.specialAbilities.allowed.filter((id) => id !== ability.id) : [...current.specialAbilities.allowed, ability.id]; return { ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, allowed } }; })}><i>{ability.icon}</i><span><strong>{ability.name}</strong><small>{reason || ability.summary}</small></span><b>{reason ? "Unavailable" : enabled ? "Enabled" : "Off"}</b></button>; })}</div>
+            </> : null}
           </section>
 
           <section className="studio-section gambit-config-section">

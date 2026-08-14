@@ -383,8 +383,8 @@ def generate_piece_attacks(state: GameState, row: int, col: int) -> set[tuple[in
                 if not blocked:
                     attacks.add((target_row, target_col))
 
-    selected = state.abilities.selected.get(piece.color) if piece.color != "neutral" else None
-    if piece.type == "bishop" and selected == "episcopal":
+    selected = state.abilities.selected.get(piece.color, []) if piece.color != "neutral" else []
+    if piece.type == "bishop" and "episcopal" in selected:
         ready_turn = int(state.abilities.runtime[piece.color].get("episcopal_ready_turn", 0))
         if state.turn_counts[piece.color] >= ready_turn:
             for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
