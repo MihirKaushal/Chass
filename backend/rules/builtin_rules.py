@@ -114,6 +114,8 @@ class CaptureRule(Rule):
     ) -> None:
         if context.target_piece is None or context.moved_piece is None:
             return
+        if context.moved_piece.type == "cannibal":
+            return
         if context.target_piece.color == context.moved_piece.color:
             return
 
@@ -123,6 +125,121 @@ class CaptureRule(Rule):
             piece=context.target_piece,
             reason="Standard capture",
         )
+
+
+class CannibalRule(Rule):
+    id = "cannibal_consumption"
+    name = "Cannibal Consumption"
+    description = (
+        "Cannibals consume pieces behind them and borrow the victim's movement for five moves."
+    )
+    tier = "basic"
+    can_disable = False
+
+    @staticmethod
+    def _clear_form(piece) -> None:
+        for key in (
+            "cannibal_form",
+            "cannibal_form_name",
+            "cannibal_moves_remaining",
+            "cannibal_super_state",
+        ):
+            piece.runtime.pop(key, None)
+
+    def validate(
+        self,
+        state: GameState,
+        move: Move,
+        helper,
+        params: dict,
+    ) -> ValidationResult:
+        piece = state.board.grid[move.from_row][move.from_col]
+        if piece is None or piece.type != "cannibal":
+            return ValidationResult(is_valid=True)
+        target = state.board.grid[move.to_row][move.to_col]
+        if int(piece.runtime.get("cannibal_moves_remaining", 0)) > 0:
+            if target is not None:
+                return ValidationResult(
+                    is_valid=False,
+                    reason="A powered Cannibal cannot consume another piece.",
+                )
+            return ValidationResult(is_valid=True)
+        if target is None:
+            return ValidationResult(is_valid=True)
+
+        backward = 1 if piece.color == "white" else -1
+        if move.to_row - move.from_row != backward or abs(move.to_col - move.from_col) > 1:
+            return ValidationResult(
+                is_valid=False,
+                reason="A Cannibal can consume only directly or diagonally behind itself.",
+            )
+        if target.type in {"barricade", "diplomat"} or piece_runtime_active(
+            state,
+            target,
+            "capture_immune_until_turn",
+        ):
+            return ValidationResult(is_valid=False, reason="That piece cannot be consumed.")
+        return ValidationResult(is_valid=True)
+
+    def apply(
+        self,
+        state: GameState,
+        move: Move,
+        context: RuleContext,
+        helper,
+        params: dict,
+    ) -> None:
+        piece = context.moved_piece
+        if piece is None or piece.type != "cannibal":
+            return
+
+        remaining = int(piece.runtime.get("cannibal_moves_remaining", 0))
+        if remaining > 0:
+            remaining -= 1
+            if remaining:
+                piece.runtime["cannibal_moves_remaining"] = remaining
+            else:
+                previous_form = str(piece.runtime.get("cannibal_form_name", "borrowed"))
+                self._clear_form(piece)
+                if not context.simulated:
+                    context.messages.append(
+                        f"Cannibal's {previous_form} mobility expired."
+                    )
+            return
+
+        target = context.target_piece
+        if target is None:
+            return
+        context.add_capture(
+            row=move.to_row,
+            col=move.to_col,
+            piece=target,
+            reason="Cannibal consumption",
+        )
+        super_state = target.type == "cannibal"
+        inherited_type = "queen" if super_state else target.type
+        inherited_definition = state.piece_definitions.get(inherited_type)
+        inherited_name = (
+            inherited_definition.display_name
+            if inherited_definition is not None
+            else inherited_type.title()
+        )
+        piece.runtime["cannibal_form"] = inherited_type
+        piece.runtime["cannibal_form_name"] = inherited_name
+        piece.runtime["cannibal_moves_remaining"] = 5
+        piece.runtime["cannibal_super_state"] = super_state
+        if not context.simulated:
+            if super_state:
+                context.messages.append(
+                    "Cannibal consumed another Cannibal and entered Super State with "
+                    "Queen mobility for 5 moves."
+                )
+            else:
+                allegiance = "allied" if target.color == piece.color else "enemy"
+                context.messages.append(
+                    f"Cannibal consumed an {allegiance} {target.name} and borrowed "
+                    f"{inherited_name} mobility for 5 moves."
+                )
 
 
 class PromotionRule(Rule):
@@ -825,6 +942,7 @@ classic_chess_rules: list[Rule] = [
     MovementPatternRule(),
     CheckRule(),
     CaptureRule(),
+    CannibalRule(),
     PromotionRule(),
     ScoreRule(),
     CenterDominionRule(),

@@ -356,8 +356,13 @@ class RuleEngine:
             rule.apply(next_state, move, context, self, setting.params)
 
         if context.captures:
+            scored_captures = [
+                capture
+                for capture in context.captures
+                if capture.piece.color != moving_piece.color
+            ]
             next_state.captured_pieces[moving_piece.color].extend(
-                capture.piece for capture in context.captures
+                capture.piece for capture in scored_captures
             )
             trigger_power_of_love(next_state, context.captures)
 

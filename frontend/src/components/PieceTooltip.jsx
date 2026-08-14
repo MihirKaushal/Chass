@@ -29,6 +29,11 @@ function PieceTooltip({ piece, placement = "above", edge = "center", onClose = n
   if (piece.runtime?.episcopal_ready_turn_remaining > 0) {
     runtimeItems.push(`Episcopal ready in ${piece.runtime.episcopal_ready_turn_remaining} own turns`);
   }
+  if (piece.runtime?.cannibal_moves_remaining > 0) {
+    runtimeItems.push(
+      `${piece.runtime.cannibal_super_state ? "Super State" : `${piece.runtime.cannibal_form_name || "Borrowed"} mobility`}: ${piece.runtime.cannibal_moves_remaining} Cannibal moves remaining; cannot consume`
+    );
+  }
   (piece.runtime?.diplomat_contacts_status || []).forEach((contact) => {
     runtimeItems.push(`Contact with ${contact.targetName}: ${contact.progress}/${contact.required}`);
   });

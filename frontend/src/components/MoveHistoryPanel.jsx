@@ -142,7 +142,7 @@ function CountdownPanel({ countdowns = [] }) {
                 <article key={item.id}>
                   <i>{item.icon}</i>
                   <span><strong>{item.pieceName ? `${item.pieceName}: ${item.label}` : item.label}</strong><small>{item.description}</small></span>
-                  <b>{item.remainingTurns}<small> turn{item.remainingTurns === 1 ? "" : "s"}</small></b>
+                  <b>{item.remainingTurns}<small> {item.unit || "turn"}{item.remainingTurns === 1 ? "" : "s"}</small></b>
                 </article>
               ))}
             </div>
@@ -278,7 +278,7 @@ function CustomPiecesDisclosure({ game }) {
               {countdowns.map((countdown) => (
                 <div className="effect-live-status" key={countdown.id}>
                   <span>{title(countdown.owner)}: {countdown.label}</span>
-                  <b>{countdown.remainingTurns} turn{countdown.remainingTurns === 1 ? "" : "s"}</b>
+                  <b>{countdown.remainingTurns} {countdown.unit || "turn"}{countdown.remainingTurns === 1 ? "" : "s"}</b>
                 </div>
               ))}
             </article>
