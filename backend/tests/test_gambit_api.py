@@ -103,12 +103,16 @@ def test_local_draft_gambit_flows_into_private_drafted_army_deployment(client):
     assert game["gambit"]["draftPoolRemaining"] == {
         "rook": 2,
         "queen": 1,
-        "king": 2,
+        "king": 0,
     }
-    assert game["gambit"]["draftCanPass"] is False
+    assert game["gambit"]["draftPicks"] == {
+        "white": ["king"],
+        "black": ["king"],
+    }
+    assert game["gambit"]["draftCanPass"] is True
 
     version = game["version"]
-    for piece_type in ("king", "king", "rook", "rook"):
+    for piece_type in ("rook", "rook"):
         picked = client.post(
             f"/game/{game_id}/gambit/draft",
             json={
@@ -215,7 +219,7 @@ def test_online_draft_gambit_enforces_alternating_player_seats(client):
         headers=auth(created["playerToken"]),
         json={
             "action": "pick",
-            "pieceType": "king",
+            "pieceType": "rook",
             "expectedVersion": game["version"],
         },
     )
@@ -238,7 +242,7 @@ def test_online_draft_gambit_enforces_alternating_player_seats(client):
         headers=auth(joined["playerToken"]),
         json={
             "action": "pick",
-            "pieceType": "king",
+            "pieceType": "rook",
             "expectedVersion": after_white["version"],
         },
     )
@@ -246,16 +250,31 @@ def test_online_draft_gambit_enforces_alternating_player_seats(client):
     assert black_pick.json()["gambit"]["draftActiveColor"] == "white"
 
 
-def test_draft_army_cannot_lock_without_its_king(client):
+def test_draft_armies_begin_with_kings_and_cannot_draft_another(client):
     game = client.post("/game/create", json=draft_gambit_payload()).json()["game"]
+    assert game["gambit"]["draftPicks"] == {
+        "white": ["king"],
+        "black": ["king"],
+    }
+
+    extra_king = client.post(
+        f"/game/{game['id']}/gambit/draft",
+        json={
+            "action": "pick",
+            "pieceType": "king",
+            "expectedVersion": game["version"],
+        },
+    )
+
+    assert extra_king.status_code == 400
+    assert "already has its required King" in extra_king.json()["detail"]
 
     locked = client.post(
         f"/game/{game['id']}/gambit/draft",
         json={"action": "pass", "expectedVersion": game["version"]},
     )
-
-    assert locked.status_code == 400
-    assert "exactly one King" in locked.json()["detail"]
+    assert locked.status_code == 200
+    assert locked.json()["gambit"]["draftPassed"]["white"] is True
 
 
 def test_draft_configuration_requires_exactly_two_shared_kings(client):
@@ -303,17 +322,16 @@ def test_special_ability_selection_continues_into_shared_draft(client):
 def test_draft_gambit_rematch_restores_the_shared_pool(client):
     game = client.post("/game/create", json=draft_gambit_payload()).json()["game"]
     version = game["version"]
-    for piece_type in ("king", "king"):
-        picked = client.post(
-            f"/game/{game['id']}/gambit/draft",
-            json={
-                "action": "pick",
-                "pieceType": piece_type,
-                "expectedVersion": version,
-            },
-        )
-        assert picked.status_code == 200
-        version = picked.json()["version"]
+    picked = client.post(
+        f"/game/{game['id']}/gambit/draft",
+        json={
+            "action": "pick",
+            "pieceType": "rook",
+            "expectedVersion": version,
+        },
+    )
+    assert picked.status_code == 200
+    version = picked.json()["version"]
 
     requested = client.post(
         f"/game/{game['id']}/rematch",
@@ -338,12 +356,15 @@ def test_draft_gambit_rematch_restores_the_shared_pool(client):
     reset_game = restarted.json()
     assert reset_game["phase"] == "draft"
     assert reset_game["gambit"]["draftActiveColor"] == "white"
-    assert reset_game["gambit"]["draftPicks"] == {"white": [], "black": []}
+    assert reset_game["gambit"]["draftPicks"] == {
+        "white": ["king"],
+        "black": ["king"],
+    }
     assert reset_game["gambit"]["draftPassed"] == {"white": False, "black": False}
     assert reset_game["gambit"]["draftPoolRemaining"] == {
         "rook": 2,
         "queen": 1,
-        "king": 2,
+        "king": 0,
     }
 
 

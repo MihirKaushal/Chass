@@ -285,7 +285,9 @@ class ConfigurationRuleEngine:
             if "barricade" in gambit.draftPool:
                 result.errors.append("Barricades are neutral and cannot enter the army draft.")
             if pool.get("king", 0) != 2:
-                result.errors.append("Draft Gambit requires exactly two Kings in the shared pool.")
+                result.errors.append(
+                    "Draft Gambit requires exactly two Kings, one preassigned to each army."
+                )
             if sum(pool.values()) < 2:
                 result.errors.append("The shared draft pool needs pieces for both players.")
 
