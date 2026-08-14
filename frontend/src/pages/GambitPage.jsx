@@ -263,6 +263,7 @@ function GambitDeployment({
           boardFlipped={boardFlipped}
           interactive={editable && !actionLoading}
           affinitySquares={game.affinity.enabled ? game.affinity.squares : (game.centerDominion?.squares || {})}
+          objectiveSquares={game.royalCenter?.squares || []}
           editableRows={ownRows}
           foggedRows={opponentRows}
           showCoordinates
@@ -548,6 +549,7 @@ function GambitPlay({
           interactive={interactive && !actionLoading}
           extraTargets={powerTargets}
           affinitySquares={game.affinity.enabled ? game.affinity.squares : (game.centerDominion?.squares || {})}
+          objectiveSquares={game.royalCenter?.squares || []}
           showCoordinates
           pieceDetailsMode="double-tap"
         />

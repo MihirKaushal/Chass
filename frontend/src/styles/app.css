@@ -844,6 +844,29 @@ button.secondary {
   pointer-events: none;
 }
 
+.objective-square::after {
+  content: "";
+  position: absolute;
+  inset: 13%;
+  z-index: 1;
+  border: 2px solid rgba(184, 121, 24, 0.82);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(245, 208, 115, 0.25), transparent 68%);
+  pointer-events: none;
+}
+
+.objective-marker {
+  position: absolute;
+  top: 4px;
+  left: 5px;
+  z-index: 2;
+  color: #8a5510;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: clamp(0.45rem, 1vw, 0.62rem);
+  font-weight: 800;
+  pointer-events: none;
+}
+
 .board-coordinate {
   position: absolute;
   color: rgba(26, 54, 93, 0.75);

@@ -14,7 +14,11 @@ from backend.models import (
 )
 from backend.rules.base import ValidationResult
 from backend.rules.builtin_rules import opposing_color
-from backend.rules.variant_system import affinity_start_squares, barricade_start_squares
+from backend.rules.variant_system import (
+    affinity_start_squares,
+    barricade_start_squares,
+    objective_center_squares,
+)
 
 
 @dataclass(frozen=True)
@@ -341,6 +345,17 @@ class OpeningSafetyRule:
         trial.current_player = "white"
         trial.game_status = "active"
         trial.winner = None
+
+        if trial.configuration.victory.mode == "royal_center":
+            targets = set(objective_center_squares(trial.board.rows, trial.board.cols))
+            if any(
+                piece is not None
+                and piece.type == "king"
+                and (row, col) in targets
+                for row, board_row in enumerate(trial.board.grid)
+                for col, piece in enumerate(board_row)
+            ):
+                return False
 
         if helper.is_king_in_check(trial, "white"):
             return False

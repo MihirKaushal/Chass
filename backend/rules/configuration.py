@@ -9,7 +9,7 @@ from backend.catalog import (
     classic_layout,
 )
 from backend.models.schemas import CreateGameRequest
-from backend.rules.variant_system import barricade_start_squares
+from backend.rules.variant_system import barricade_start_squares, objective_center_squares
 
 
 @dataclass
@@ -185,7 +185,13 @@ class ConfigurationRuleEngine:
             ):
                 result.errors.append("The two Kings cannot begin on touching squares.")
             self._validate_ability_prerequisites(payload, effective, result)
-            self._validate_victory_reachability(payload, effective, result)
+            self._validate_victory_reachability(
+                payload,
+                effective,
+                result,
+                request.boardRows,
+                request.boardCols,
+            )
         else:
             self._validate_gambit(request, result)
 
@@ -211,9 +217,16 @@ class ConfigurationRuleEngine:
             ):
                 result.warnings.append(requirement[1])
 
-    def _validate_victory_reachability(self, payload, placements: list[dict], result) -> None:
+    def _validate_victory_reachability(
+        self,
+        payload,
+        placements: list[dict],
+        result,
+        board_rows: int,
+        board_cols: int,
+    ) -> None:
         mode = payload.victory.mode
-        if mode in {"checkmate", "timed", "royal_score"}:
+        if mode in {"checkmate", "timed", "royal_score", "check_race"}:
             attackers = {
                 color: any(
                     piece["color"] == color
@@ -225,6 +238,15 @@ class ConfigurationRuleEngine:
             if not all(attackers.values()):
                 result.warnings.append(
                     "Each player needs at least one attacking piece for this victory rule."
+                )
+        if mode == "royal_center":
+            targets = set(objective_center_squares(board_rows, board_cols))
+            if any(
+                piece["type"] == "king" and (piece["row"], piece["col"]) in targets
+                for piece in placements
+            ):
+                result.errors.append(
+                    "Kings must begin outside the Royal Center objective squares."
                 )
         if mode == "point_race":
             totals = {"white": 0, "black": 0}

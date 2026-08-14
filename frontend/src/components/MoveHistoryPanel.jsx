@@ -49,7 +49,7 @@ function MatchClock({ clock }) {
   );
 }
 
-function GameStateSummary({ gameStatus, winner, score, abilities, clock, centerDominion }) {
+function GameStateSummary({ gameStatus, winner, score, abilities, clock, centerDominion, royalCenter, checkRace }) {
   const abilityNames = (selection) => {
     if (!Array.isArray(selection) || !selection.length) return "Hidden";
     if (selection.includes("locked")) return "Locked";
@@ -76,6 +76,25 @@ function GameStateSummary({ gameStatus, winner, score, abilities, clock, centerD
               <b>{title(color)}</b>
               <em>{centerDominion.progress?.[color] || 0} / {centerDominion.targetRounds}</em>
               <small>{centerDominion.primed?.[color] ? "Defense pending" : centerDominion.controlled?.[color] ? "Center occupied" : "Center open"}</small>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {royalCenter ? (
+        <div className="dominion-readout royal-center-readout">
+          <strong>Royal Center</strong>
+          <small>Move your King legally onto any marked center square. Checkmate also wins.</small>
+        </div>
+      ) : null}
+      {checkRace ? (
+        <div className="dominion-readout check-race-readout">
+          <strong>Check Race</strong>
+          <small>The first player to give {checkRace.targetChecks} check{checkRace.targetChecks === 1 ? "" : "s"} wins. Checkmate also wins.</small>
+          {["white", "black"].map((color) => (
+            <span key={color}>
+              <b>{title(color)}</b>
+              <em>{checkRace.checks?.[color] || 0} / {checkRace.targetChecks}</em>
+              <small>{checkRace.checks?.[color] ? "Checks delivered" : "No checks yet"}</small>
             </span>
           ))}
         </div>
@@ -341,7 +360,7 @@ export function EffectsPanel({ game, catalog, onAction, actionLoading, children 
 export function GameInfoPanel({ game }) {
   return (
     <aside className="history-panel">
-      <GameStateSummary gameStatus={game.gameStatus} winner={game.winner} score={game.score} abilities={game.abilities} clock={game.clock} centerDominion={game.centerDominion} />
+      <GameStateSummary gameStatus={game.gameStatus} winner={game.winner} score={game.score} abilities={game.abilities} clock={game.clock} centerDominion={game.centerDominion} royalCenter={game.royalCenter} checkRace={game.checkRace} />
       <CapturedPieces capturedPieces={game.capturedPieces} />
       <section className="panel-section history-section">
         <h3>Move History</h3>

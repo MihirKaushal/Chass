@@ -21,6 +21,8 @@ GameStatus = Literal[
     "time",
     "royal_score",
     "center_dominion",
+    "royal_center",
+    "check_race",
     "draw",
 ]
 GameVariant = Literal["classic", "gambit"]
@@ -41,6 +43,8 @@ VictoryMode = Literal[
     "elimination",
     "royal_score",
     "center_dominion",
+    "royal_center",
+    "check_race",
 ]
 
 
@@ -163,11 +167,16 @@ class VictoryConfig(BaseModel):
     time_seconds: int = Field(default=600, ge=30)
     king_points: int = Field(default=0, ge=0)
     dominion_rounds: int = Field(default=3, ge=1)
+    check_target: int = Field(default=3, ge=1)
 
 
 class CenterDominionState(BaseModel):
     progress: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
     primed: dict[Color, bool] = Field(default_factory=lambda: {"white": False, "black": False})
+
+
+class CheckRaceState(BaseModel):
+    checks: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
 
 
 class SpecialAbilityConfig(BaseModel):
@@ -436,6 +445,7 @@ class GameState(BaseModel):
     piece_definitions: dict[str, PieceDefinition] = Field(default_factory=dict)
     configuration: GameConfiguration = Field(default_factory=GameConfiguration)
     center_dominion: CenterDominionState = Field(default_factory=CenterDominionState)
+    check_race: CheckRaceState = Field(default_factory=CheckRaceState)
     affinity: AffinityState = Field(default_factory=AffinityState)
     abilities: AbilityState = Field(default_factory=AbilityState)
     turn_counts: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})

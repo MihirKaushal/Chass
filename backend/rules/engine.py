@@ -42,6 +42,9 @@ class RuleEngine:
         self.center_dominion = next(
             rule for rule in ordered_rules if rule.id == "center_dominion"
         )
+        self.royal_center = next(
+            rule for rule in ordered_rules if rule.id == "royal_center"
+        )
 
     def generate_piece_moves(self, state: GameState, row: int, col: int) -> list[MoveOption]:
         return generate_piece_moves(state, row, col)

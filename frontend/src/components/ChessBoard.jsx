@@ -18,6 +18,7 @@ function ChessBoard({
   interactive = true,
   extraTargets = [],
   affinitySquares = {},
+  objectiveSquares = [],
   editableRows = [],
   foggedRows = [],
   showCoordinates = false,
@@ -47,6 +48,9 @@ function ChessBoard({
   Object.entries(affinitySquares).forEach(([color, squares]) => {
     squares.forEach((square) => affinityMap.set(`${square.row}-${square.col}`, color));
   });
+  const objectiveSquareSet = new Set(
+    objectiveSquares.map((square) => `${square.row}-${square.col}`)
+  );
   const editableRowSet = new Set(editableRows);
   const foggedRowSet = new Set(foggedRows);
   const longEdge = "var(--board-long-edge, min(68vh, 680px))";
@@ -146,6 +150,7 @@ function ChessBoard({
             const isValidTarget = activeTargetSet.has(`${rowIndex}-${colIndex}`);
             const isExtraTarget = extraTargetSet.has(`${rowIndex}-${colIndex}`);
             const affinityColor = affinityMap.get(`${rowIndex}-${colIndex}`);
+            const isObjectiveSquare = objectiveSquareSet.has(`${rowIndex}-${colIndex}`);
             const isLastMoveSquare =
               lastMove &&
               ((lastMove.from.row === rowIndex && lastMove.from.col === colIndex) ||
@@ -159,6 +164,7 @@ function ChessBoard({
               isExtraTarget ? "command-target" : "",
               isLastMoveSquare ? "last-move" : "",
               affinityColor ? `affinity-square affinity-${affinityColor}` : "",
+              isObjectiveSquare ? "objective-square" : "",
               editableRowSet.has(rowIndex) ? "deployment-zone" : "",
               foggedRowSet.has(rowIndex) ? "fogged-square" : "",
               piece?.isCustom ? "custom-square" : "",
@@ -215,6 +221,9 @@ function ChessBoard({
                   <span className="affinity-marker" aria-hidden="true">
                     {affinityColor === "white" ? "W" : "B"}
                   </span>
+                ) : null}
+                {isObjectiveSquare ? (
+                  <span className="objective-marker" aria-hidden="true">C</span>
                 ) : null}
                 <span className={pieceClassName}>
                   {piece ? <PieceGlyph piece={piece} /> : null}

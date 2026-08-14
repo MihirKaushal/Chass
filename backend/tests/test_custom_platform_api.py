@@ -2,7 +2,11 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 
-from backend.rules.variant_system import affinity_start_squares, barricade_start_squares
+from backend.rules.variant_system import (
+    affinity_start_squares,
+    barricade_start_squares,
+    objective_center_squares,
+)
 
 
 def auth(token: str) -> dict[str, str]:
@@ -103,6 +107,12 @@ def test_catalog_describes_custom_content(client):
     assert getaway["usageLimit"] == 1
     assert "center_dominion" in {mode["id"] for mode in catalog["victoryModes"]}
     assert "center_dominion" in {mode["id"] for mode in catalog["popularModes"]}
+    assert {"royal_center", "check_race"} <= {
+        mode["id"] for mode in catalog["victoryModes"]
+    }
+    assert {"royal_center", "check_race"} <= {
+        mode["id"] for mode in catalog["popularModes"]
+    }
     draft_mode = next(mode for mode in catalog["popularModes"] if mode["id"] == "draft_gambit")
     assert draft_mode["gambit"] == {"enabled": True, "draftEnabled": True}
     assert catalog["gambit"]["draftDetails"]
@@ -556,6 +566,123 @@ def test_center_dominion_wins_after_surviving_the_opponent_turn(client):
     assert finished["winner"] == "white"
     assert finished["result"]["reasonCode"] == "center_dominion"
     assert "held both center squares" in finished["result"]["description"]
+
+
+def test_royal_center_wins_when_king_reaches_adaptive_objective(client):
+    assert set(objective_center_squares(7, 7)) == {
+        (3, 1),
+        (3, 2),
+        (3, 4),
+        (3, 5),
+    }
+    payload = configured_game(
+        initialLayout=[
+            {"row": 2, "col": 3, "type": "king", "color": "white"},
+            {"row": 0, "col": 0, "type": "king", "color": "black"},
+        ],
+        victory={"mode": "royal_center"},
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    assert game["royalCenter"]["squares"] == [
+        {"row": 3, "col": 3},
+        {"row": 4, "col": 4},
+        {"row": 3, "col": 4},
+        {"row": 4, "col": 3},
+    ]
+
+    response = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 2,
+            "fromCol": 3,
+            "toRow": 3,
+            "toCol": 3,
+            "expectedVersion": game["version"],
+        },
+    )
+    assert response.status_code == 200
+    finished = response.json()
+    assert finished["gameStatus"] == "royal_center"
+    assert finished["winner"] == "white"
+    assert finished["result"]["reasonCode"] == "royal_center"
+    assert "King reached the center" in finished["result"]["description"]
+
+
+def test_check_race_counts_each_completed_check_once(client):
+    payload = configured_game(
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 4, "col": 0, "type": "rook", "color": "white"},
+        ],
+        victory={"mode": "check_race", "checkTarget": 2},
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    assert game["checkRace"] == {
+        "targetChecks": 2,
+        "checks": {"white": 0, "black": 0},
+    }
+
+    first_check = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 4,
+            "fromCol": 0,
+            "toRow": 0,
+            "toCol": 0,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    assert first_check["gameStatus"] == "check"
+    assert first_check["checkRace"]["checks"] == {"white": 1, "black": 0}
+
+    refreshed = client.get(f"/game/{game['id']}").json()
+    assert refreshed["checkRace"]["checks"] == {"white": 1, "black": 0}
+
+    escape = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 0,
+            "fromCol": 7,
+            "toRow": 1,
+            "toCol": 7,
+            "expectedVersion": refreshed["version"],
+        },
+    ).json()
+    second_check = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 0,
+            "fromCol": 0,
+            "toRow": 1,
+            "toCol": 0,
+            "expectedVersion": escape["version"],
+        },
+    )
+    assert second_check.status_code == 200
+    finished = second_check.json()
+    assert finished["gameStatus"] == "check_race"
+    assert finished["winner"] == "white"
+    assert finished["checkRace"]["checks"] == {"white": 2, "black": 0}
+    assert finished["result"]["reasonCode"] == "check_race"
+
+
+def test_checkmate_still_ends_check_race_before_target(client):
+    payload = configured_game(
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "rook", "color": "white"},
+            {"row": 1, "col": 6, "type": "pawn", "color": "white"},
+            {"row": 1, "col": 0, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "black"},
+            {"row": 5, "col": 6, "type": "queen", "color": "black"},
+        ],
+        victory={"mode": "check_race", "checkTarget": 10},
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    assert game["gameStatus"] == "checkmate"
+    assert game["winner"] == "black"
+    assert game["checkRace"]["checks"] == {"white": 0, "black": 0}
 
 
 def test_barricade_must_be_single_neutral_and_centered(client):

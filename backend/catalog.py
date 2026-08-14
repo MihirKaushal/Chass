@@ -528,6 +528,24 @@ VICTORY_MODES: list[dict[str, Any]] = [
             "opponent turns. Checkmate also wins."
         ),
     },
+    {
+        "id": "royal_center",
+        "name": "Royal Center",
+        "icon": "♔",
+        "summary": (
+            "Move your King onto any of the four adaptive center squares. "
+            "Checkmate also wins."
+        ),
+    },
+    {
+        "id": "check_race",
+        "name": "Check Race",
+        "icon": "!",
+        "summary": (
+            "Be the first player to check the opposing King the configured number of times. "
+            "Checkmate also wins."
+        ),
+    },
 ]
 
 
@@ -596,6 +614,28 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "boardCols": 8,
         "formationId": "classic",
         "victory": {"mode": "center_dominion", "dominionRounds": 3},
+        "gambit": {"enabled": False},
+    },
+    {
+        "id": "royal_center",
+        "name": "Royal Center",
+        "icon": "♔",
+        "summary": "Race your King to one of the four marked center squares.",
+        "boardRows": 8,
+        "boardCols": 8,
+        "formationId": "classic",
+        "victory": {"mode": "royal_center"},
+        "gambit": {"enabled": False},
+    },
+    {
+        "id": "check_race",
+        "name": "Three-Check Race",
+        "icon": "!",
+        "summary": "Win by checking the opposing King three times.",
+        "boardRows": 8,
+        "boardCols": 8,
+        "formationId": "classic",
+        "victory": {"mode": "check_race", "checkTarget": 3},
         "gambit": {"enabled": False},
     },
     {

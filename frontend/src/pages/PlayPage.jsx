@@ -74,6 +74,7 @@ function PlayPage({
           interactive={interactive && !actionLoading}
           extraTargets={powerTargets}
           affinitySquares={game.affinity?.enabled ? game.affinity.squares : (game.centerDominion?.squares || {})}
+          objectiveSquares={game.royalCenter?.squares || []}
           pieceDetailsMode="double-tap"
         />
         <p className="board-detail-hint">Double-tap or double-click a piece to view details.</p>
