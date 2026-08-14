@@ -1165,6 +1165,71 @@ def test_barricade_is_neutral_and_movable_only_through_special_action(client):
     assert updated["board"][3][2]["color"] == "neutral"
 
 
+def test_either_rook_can_sacrifice_itself_to_demolish_a_visible_barricade(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "barricade"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "barricade": 0,
+        },
+        initialLayout=[
+            {"row": 7, "col": 6, "type": "king", "color": "white"},
+            {"row": 0, "col": 6, "type": "king", "color": "black"},
+            {"row": 3, "col": 0, "type": "rook", "color": "white"},
+            {"row": 3, "col": 7, "type": "rook", "color": "black"},
+            {"row": 3, "col": 3, "type": "barricade", "color": "neutral"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    white_action = next(
+        action
+        for action in game["availableActions"]
+        if action["actionType"] == "demolish_barricade"
+    )
+    assert white_action["source"] == {"row": 3, "col": 0}
+    assert white_action["target"] == {"row": 3, "col": 3}
+
+    demolished = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": white_action["actionType"],
+            "source": white_action["source"],
+            "target": white_action["target"],
+            "expectedVersion": game["version"],
+        },
+    )
+    assert demolished.status_code == 200
+    result = demolished.json()
+    assert result["board"][3][0] is None
+    assert result["board"][3][3] is None
+    assert result["score"] == {"white": 0, "black": 0}
+    assert result["capturedPieces"] == {"white": [], "black": []}
+    assert result["history"][-1]["actionType"] == "demolish_barricade"
+    assert len(result["history"][-1]["captures"]) == 2
+
+    second_game = client.post("/game/create", json=payload).json()["game"]
+    after_white = client.post(
+        f"/game/{second_game['id']}/move",
+        json={
+            "fromRow": 7,
+            "fromCol": 6,
+            "toRow": 7,
+            "toCol": 5,
+            "expectedVersion": second_game["version"],
+        },
+    ).json()
+    assert any(
+        action["actionType"] == "demolish_barricade"
+        and action["source"] == {"row": 3, "col": 7}
+        for action in after_white["availableActions"]
+    )
+
+
 def test_hypnotizer_recruits_weak_piece_after_three_owner_turns(client):
     payload = configured_game(
         enabledPieces=[*classic_types(), "hypnotizer"],

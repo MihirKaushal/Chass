@@ -139,8 +139,14 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
             display_name="Rook",
             symbols={"white": "♖", "black": "♜"},
             icon="♜",
-            description="A heavy line piece that controls ranks and files.",
-            movement_summary="Moves any number of clear squares horizontally or vertically.",
+            description=(
+                "A heavy line piece that controls ranks and files and can be sacrificed "
+                "to clear a Barricade."
+            ),
+            movement_summary=(
+                "Moves any number of clear squares horizontally or vertically. It may "
+                "sacrifice itself to demolish the first visible Barricade on that line."
+            ),
             points=5,
             patterns=[
                 MovePattern(dr=1, dc=0, repeat=True, requires_clear_path=True),
@@ -271,14 +277,19 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
             ),
             movement_summary=(
                 "Either player may move it one adjacent square when one of their pieces touches it. "
-                "It cannot capture or be captured."
+                "It cannot capture or be captured normally. A visible Rook may sacrifice "
+                "itself to remove it."
             ),
             points=0,
             is_custom=True,
             behavior="barricade",
             patterns=[],
             custom_attributes={
-                "rules": ["Neutral", "Uncapturable", "Blocks jumps and projectiles"],
+                "rules": [
+                    "Neutral",
+                    "Blocks jumps and projectiles",
+                    "A Rook can sacrifice itself to demolish it",
+                ],
             },
             metadata={
                 "family": "chass_custom",
