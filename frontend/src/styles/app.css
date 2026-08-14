@@ -2792,6 +2792,48 @@ button.secondary {
   background: rgba(255, 255, 255, 0.48);
 }
 
+.studio-disclosure > summary,
+.rulebook-disclosure > summary {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  cursor: pointer;
+  list-style: none;
+}
+
+.studio-disclosure > summary::-webkit-details-marker,
+.rulebook-disclosure > summary::-webkit-details-marker,
+.rulebook-entry > summary::-webkit-details-marker {
+  display: none;
+}
+
+.studio-disclosure > summary .section-heading,
+.rulebook-disclosure > summary.rulebook-section-heading {
+  flex: 1 1 auto;
+  margin-bottom: 0;
+}
+
+.studio-disclosure-body,
+.rulebook-disclosure-body {
+  padding-top: 1rem;
+}
+
+.disclosure-arrow {
+  width: 0.62rem;
+  height: 0.62rem;
+  flex: 0 0 auto;
+  margin: 0.28rem 0.2rem 0 0;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+details[open] > summary > .disclosure-arrow {
+  transform: rotate(225deg);
+}
+
 .section-heading,
 .rulebook-section-heading {
   display: flex;
@@ -2800,8 +2842,8 @@ button.secondary {
   margin-bottom: 1rem;
 }
 
-.section-heading > span,
-.rulebook-section-heading > span {
+.section-heading > span:not(.disclosure-arrow),
+.rulebook-section-heading > span:not(.disclosure-arrow) {
   flex: 0 0 auto;
   padding: 0.25rem 0.38rem;
   color: white;
@@ -3308,6 +3350,10 @@ button.secondary {
   scroll-margin-top: 1rem;
 }
 
+.rulebook-disclosure > summary.rulebook-section-heading {
+  margin: 0;
+}
+
 .rulebook-entry-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -3331,12 +3377,31 @@ button.secondary {
 }
 
 .rulebook-entry summary {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: 0.55rem;
-  padding: 0.7rem;
+  padding: 0.7rem 2rem 0.7rem 0.7rem;
   cursor: pointer;
+  list-style: none;
+}
+
+.rulebook-entry summary::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  right: 0.75rem;
+  width: 0.45rem;
+  height: 0.45rem;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: translateY(-65%) rotate(45deg);
+  transition: transform 160ms ease;
+}
+
+.rulebook-entry[open] summary::after {
+  transform: translateY(-20%) rotate(225deg);
 }
 
 .rulebook-entry summary > span:nth-child(2) {
@@ -3413,7 +3478,7 @@ button.secondary {
 
 .rulebook-strip p,
 .rulebook-gambit-copy p,
-.countdown-reference > p {
+.countdown-reference p {
   margin: 0;
   color: rgba(26, 54, 93, 0.72);
   font-size: 0.78rem;
