@@ -24,6 +24,7 @@ from backend.models import (
     Board,
     BoardCoordinate,
     CenterDominionState,
+    CheckRaceState,
     ClockState,
     CustomRulesConfig,
     GambitState,
@@ -46,6 +47,7 @@ from backend.models.schemas import (
     BoardPlacement,
     CaptureView,
     CenterDominionView,
+    CheckRaceView,
     ClockView,
     ConfigurationValidationResponse,
     CountdownView,
@@ -76,6 +78,7 @@ from backend.models.schemas import (
     RematchView,
     ResetGameRequest,
     ResultView,
+    RoyalCenterView,
     RulePatch,
     RuleView,
     SetupHandoffRequest,
@@ -102,6 +105,7 @@ from backend.rules.variant_system import (
     affinity_start_squares,
     barricade_start_squares,
     has_ability,
+    objective_center_squares,
     public_countdowns,
 )
 from backend.security import (
@@ -437,6 +441,7 @@ def _configuration_from_request(
             time_seconds=payload.victory.timeSeconds,
             king_points=payload.victory.kingPoints,
             dominion_rounds=payload.victory.dominionRounds,
+            check_target=payload.victory.checkTarget,
         ),
         custom_rules=CustomRulesConfig(
             affinity_enabled=affinity_enabled,
@@ -1411,6 +1416,7 @@ class GameService:
             game_state.current_player = "white"
             game_state.abilities = AbilityState()
             game_state.center_dominion = CenterDominionState()
+            game_state.check_race = CheckRaceState()
             game_state.affinity = AffinityState()
             game_state.turn_counts = {"white": 0, "black": 0}
             game_state.history = []
@@ -1446,6 +1452,7 @@ class GameService:
         )
         game_state.abilities = AbilityState()
         game_state.center_dominion = CenterDominionState()
+        game_state.check_race = CheckRaceState()
         game_state.affinity = AffinityState()
         game_state.turn_counts = {"white": 0, "black": 0}
         game_state.history = []
@@ -1581,6 +1588,7 @@ class GameService:
         game_state.game_status = "active"
         game_state.score = {"white": 0, "black": 0}
         game_state.center_dominion = CenterDominionState()
+        game_state.check_race = CheckRaceState()
         game_state.affinity = AffinityState()
         game_state.result = None
 
@@ -1608,6 +1616,7 @@ class GameService:
                 "timeSeconds": game_state.configuration.victory.time_seconds,
                 "kingPoints": game_state.configuration.victory.king_points,
                 "dominionRounds": game_state.configuration.victory.dominion_rounds,
+                "checkTarget": game_state.configuration.victory.check_target,
             },
             "customRules": {
                 "affinityEnabled": (
@@ -2045,6 +2054,25 @@ class GameService:
                 },
             )
 
+        royal_center_view = None
+        if game_state.configuration.victory.mode == "royal_center":
+            royal_center_view = RoyalCenterView(
+                squares=[
+                    Position(row=row, col=col)
+                    for row, col in objective_center_squares(
+                        game_state.board.rows,
+                        game_state.board.cols,
+                    )
+                ]
+            )
+
+        check_race_view = None
+        if game_state.configuration.victory.mode == "check_race":
+            check_race_view = CheckRaceView(
+                targetChecks=game_state.configuration.victory.check_target,
+                checks=game_state.check_race.checks,
+            )
+
         if record.mode == "online":
             ability_viewer = viewer_color
         elif game_state.phase in {"ability_selection", "handoff"}:
@@ -2202,6 +2230,8 @@ class GameService:
             gambit=gambit_view,
             affinity=affinity_view,
             centerDominion=center_dominion_view,
+            royalCenter=royal_center_view,
+            checkRace=check_race_view,
             rematch=RematchView(
                 status=game_state.rematch.status,
                 requestedBy=game_state.rematch.requested_by,

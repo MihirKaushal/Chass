@@ -168,6 +168,15 @@ class CenterDominionView(BaseModel):
     squares: dict[str, list[Position]]
 
 
+class RoyalCenterView(BaseModel):
+    squares: list[Position]
+
+
+class CheckRaceView(BaseModel):
+    targetChecks: int
+    checks: dict[str, int]
+
+
 class CountdownView(BaseModel):
     id: str
     owner: str
@@ -266,6 +275,8 @@ class GameResponse(BaseModel):
     gambit: GambitView | None = None
     affinity: AffinityView = Field(default_factory=AffinityView)
     centerDominion: CenterDominionView | None = None
+    royalCenter: RoyalCenterView | None = None
+    checkRace: CheckRaceView | None = None
     rematch: RematchView = Field(default_factory=RematchView)
 
 
@@ -312,11 +323,14 @@ class VictoryConfigPayload(BaseModel):
         "elimination",
         "royal_score",
         "center_dominion",
+        "royal_center",
+        "check_race",
     ] = "checkmate"
     targetPoints: int = Field(default=21, ge=1, le=100000)
     timeSeconds: int = Field(default=600, ge=30, le=86400)
     kingPoints: int = Field(default=0, ge=0, le=100000)
     dominionRounds: int = Field(default=3, ge=1, le=20)
+    checkTarget: int = Field(default=3, ge=1, le=100)
 
 
 class SpecialAbilityConfigPayload(BaseModel):

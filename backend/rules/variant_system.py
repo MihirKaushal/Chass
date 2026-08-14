@@ -22,6 +22,8 @@ FINISHED_STATUSES = {
     "time",
     "royal_score",
     "center_dominion",
+    "royal_center",
+    "check_race",
     "draw",
 }
 
@@ -77,6 +79,10 @@ def barricade_start_squares(rows: int, cols: int, count: int) -> list[tuple[int,
     return centered_board_squares(rows, cols, count)
 
 
+def objective_center_squares(rows: int, cols: int) -> list[tuple[int, int]]:
+    return centered_board_squares(rows, cols, 4)
+
+
 def affinity_start_squares(
     rows: int,
     cols: int,
@@ -109,6 +115,8 @@ def uses_royal_safety(state: GameState) -> bool:
         "timed",
         "royal_score",
         "center_dominion",
+        "royal_center",
+        "check_race",
     }
 
 

@@ -51,6 +51,10 @@ export function barricadeSquares(rows, cols, count) {
   return centeredBoardSquares(rows, cols, count);
 }
 
+export function objectiveCenterSquares(rows, cols) {
+  return centeredBoardSquares(rows, cols, 4);
+}
+
 export function affinitySquares(rows, cols) {
   if (rows % 2) {
     const line = centeredBoardSquares(rows, cols, 4).sort((left, right) => left.col - right.col);

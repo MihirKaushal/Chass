@@ -8,6 +8,7 @@ from backend.rules.variant_system import (
     direct_king_capture_allowed,
     finish_game,
     has_ability,
+    objective_center_squares,
     piece_runtime_active,
     uses_royal_safety,
 )
@@ -605,6 +606,89 @@ class CenterDominionRule(Rule):
         )
 
 
+class RoyalCenterRule(Rule):
+    id = "royal_center"
+    name = "Royal Center"
+    description = "Win when your King legally reaches one of the four marked center squares."
+    tier = "basic"
+    can_disable = False
+    apply_in_simulation = False
+
+    @staticmethod
+    def squares(state: GameState) -> list[tuple[int, int]]:
+        return objective_center_squares(state.board.rows, state.board.cols)
+
+    def evaluate_state(self, state: GameState, helper, params: dict) -> None:
+        if state.configuration.victory.mode != "royal_center":
+            return
+        if state.game_status in FINISHED_STATUSES:
+            return
+
+        targets = set(self.squares(state))
+        winners = [
+            color
+            for color in ("white", "black")
+            if (king := helper.find_king(state, color)) is not None and king in targets
+        ]
+        if not winners:
+            return
+        last_player = state.history[-1].player if state.history else None
+        winner = last_player if last_player in winners else winners[0]
+        finish_game(
+            state,
+            status="royal_center",
+            reason_code="royal_center",
+            trigger="king_reached_center",
+            winner=winner,
+            description=(
+                f"{winner.title()} won! {winner.title()}'s King reached the center."
+            ),
+        )
+
+
+class CheckRaceRule(Rule):
+    id = "check_race"
+    name = "Check Race"
+    description = "Win by checking the opposing King the configured number of times."
+    tier = "basic"
+    can_disable = False
+    apply_in_simulation = False
+
+    def complete_turn(self, state: GameState, acting_color: str, helper, params: dict) -> None:
+        if state.configuration.victory.mode != "check_race":
+            return
+        if helper.is_king_in_check(state, opposing_color(acting_color)):
+            state.check_race.checks[acting_color] += 1
+
+    def evaluate_state(self, state: GameState, helper, params: dict) -> None:
+        if state.configuration.victory.mode != "check_race":
+            return
+        if state.game_status in FINISHED_STATUSES:
+            return
+        target = state.configuration.victory.check_target
+        winner = next(
+            (
+                color
+                for color in ("white", "black")
+                if state.check_race.checks[color] >= target
+            ),
+            None,
+        )
+        if winner is None:
+            return
+        finish_game(
+            state,
+            status="check_race",
+            reason_code="check_race",
+            trigger="check_count",
+            winner=winner,
+            description=(
+                f"{winner.title()} won! {winner.title()} checked the opposing King "
+                f"{target} time{'s' if target != 1 else ''}."
+            ),
+        )
+
+
 class ScoreTargetWinRule(Rule):
     id = "score_target_win"
     name = "Score Target Win Rule"
@@ -744,6 +828,8 @@ classic_chess_rules: list[Rule] = [
     PromotionRule(),
     ScoreRule(),
     CenterDominionRule(),
+    RoyalCenterRule(),
+    CheckRaceRule(),
     CheckmateRule(),
     ConfigurableVictoryRule(),
     StalemateRule(),
