@@ -9,6 +9,7 @@ const MIN_DIMENSION = 4;
 const MAX_DIMENSION = 16;
 const STANDARD_TYPES = ["pawn", "knight", "bishop", "rook", "queen", "king"];
 const BACK_RANK = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
+const DEFAULT_DRAFT_POOL = { pawn: 16, knight: 4, bishop: 4, rook: 4, queen: 2, king: 2 };
 
 function title(value) {
   return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
@@ -56,9 +57,13 @@ function centeredResize(placements, oldRows, oldCols, rows, cols) {
 function defaultDraft(catalog) {
   const pointValues = {};
   const pieceCaps = {};
+  const draftPool = {};
   catalog.pieces.forEach((piece) => {
     pointValues[piece.type] = Math.max(0, piece.points ?? 0);
     pieceCaps[piece.type] = piece.type === "king" ? 1 : piece.type === "queen" ? 2 : 16;
+    draftPool[piece.type] = piece.type === "barricade"
+      ? 0
+      : (DEFAULT_DRAFT_POOL[piece.type] ?? 2);
   });
   return {
     schemaVersion: 2,
@@ -81,6 +86,8 @@ function defaultDraft(catalog) {
       maxQueens: 2,
       affinityEnabled: true,
       commandPointCap: 3,
+      draftEnabled: false,
+      draftPool,
     },
   };
 }
@@ -122,7 +129,11 @@ function loadSavedDraft(catalog) {
         ...base.specialAbilities,
         ...(configuration.specialAbilities || {}),
       },
-      gambit: { ...base.gambit, ...gambit },
+      gambit: {
+        ...base.gambit,
+        ...gambit,
+        draftPool: { ...base.gambit.draftPool, ...(gambit.draftPool || {}) },
+      },
     };
   } catch {
     return base;
@@ -161,7 +172,7 @@ function applyModeToDraft(current, mode, catalog) {
     placements: layout,
     victory: { ...current.victory, ...mode.victory },
     specialAbilities: { enabled: false, allowed: [] },
-    gambit: { ...current.gambit, enabled: false, ...mode.gambit },
+    gambit: { ...defaults.gambit, enabled: false, draftEnabled: false, ...mode.gambit },
   };
 }
 
@@ -192,6 +203,11 @@ function buildRequest(draft, mode = "local") {
             type,
             Number(draft.pieceCaps[type] ?? draft.gambit.maxPieces),
           ])
+        ),
+        draftPool: Object.fromEntries(
+          draft.enabledPieces
+            .filter((type) => type !== "barricade")
+            .map((type) => [type, Number(draft.gambit.draftPool[type] ?? 0)])
         ),
       },
     },
@@ -401,6 +417,10 @@ function Rulebook({ catalog }) {
             <p>Hold both center squares assigned to your color through the opponent&apos;s turn to earn one command point.</p>
             <p>Spend one point for a Pawn, two to evolve a Pawn, or three for a Rook. A command uses the normal turn and must leave the King safe.</p>
           </div>
+          <div>
+            <h4>Draft Gambit</h4>
+            <ol>{catalog.gambit.draftDetails.map((detail) => <li key={detail}>{detail}</li>)}</ol>
+          </div>
         </div>
       </article>
 
@@ -493,7 +513,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         ...current.specialAbilities,
         allowed: current.specialAbilities.allowed.filter((ability) => !disabled[ability]),
       },
-      gambit: { ...current.gambit, enabled: false },
+      gambit: { ...current.gambit, enabled: false, draftEnabled: false },
     }));
   };
 
@@ -612,7 +632,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       <div className="studio-shell">
         <aside className="studio-preview-column">
           <ConfigurationBoard draft={draft} catalog={catalog} selectedTool={selectedTool} onSelectTool={setSelectedTool} onPlace={placeTool} onClearBoard={clearBoard} />
-          <div className="studio-summary-card"><span>Current Game</span><strong>{draft.boardRows}x{draft.boardCols} {draft.gambit.enabled ? "Gambit" : "Board"}</strong><p>{draft.enabledPieces.length} piece types, {title(draft.victory.mode)} victory</p>{draft.specialAbilities.enabled ? <p>{draft.specialAbilities.allowed.length} abilities enabled</p> : null}</div>
+          <div className="studio-summary-card"><span>Current Game</span><strong>{draft.boardRows}x{draft.boardCols} {draft.gambit.enabled && draft.gambit.draftEnabled ? "Draft Gambit" : draft.gambit.enabled ? "Gambit" : "Board"}</strong><p>{draft.enabledPieces.length} piece types, {title(draft.victory.mode)} victory</p>{draft.specialAbilities.enabled ? <p>{draft.specialAbilities.allowed.length} abilities enabled</p> : null}</div>
         </aside>
 
         <div className="studio-controls">
@@ -649,6 +669,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                     <div className="piece-config-fields">
                       <label>Point Value<input type="number" min="0" max={catalog.limits.pointMax} step="1" disabled={!enabled} value={draft.pointValues[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pointValues: { ...current.pointValues, [piece.type]: clamp(event.target.value, 0, catalog.limits.pointMax) } }))} /></label>
                       {draft.gambit.enabled && piece.type !== "barricade" ? <label>Army Limit<input type="number" min={piece.type === "king" ? 1 : 0} max={draft.gambit.maxPieces} disabled={!enabled || piece.type === "king"} value={draft.pieceCaps[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pieceCaps: { ...current.pieceCaps, [piece.type]: Math.max(0, Number(event.target.value)) } }))} /></label> : null}
+                      {draft.gambit.enabled && draft.gambit.draftEnabled && piece.type !== "barricade" ? <label>Shared Draft Pool<input type="number" min={piece.type === "king" ? 2 : 0} max="256" disabled={!enabled || piece.type === "king"} value={draft.gambit.draftPool[piece.type] ?? 0} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, draftPool: { ...current.gambit.draftPool, [piece.type]: Math.max(0, Number(event.target.value)) } } }))} /><small>Total copies available to both players.</small></label> : null}
                       {enabled && piece.type === "barricade" ? <label>Starting Walls<input type="number" min="1" max={Math.max(1, Math.floor(draft.boardCols / 2))} value={draft.barricadeCount} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", barricadeCount: clamp(event.target.value, 1, Math.max(1, Math.floor(current.boardCols / 2))) }))} /></label> : null}
                     </div>
                     {enabled && !draft.gambit.enabled ? <div className="piece-color-tools">{piece.type === "barricade" ? <p className="fixed-piece-note"><PieceGlyph type="barricade" color="neutral" symbol={piece.symbols.neutral} /> Starting walls occupy reserved central squares.</p> : ["white", "black"].map((color) => <button type="button" key={color} className={selectedTool?.type === piece.type && selectedTool?.color === color ? "active" : "secondary"} onClick={() => setSelectedTool({ kind: "piece", type: piece.type, color })}><PieceGlyph type={piece.type} color={color} symbol={piece.symbols[color] || piece.icon} /> {title(color)}</button>)}</div> : null}
@@ -682,7 +703,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
           <section className="studio-section gambit-config-section">
             <SectionHeading title="Chass Gambit" description="Add private army construction to this board and ruleset." />
-            <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled } }))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
+            <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled, draftEnabled: enabled ? current.gambit.draftEnabled : false } }))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
             {draft.gambit.enabled ? <div className="gambit-settings-grid">
               <label>Maximum Points<input type="number" min="0" value={draft.gambit.budget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, budget: Math.max(0, Number(event.target.value)) } }))} /><small>Players may spend less, but cannot exceed this limit.</small></label>
               <label>Maximum Pieces<input type="number" min="1" max="128" value={draft.gambit.maxPieces} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, maxPieces: Math.max(1, Number(event.target.value)) } }))} /><small>Includes the required King.</small></label>
@@ -690,6 +711,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
               <label>Maximum Queens<input type="number" min="0" max={Math.max(0, draft.gambit.maxPieces - 1)} value={draft.gambit.maxQueens} onChange={(event) => { const value = Math.max(0, Number(event.target.value)); setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, maxQueens: value }, pieceCaps: { ...current.pieceCaps, queen: value } })); }} /><small>At least one army slot remains for the King.</small></label>
               <label>Command Point Cap<input type="number" min="0" max="20" value={draft.gambit.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, commandPointCap: Math.max(0, Number(event.target.value)) } }))} /><small>Maximum command points a player may save.</small></label>
               <Toggle checked={draft.gambit.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, affinityEnabled } }))} label="Enable Affinity Squares" description="Control both center squares of your color to earn command points." />
+              <Toggle checked={draft.gambit.draftEnabled} onChange={(draftEnabled) => setDraft((current) => ({ ...current, presetId: draftEnabled ? "draft_gambit" : "custom", gambit: { ...current.gambit, draftEnabled, draftPool: { ...current.gambit.draftPool, king: 2 } } }))} label="Enable Shared Draft" description="Alternate public picks from one shared pool before each player privately arranges their drafted army." />
             </div> : null}
           </section>
         </div>

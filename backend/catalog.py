@@ -8,6 +8,22 @@ from backend.models import MovePattern, PieceDefinition
 STANDARD_PIECE_TYPES = ("pawn", "knight", "bishop", "rook", "queen", "king")
 CUSTOM_PIECE_TYPES = ("maharani", "catapult", "barricade", "hypnotizer", "diplomat")
 CLASSIC_BACK_RANK = ("rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook")
+DEFAULT_DRAFT_POOL_COUNTS = {
+    "pawn": 16,
+    "knight": 4,
+    "bishop": 4,
+    "rook": 4,
+    "queen": 2,
+    "king": 2,
+}
+
+
+def build_default_draft_pool(piece_types: set[str] | list[str]) -> dict[str, int]:
+    return {
+        piece_type: DEFAULT_DRAFT_POOL_COUNTS.get(piece_type, 2)
+        for piece_type in piece_types
+        if piece_type != "barricade"
+    }
 
 
 def classic_layout(rows: int = 8, cols: int = 8) -> list[dict[str, Any]]:
@@ -36,18 +52,20 @@ def formation_layout(formation_id: str) -> tuple[int, int, list[dict[str, Any]]]
     if formation_id == "no_pawns":
         return 8, 8, [piece for piece in classic_layout() if piece["type"] != "pawn"]
     if formation_id == "pawn_race":
-        return 8, 8, [
-            piece for piece in classic_layout() if piece["type"] in {"pawn", "king"}
-        ]
+        return 8, 8, [piece for piece in classic_layout() if piece["type"] in {"pawn", "king"}]
     if formation_id == "knight_skirmish":
-        return 6, 6, [
-            {"row": 0, "col": 2, "type": "king", "color": "black"},
-            {"row": 1, "col": 1, "type": "knight", "color": "black"},
-            {"row": 1, "col": 4, "type": "knight", "color": "black"},
-            {"row": 5, "col": 3, "type": "king", "color": "white"},
-            {"row": 4, "col": 1, "type": "knight", "color": "white"},
-            {"row": 4, "col": 4, "type": "knight", "color": "white"},
-        ]
+        return (
+            6,
+            6,
+            [
+                {"row": 0, "col": 2, "type": "king", "color": "black"},
+                {"row": 1, "col": 1, "type": "knight", "color": "black"},
+                {"row": 1, "col": 4, "type": "knight", "color": "black"},
+                {"row": 5, "col": 3, "type": "king", "color": "white"},
+                {"row": 4, "col": 1, "type": "knight", "color": "white"},
+                {"row": 4, "col": 4, "type": "knight", "color": "white"},
+            ],
+        )
     if formation_id == "horde":
         placements = [piece for piece in classic_layout() if piece["color"] == "black"]
         placements.append({"row": 7, "col": 4, "type": "king", "color": "white"})
@@ -61,12 +79,8 @@ def formation_layout(formation_id: str) -> tuple[int, int, list[dict[str, Any]]]
         placements = classic_layout(8, 10)
         for color, back_row, pawn_row in (("black", 0, 1), ("white", 7, 6)):
             for col in (0, 9):
-                placements.append(
-                    {"row": back_row, "col": col, "type": "rook", "color": color}
-                )
-                placements.append(
-                    {"row": pawn_row, "col": col, "type": "pawn", "color": color}
-                )
+                placements.append({"row": back_row, "col": col, "type": "rook", "color": color})
+                placements.append({"row": pawn_row, "col": col, "type": "pawn", "color": color})
         return 8, 10, placements
     return 8, 8, classic_layout()
 
@@ -352,9 +366,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
             display_name="Diplomat",
             symbols={"white": "⚜", "black": "⚜"},
             icon="⚜",
-            description=(
-                "A protected peacekeeper that temporarily pacifies nearby enemy pieces."
-            ),
+            description=("A protected peacekeeper that temporarily pacifies nearby enemy pieces."),
             movement_summary=(
                 "Moves one square in any direction. It cannot capture or be captured. After two "
                 "contact turns it pacifies an enemy for five of that enemy's turns."
@@ -595,7 +607,21 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "boardCols": 8,
         "formationId": "classic",
         "victory": {"mode": "checkmate"},
-        "gambit": {"enabled": True},
+        "gambit": {"enabled": True, "draftEnabled": False},
+    },
+    {
+        "id": "draft_gambit",
+        "name": "Draft Gambit",
+        "icon": "◈",
+        "summary": (
+            "Alternate picks from one shared piece pool, then privately deploy the "
+            "army you drafted."
+        ),
+        "boardRows": 8,
+        "boardCols": 8,
+        "formationId": "classic",
+        "victory": {"mode": "checkmate"},
+        "gambit": {"enabled": True, "draftEnabled": True},
     },
 ]
 
@@ -718,6 +744,12 @@ def catalog_payload() -> dict[str, Any]:
                 "Armies remain hidden until both players lock in.",
                 "Holding both affinity squares of your color earns command points.",
                 "Command points buy Reinforce, Evolve, and Stronghold actions.",
+            ],
+            "draftDetails": [
+                "Players alternate public selections from one shared piece pool.",
+                "Each drafted army must contain exactly one King and stay within its limits.",
+                "A player may lock below the maximum point budget after drafting a King.",
+                "After both players lock, each army is arranged privately in its home rows.",
             ],
         },
     }

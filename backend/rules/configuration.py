@@ -5,6 +5,7 @@ from dataclasses import dataclass, field
 from backend.catalog import (
     FORMATION_PRESETS,
     build_catalog_piece_definitions,
+    build_default_draft_pool,
     classic_layout,
 )
 from backend.models.schemas import CreateGameRequest
@@ -73,13 +74,9 @@ class ConfigurationRuleEngine:
                     f"{formation['boardCols']} board."
                 )
             if payload.victory.mode in formation.get("disabledVictoryModes", {}):
-                result.errors.append(
-                    formation["disabledVictoryModes"][payload.victory.mode]
-                )
+                result.errors.append(formation["disabledVictoryModes"][payload.victory.mode])
             if not payload.gambit.enabled:
-                expected = sorted(
-                    (_placement_key(piece) for piece in formation["initialLayout"])
-                )
+                expected = sorted((_placement_key(piece) for piece in formation["initialLayout"]))
                 actual = sorted(
                     (
                         placement.row,
@@ -126,15 +123,11 @@ class ConfigurationRuleEngine:
             )
         )
         if len(supplied_barricades) > payload.barricadeCount or any(
-            (piece["row"], piece["col"]) not in allowed_barricades
-            for piece in supplied_barricades
+            (piece["row"], piece["col"]) not in allowed_barricades for piece in supplied_barricades
         ):
-            result.errors.append(
-                "Starting Barricades must use the reserved central squares."
-            )
+            result.errors.append("Starting Barricades must use the reserved central squares.")
         if "barricade" in enabled and any(
-            (piece["row"], piece["col"]) in allowed_barricades
-            and piece["type"] != "barricade"
+            (piece["row"], piece["col"]) in allowed_barricades and piece["type"] != "barricade"
             for piece in placements
         ):
             result.errors.append(
@@ -151,9 +144,7 @@ class ConfigurationRuleEngine:
                 result.errors.append("Only one piece may occupy each starting square.")
             occupied.add(square)
             if placement["type"] not in enabled:
-                result.errors.append(
-                    f"Starting {placement['type'].title()} is not enabled."
-                )
+                result.errors.append(f"Starting {placement['type'].title()} is not enabled.")
             if placement["type"] == "barricade" and placement["color"] != "neutral":
                 result.errors.append("Barricades must be neutral.")
             if placement["type"] != "barricade" and placement["color"] == "neutral":
@@ -179,10 +170,14 @@ class ConfigurationRuleEngine:
                 for piece in effective
                 if piece["type"] == "king" and piece["color"] in {"white", "black"}
             }
-            if len(kings) == 2 and max(
-                abs(kings["white"][0] - kings["black"][0]),
-                abs(kings["white"][1] - kings["black"][1]),
-            ) <= 1:
+            if (
+                len(kings) == 2
+                and max(
+                    abs(kings["white"][0] - kings["black"][0]),
+                    abs(kings["white"][1] - kings["black"][1]),
+                )
+                <= 1
+            ):
                 result.errors.append("The two Kings cannot begin on touching squares.")
             self._validate_ability_prerequisites(payload, effective, result)
             self._validate_victory_reachability(payload, effective, result)
@@ -195,11 +190,7 @@ class ConfigurationRuleEngine:
         if not payload.specialAbilities.enabled:
             return
         types_by_color = {
-            color: {
-                piece["type"]
-                for piece in placements
-                if piece["color"] == color
-            }
+            color: {piece["type"] for piece in placements if piece["color"] == color}
             for color in ("white", "black")
         }
         requirements = {
@@ -211,8 +202,7 @@ class ConfigurationRuleEngine:
         for ability in payload.specialAbilities.allowed:
             requirement = requirements.get(ability)
             if requirement and any(
-                not (types_by_color[color] & requirement[0])
-                for color in ("white", "black")
+                not (types_by_color[color] & requirement[0]) for color in ("white", "black")
             ):
                 result.warnings.append(requirement[1])
 
@@ -241,9 +231,7 @@ class ConfigurationRuleEngine:
                     value = payload.victory.kingPoints
                 else:
                     default = self._pieces.get(piece["type"])
-                    value = payload.piecePoints.get(
-                        piece["type"], default.points if default else 0
-                    )
+                    value = payload.piecePoints.get(piece["type"], default.points if default else 0)
                 totals[color] += int(value or 0)
             reachable = min(totals.values())
             if payload.victory.targetPoints > reachable:
@@ -287,6 +275,19 @@ class ConfigurationRuleEngine:
             result.errors.append(
                 "The Gambit point limit must be high enough to include the required King."
             )
+
+        if gambit.draftEnabled:
+            pool = build_default_draft_pool(enabled)
+            pool.update(gambit.draftPool)
+            unknown_pool = sorted(set(gambit.draftPool) - enabled)
+            if unknown_pool:
+                result.errors.append(f"Draft pool piece is not enabled: {unknown_pool[0]}.")
+            if "barricade" in gambit.draftPool:
+                result.errors.append("Barricades are neutral and cannot enter the army draft.")
+            if pool.get("king", 0) != 2:
+                result.errors.append("Draft Gambit requires exactly two Kings in the shared pool.")
+            if sum(pool.values()) < 2:
+                result.errors.append("The shared draft pool needs pieces for both players.")
 
         if payload.specialAbilities.enabled:
             requirements = {

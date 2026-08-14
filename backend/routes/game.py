@@ -10,6 +10,7 @@ from backend.models.schemas import (
     ConfigurationValidationResponse,
     CreateGameRequest,
     GambitDeploymentRequest,
+    GambitDraftRequest,
     GambitHandoffRequest,
     GambitPowerRequest,
     GambitReadyRequest,
@@ -64,9 +65,7 @@ async def _broadcast_state(
             ).model_dump(by_alias=True)
         },
         identity_filter=(
-            (lambda identity: identity.color == target_color)
-            if target_color is not None
-            else None
+            (lambda identity: identity.color == target_color) if target_color is not None else None
         ),
     )
 
@@ -376,6 +375,35 @@ async def update_gambit_deployment(
         record,
         target_color=viewer_color if record.mode == "online" else None,
     )
+    return response
+
+
+@router.post("/{game_id}/gambit/draft", response_model=GameResponse)
+async def update_gambit_draft(
+    game_id: str,
+    payload: GambitDraftRequest,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    token = _bearer_token(authorization)
+    rate_limiter.check(
+        request,
+        "gambit_draft",
+        limit=120,
+        window_seconds=60,
+        discriminator=game_id,
+    )
+    record = await run_in_threadpool(
+        game_service.update_gambit_draft,
+        game_id,
+        payload,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        viewer_color=game_service.viewer_color(record, token),
+    )
+    await _broadcast_state(record)
     return response
 
 

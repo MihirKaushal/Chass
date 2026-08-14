@@ -90,26 +90,22 @@ def test_catalog_describes_custom_content(client):
         "castle_siege",
     }
     cooldowns = {
-        ability["id"]: ability.get("cooldownTurns")
-        for ability in catalog["specialAbilities"]
+        ability["id"]: ability.get("cooldownTurns") for ability in catalog["specialAbilities"]
     }
     assert cooldowns["necromancy"] == 9
     assert cooldowns["getaway"] is None
     assert cooldowns["eye_for_an_eye"] == 10
     assert cooldowns["episcopal"] == 6
-    getaway = next(
-        ability for ability in catalog["specialAbilities"] if ability["id"] == "getaway"
-    )
+    getaway = next(ability for ability in catalog["specialAbilities"] if ability["id"] == "getaway")
     assert "Queen" in getaway["summary"]
     assert "Rook" not in getaway["summary"]
     assert any("Only a Queen" in detail for detail in getaway["details"])
     assert getaway["usageLimit"] == 1
-    assert "center_dominion" in {
-        mode["id"] for mode in catalog["victoryModes"]
-    }
-    assert "center_dominion" in {
-        mode["id"] for mode in catalog["popularModes"]
-    }
+    assert "center_dominion" in {mode["id"] for mode in catalog["victoryModes"]}
+    assert "center_dominion" in {mode["id"] for mode in catalog["popularModes"]}
+    draft_mode = next(mode for mode in catalog["popularModes"] if mode["id"] == "draft_gambit")
+    assert draft_mode["gambit"] == {"enabled": True, "draftEnabled": True}
+    assert catalog["gambit"]["draftDetails"]
 
 
 def test_catalog_formations_have_complete_horde_and_castle_armies(client):
@@ -429,9 +425,7 @@ def test_point_race_resolves_before_no_move_fallback(client):
         victory={"mode": "point_race", "targetPoints": 1, "kingPoints": 0},
     )
     game = client.post("/game/create", json=payload).json()["game"]
-    configured_rule = next(
-        rule for rule in game["rules"] if rule["id"] == "configured_victory"
-    )
+    configured_rule = next(rule for rule in game["rules"] if rule["id"] == "configured_victory")
     assert configured_rule["name"] == "Point Race"
     assert configured_rule["isSpecial"] is True
 
@@ -640,8 +634,7 @@ def test_catapult_does_not_attack_while_recovering(client):
     action = next(
         item
         for item in game["availableActions"]
-        if item["actionType"] == "catapult_projectile"
-        and item["target"] == {"row": 4, "col": 4}
+        if item["actionType"] == "catapult_projectile" and item["target"] == {"row": 4, "col": 4}
     )
     fired = client.post(
         f"/game/{game['id']}/action",
@@ -690,9 +683,7 @@ def test_diplomat_contact_is_public_and_attached_to_piece_runtime(client):
     )
     assert moved.status_code == 200
     updated = moved.json()
-    countdown = next(
-        item for item in updated["countdowns"] if item["kind"] == "diplomat_contact"
-    )
+    countdown = next(item for item in updated["countdowns"] if item["kind"] == "diplomat_contact")
     diplomat = updated["board"][6][0]
     assert countdown["owner"] == "white"
     assert countdown["remainingTurns"] == 1
@@ -877,8 +868,7 @@ def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
     action = next(
         item
         for item in game["availableActions"]
-        if item["actionType"] == "episcopal"
-        and item["target"] == {"row": 5, "col": 2}
+        if item["actionType"] == "episcopal" and item["target"] == {"row": 5, "col": 2}
     )
     shifted = client.post(
         f"/game/{game['id']}/action",
@@ -932,8 +922,7 @@ def test_power_of_love_grants_queen_mobility_after_queen_capture(client):
     king = updated["board"][7][6]
     assert king["runtime"]["love_until_turn_remaining"] == 10
     assert any(
-        move["from"] == {"row": 7, "col": 6}
-        and move["to"] == {"row": 4, "col": 3}
+        move["from"] == {"row": 7, "col": 6} and move["to"] == {"row": 4, "col": 3}
         for move in updated["validMoves"]
     )
 
@@ -970,9 +959,7 @@ def test_necromancy_spends_score_and_recruits_captured_enemy(client):
         },
     ).json()
     action = next(
-        item
-        for item in black_move["availableActions"]
-        if item["actionType"] == "necromancy"
+        item for item in black_move["availableActions"] if item["actionType"] == "necromancy"
     )
     recruited = client.post(
         f"/game/{game['id']}/action",
@@ -1040,9 +1027,7 @@ def test_getaway_swaps_the_king_with_a_queen_to_escape_checkmate(client):
     )
     assert game["gameStatus"] == "check"
     assert game["validMoves"] == []
-    getaway = next(
-        item for item in game["availableActions"] if item["actionType"] == "getaway"
-    )
+    getaway = next(item for item in game["availableActions"] if item["actionType"] == "getaway")
     escaped = client.post(
         f"/game/{game['id']}/action",
         json={
@@ -1079,9 +1064,7 @@ def test_getaway_does_not_offer_a_rook_swap(client):
 
     assert game["gameStatus"] == "checkmate"
     assert game["winner"] == "black"
-    assert not any(
-        item["actionType"] == "getaway" for item in game["availableActions"]
-    )
+    assert not any(item["actionType"] == "getaway" for item in game["availableActions"])
 
 
 def test_maharani_can_cross_exactly_one_blocker_to_capture(client):
@@ -1106,8 +1089,7 @@ def test_maharani_can_cross_exactly_one_blocker_to_capture(client):
     )
     game = client.post("/game/create", json=payload).json()["game"]
     assert any(
-        move["from"] == {"row": 7, "col": 0}
-        and move["to"] == {"row": 4, "col": 0}
+        move["from"] == {"row": 7, "col": 0} and move["to"] == {"row": 4, "col": 0}
         for move in game["validMoves"]
     )
     captured = client.post(
@@ -1147,8 +1129,7 @@ def test_barricade_is_neutral_and_movable_only_through_special_action(client):
     action = next(
         item
         for item in game["availableActions"]
-        if item["actionType"] == "move_barricade"
-        and item["target"] == {"row": 3, "col": 2}
+        if item["actionType"] == "move_barricade" and item["target"] == {"row": 3, "col": 2}
     )
     moved = client.post(
         f"/game/{game['id']}/action",
@@ -1224,8 +1205,7 @@ def test_either_rook_can_sacrifice_itself_to_demolish_a_visible_barricade(client
         },
     ).json()
     assert any(
-        action["actionType"] == "demolish_barricade"
-        and action["source"] == {"row": 3, "col": 7}
+        action["actionType"] == "demolish_barricade" and action["source"] == {"row": 3, "col": 7}
         for action in after_white["availableActions"]
     )
 

@@ -97,6 +97,8 @@ class GambitConfigView(BaseModel):
     commandPointCap: int
     affinityEnabled: bool = True
     requireExactBudget: bool = False
+    draftEnabled: bool = False
+    draftPool: dict[str, int] = Field(default_factory=dict)
     piecePoints: dict[str, int]
     pieceCaps: dict[str, int]
     powerCosts: dict[str, int]
@@ -113,6 +115,14 @@ class GambitSetupSummaryView(BaseModel):
     issues: list[str] = Field(default_factory=list)
 
 
+class GambitDraftPlayerView(BaseModel):
+    pointsSpent: int
+    pointsRemaining: int
+    pieceCount: int
+    counts: dict[str, int]
+    hasKing: bool
+
+
 class GambitView(BaseModel):
     config: GambitConfigView
     viewerColor: str | None = None
@@ -126,6 +136,14 @@ class GambitView(BaseModel):
     powerUsage: dict[str, dict[str, int]]
     legalPowerTargets: dict[str, list[Position]]
     lastPowerExplanation: str | None = None
+    draftActiveColor: str = "white"
+    draftPicks: dict[str, list[str]] = Field(default_factory=dict)
+    draftPoolRemaining: dict[str, int] = Field(default_factory=dict)
+    draftPassed: dict[str, bool] = Field(default_factory=dict)
+    draftSummary: dict[str, GambitDraftPlayerView] = Field(default_factory=dict)
+    draftOptions: list[str] = Field(default_factory=list)
+    draftCanAct: bool = False
+    draftCanPass: bool = False
 
 
 class CenterDominionView(BaseModel):
@@ -200,6 +218,7 @@ class GameResponse(BaseModel):
     phase: Literal[
         "lobby",
         "ability_selection",
+        "draft",
         "deployment",
         "handoff",
         "play",
@@ -307,11 +326,17 @@ class GambitConfigPayload(BaseModel):
     affinityEnabled: bool = True
     commandPointCap: int = Field(default=3, ge=0, le=20)
     pieceCaps: dict[str, int] = Field(default_factory=dict)
+    draftEnabled: bool = False
+    draftPool: dict[str, int] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_piece_caps(self) -> "GambitConfigPayload":
         if any(value < 0 for value in self.pieceCaps.values()):
             raise ValueError("Piece limits cannot be negative")
+        if any(value < 0 for value in self.draftPool.values()):
+            raise ValueError("Draft pool counts cannot be negative")
+        if any(value > 256 for value in self.draftPool.values()):
+            raise ValueError("Draft pool counts cannot exceed 256")
         return self
 
 
@@ -337,10 +362,7 @@ class GameConfigurationPayload(BaseModel):
     def validate_points(self) -> "GameConfigurationPayload":
         if any(value is not None and value < 0 for value in self.piecePoints.values()):
             raise ValueError("Piece points cannot be negative")
-        if any(
-            value is not None and value > 100000
-            for value in self.piecePoints.values()
-        ):
+        if any(value is not None and value > 100000 for value in self.piecePoints.values()):
             raise ValueError("Piece points cannot exceed 100000")
         return self
 
@@ -382,6 +404,12 @@ class GambitDeploymentRequest(BaseModel):
     action: Literal["place", "remove", "clear", "undo"]
     row: int | None = None
     col: int | None = None
+    pieceType: str | None = None
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class GambitDraftRequest(BaseModel):
+    action: Literal["pick", "pass"]
     pieceType: str | None = None
     expectedVersion: int | None = Field(default=None, ge=1)
 

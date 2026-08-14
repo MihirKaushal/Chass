@@ -27,6 +27,7 @@ GameVariant = Literal["classic", "gambit"]
 GamePhase = Literal[
     "lobby",
     "ability_selection",
+    "draft",
     "deployment",
     "handoff",
     "play",
@@ -165,12 +166,8 @@ class VictoryConfig(BaseModel):
 
 
 class CenterDominionState(BaseModel):
-    progress: dict[Color, int] = Field(
-        default_factory=lambda: {"white": 0, "black": 0}
-    )
-    primed: dict[Color, bool] = Field(
-        default_factory=lambda: {"white": False, "black": False}
-    )
+    progress: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+    primed: dict[Color, bool] = Field(default_factory=lambda: {"white": False, "black": False})
 
 
 class SpecialAbilityConfig(BaseModel):
@@ -195,13 +192,9 @@ class AbilityState(BaseModel):
     selected: dict[Color, str | None] = Field(
         default_factory=lambda: {"white": None, "black": None}
     )
-    used: dict[Color, bool] = Field(
-        default_factory=lambda: {"white": False, "black": False}
-    )
+    used: dict[Color, bool] = Field(default_factory=lambda: {"white": False, "black": False})
     active_selection_color: Color = "white"
-    runtime: dict[Color, dict[str, Any]] = Field(
-        default_factory=lambda: {"white": {}, "black": {}}
-    )
+    runtime: dict[Color, dict[str, Any]] = Field(default_factory=lambda: {"white": {}, "black": {}})
     usage_count: dict[Color, dict[str, int]] = Field(
         default_factory=lambda: {"white": {}, "black": {}}
     )
@@ -210,9 +203,7 @@ class AbilityState(BaseModel):
 class RematchState(BaseModel):
     status: Literal["idle", "pending"] = "idle"
     requested_by: Color | None = None
-    approvals: dict[Color, bool] = Field(
-        default_factory=lambda: {"white": False, "black": False}
-    )
+    approvals: dict[Color, bool] = Field(default_factory=lambda: {"white": False, "black": False})
 
 
 class GameResult(BaseModel):
@@ -278,6 +269,17 @@ class GambitConfig(BaseModel):
     # Retained for backward-compatible state loading. New games always treat
     # the budget as a maximum rather than an exact spending requirement.
     require_exact_budget: bool = False
+    draft_enabled: bool = False
+    draft_pool: dict[str, int] = Field(
+        default_factory=lambda: {
+            "pawn": 16,
+            "knight": 4,
+            "bishop": 4,
+            "rook": 4,
+            "queen": 2,
+            "king": 2,
+        }
+    )
     piece_points: dict[str, int] = Field(
         default_factory=lambda: {
             "pawn": 1,
@@ -328,6 +330,12 @@ class GambitConfig(BaseModel):
 
 class GambitState(BaseModel):
     config: GambitConfig = Field(default_factory=GambitConfig)
+    draft_picks: dict[Color, list[str]] = Field(default_factory=lambda: {"white": [], "black": []})
+    draft_pool_remaining: dict[str, int] = Field(default_factory=dict)
+    draft_active_color: Color = "white"
+    draft_passed: dict[Color, bool] = Field(
+        default_factory=lambda: {"white": False, "black": False}
+    )
     deployments: dict[Color, list[DeploymentPiece]] = Field(
         default_factory=lambda: {"white": [], "black": []}
     )
@@ -337,13 +345,9 @@ class GambitState(BaseModel):
     deployment_undo: dict[Color, list[list[DeploymentPiece]]] = Field(
         default_factory=lambda: {"white": [], "black": []}
     )
-    deployment_versions: dict[Color, int] = Field(
-        default_factory=lambda: {"white": 1, "black": 1}
-    )
+    deployment_versions: dict[Color, int] = Field(default_factory=lambda: {"white": 1, "black": 1})
     active_deployment_color: Color = "white"
-    command_points: dict[Color, int] = Field(
-        default_factory=lambda: {"white": 0, "black": 0}
-    )
+    command_points: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
     affinity_primed: dict[Color, bool] = Field(
         default_factory=lambda: {"white": False, "black": False}
     )
@@ -355,6 +359,12 @@ class GambitState(BaseModel):
     )
     setup_message: str | None = None
     last_power_explanation: str | None = None
+
+    @model_validator(mode="after")
+    def initialize_draft_pool(self) -> "GambitState":
+        if self.config.draft_enabled and not self.draft_pool_remaining:
+            self.draft_pool_remaining = dict(self.config.draft_pool)
+        return self
 
 
 class GameState(BaseModel):
@@ -369,9 +379,7 @@ class GameState(BaseModel):
     configuration: GameConfiguration = Field(default_factory=GameConfiguration)
     center_dominion: CenterDominionState = Field(default_factory=CenterDominionState)
     abilities: AbilityState = Field(default_factory=AbilityState)
-    turn_counts: dict[Color, int] = Field(
-        default_factory=lambda: {"white": 0, "black": 0}
-    )
+    turn_counts: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
     clock: ClockState | None = None
     history: list[MoveRecord] = Field(default_factory=list)
     captured_pieces: dict[str, list[Piece]] = Field(
@@ -380,9 +388,7 @@ class GameState(BaseModel):
     winner: Color | None = None
     game_status: GameStatus = "active"
     score: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
-    spent_score: dict[Color, int] = Field(
-        default_factory=lambda: {"white": 0, "black": 0}
-    )
+    spent_score: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
     rematch: RematchState = Field(default_factory=RematchState)
     result: GameResult | None = None
 
