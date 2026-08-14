@@ -496,6 +496,15 @@ VICTORY_MODES: list[dict[str, Any]] = [
         "icon": "♛",
         "summary": "Royal defeat ends play, but the player with the higher score wins.",
     },
+    {
+        "id": "center_dominion",
+        "name": "Center Dominion",
+        "icon": "◆",
+        "summary": (
+            "Hold both center squares assigned to your color through three consecutive "
+            "opponent turns. Checkmate also wins."
+        ),
+    },
 ]
 
 
@@ -553,6 +562,17 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "boardCols": 8,
         "formationId": "classic",
         "victory": {"mode": "timed", "timeSeconds": 600},
+        "gambit": {"enabled": False},
+    },
+    {
+        "id": "center_dominion",
+        "name": "Center Dominion",
+        "icon": "◆",
+        "summary": "Hold both marked center squares for three consecutive rounds.",
+        "boardRows": 8,
+        "boardCols": 8,
+        "formationId": "classic",
+        "victory": {"mode": "center_dominion", "dominionRounds": 3},
         "gambit": {"enabled": False},
     },
     {

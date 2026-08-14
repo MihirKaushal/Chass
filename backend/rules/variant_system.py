@@ -21,6 +21,7 @@ FINISHED_STATUSES = {
     "elimination",
     "time",
     "royal_score",
+    "center_dominion",
     "draw",
 }
 
@@ -103,7 +104,12 @@ def opposing_color(color: str) -> str:
 
 
 def uses_royal_safety(state: GameState) -> bool:
-    return state.configuration.victory.mode in {"checkmate", "timed", "royal_score"}
+    return state.configuration.victory.mode in {
+        "checkmate",
+        "timed",
+        "royal_score",
+        "center_dominion",
+    }
 
 
 def direct_king_capture_allowed(state: GameState) -> bool:

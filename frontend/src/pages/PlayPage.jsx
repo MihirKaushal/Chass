@@ -28,6 +28,7 @@ function PlayPage({
           lastMove={lastMove}
           boardFlipped={boardFlipped}
           interactive={interactive}
+          affinitySquares={game.centerDominion?.squares || {}}
           pieceDetailsMode="double-tap"
         />
         <p className="board-detail-hint">Double-tap or double-click a piece to view details.</p>

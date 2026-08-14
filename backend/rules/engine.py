@@ -38,6 +38,9 @@ class RuleEngine:
         self.gambit = GambitRuleSet()
         self.actions = VariantActionRules()
         self.configuration = ConfigurationRuleEngine()
+        self.center_dominion = next(
+            rule for rule in ordered_rules if rule.id == "center_dominion"
+        )
 
     def generate_piece_moves(self, state: GameState, row: int, col: int) -> list[MoveOption]:
         return generate_piece_moves(state, row, col)
@@ -317,6 +320,8 @@ class RuleEngine:
     def _complete_turn(self, state: GameState, acting_color: str) -> list[str]:
         messages = process_end_of_turn_effects(state, acting_color)
         state.turn_counts[acting_color] += 1
+        for rule, setting in self._iter_enabled_rules(state):
+            rule.complete_turn(state, acting_color, self, setting.params)
         if state.variant == "gambit" and state.gambit is not None:
             self.gambit.complete_turn(state, acting_color)
         else:

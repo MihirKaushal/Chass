@@ -49,7 +49,7 @@ function MatchClock({ clock }) {
   );
 }
 
-function GameStateSummary({ gameStatus, winner, score, abilities, clock }) {
+function GameStateSummary({ gameStatus, winner, score, abilities, clock, centerDominion }) {
   return (
     <section className="panel-section">
       <h3>Game State</h3>
@@ -62,6 +62,19 @@ function GameStateSummary({ gameStatus, winner, score, abilities, clock }) {
         ) : null}
       </div>
       <MatchClock clock={clock} />
+      {centerDominion ? (
+        <div className="dominion-readout">
+          <strong>Center Dominion</strong>
+          <small>Hold both marked squares through {centerDominion.targetRounds} opponent turn{centerDominion.targetRounds === 1 ? "" : "s"}.</small>
+          {["white", "black"].map((color) => (
+            <span key={color} className={centerDominion.controlled?.[color] ? "controlled" : ""}>
+              <b>{title(color)}</b>
+              <em>{centerDominion.progress?.[color] || 0} / {centerDominion.targetRounds}</em>
+              <small>{centerDominion.primed?.[color] ? "Defense pending" : centerDominion.controlled?.[color] ? "Center occupied" : "Center open"}</small>
+            </span>
+          ))}
+        </div>
+      ) : null}
     </section>
   );
 }
@@ -323,7 +336,7 @@ export function EffectsPanel({ game, catalog, onAction, actionLoading, children 
 export function GameInfoPanel({ game }) {
   return (
     <aside className="history-panel">
-      <GameStateSummary gameStatus={game.gameStatus} winner={game.winner} score={game.score} abilities={game.abilities} clock={game.clock} />
+      <GameStateSummary gameStatus={game.gameStatus} winner={game.winner} score={game.score} abilities={game.abilities} clock={game.clock} centerDominion={game.centerDominion} />
       <CapturedPieces capturedPieces={game.capturedPieces} />
       <section className="panel-section history-section">
         <h3>Move History</h3>

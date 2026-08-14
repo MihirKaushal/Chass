@@ -104,6 +104,12 @@ def test_catalog_describes_custom_content(client):
     assert "Rook" not in getaway["summary"]
     assert any("Only a Queen" in detail for detail in getaway["details"])
     assert getaway["usageLimit"] == 1
+    assert "center_dominion" in {
+        mode["id"] for mode in catalog["victoryModes"]
+    }
+    assert "center_dominion" in {
+        mode["id"] for mode in catalog["popularModes"]
+    }
 
 
 def test_catalog_formations_have_complete_horde_and_castle_armies(client):
@@ -444,6 +450,63 @@ def test_point_race_resolves_before_no_move_fallback(client):
     assert finished["gameStatus"] == "points"
     assert finished["winner"] == "white"
     assert finished["result"]["reasonCode"] == "point_target"
+
+
+def test_center_dominion_wins_after_surviving_the_opponent_turn(client):
+    payload = configured_game(
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 0, "type": "king", "color": "black"},
+            {"row": 3, "col": 3, "type": "knight", "color": "white"},
+            {"row": 4, "col": 4, "type": "knight", "color": "white"},
+            {"row": 3, "col": 4, "type": "knight", "color": "black"},
+            {"row": 4, "col": 3, "type": "knight", "color": "black"},
+        ],
+        victory={"mode": "center_dominion", "dominionRounds": 1},
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+
+    assert game["centerDominion"] == {
+        "targetRounds": 1,
+        "progress": {"white": 0, "black": 0},
+        "primed": {"white": False, "black": False},
+        "controlled": {"white": True, "black": True},
+        "squares": {
+            "white": [{"row": 3, "col": 3}, {"row": 4, "col": 4}],
+            "black": [{"row": 3, "col": 4}, {"row": 4, "col": 3}],
+        },
+    }
+
+    white_move = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 7,
+            "fromCol": 7,
+            "toRow": 7,
+            "toCol": 6,
+            "expectedVersion": game["version"],
+        },
+    )
+    assert white_move.status_code == 200
+    after_white = white_move.json()
+    assert after_white["centerDominion"]["primed"]["white"] is True
+
+    black_move = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 0,
+            "fromCol": 0,
+            "toRow": 0,
+            "toCol": 1,
+            "expectedVersion": after_white["version"],
+        },
+    )
+    assert black_move.status_code == 200
+    finished = black_move.json()
+    assert finished["gameStatus"] == "center_dominion"
+    assert finished["winner"] == "white"
+    assert finished["result"]["reasonCode"] == "center_dominion"
+    assert "held both center squares" in finished["result"]["description"]
 
 
 def test_barricade_must_be_single_neutral_and_centered(client):

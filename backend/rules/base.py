@@ -82,3 +82,12 @@ class Rule:
         params: dict,
     ) -> None:
         return None
+
+    def complete_turn(
+        self,
+        state: GameState,
+        acting_color: str,
+        helper: MovementHelper,
+        params: dict,
+    ) -> None:
+        return None
