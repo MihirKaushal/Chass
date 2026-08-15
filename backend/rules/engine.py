@@ -386,7 +386,7 @@ class RuleEngine:
 
         next_state.history.append(
             MoveRecord(
-                move_number=len(next_state.history) + 1,
+                move_number=next_state.next_move_number(),
                 player=moving_piece.color,
                 piece=moving_piece.type,
                 from_row=move.from_row,

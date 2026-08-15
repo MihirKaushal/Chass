@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException, Request, WebSocket, WebSocketDisconnect
+from fastapi import APIRouter, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
 from starlette.concurrency import run_in_threadpool
 
 from backend.models.schemas import (
@@ -17,6 +17,7 @@ from backend.models.schemas import (
     GameActionRequest,
     GameResponse,
     GameSessionResponse,
+    HistoryPageResponse,
     InviteResponse,
     JoinGameRequest,
     MoveRequest,
@@ -29,7 +30,11 @@ from backend.models.schemas import (
 )
 from backend.rate_limit import rate_limiter
 from backend.realtime import SocketIdentity, socket_manager
-from backend.repositories import GameRecord
+from backend.repositories import (
+    DEFAULT_HISTORY_PAGE_SIZE,
+    MAX_HISTORY_PAGE_SIZE,
+    GameRecord,
+)
 from backend.rules import RuleEngine
 from backend.services.game_service import GameService
 
@@ -123,6 +128,34 @@ async def get_game(
     return game_service.serialize_game(
         authorized.record,
         viewer_color=authorized.player.color if authorized.player else None,
+    )
+
+
+@router.get("/{game_id}/history", response_model=HistoryPageResponse)
+async def get_game_history(
+    game_id: str,
+    request: Request,
+    before: Annotated[int | None, Query(ge=1)] = None,
+    limit: Annotated[
+        int,
+        Query(ge=1, le=MAX_HISTORY_PAGE_SIZE),
+    ] = DEFAULT_HISTORY_PAGE_SIZE,
+    authorization: Annotated[str | None, Header()] = None,
+) -> HistoryPageResponse:
+    token = _bearer_token(authorization)
+    rate_limiter.check(
+        request,
+        "history",
+        limit=120,
+        window_seconds=60,
+        discriminator=game_id,
+    )
+    return await run_in_threadpool(
+        game_service.get_history_page,
+        game_id,
+        before,
+        limit,
+        token,
     )
 
 

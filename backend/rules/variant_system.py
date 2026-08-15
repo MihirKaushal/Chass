@@ -415,7 +415,7 @@ class VariantActionRules:
     ) -> None:
         state.history.append(
             MoveRecord(
-                move_number=len(state.history) + 1,
+                move_number=state.next_move_number(),
                 player=color,
                 piece=piece_type,
                 from_row=source[0],

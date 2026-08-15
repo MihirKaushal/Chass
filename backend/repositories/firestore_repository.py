@@ -7,11 +7,14 @@ from google.cloud import firestore
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from backend.firebase_client import get_firestore_client
-from backend.models import GameState
+from backend.models import GameState, MoveRecord
 from backend.repositories.base import (
+    DEFAULT_HISTORY_PAGE_SIZE,
+    PERSISTED_HISTORY_WINDOW,
     ConcurrentUpdateError,
     ExpiredGameError,
     GameRecord,
+    HistoryPage,
     InviteClaimError,
     MoveAudit,
     PlayerIdentity,
@@ -25,6 +28,7 @@ MOVES = "moves"
 DELETE_BATCH_SIZE = 400
 MAX_GAMES_PER_CLEANUP = 100
 LAST_SEEN_WRITE_INTERVAL = timedelta(minutes=5)
+HISTORY_STORAGE_VERSION = 2
 
 
 def _as_utc(value: datetime | None) -> datetime | None:
@@ -55,6 +59,35 @@ class FirestoreGameRepository:
             player_colors=frozenset(str(color) for color in data.get("player_colors", [])),
             updated_at=updated_at,
             expires_at=_as_utc(data.get("expires_at")),
+            history_paged=(
+                int(data.get("history_storage_version", 1))
+                >= HISTORY_STORAGE_VERSION
+            ),
+        )
+
+    @staticmethod
+    def _state_json_for_storage(state: GameState, *, paged: bool) -> str:
+        if not paged or len(state.history) <= PERSISTED_HISTORY_WINDOW:
+            return state.model_dump_json()
+        stored = state.model_copy(deep=True)
+        stored.history = stored.history[-PERSISTED_HISTORY_WINDOW:]
+        return stored.model_dump_json()
+
+    @staticmethod
+    def _move_record_from_data(data: dict[str, Any]) -> MoveRecord:
+        record_json = data.get("record_json")
+        if isinstance(record_json, str):
+            return MoveRecord.model_validate_json(record_json)
+        return MoveRecord(
+            move_number=int(data.get("move_number", 0)),
+            player=str(data.get("player_color", "white")),
+            piece=str(data.get("piece_type", "piece")),
+            from_row=int(data.get("from_row", 0)),
+            from_col=int(data.get("from_col", 0)),
+            to_row=int(data.get("to_row", 0)),
+            to_col=int(data.get("to_col", 0)),
+            explanation=str(data.get("explanation", "Move recorded.")),
+            action_type=str(data.get("action_type", "move")),
         )
 
     @staticmethod
@@ -67,9 +100,13 @@ class FirestoreGameRepository:
         active_invite_hash: str | None,
     ) -> dict[str, Any]:
         return {
-            "state_json": state.model_dump_json(),
+            "state_json": FirestoreGameRepository._state_json_for_storage(
+                state,
+                paged=True,
+            ),
             "mode": mode,
             "version": 1,
+            "history_storage_version": HISTORY_STORAGE_VERSION,
             "player_colors": player_colors,
             "active_invite_hash": active_invite_hash,
             "created_at": now,
@@ -241,6 +278,45 @@ class FirestoreGameRepository:
         if expires_at is not None and expires_at <= datetime.now(timezone.utc):
             raise ExpiredGameError("Game has expired")
         return self._record_from_data(data)
+
+    def get_history_page(
+        self,
+        game_id: str,
+        history_epoch: int,
+        before_move_number: int | None = None,
+        limit: int = DEFAULT_HISTORY_PAGE_SIZE,
+    ) -> HistoryPage:
+        history_key = f"{game_id}:{history_epoch}"
+        query = self.client.collection(MOVES).where(
+            filter=FieldFilter("history_key", "==", history_key)
+        )
+        if before_move_number is not None:
+            query = query.where(
+                filter=FieldFilter("move_number", "<", before_move_number)
+            )
+        snapshots = list(
+            query.order_by(
+                "move_number",
+                direction=firestore.Query.DESCENDING,
+            )
+            .limit(limit + 1)
+            .stream()
+        )
+        has_more = len(snapshots) > limit
+        selected = snapshots[:limit]
+        records = tuple(
+            reversed(
+                [
+                    self._move_record_from_data(snapshot.to_dict() or {})
+                    for snapshot in selected
+                ]
+            )
+        )
+        return HistoryPage(
+            records=records,
+            has_more=has_more,
+            next_before=(records[0].move_number if has_more and records else None),
+        )
 
     def get_player(self, game_id: str, token_hash: str) -> PlayerIdentity | None:
         player_ref = self.client.collection(PLAYERS).document(token_hash)
@@ -435,10 +511,18 @@ class FirestoreGameRepository:
 
             now = datetime.now(timezone.utc)
             next_version = expected_version + 1
+            history_paged = (
+                int(game.get("history_storage_version", 1))
+                >= HISTORY_STORAGE_VERSION
+            )
+            stored_state_json = self._state_json_for_storage(
+                state,
+                paged=history_paged,
+            )
             transaction.update(
                 game_ref,
                 {
-                    "state_json": state.model_dump_json(),
+                    "state_json": stored_state_json,
                     "version": next_version,
                     "updated_at": now,
                     **({"expires_at": expires_at} if expires_at is not None else {}),
@@ -446,6 +530,7 @@ class FirestoreGameRepository:
             )
 
             if audit is not None:
+                move_record = audit.as_record()
                 move_ref = self.client.collection(MOVES).document(
                     f"{state.id}_{next_version}"
                 )
@@ -453,6 +538,8 @@ class FirestoreGameRepository:
                     move_ref,
                     {
                         "game_id": state.id,
+                        "history_key": f"{state.id}:{state.history_epoch}",
+                        "history_epoch": state.history_epoch,
                         "game_version": next_version,
                         "move_number": audit.move_number,
                         "player_color": audit.player_color,
@@ -462,12 +549,14 @@ class FirestoreGameRepository:
                         "to_row": audit.to_row,
                         "to_col": audit.to_col,
                         "explanation": audit.explanation,
+                        "action_type": move_record.action_type,
+                        "record_json": move_record.model_dump_json(),
                         "created_at": now,
                     },
                 )
 
             updated_game = dict(game)
-            updated_game["state_json"] = state.model_dump_json()
+            updated_game["state_json"] = stored_state_json
             updated_game["version"] = next_version
             updated_game["updated_at"] = now
             if expires_at is not None:

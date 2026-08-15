@@ -890,7 +890,7 @@ class GambitRuleSet:
         next_state.affinity.last_power_explanation = explanation
         next_state.history.append(
             MoveRecord(
-                move_number=len(next_state.history) + 1,
+                move_number=next_state.next_move_number(),
                 player=color,
                 piece=rule.piece_type,
                 from_row=row,

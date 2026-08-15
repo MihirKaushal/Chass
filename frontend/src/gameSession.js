@@ -71,3 +71,13 @@ export function playerHasAbility(game, color, abilityId) {
   }
   return selected === abilityId;
 }
+
+export function mergeHistoryRecords(...groups) {
+  const records = new Map();
+  groups.flat().forEach((record) => {
+    if (record?.moveNumber != null) {
+      records.set(record.moveNumber, record);
+    }
+  });
+  return [...records.values()].sort((left, right) => left.moveNumber - right.moveNumber);
+}

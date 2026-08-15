@@ -14,6 +14,8 @@ function PlayPage({
   onPower,
   actionLoading,
   catalog,
+  onLoadEarlierHistory,
+  historyLoading,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
   const [evolveTo, setEvolveTo] = useState("knight");
@@ -84,7 +86,11 @@ function PlayPage({
         <p className="board-detail-hint">Blue dots move pieces. Red targets attack or sacrifice; teal and gold targets use special actions. Double-tap for details.</p>
       </section>
 
-      <GameInfoPanel game={game} />
+      <GameInfoPanel
+        game={game}
+        onLoadEarlierHistory={onLoadEarlierHistory}
+        historyLoading={historyLoading}
+      />
     </main>
   );
 }

@@ -7,6 +7,7 @@ import {
   createGame,
   getCatalog,
   getGame,
+  getGameHistory,
   joinGame,
   makeMove,
   readyGambitDeployment,
@@ -24,6 +25,7 @@ import TopNav from "./components/TopNav";
 import {
   createInviteUrl,
   loadGameSession,
+  mergeHistoryRecords,
   playerHasAbility,
   saveGameSession,
   updateGameSession,
@@ -180,6 +182,14 @@ function GameWorkspace({ gameId }) {
   const [pendingPromotion, setPendingPromotion] = useState(null);
   const [initialLoading, setInitialLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyArchive, setHistoryArchive] = useState({
+    gameId: null,
+    epoch: null,
+    records: [],
+    hasMore: false,
+    nextBefore: null,
+  });
   const [error, setError] = useState("");
   const [socketMessage, setSocketMessage] = useState("");
   const [presence, setPresence] = useState({ white: false, black: false });
@@ -303,6 +313,66 @@ function GameWorkspace({ gameId }) {
     !FINISHED_STATUSES.has(game?.gameStatus) &&
     !game?.winner;
 
+  const historyGame = useMemo(() => {
+    if (!game) return null;
+    const epoch = game.historyPagination?.epoch ?? 0;
+    const archiveMatches =
+      historyArchive.gameId === game.id && historyArchive.epoch === epoch;
+    return {
+      ...game,
+      history: mergeHistoryRecords(
+        archiveMatches ? historyArchive.records : [],
+        game.history || []
+      ),
+      historyPagination: {
+        ...(game.historyPagination || {}),
+        ...(archiveMatches
+          ? {
+              hasMore: historyArchive.hasMore,
+              nextBefore: historyArchive.nextBefore,
+            }
+          : {}),
+      },
+    };
+  }, [game, historyArchive]);
+
+  const handleLoadEarlierHistory = useCallback(async () => {
+    if (!game || historyLoading) return;
+    const epoch = game.historyPagination?.epoch ?? 0;
+    const archiveMatches =
+      historyArchive.gameId === game.id && historyArchive.epoch === epoch;
+    const pagination = archiveMatches ? historyArchive : game.historyPagination;
+    if (!pagination?.hasMore || !pagination.nextBefore) return;
+
+    setHistoryLoading(true);
+    setError("");
+    try {
+      const page = await getGameHistory(
+        game.id,
+        { before: pagination.nextBefore, limit: 50 },
+        session?.token
+      );
+      if (page.pagination.epoch !== epoch) return;
+      setHistoryArchive((current) => {
+        const currentMatches = current.gameId === game.id && current.epoch === epoch;
+        return {
+          gameId: game.id,
+          epoch,
+          records: mergeHistoryRecords(
+            currentMatches ? current.records : [],
+            page.history
+          ),
+          hasMore: page.pagination.hasMore,
+          nextBefore: page.pagination.nextBefore,
+        };
+      });
+    } catch (requestError) {
+      setError(requestError.message);
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, [game, historyArchive, historyLoading, session?.token]);
+
   useEffect(() => {
     setSelectedSquare(null);
     setPendingPromotion(null);
@@ -331,7 +401,7 @@ function GameWorkspace({ gameId }) {
     if (
       game?.variant === "gambit" &&
       game.phase === "play" &&
-      game.history.length === 0
+      (game.historyPagination?.totalMoves ?? game.history.length) === 0
     ) {
       setBoardFlipped(game.mode === "online" ? session?.color === "black" : false);
       setAutoBoardFlipEnabled(game.mode !== "online");
@@ -392,7 +462,7 @@ function GameWorkspace({ gameId }) {
       game.id,
       game.gameStatus,
       game.winner ?? "none",
-      game.history.length,
+      game.historyPagination?.totalMoves ?? game.history.length,
     ].join(":");
     if (lastEndgameSignatureRef.current === signature) {
       return;
@@ -408,7 +478,7 @@ function GameWorkspace({ gameId }) {
       return;
     }
 
-    const moveCount = game.history?.length ?? 0;
+    const moveCount = game.historyPagination?.totalMoves ?? game.history?.length ?? 0;
     const tracker = moveTrackerRef.current;
     if (tracker.gameId !== game.id) {
       moveTrackerRef.current = { gameId: game.id, moveCount };
@@ -420,7 +490,12 @@ function GameWorkspace({ gameId }) {
       setBoardFlipped(game.currentPlayer === "black");
     }
     moveTrackerRef.current = { gameId: game.id, moveCount };
-  }, [autoBoardFlipEnabled, game?.id, game?.history?.length]);
+  }, [
+    autoBoardFlipEnabled,
+    game?.id,
+    game?.history?.length,
+    game?.historyPagination?.totalMoves,
+  ]);
 
   const runAction = async (operation) => {
     setActionLoading(true);
@@ -742,7 +817,7 @@ function GameWorkspace({ gameId }) {
         />
       ) : game.variant === "gambit" ? (
         <GambitPage
-          game={game}
+          game={historyGame}
           selectedSquare={selectedSquare}
           onSquareClick={handleSquareClick}
           boardFlipped={boardFlipped}
@@ -755,10 +830,12 @@ function GameWorkspace({ gameId }) {
           onPower={handleCommandPower}
           onAction={handleSpecialAction}
           catalog={catalog}
+          onLoadEarlierHistory={handleLoadEarlierHistory}
+          historyLoading={historyLoading}
         />
       ) : (
         <PlayPage
-          game={game}
+          game={historyGame}
           selectedSquare={selectedSquare}
           onSquareClick={handleSquareClick}
           boardFlipped={boardFlipped}
@@ -767,6 +844,8 @@ function GameWorkspace({ gameId }) {
           actionLoading={actionLoading}
           onPower={handleCommandPower}
           catalog={catalog}
+          onLoadEarlierHistory={handleLoadEarlierHistory}
+          historyLoading={historyLoading}
         />
       )}
 

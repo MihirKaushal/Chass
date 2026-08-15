@@ -68,6 +68,8 @@ from backend.models.schemas import (
     GameActionRequest,
     GameResponse,
     GameSessionResponse,
+    HistoryPageResponse,
+    HistoryPaginationView,
     InviteResponse,
     JoinGameRequest,
     MoveHistoryView,
@@ -92,6 +94,7 @@ from backend.models.schemas import (
     ValidMoveView,
 )
 from backend.repositories import (
+    PERSISTED_HISTORY_WINDOW,
     ConcurrentUpdateError,
     ExpiredGameError,
     GameRecord,
@@ -954,6 +957,45 @@ class GameService:
     def get_game(self, game_id: str, player_token: str | None = None) -> GameRecord:
         return self.authorize(game_id, player_token).record
 
+    def get_history_page(
+        self,
+        game_id: str,
+        before_move_number: int | None,
+        limit: int,
+        player_token: str | None = None,
+    ) -> HistoryPageResponse:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        page = self.repository.get_history_page(
+            game_id,
+            record.state.history_epoch,
+            before_move_number,
+            limit,
+        )
+        page_state = record.state.model_copy(deep=True)
+        page_state.history = list(page.records)
+        page_record = replace(
+            record,
+            state=page_state,
+            history_paged=False,
+        )
+        history = self.serialize_game(
+            page_record,
+            viewer_color=authorized.player.color if authorized.player else None,
+        ).history
+        total_moves = (
+            record.state.history[-1].move_number if record.state.history else 0
+        )
+        return HistoryPageResponse(
+            history=history,
+            pagination=HistoryPaginationView(
+                epoch=record.state.history_epoch,
+                totalMoves=total_moves,
+                hasMore=page.has_more,
+                nextBefore=page.next_before,
+            ),
+        )
+
     @staticmethod
     def catalog() -> dict:
         return deepcopy(_cached_catalog())
@@ -1119,16 +1161,7 @@ class GameService:
         saved = self._save(
             next_state,
             expected,
-            MoveAudit(
-                move_number=action.move_number,
-                player_color=action.player,
-                piece_type=action.piece,
-                from_row=action.from_row,
-                from_col=action.from_col,
-                to_row=action.to_row,
-                to_col=action.to_col,
-                explanation=action.explanation,
-            ),
+            MoveAudit.from_record(action),
         )
         return saved, explanation
 
@@ -1305,16 +1338,7 @@ class GameService:
         saved = self._save(
             next_state,
             expected_version,
-            MoveAudit(
-                move_number=action_record.move_number,
-                player_color=action_record.player,
-                piece_type=action_record.piece,
-                from_row=action_record.from_row,
-                from_col=action_record.from_col,
-                to_row=action_record.to_row,
-                to_col=action_record.to_col,
-                explanation=action_record.explanation,
-            ),
+            MoveAudit.from_record(action_record),
         )
         return saved, explanation
 
@@ -1370,16 +1394,7 @@ class GameService:
         saved = self._save(
             next_state,
             expected_version,
-            MoveAudit(
-                move_number=move_record.move_number,
-                player_color=move_record.player,
-                piece_type=move_record.piece,
-                from_row=move_record.from_row,
-                from_col=move_record.from_col,
-                to_row=move_record.to_row,
-                to_col=move_record.to_col,
-                explanation=move_record.explanation,
-            ),
+            MoveAudit.from_record(move_record),
         )
         return saved, explanation
 
@@ -1458,6 +1473,7 @@ class GameService:
             game_state.classic = ClassicRuleState()
             game_state.affinity = AffinityState()
             game_state.turn_counts = {"white": 0, "black": 0}
+            game_state.history_epoch += 1
             game_state.history = []
             game_state.captured_pieces = {"white": [], "black": []}
             game_state.winner = None
@@ -1495,6 +1511,7 @@ class GameService:
         game_state.classic = ClassicRuleState()
         game_state.affinity = AffinityState()
         game_state.turn_counts = {"white": 0, "black": 0}
+        game_state.history_epoch += 1
         game_state.history = []
         game_state.captured_pieces = {"white": [], "black": []}
         game_state.winner = None
@@ -1690,6 +1707,7 @@ class GameService:
         )
         game_state.abilities = AbilityState()
         game_state.classic = ClassicRuleState()
+        game_state.history_epoch += 1
         game_state.history = []
         game_state.captured_pieces = {"white": [], "black": []}
         game_state.winner = None
@@ -1988,8 +2006,11 @@ class GameService:
                 for rule in self.engine.gambit.available_command_rules()
             )
 
+        history_records = game_state.history
+        if record.history_paged:
+            history_records = history_records[-PERSISTED_HISTORY_WINDOW:]
         history_views = []
-        for item in game_state.history:
+        for item in history_records:
             history_views.append(
                 MoveHistoryView(
                     moveNumber=item.move_number,
@@ -2301,6 +2322,22 @@ class GameService:
                 for definition in game_state.piece_definitions.values()
             ],
             history=history_views,
+            historyPagination=HistoryPaginationView(
+                epoch=game_state.history_epoch,
+                totalMoves=(game_state.history[-1].move_number if game_state.history else 0),
+                hasMore=(
+                    record.history_paged
+                    and bool(history_records)
+                    and history_records[0].move_number > 1
+                ),
+                nextBefore=(
+                    history_records[0].move_number
+                    if record.history_paged
+                    and history_records
+                    and history_records[0].move_number > 1
+                    else None
+                ),
+            ),
             capturedPieces=captured_pieces_view,
             lastMoveExplanation=last_explanation,
             winner=game_state.winner,

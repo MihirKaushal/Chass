@@ -361,7 +361,7 @@ export function EffectsPanel({ game, catalog, onAction, actionLoading, children 
   );
 }
 
-export function GameInfoPanel({ game }) {
+export function GameInfoPanel({ game, onLoadEarlierHistory, historyLoading = false }) {
   const boardRows = game.boardRows ?? game.boardSize;
   const moveSquares = (move) => {
     const from = boardSquareLabel(move.from, boardRows);
@@ -376,6 +376,16 @@ export function GameInfoPanel({ game }) {
       <section className="panel-section history-section">
         <h3>Move History</h3>
         {game.lastMoveExplanation ? <p className="move-explanation">{game.lastMoveExplanation}</p> : null}
+        {game.historyPagination?.hasMore ? (
+          <button
+            type="button"
+            className="history-load-button"
+            onClick={onLoadEarlierHistory}
+            disabled={historyLoading}
+          >
+            {historyLoading ? "Loading..." : "Load Earlier Moves"}
+          </button>
+        ) : null}
         <ol>{[...(game.history || [])].reverse().map((move) => <li key={move.moveNumber}><span className="history-move-heading"><strong>{move.moveNumber}. {move.actionType === "move" ? title(move.piece) : title(move.actionType)} ({title(move.player)})</strong><em>{moveSquares(move)}</em></span><small>{move.explanation}</small></li>)}</ol>
       </section>
     </aside>

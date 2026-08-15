@@ -65,6 +65,18 @@ class MoveHistoryView(BaseModel):
     actionType: str = "move"
 
 
+class HistoryPaginationView(BaseModel):
+    epoch: int = 0
+    totalMoves: int = 0
+    hasMore: bool = False
+    nextBefore: int | None = None
+
+
+class HistoryPageResponse(BaseModel):
+    history: list[MoveHistoryView]
+    pagination: HistoryPaginationView
+
+
 class MovePatternView(BaseModel):
     dr: int
     dc: int
@@ -264,6 +276,9 @@ class GameResponse(BaseModel):
     rules: list[RuleView]
     pieceDefinitions: list[PieceDefinitionView]
     history: list[MoveHistoryView]
+    historyPagination: HistoryPaginationView = Field(
+        default_factory=HistoryPaginationView
+    )
     capturedPieces: dict[str, list[PieceView]]
     lastMoveExplanation: str | None = None
     winner: str | None = None

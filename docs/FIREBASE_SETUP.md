@@ -67,7 +67,9 @@ npx firebase-tools deploy --only firestore --project your-firebase-project-id
 ```
 
 This also prevents Firestore from indexing the serialized board-state field, which does
-not need to be searched.
+not need to be searched. Run the same command again after pulling any update that changes
+`firestore.indexes.json`; the move-history index is required before paginated histories
+can be loaded in production.
 
 In **Firestore Database > Rules**, confirm the deployed rule is equivalent to:
 
