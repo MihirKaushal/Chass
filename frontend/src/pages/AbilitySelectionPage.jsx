@@ -1,3 +1,7 @@
+import { useEffect, useState } from "react";
+
+import { effectiveCatalogEntry } from "../variantTuning";
+
 function title(value) {
   return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
 }
@@ -5,7 +9,10 @@ function title(value) {
 function AbilitySelectionPage({ game, catalog, onSelect, actionLoading }) {
   const color = game.abilities.editableColor || "white";
   const allowed = new Set(game.abilities.allowed);
-  const abilities = (catalog?.specialAbilities || []).filter((ability) => allowed.has(ability.id));
+  const abilityParameters = game.configuration?.specialAbilities?.parameters || {};
+  const abilities = (catalog?.specialAbilities || [])
+    .filter((ability) => allowed.has(ability.id))
+    .map((ability) => effectiveCatalogEntry(ability, abilityParameters[ability.id]));
   const maxChoices = game.abilities.maxPerPlayer || 1;
   const [choices, setChoices] = useState([]);
 
@@ -91,4 +98,3 @@ function AbilityHandoffPage({ game, onContinue, actionLoading }) {
 
 export { AbilityHandoffPage };
 export default AbilitySelectionPage;
-import { useEffect, useState } from "react";

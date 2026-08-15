@@ -2,6 +2,12 @@ import { useEffect, useMemo, useState } from "react";
 
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { affinitySquares, barricadeSquares, objectiveCenterSquares } from "../boardGeometry";
+import {
+  effectiveCatalogEntry,
+  mergeParameterGroups,
+  parameterDefaults,
+  parameterValueLabel,
+} from "../variantTuning";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
 
@@ -65,6 +71,8 @@ function defaultDraft(catalog) {
       ? 0
       : (DEFAULT_DRAFT_POOL[piece.type] ?? 2);
   });
+  const pieceParameters = parameterDefaults(catalog.pieces);
+  const abilityParameters = parameterDefaults(catalog.specialAbilities);
   return {
     schemaVersion: 2,
     presetId: "classic",
@@ -73,12 +81,18 @@ function defaultDraft(catalog) {
     boardRows: 8,
     boardCols: 8,
     enabledPieces: [...STANDARD_TYPES],
+    pieceParameters,
     pointValues,
     pieceCaps,
     placements: classicLayout(8, 8),
     victory: { mode: "checkmate", targetPoints: 21, timeSeconds: 600, kingPoints: 0, dominionRounds: 3, checkTarget: 3 },
     customRules: { affinityEnabled: false, commandPointCap: 3 },
-    specialAbilities: { enabled: false, allowed: [], maxPerPlayer: 1 },
+    specialAbilities: {
+      enabled: false,
+      allowed: [],
+      maxPerPlayer: 1,
+      parameters: abilityParameters,
+    },
     gambit: {
       enabled: false,
       budget: 39,
@@ -118,6 +132,10 @@ function loadSavedDraft(catalog) {
       boardRows,
       boardCols,
       enabledPieces: configuration.enabledPieces || base.enabledPieces,
+      pieceParameters: mergeParameterGroups(
+        base.pieceParameters,
+        configuration.pieceParameters
+      ),
       pointValues,
       pieceCaps: { ...base.pieceCaps, ...(gambit.pieceCaps || {}) },
       placements: configuration.initialLayout?.length
@@ -139,6 +157,10 @@ function loadSavedDraft(catalog) {
       specialAbilities: {
         ...base.specialAbilities,
         ...(configuration.specialAbilities || {}),
+        parameters: mergeParameterGroups(
+          base.specialAbilities.parameters,
+          configuration.specialAbilities?.parameters
+        ),
       },
       gambit: {
         ...base.gambit,
@@ -172,6 +194,7 @@ function applyModeToDraft(current, mode, catalog) {
     boardRows: rows,
     boardCols: cols,
     enabledPieces: [...STANDARD_TYPES],
+    pieceParameters: defaults.pieceParameters,
     pointValues: {
       ...defaults.pointValues,
       ...(mode.victory?.kingPoints !== undefined
@@ -183,7 +206,7 @@ function applyModeToDraft(current, mode, catalog) {
     placements: layout,
     victory: { ...current.victory, ...mode.victory },
     customRules: { ...defaults.customRules, ...(mode.customRules || {}) },
-    specialAbilities: { enabled: false, allowed: [], maxPerPlayer: 1 },
+    specialAbilities: defaults.specialAbilities,
     gambit: { ...defaults.gambit, enabled: false, draftEnabled: false, ...mode.gambit },
   };
 }
@@ -202,6 +225,11 @@ function buildRequest(draft, mode = "local") {
       enabledPieces: draft.enabledPieces,
       piecePoints: Object.fromEntries(
         draft.enabledPieces.map((type) => [type, Number(draft.pointValues[type] ?? 0)])
+      ),
+      pieceParameters: Object.fromEntries(
+        draft.enabledPieces
+          .filter((type) => draft.pieceParameters[type])
+          .map((type) => [type, draft.pieceParameters[type]])
       ),
       initialLayout: draft.gambit.enabled
         ? []
@@ -227,19 +255,23 @@ function buildRequest(draft, mode = "local") {
   };
 }
 
-function previewPiece(placement, definition, points) {
+function previewPiece(placement, definition, points, configuredParameters) {
   if (!placement || !definition) return null;
+  const effectiveDefinition = effectiveCatalogEntry(definition, configuredParameters);
   return {
     type: placement.type,
-    name: definition.name,
+    name: effectiveDefinition.name,
     color: placement.color,
     points,
-    symbol: definition.symbols?.[placement.color] || definition.icon || "?",
-    icon: definition.icon,
-    isCustom: definition.isCustom,
-    description: definition.description,
-    movement: definition.movement,
-    customAttributes: { rules: definition.rules || [] },
+    symbol: effectiveDefinition.symbols?.[placement.color] || effectiveDefinition.icon || "?",
+    icon: effectiveDefinition.icon,
+    isCustom: effectiveDefinition.isCustom,
+    description: effectiveDefinition.description,
+    movement: effectiveDefinition.movement,
+    customAttributes: {
+      rules: effectiveDefinition.rules || [],
+      configuredParameters: effectiveDefinition.configuredParameters || [],
+    },
   };
 }
 
@@ -290,7 +322,12 @@ function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlac
             Array.from({ length: draft.boardCols }).map((__, col) => {
               const placement = barricadeMap.get(`${row}-${col}`) || placementMap.get(`${row}-${col}`);
               const definition = placement ? definitionMap.get(placement.type) : null;
-              const piece = previewPiece(placement, definition, draft.pointValues[placement?.type]);
+              const piece = previewPiece(
+                placement,
+                definition,
+                draft.pointValues[placement?.type],
+                draft.pieceParameters[placement?.type]
+              );
               const affinity = affinityMap.has(`${row}-${col}`);
               const tooltipPlacement = row < draft.boardRows / 2 ? "below" : "above";
               const tooltipEdge = col < draft.boardCols / 3 ? "left" : col >= (draft.boardCols * 2) / 3 ? "right" : "center";
@@ -361,6 +398,50 @@ function Toggle({ checked, onChange, label, description }) {
   );
 }
 
+function TunableParameterFields({ parameters, values, disabled = false, onChange }) {
+  if (!parameters?.length) return null;
+  return (
+    <fieldset className="tuning-fieldset" disabled={disabled}>
+      <legend>Behavior Settings</legend>
+      <div className="tuning-field-grid">
+        {parameters.map((parameter) => (
+          <label key={parameter.id}>
+            <span>{parameter.label}</span>
+            <input
+              type="number"
+              min={parameter.min}
+              max={parameter.max}
+              step="1"
+              value={values?.[parameter.id] ?? parameter.default}
+              onChange={(event) => onChange(
+                parameter.id,
+                clamp(event.target.value, parameter.min, parameter.max)
+              )}
+            />
+            <small>
+              {parameter.description} Default: {parameterValueLabel(parameter, parameter.default)}.
+            </small>
+          </label>
+        ))}
+      </div>
+    </fieldset>
+  );
+}
+
+function ConfiguredParameterList({ parameters }) {
+  if (!parameters?.length) return null;
+  return (
+    <dl className="configured-parameter-list">
+      {parameters.map((parameter) => (
+        <div key={parameter.id}>
+          <dt>{parameter.label}</dt>
+          <dd>{parameterValueLabel(parameter)}</dd>
+        </div>
+      ))}
+    </dl>
+  );
+}
+
 function SectionHeading({ title: heading, description }) {
   return <div className="section-heading"><div><h2>{heading}</h2><p>{description}</p></div></div>;
 }
@@ -406,7 +487,7 @@ function RulebookSection({ id, title: heading, description, className = "", chil
   );
 }
 
-function Rulebook({ catalog }) {
+function Rulebook({ catalog, draft }) {
   return (
     <section className="rulebook" id="rulebook">
       <header className="rulebook-hero">
@@ -426,19 +507,25 @@ function Rulebook({ catalog }) {
 
       <RulebookSection id="rulebook-pieces" title="Piece Encyclopedia" description="Movement, value, and special behavior.">
         <div className="rulebook-entry-grid">
-          {catalog.pieces.map((piece) => (
-            <details className="rulebook-entry" key={piece.type}>
+          {catalog.pieces.map((piece) => {
+            const effectivePiece = effectiveCatalogEntry(
+              piece,
+              draft.pieceParameters[piece.type]
+            );
+            return (
+            <details className="rulebook-entry" key={effectivePiece.type}>
               <summary>
-                <span className="entry-icon"><PieceGlyph type={piece.type} color="black" symbol={piece.symbols.black || piece.icon} /></span>
-                <span><strong>{piece.name}</strong><small>{piece.isCustom ? "Custom piece" : "Classic piece"}</small></span>
-                <b>{piece.points ?? 0} pts</b>
+                <span className="entry-icon"><PieceGlyph type={effectivePiece.type} color="black" symbol={effectivePiece.symbols.black || effectivePiece.icon} /></span>
+                <span><strong>{effectivePiece.name}</strong><small>{effectivePiece.isCustom ? "Custom piece" : "Classic piece"}</small></span>
+                <b>{draft.pointValues[effectivePiece.type] ?? 0} pts</b>
               </summary>
-              <p>{piece.description}</p>
+              <p>{effectivePiece.description}</p>
               <h4>Movement</h4>
-              <p>{piece.movement}</p>
-              {piece.rules.length ? <ul>{piece.rules.map((rule) => <li key={rule}>{rule}</li>)}</ul> : null}
+              <p>{effectivePiece.movement}</p>
+              <ConfiguredParameterList parameters={effectivePiece.configuredParameters} />
+              {effectivePiece.rules.length ? <ul>{effectivePiece.rules.map((rule) => <li key={rule}>{rule}</li>)}</ul> : null}
             </details>
-          ))}
+          );})}
         </div>
       </RulebookSection>
 
@@ -464,13 +551,19 @@ function Rulebook({ catalog }) {
 
       <RulebookSection id="rulebook-abilities" title="Special Ability Codex" description="Each player privately chooses the configured number of enabled abilities.">
         <div className="rulebook-entry-grid">
-          {catalog.specialAbilities.map((ability) => (
-            <details className="rulebook-entry ability-entry" key={ability.id}>
-              <summary><span className="entry-icon">{ability.icon}</span><span><strong>{ability.name}</strong><small>Player ability</small></span></summary>
-              <p>{ability.summary}</p>
-              <ul>{ability.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
+          {catalog.specialAbilities.map((ability) => {
+            const effectiveAbility = effectiveCatalogEntry(
+              ability,
+              draft.specialAbilities.parameters[ability.id]
+            );
+            return (
+            <details className="rulebook-entry ability-entry" key={effectiveAbility.id}>
+              <summary><span className="entry-icon">{effectiveAbility.icon}</span><span><strong>{effectiveAbility.name}</strong><small>Player ability</small></span></summary>
+              <p>{effectiveAbility.summary}</p>
+              <ConfiguredParameterList parameters={effectiveAbility.configuredParameters} />
+              <ul>{effectiveAbility.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
             </details>
-          ))}
+          );})}
         </div>
       </RulebookSection>
 
@@ -723,10 +816,30 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             <div className="piece-catalog-grid">
               {catalog.pieces.map((piece) => {
                 const enabled = draft.enabledPieces.includes(piece.type);
+                const effectivePiece = effectiveCatalogEntry(
+                  piece,
+                  draft.pieceParameters[piece.type]
+                );
                 return (
                   <article key={piece.type} className={`piece-config-card ${enabled ? "enabled" : ""} ${piece.isCustom ? "custom" : ""}`}>
                     <header><span><PieceGlyph type={piece.type} color="black" symbol={piece.symbols.black || piece.icon} /></span><div><h3>{piece.name}</h3><small>{piece.isCustom ? "Custom Piece" : "Classic Piece"}</small></div><input aria-label={`Enable ${piece.name}`} type="checkbox" checked={enabled} disabled={piece.type === "king"} onChange={(event) => togglePiece(piece.type, event.target.checked)} /></header>
-                    <p>{piece.description}</p><small className="movement-copy">{piece.movement}</small>
+                    <p>{effectivePiece.description}</p><small className="movement-copy">{effectivePiece.movement}</small>
+                    <TunableParameterFields
+                      parameters={piece.tunableParameters}
+                      values={draft.pieceParameters[piece.type]}
+                      disabled={!enabled}
+                      onChange={(parameterId, value) => setDraft((current) => ({
+                        ...current,
+                        presetId: "custom",
+                        pieceParameters: {
+                          ...current.pieceParameters,
+                          [piece.type]: {
+                            ...current.pieceParameters[piece.type],
+                            [parameterId]: value,
+                          },
+                        },
+                      }))}
+                    />
                     <div className="piece-config-fields">
                       <label>Point Value<input type="number" min="0" max={catalog.limits.pointMax} step="1" disabled={!enabled} value={draft.pointValues[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pointValues: { ...current.pointValues, [piece.type]: clamp(event.target.value, 0, catalog.limits.pointMax) } }))} /></label>
                       {draft.gambit.enabled && piece.type !== "barricade" ? <label>Army Limit<input type="number" min={piece.type === "king" ? 1 : 0} max={draft.gambit.maxPieces} disabled={!enabled || piece.type === "king"} value={draft.pieceCaps[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pieceCaps: { ...current.pieceCaps, [piece.type]: Math.max(0, Number(event.target.value)) } }))} /></label> : null}
@@ -767,7 +880,57 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             <Toggle checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
             {draft.specialAbilities.enabled ? <>
               <div className="conditional-fields"><label>Abilities Per Player<input type="number" min="1" max={Math.max(1, draft.specialAbilities.allowed.length)} value={draft.specialAbilities.maxPerPlayer} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, maxPerPlayer: clamp(event.target.value, 1, Math.max(1, current.specialAbilities.allowed.length)) } }))} /><small>How many abilities each player selects. The default is 1.</small></label></div>
-              <div className="ability-option-grid">{catalog.specialAbilities.map((ability) => { const enabled = draft.specialAbilities.allowed.includes(ability.id); const reason = disabledAbilities[ability.id]; return <button type="button" key={ability.id} className={enabled ? "selected" : ""} disabled={Boolean(reason) || (enabled && draft.specialAbilities.allowed.length <= draft.specialAbilities.maxPerPlayer)} title={reason || ""} onClick={() => setDraft((current) => { const allowed = enabled ? current.specialAbilities.allowed.filter((id) => id !== ability.id) : [...current.specialAbilities.allowed, ability.id]; return { ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, allowed } }; })}><i>{ability.icon}</i><span><strong>{ability.name}</strong><small>{reason || ability.summary}</small></span><b>{reason ? "Unavailable" : enabled ? "Enabled" : "Off"}</b></button>; })}</div>
+              <div className="ability-option-grid">{catalog.specialAbilities.map((ability) => {
+                const enabled = draft.specialAbilities.allowed.includes(ability.id);
+                const reason = disabledAbilities[ability.id];
+                const effectiveAbility = effectiveCatalogEntry(
+                  ability,
+                  draft.specialAbilities.parameters[ability.id]
+                );
+                return (
+                  <article key={ability.id} className={`ability-config-card ${enabled ? "selected" : ""}`}>
+                    <button
+                      type="button"
+                      className="ability-option-toggle"
+                      disabled={Boolean(reason) || (enabled && draft.specialAbilities.allowed.length <= draft.specialAbilities.maxPerPlayer)}
+                      title={reason || ""}
+                      onClick={() => setDraft((current) => {
+                        const allowed = enabled
+                          ? current.specialAbilities.allowed.filter((id) => id !== ability.id)
+                          : [...current.specialAbilities.allowed, ability.id];
+                        return {
+                          ...current,
+                          presetId: "custom",
+                          specialAbilities: { ...current.specialAbilities, allowed },
+                        };
+                      })}
+                    >
+                      <i>{ability.icon}</i>
+                      <span><strong>{ability.name}</strong><small>{reason || effectiveAbility.summary}</small></span>
+                      <b>{reason ? "Unavailable" : enabled ? "Enabled" : "Off"}</b>
+                    </button>
+                    <TunableParameterFields
+                      parameters={ability.tunableParameters}
+                      values={draft.specialAbilities.parameters[ability.id]}
+                      disabled={!enabled || Boolean(reason)}
+                      onChange={(parameterId, value) => setDraft((current) => ({
+                        ...current,
+                        presetId: "custom",
+                        specialAbilities: {
+                          ...current.specialAbilities,
+                          parameters: {
+                            ...current.specialAbilities.parameters,
+                            [ability.id]: {
+                              ...current.specialAbilities.parameters[ability.id],
+                              [parameterId]: value,
+                            },
+                          },
+                        },
+                      }))}
+                    />
+                  </article>
+                );
+              })}</div>
             </> : null}
           </CollapsibleStudioSection>
 
@@ -789,7 +952,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         <div className="launch-actions"><button type="button" disabled={!canLaunch} onClick={() => create("local")}>{creatingMode === "local" ? "Building..." : "Start Local Game"}</button><button type="button" className="secondary" disabled={!canLaunch} onClick={() => create("online")}>{creatingMode === "online" ? "Creating Invite..." : "Create Online Game"}</button></div>
       </section>
       {error ? <p className="studio-error">{error}</p> : null}
-      <Rulebook catalog={catalog} />
+      <Rulebook catalog={catalog} draft={draft} />
     </section>
   );
 }
