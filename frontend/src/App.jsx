@@ -24,6 +24,7 @@ import TopNav from "./components/TopNav";
 import {
   createInviteUrl,
   loadGameSession,
+  playerHasAbility,
   saveGameSession,
   updateGameSession,
 } from "./gameSession";
@@ -791,7 +792,7 @@ function GameWorkspace({ gameId }) {
                   {colorLabel(pieceType)}
                 </button>
               ))}
-              {game.abilities?.selected?.[game.currentPlayer] === "kamikaze" ? (
+              {playerHasAbility(game, game.currentPlayer, "kamikaze") ? (
                 <button
                   type="button"
                   className="kamikaze-choice"

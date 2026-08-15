@@ -63,3 +63,11 @@ export function updateGameSession(gameId, patch) {
 export function createInviteUrl(inviteToken) {
   return `${window.location.origin}/join/${encodeURIComponent(inviteToken)}`;
 }
+
+export function playerHasAbility(game, color, abilityId) {
+  const selected = game?.abilities?.selected?.[color];
+  if (Array.isArray(selected)) {
+    return selected.includes(abilityId);
+  }
+  return selected === abilityId;
+}
