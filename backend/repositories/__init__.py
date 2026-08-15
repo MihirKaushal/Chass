@@ -1,10 +1,14 @@
 from backend.config import get_settings
 
 from .base import (
+    DEFAULT_HISTORY_PAGE_SIZE,
+    MAX_HISTORY_PAGE_SIZE,
+    PERSISTED_HISTORY_WINDOW,
     ConcurrentUpdateError,
     ExpiredGameError,
     GameRecord,
     GameRepository,
+    HistoryPage,
     InviteClaimError,
     MoveAudit,
     PlayerIdentity,
@@ -22,12 +26,16 @@ def create_game_repository() -> GameRepository:
 
 __all__ = [
     "ConcurrentUpdateError",
+    "DEFAULT_HISTORY_PAGE_SIZE",
     "ExpiredGameError",
     "FirestoreGameRepository",
     "GameRecord",
     "GameRepository",
+    "HistoryPage",
     "InviteClaimError",
     "MoveAudit",
+    "MAX_HISTORY_PAGE_SIZE",
+    "PERSISTED_HISTORY_WINDOW",
     "PlayerIdentity",
     "RepositoryError",
     "SqlGameRepository",

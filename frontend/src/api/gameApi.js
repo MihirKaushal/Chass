@@ -76,6 +76,14 @@ export function getGame(gameId, token) {
   return request(`/game/${gameId}`, { token });
 }
 
+export function getGameHistory(gameId, { before, limit = 50 } = {}, token) {
+  const query = new URLSearchParams({ limit: String(limit) });
+  if (before) {
+    query.set("before", String(before));
+  }
+  return request(`/game/${gameId}/history?${query.toString()}`, { token });
+}
+
 export function makeMove(gameId, payload, token) {
   return request(`/game/${gameId}/move`, {
     method: "POST",

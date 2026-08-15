@@ -459,6 +459,7 @@ class GameState(BaseModel):
     abilities: AbilityState = Field(default_factory=AbilityState)
     turn_counts: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
     clock: ClockState | None = None
+    history_epoch: int = Field(default=0, ge=0)
     history: list[MoveRecord] = Field(default_factory=list)
     captured_pieces: dict[str, list[Piece]] = Field(
         default_factory=lambda: {"white": [], "black": []}
@@ -497,3 +498,6 @@ class GameState(BaseModel):
 
     def clone(self) -> "GameState":
         return self.model_copy(deep=True)
+
+    def next_move_number(self) -> int:
+        return self.history[-1].move_number + 1 if self.history else 1

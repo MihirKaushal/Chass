@@ -9,9 +9,11 @@ from sqlalchemy.exc import IntegrityError
 from backend.db import GameInviteRow, GamePlayerRow, GameRow, MoveRow, session_scope
 from backend.models import GameState
 from backend.repositories.base import (
+    DEFAULT_HISTORY_PAGE_SIZE,
     ConcurrentUpdateError,
     ExpiredGameError,
     GameRecord,
+    HistoryPage,
     InviteClaimError,
     MoveAudit,
     PlayerIdentity,
@@ -37,6 +39,7 @@ class SqlGameRepository:
             player_colors=frozenset(colors),
             updated_at=_as_utc(row.updated_at),
             expires_at=_as_utc(row.expires_at),
+            history_paged=True,
         )
 
     def create_game(
@@ -141,6 +144,40 @@ class SqlGameRepository:
                 raise ExpiredGameError("Game has expired")
 
             return self._record_from_row(session, row)
+
+    def get_history_page(
+        self,
+        game_id: str,
+        history_epoch: int,
+        before_move_number: int | None = None,
+        limit: int = DEFAULT_HISTORY_PAGE_SIZE,
+    ) -> HistoryPage:
+        with session_scope() as session:
+            row = session.get(GameRow, game_id)
+            if row is None:
+                return HistoryPage(records=(), has_more=False, next_before=None)
+            state = GameState.model_validate_json(row.state_json)
+            if state.history_epoch != history_epoch:
+                return HistoryPage(records=(), has_more=False, next_before=None)
+
+            descending = sorted(
+                (
+                    record
+                    for record in state.history
+                    if before_move_number is None
+                    or record.move_number < before_move_number
+                ),
+                key=lambda record: record.move_number,
+                reverse=True,
+            )
+            selected = descending[:limit]
+            has_more = len(descending) > limit
+            records = tuple(reversed(selected))
+            return HistoryPage(
+                records=records,
+                has_more=has_more,
+                next_before=(records[0].move_number if has_more and records else None),
+            )
 
     def get_player(self, game_id: str, token_hash: str) -> PlayerIdentity | None:
         with session_scope() as session:

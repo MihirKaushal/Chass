@@ -148,6 +148,7 @@ npm run build
 | `POST` | `/game/create` | Create a local or online game |
 | `POST` | `/game/join` | Join through an invitation |
 | `GET` | `/game/{id}` | Load game state |
+| `GET` | `/game/{id}/history` | Load an earlier page of move history |
 | `POST` | `/game/{id}/move` | Submit a move |
 | `POST` | `/game/{id}/action` | Use a custom piece or special-ability action |
 | `POST` | `/game/{id}/ability` | Lock a private player ability |

@@ -7,6 +7,7 @@ from datetime import datetime, timedelta, timezone
 import pytest
 from fastapi import HTTPException
 
+from backend.models import GameState, MoveRecord
 from backend.models.schemas import CreateGameRequest, JoinGameRequest
 from backend.repositories import ConcurrentUpdateError, MoveAudit
 from backend.repositories.firestore_repository import (
@@ -50,11 +51,19 @@ class FakeDocumentReference:
 
 
 class FakeQuery:
-    def __init__(self, client, collection_name, filters=None, maximum=None):
+    def __init__(
+        self,
+        client,
+        collection_name,
+        filters=None,
+        maximum=None,
+        orders=None,
+    ):
         self.client = client
         self.collection_name = collection_name
         self.filters = filters or []
         self.maximum = maximum
+        self.orders = orders or []
 
     def where(self, *, filter):
         return FakeQuery(
@@ -62,6 +71,7 @@ class FakeQuery:
             self.collection_name,
             [*self.filters, filter],
             self.maximum,
+            self.orders,
         )
 
     def limit(self, maximum):
@@ -70,6 +80,16 @@ class FakeQuery:
             self.collection_name,
             self.filters,
             maximum,
+            self.orders,
+        )
+
+    def order_by(self, field_path, direction=None):
+        return FakeQuery(
+            self.client,
+            self.collection_name,
+            self.filters,
+            self.maximum,
+            [*self.orders, (field_path, direction)],
         )
 
     @staticmethod
@@ -79,6 +99,8 @@ class FakeQuery:
             return current == field_filter.value
         if field_filter.op_string == "<=":
             return current is not None and current <= field_filter.value
+        if field_filter.op_string == "<":
+            return current is not None and current < field_filter.value
         raise AssertionError(f"Unsupported fake query operator: {field_filter.op_string}")
 
     def stream(self):
@@ -91,6 +113,12 @@ class FakeQuery:
                     document_id,
                 )
                 snapshots.append(FakeSnapshot(reference, data))
+        for field_path, direction in reversed(self.orders):
+            descending = "DESCENDING" in str(direction).upper()
+            snapshots.sort(
+                key=lambda snapshot: (snapshot.to_dict() or {}).get(field_path),
+                reverse=descending,
+            )
         return iter(snapshots[: self.maximum])
 
 
@@ -256,6 +284,77 @@ def test_firestore_versions_and_move_audits_are_atomic(firestore_service):
 
     with pytest.raises(ConcurrentUpdateError):
         repository.save_game(record.state, expected_version=1)
+
+
+def test_firestore_pages_complete_history_outside_game_document(firestore_service):
+    service, repository, client = firestore_service
+    created = service.create_game(CreateGameRequest(mode="local"))
+    record = repository.get_game(created.game.id)
+    assert record is not None
+    assert record.history_paged is True
+
+    for move_number in range(1, 126):
+        state = record.state.clone()
+        move_record = MoveRecord(
+            move_number=state.next_move_number(),
+            player="white" if move_number % 2 else "black",
+            piece="rook",
+            from_row=7 if move_number % 2 else 0,
+            from_col=0,
+            to_row=6 if move_number % 2 else 1,
+            to_col=0,
+            explanation=f"Recorded move {move_number}.",
+            action_type="ability" if move_number == 1 else "move",
+        )
+        state.history.append(move_record)
+        record = repository.save_game(
+            state,
+            expected_version=record.version,
+            audit=MoveAudit.from_record(move_record),
+        )
+
+    stored = GameState.model_validate_json(
+        client.documents[GAMES][created.game.id]["state_json"]
+    )
+    assert len(stored.history) == 100
+    assert stored.history[0].move_number == 26
+    assert stored.history[-1].move_number == 125
+    assert len(client.documents[MOVES]) == 125
+    assert len(client.documents[GAMES][created.game.id]["state_json"].encode()) < 100_000
+
+    newest = repository.get_history_page(created.game.id, 0, limit=25)
+    assert [item.move_number for item in newest.records] == list(range(101, 126))
+    assert newest.has_more is True
+    assert newest.next_before == 101
+
+    middle = repository.get_history_page(
+        created.game.id,
+        0,
+        before_move_number=newest.next_before,
+        limit=25,
+    )
+    assert [item.move_number for item in middle.records] == list(range(76, 101))
+    assert middle.has_more is True
+
+    oldest = repository.get_history_page(
+        created.game.id,
+        0,
+        before_move_number=26,
+        limit=25,
+    )
+    assert [item.move_number for item in oldest.records] == list(range(1, 26))
+    assert oldest.records[0].action_type == "ability"
+    assert oldest.has_more is False
+    assert oldest.next_before is None
+
+    api_page = service.get_history_page(
+        created.game.id,
+        before_move_number=26,
+        limit=25,
+    )
+    assert api_page.pagination.totalMoves == 125
+    assert api_page.pagination.epoch == 0
+    assert api_page.history[0].moveNumber == 1
 
 
 def test_firestore_inactivity_removes_related_documents(firestore_service):

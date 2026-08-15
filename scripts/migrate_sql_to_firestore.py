@@ -10,7 +10,15 @@ from sqlalchemy import select
 from backend.config import get_settings
 from backend.db import GameInviteRow, GamePlayerRow, GameRow, MoveRow, session_scope
 from backend.firebase_client import get_firestore_client
-from backend.repositories.firestore_repository import GAMES, INVITES, MOVES, PLAYERS
+from backend.models import GameState
+from backend.repositories.base import PERSISTED_HISTORY_WINDOW
+from backend.repositories.firestore_repository import (
+    GAMES,
+    HISTORY_STORAGE_VERSION,
+    INVITES,
+    MOVES,
+    PLAYERS,
+)
 
 WRITE_BATCH_SIZE = 400
 
@@ -55,6 +63,13 @@ def _load_documents(
         invites = [invite for invite in invites if invite.game_id in game_ids]
         moves = [move for move in moves if move.game_id in game_ids]
 
+        latest_move_rows: dict[tuple[str, int], MoveRow] = {}
+        for move in moves:
+            key = (move.game_id, move.move_number)
+            current = latest_move_rows.get(key)
+            if current is None or move.game_version > current.game_version:
+                latest_move_rows[key] = move
+
         colors_by_game: dict[str, set[str]] = defaultdict(set)
         for player in players:
             colors_by_game[player.game_id].add(player.color)
@@ -69,14 +84,18 @@ def _load_documents(
 
         for game in games:
             active_invite = active_invites.get(game.id)
+            state = GameState.model_validate_json(game.state_json)
+            stored_state = state.model_copy(deep=True)
+            stored_state.history = stored_state.history[-PERSISTED_HISTORY_WINDOW:]
             documents.append(
                 (
                     GAMES,
                     game.id,
                     {
-                        "state_json": game.state_json,
+                        "state_json": stored_state.model_dump_json(),
                         "mode": game.mode,
                         "version": game.version,
+                        "history_storage_version": HISTORY_STORAGE_VERSION,
                         "player_colors": sorted(colors_by_game[game.id]),
                         "active_invite_hash": (
                             active_invite.token_hash if active_invite is not None else None
@@ -87,6 +106,43 @@ def _load_documents(
                     },
                 )
             )
+
+            for record in state.history:
+                source_row = latest_move_rows.get((game.id, record.move_number))
+                documents.append(
+                    (
+                        MOVES,
+                        (
+                            f"{game.id}_history_{state.history_epoch}_"
+                            f"{record.move_number:08d}"
+                        ),
+                        {
+                            "game_id": game.id,
+                            "history_key": f"{game.id}:{state.history_epoch}",
+                            "history_epoch": state.history_epoch,
+                            "game_version": (
+                                source_row.game_version
+                                if source_row is not None
+                                else record.move_number
+                            ),
+                            "move_number": record.move_number,
+                            "player_color": record.player,
+                            "piece_type": record.piece,
+                            "from_row": record.from_row,
+                            "from_col": record.from_col,
+                            "to_row": record.to_row,
+                            "to_col": record.to_col,
+                            "explanation": record.explanation,
+                            "action_type": record.action_type,
+                            "record_json": record.model_dump_json(),
+                            "created_at": (
+                                _as_utc(source_row.created_at)
+                                if source_row is not None
+                                else _as_utc(game.updated_at)
+                            ),
+                        },
+                    )
+                )
 
         for player in players:
             documents.append(
@@ -115,27 +171,6 @@ def _load_documents(
                         "expires_at": _as_utc(invite.expires_at),
                         "used_at": _as_utc(invite.used_at),
                         "revoked_at": _as_utc(invite.revoked_at),
-                    },
-                )
-            )
-
-        for move in moves:
-            documents.append(
-                (
-                    MOVES,
-                    f"{move.game_id}_{move.game_version}",
-                    {
-                        "game_id": move.game_id,
-                        "game_version": move.game_version,
-                        "move_number": move.move_number,
-                        "player_color": move.player_color,
-                        "piece_type": move.piece_type,
-                        "from_row": move.from_row,
-                        "from_col": move.from_col,
-                        "to_row": move.to_row,
-                        "to_col": move.to_col,
-                        "explanation": move.explanation,
-                        "created_at": _as_utc(move.created_at),
                     },
                 )
             )
