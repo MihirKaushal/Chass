@@ -28,6 +28,7 @@ from backend.models import (
     BoardCoordinate,
     CenterDominionState,
     CheckRaceState,
+    ClassicRuleState,
     ClockState,
     CustomRulesConfig,
     GambitState,
@@ -1437,6 +1438,7 @@ class GameService:
             game_state.abilities = AbilityState()
             game_state.center_dominion = CenterDominionState()
             game_state.check_race = CheckRaceState()
+            game_state.classic = ClassicRuleState()
             game_state.affinity = AffinityState()
             game_state.turn_counts = {"white": 0, "black": 0}
             game_state.history = []
@@ -1473,6 +1475,7 @@ class GameService:
         game_state.abilities = AbilityState()
         game_state.center_dominion = CenterDominionState()
         game_state.check_race = CheckRaceState()
+        game_state.classic = ClassicRuleState()
         game_state.affinity = AffinityState()
         game_state.turn_counts = {"white": 0, "black": 0}
         game_state.history = []

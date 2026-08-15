@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from backend.models import GameState, Move
 from backend.rules.base import Rule, RuleContext, ValidationResult
+from backend.rules.classic_special_rules import CastlingRule, ClassicDrawRule, EnPassantRule
 from backend.rules.tuning import ability_parameter, piece_parameter
 from backend.rules.variant_system import (
     FINISHED_STATUSES,
@@ -955,6 +956,8 @@ classic_chess_rules: list[Rule] = [
     PiecePresenceRule(),
     TurnRule(),
     MovementPatternRule(),
+    CastlingRule(),
+    EnPassantRule(),
     CheckRule(),
     CaptureRule(),
     CannibalRule(),
@@ -965,6 +968,7 @@ classic_chess_rules: list[Rule] = [
     CheckRaceRule(),
     CheckmateRule(),
     ConfigurableVictoryRule(),
+    ClassicDrawRule(),
     StalemateRule(),
 ]
 

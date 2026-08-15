@@ -179,6 +179,12 @@ class CheckRaceState(BaseModel):
     checks: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
 
 
+class ClassicRuleState(BaseModel):
+    halfmove_clock: int = Field(default=0, ge=0)
+    position_counts: dict[str, int] = Field(default_factory=dict)
+    last_move_irreversible: bool = False
+
+
 class SpecialAbilityConfig(BaseModel):
     enabled: bool = False
     allowed: list[str] = Field(default_factory=list)
@@ -446,6 +452,7 @@ class GameState(BaseModel):
     rules: list[RuleSetting] = Field(default_factory=list)
     piece_definitions: dict[str, PieceDefinition] = Field(default_factory=dict)
     configuration: GameConfiguration = Field(default_factory=GameConfiguration)
+    classic: ClassicRuleState = Field(default_factory=ClassicRuleState)
     center_dominion: CenterDominionState = Field(default_factory=CenterDominionState)
     check_race: CheckRaceState = Field(default_factory=CheckRaceState)
     affinity: AffinityState = Field(default_factory=AffinityState)
