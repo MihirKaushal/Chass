@@ -13,6 +13,9 @@ from backend.catalog import (
     build_catalog_piece_definitions,
     build_default_draft_pool,
     catalog_payload,
+    configure_piece_definition,
+    normalize_ability_parameters,
+    normalize_piece_parameters,
 )
 from backend.catalog import (
     build_default_piece_definitions as build_catalog_default_piece_definitions,
@@ -403,9 +406,19 @@ def _configuration_from_request(
                     detail=f"{color.title()} must begin with exactly one King.",
                 )
 
+    try:
+        piece_parameters = normalize_piece_parameters(payload.pieceParameters)
+        ability_parameters = normalize_ability_parameters(
+            payload.specialAbilities.parameters
+        )
+    except ValueError as error:
+        raise HTTPException(status_code=400, detail=str(error)) from error
+
     definitions: dict[str, PieceDefinition] = {}
     for piece_type in payload.enabledPieces:
-        definition = catalog[piece_type].model_copy(deep=True)
+        definition, _ = configure_piece_definition(
+            catalog[piece_type], piece_parameters.get(piece_type)
+        )
         if piece_type in payload.piecePoints:
             definition.points = payload.piecePoints[piece_type]
         if definition.points is not None and definition.points < 0:
@@ -434,6 +447,11 @@ def _configuration_from_request(
         formation_id=payload.formationId,
         barricade_count=(payload.barricadeCount if "barricade" in enabled_types else 0),
         enabled_piece_types=list(payload.enabledPieces),
+        piece_parameters={
+            piece_type: values
+            for piece_type, values in piece_parameters.items()
+            if piece_type in enabled_types
+        },
         initial_layout=[placement.model_dump() for placement in payload.initialLayout],
         victory=VictoryConfig(
             mode=payload.victory.mode,
@@ -451,6 +469,7 @@ def _configuration_from_request(
             enabled=payload.specialAbilities.enabled,
             allowed=list(dict.fromkeys(payload.specialAbilities.allowed)),
             max_per_player=payload.specialAbilities.maxPerPlayer,
+            parameters=ability_parameters,
         ),
     )
 
@@ -1609,6 +1628,7 @@ class GameService:
             "formationId": game_state.configuration.formation_id,
             "barricadeCount": game_state.configuration.barricade_count,
             "enabledPieces": game_state.configuration.enabled_piece_types,
+            "pieceParameters": game_state.configuration.piece_parameters,
             "initialLayout": game_state.configuration.initial_layout,
             "victory": {
                 "mode": game_state.configuration.victory.mode,
@@ -1632,6 +1652,7 @@ class GameService:
                 "maxPerPlayer": (
                     game_state.configuration.special_abilities.max_per_player
                 ),
+                "parameters": game_state.configuration.special_abilities.parameters,
             },
             "gambit": {
                 "enabled": game_state.gambit is not None,

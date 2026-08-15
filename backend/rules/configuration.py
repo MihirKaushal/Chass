@@ -7,6 +7,8 @@ from backend.catalog import (
     build_catalog_piece_definitions,
     build_default_draft_pool,
     classic_layout,
+    normalize_ability_parameters,
+    normalize_piece_parameters,
 )
 from backend.models.schemas import CreateGameRequest
 from backend.rules.variant_system import barricade_start_squares, objective_center_squares
@@ -58,6 +60,15 @@ class ConfigurationRuleEngine:
             for value in payload.piecePoints.values()
         ):
             result.errors.append("Every piece value must be a whole number of zero or more.")
+
+        for supplied, normalizer in (
+            (payload.pieceParameters, normalize_piece_parameters),
+            (payload.specialAbilities.parameters, normalize_ability_parameters),
+        ):
+            try:
+                normalizer(supplied)
+            except ValueError as error:
+                result.errors.append(f"{error}.")
 
         formation = self._formations.get(payload.formationId)
         if formation is not None:

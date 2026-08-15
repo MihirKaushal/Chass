@@ -340,6 +340,7 @@ class VictoryConfigPayload(BaseModel):
 class SpecialAbilityConfigPayload(BaseModel):
     enabled: bool = False
     maxPerPlayer: int = Field(default=1, ge=1, le=6)
+    parameters: dict[str, dict[str, int]] = Field(default_factory=dict)
     allowed: list[
         Literal[
             "necromancy",
@@ -392,6 +393,7 @@ class GameConfigurationPayload(BaseModel):
         max_length=64,
     )
     piecePoints: dict[str, int | None] = Field(default_factory=dict)
+    pieceParameters: dict[str, dict[str, int]] = Field(default_factory=dict)
     initialLayout: list[ConfigurationPlacement] = Field(default_factory=list, max_length=256)
     victory: VictoryConfigPayload = Field(default_factory=VictoryConfigPayload)
     customRules: CustomRulesConfigPayload = Field(default_factory=CustomRulesConfigPayload)
