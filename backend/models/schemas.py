@@ -577,7 +577,7 @@ class BoardPlacement(BaseModel):
     row: int
     col: int
     type: str
-    color: str
+    color: Literal["white", "black", "neutral"]
 
 
 class UpdateBoardLayoutRequest(BaseModel):

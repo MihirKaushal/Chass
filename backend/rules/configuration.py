@@ -10,6 +10,7 @@ from backend.catalog import (
     normalize_ability_parameters,
     normalize_piece_parameters,
 )
+from backend.models import PieceDefinition
 from backend.models.schemas import CreateGameRequest
 from backend.rules.variant_system import barricade_start_squares, objective_center_squares
 
@@ -42,14 +43,22 @@ class ConfigurationRuleEngine:
         self._pieces = build_catalog_piece_definitions()
         self._formations = {item["id"]: item for item in FORMATION_PRESETS}
 
-    def validate(self, request: CreateGameRequest) -> ConfigurationValidation:
+    def validate(
+        self,
+        request: CreateGameRequest,
+        *,
+        piece_definitions: dict[str, PieceDefinition] | None = None,
+        use_default_layout: bool = True,
+    ) -> ConfigurationValidation:
         result = ConfigurationValidation()
         payload = request.configuration
         if payload is None:
             return result
 
+        pieces = piece_definitions or self._pieces
+
         enabled = set(payload.enabledPieces)
-        unknown = sorted(enabled - set(self._pieces))
+        unknown = sorted(enabled - set(pieces))
         if unknown:
             result.errors.append(f"Unknown piece type: {unknown[0]}.")
         if "king" not in enabled:
@@ -172,7 +181,11 @@ class ConfigurationRuleEngine:
                 result.errors.append("Pawns cannot begin on a promotion rank.")
 
         if not payload.gambit.enabled:
-            effective = placements or classic_layout(request.boardRows, request.boardCols)
+            effective = (
+                placements
+                if placements or not use_default_layout
+                else classic_layout(request.boardRows, request.boardCols)
+            )
             for color in ("white", "black"):
                 kings = [
                     piece
@@ -202,9 +215,10 @@ class ConfigurationRuleEngine:
                 result,
                 request.boardRows,
                 request.boardCols,
+                pieces,
             )
         else:
-            self._validate_gambit(request, result)
+            self._validate_gambit(request, result, pieces)
 
         return result
 
@@ -235,6 +249,7 @@ class ConfigurationRuleEngine:
         result,
         board_rows: int,
         board_cols: int,
+        pieces: dict[str, PieceDefinition],
     ) -> None:
         mode = payload.victory.mode
         if mode in {"checkmate", "timed", "royal_score", "check_race"}:
@@ -268,7 +283,7 @@ class ConfigurationRuleEngine:
                 if piece["type"] == "king":
                     value = payload.victory.kingPoints
                 else:
-                    default = self._pieces.get(piece["type"])
+                    default = pieces.get(piece["type"])
                     value = payload.piecePoints.get(piece["type"], default.points if default else 0)
                 totals[color] += int(value or 0)
             reachable = min(totals.values())
@@ -282,6 +297,7 @@ class ConfigurationRuleEngine:
         self,
         request: CreateGameRequest,
         result: ConfigurationValidation,
+        pieces: dict[str, PieceDefinition],
     ) -> None:
         payload = request.configuration
         assert payload is not None
@@ -296,10 +312,10 @@ class ConfigurationRuleEngine:
         enabled = set(payload.enabledPieces) - {"barricade"}
         points = {
             piece_type: int(
-                payload.piecePoints.get(piece_type, self._pieces[piece_type].points) or 0
+                payload.piecePoints.get(piece_type, pieces[piece_type].points) or 0
             )
             for piece_type in enabled
-            if piece_type in self._pieces
+            if piece_type in pieces
         }
         caps = {
             piece_type: int(gambit.pieceCaps.get(piece_type, gambit.maxPieces))

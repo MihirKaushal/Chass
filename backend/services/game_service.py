@@ -1583,37 +1583,116 @@ class GameService:
                 status_code=409,
                 detail="The Gambit deployment board is edited through the War Chest.",
             )
+        if game_state.history:
+            raise HTTPException(
+                status_code=409,
+                detail="The starting layout cannot be changed after play begins.",
+            )
+        if record.mode == "online" and record.ready:
+            raise HTTPException(
+                status_code=409,
+                detail="The starting layout cannot be changed after an opponent joins.",
+            )
         expected_version = self._expected_version(record, request.expectedVersion)
 
         board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows
         board_cols = request.boardCols if request.boardCols is not None else game_state.board.cols
 
-        board = _empty_board(board_rows, board_cols)
+        proposed_layout = [placement.model_dump() for placement in request.placements]
+        validation_request = CreateGameRequest.model_validate(
+            {
+                "mode": record.mode,
+                "variant": game_state.variant,
+                "boardRows": board_rows,
+                "boardCols": board_cols,
+                "configuration": {
+                    "schemaVersion": game_state.configuration.schema_version,
+                    "presetId": "custom",
+                    "formationId": "custom",
+                    "barricadeCount": game_state.configuration.barricade_count,
+                    "enabledPieces": game_state.configuration.enabled_piece_types,
+                    "piecePoints": {
+                        piece_type: definition.points
+                        for piece_type, definition in game_state.piece_definitions.items()
+                        if piece_type in game_state.configuration.enabled_piece_types
+                    },
+                    "pieceParameters": game_state.configuration.piece_parameters,
+                    "initialLayout": proposed_layout,
+                    "victory": {
+                        "mode": game_state.configuration.victory.mode,
+                        "targetPoints": game_state.configuration.victory.target_points,
+                        "timeSeconds": game_state.configuration.victory.time_seconds,
+                        "kingPoints": game_state.configuration.victory.king_points,
+                        "dominionRounds": game_state.configuration.victory.dominion_rounds,
+                        "checkTarget": game_state.configuration.victory.check_target,
+                    },
+                    "customRules": {
+                        "affinityEnabled": (
+                            game_state.configuration.custom_rules.affinity_enabled
+                        ),
+                        "commandPointCap": (
+                            game_state.configuration.custom_rules.command_point_cap
+                        ),
+                    },
+                    "specialAbilities": {
+                        "enabled": game_state.configuration.special_abilities.enabled,
+                        "allowed": game_state.configuration.special_abilities.allowed,
+                        "maxPerPlayer": (
+                            game_state.configuration.special_abilities.max_per_player
+                        ),
+                        "parameters": (
+                            game_state.configuration.special_abilities.parameters
+                        ),
+                    },
+                    "gambit": {"enabled": False},
+                },
+            }
+        )
+        validation = self.engine.configuration.validate(
+            validation_request,
+            piece_definitions=game_state.piece_definitions,
+            use_default_layout=False,
+        )
+        if not validation.valid:
+            raise HTTPException(status_code=400, detail=validation.errors[0])
 
-        for placement in request.placements:
-            normalized = _normalize_placement(
-                placement,
-                board_rows,
-                board_cols,
-                game_state.piece_definitions,
-            )
-            board.grid[normalized.row][normalized.col] = _create_piece_instance(
-                normalized.type,
-                normalized.color,
-                game_state.piece_definitions,
-            )
-
-        game_state.board = board
+        game_state.configuration.preset_id = "custom"
+        game_state.configuration.formation_id = "custom"
+        game_state.configuration.initial_layout = proposed_layout
+        game_state.board = _configured_board(
+            board_rows,
+            board_cols,
+            game_state.piece_definitions,
+            game_state.configuration,
+        )
         game_state.current_player = "white"
+        game_state.phase = (
+            "ability_selection"
+            if game_state.configuration.special_abilities.enabled
+            else "play"
+        )
+        game_state.abilities = AbilityState()
+        game_state.classic = ClassicRuleState()
         game_state.history = []
         game_state.captured_pieces = {"white": [], "black": []}
         game_state.winner = None
         game_state.game_status = "active"
         game_state.score = {"white": 0, "black": 0}
+        game_state.spent_score = {"white": 0, "black": 0}
         game_state.center_dominion = CenterDominionState()
         game_state.check_race = CheckRaceState()
         game_state.affinity = AffinityState()
+        game_state.turn_counts = {"white": 0, "black": 0}
+        game_state.rematch = RematchState()
         game_state.result = None
+        if game_state.clock is not None:
+            seconds = game_state.clock.initial_seconds
+            game_state.clock.remaining_seconds = {
+                "white": float(seconds),
+                "black": float(seconds),
+            }
+            game_state.clock.active_color = "white"
+            game_state.clock.turn_started_at = datetime.now(timezone.utc)
 
         self.engine.evaluate_state(game_state)
         return self._save(game_state, expected_version)
