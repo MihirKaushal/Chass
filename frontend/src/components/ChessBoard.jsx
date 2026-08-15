@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
+import { boardFileLabel, boardSquareLabel } from "../boardGeometry";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
 
@@ -23,11 +24,19 @@ function ChessBoard({
   foggedRows = [],
   showCoordinates = false,
   pieceDetailsMode = "hover",
+  availableActions = [],
+  onAction = null,
+  countdowns = [],
 }) {
   const [hoveredPiece, setHoveredPiece] = useState(null);
+  const [selectedActionSource, setSelectedActionSource] = useState(null);
   const pendingPieceTapRef = useRef(null);
   const onSquareClickRef = useRef(onSquareClick);
+  const onActionRef = useRef(onAction);
+  const actionsBySourceRef = useRef(new Map());
+  const selectedSourceActionsRef = useRef([]);
   onSquareClickRef.current = onSquareClick;
+  onActionRef.current = onAction;
   const rows = boardRows ?? boardSize ?? board.length;
   const cols = boardCols ?? boardSize ?? (board[0] ? board[0].length : 0);
 
@@ -41,6 +50,39 @@ function ChessBoard({
     .map((move) => `${move.to.row}-${move.to.col}`);
 
   const activeTargetSet = new Set(activeTargets);
+  const actionsBySource = useMemo(() => {
+    const grouped = new Map();
+    availableActions.forEach((action) => {
+      if (!action.source || !action.target) return;
+      const key = `${action.source.row}-${action.source.col}`;
+      grouped.set(key, [...(grouped.get(key) || []), action]);
+    });
+    return grouped;
+  }, [availableActions]);
+  const selectedActionSourceKey = selectedActionSource
+    ? `${selectedActionSource.row}-${selectedActionSource.col}`
+    : "";
+  const selectedSourceActions = actionsBySource.get(selectedActionSourceKey) || [];
+  actionsBySourceRef.current = actionsBySource;
+  selectedSourceActionsRef.current = selectedSourceActions;
+  const actionTargetMap = new Map();
+  selectedSourceActions.forEach((action) => {
+    actionTargetMap.set(`${action.target.row}-${action.target.col}`, action);
+  });
+  const effectsByPiece = useMemo(() => {
+    const grouped = new Map();
+    const addEffect = (pieceId, effect, role) => {
+      if (!pieceId) return;
+      grouped.set(pieceId, [...(grouped.get(pieceId) || []), { ...effect, role }]);
+    };
+    countdowns.forEach((effect) => {
+      addEffect(effect.pieceId, effect, "source");
+      if (effect.targetPieceId && effect.targetPieceId !== effect.pieceId) {
+        addEffect(effect.targetPieceId, effect, "target");
+      }
+    });
+    return grouped;
+  }, [countdowns]);
   const extraTargetSet = new Set(
     extraTargets.map((target) => `${target.row}-${target.col}`)
   );
@@ -56,6 +98,14 @@ function ChessBoard({
   const longEdge = "var(--board-long-edge, min(68vh, 680px))";
   const boardWidth = cols >= rows ? longEdge : `calc(${longEdge} * ${cols / rows})`;
   const boardHeight = rows >= cols ? longEdge : `calc(${longEdge} * ${rows / cols})`;
+  const visibleRows = Array.from(
+    { length: rows },
+    (_, index) => boardFlipped ? rows - 1 - index : index
+  );
+  const visibleCols = Array.from(
+    { length: cols },
+    (_, index) => boardFlipped ? cols - 1 - index : index
+  );
 
   useEffect(() => {
     if (pendingPieceTapRef.current) {
@@ -63,6 +113,7 @@ function ChessBoard({
       pendingPieceTapRef.current = null;
     }
     setHoveredPiece(null);
+    setSelectedActionSource(null);
   }, [board, boardFlipped]);
 
   useEffect(() => () => {
@@ -73,6 +124,24 @@ function ChessBoard({
 
   const activateSquare = (row, col) => {
     setHoveredPiece(null);
+    const targetAction = selectedSourceActionsRef.current.find(
+      (action) => action.target.row === row && action.target.col === col
+    );
+    if (targetAction && onActionRef.current) {
+      setSelectedActionSource(null);
+      onActionRef.current(targetAction);
+      return;
+    }
+
+    const sourceKey = `${row}-${col}`;
+    const sourceActions = actionsBySourceRef.current.get(sourceKey) || [];
+    if (sourceActions.length) {
+      setSelectedActionSource((current) =>
+        current?.row === row && current?.col === col ? null : { row, col }
+      );
+    } else {
+      setSelectedActionSource(null);
+    }
     onSquareClickRef.current(row, col);
   };
 
@@ -130,6 +199,34 @@ function ChessBoard({
         "--piece-size": `${Math.max(0.58, Math.min(2.35, 18 / Math.max(rows, cols)))}rem`,
       }}
     >
+      {showCoordinates ? (
+        <div className="board-coordinate-frame" aria-hidden="true">
+          <div
+            className="board-files board-files-top"
+            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+          >
+            {visibleCols.map((col) => <span key={col}>{boardFileLabel(col)}</span>)}
+          </div>
+          <div
+            className="board-files board-files-bottom"
+            style={{ gridTemplateColumns: `repeat(${cols}, minmax(0, 1fr))` }}
+          >
+            {visibleCols.map((col) => <span key={col}>{boardFileLabel(col)}</span>)}
+          </div>
+          <div
+            className="board-ranks board-ranks-left"
+            style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
+          >
+            {visibleRows.map((row) => <span key={row}>{rows - row}</span>)}
+          </div>
+          <div
+            className="board-ranks board-ranks-right"
+            style={{ gridTemplateRows: `repeat(${rows}, minmax(0, 1fr))` }}
+          >
+            {visibleRows.map((row) => <span key={row}>{rows - row}</span>)}
+          </div>
+        </div>
+      ) : null}
       <div
         className="board-grid"
         style={{
@@ -146,9 +243,12 @@ function ChessBoard({
             const key = `${visibleRowIndex}-${visibleColIndex}`;
             const isLight = (rowIndex + colIndex) % 2 === 0;
             const isSelected =
-              selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex;
+              (selectedSquare?.row === rowIndex && selectedSquare?.col === colIndex) ||
+              (selectedActionSource?.row === rowIndex && selectedActionSource?.col === colIndex);
             const isValidTarget = activeTargetSet.has(`${rowIndex}-${colIndex}`);
             const isExtraTarget = extraTargetSet.has(`${rowIndex}-${colIndex}`);
+            const actionTarget = actionTargetMap.get(`${rowIndex}-${colIndex}`);
+            const pieceEffects = piece ? effectsByPiece.get(piece.pieceId) || [] : [];
             const affinityColor = affinityMap.get(`${rowIndex}-${colIndex}`);
             const isObjectiveSquare = objectiveSquareSet.has(`${rowIndex}-${colIndex}`);
             const isLastMoveSquare =
@@ -162,6 +262,18 @@ function ChessBoard({
               isSelected ? "selected" : "",
               isValidTarget ? "valid-target" : "",
               isExtraTarget ? "command-target" : "",
+              actionTarget ? `board-action-target action-${actionTarget.boardMarker}` : "",
+              pieceEffects.some((effect) => effect.kind === "pacified")
+                ? "has-pacified-effect"
+                : "",
+              pieceEffects.some(
+                (effect) => effect.kind === "recruitment" && effect.role === "target"
+              )
+                ? "has-recruitment-effect"
+                : "",
+              selectedActionSource?.row === rowIndex && selectedActionSource?.col === colIndex
+                ? "action-source-selected"
+                : "",
               isLastMoveSquare ? "last-move" : "",
               affinityColor ? `affinity-square affinity-${affinityColor}` : "",
               isObjectiveSquare ? "objective-square" : "",
@@ -205,18 +317,12 @@ function ChessBoard({
                 onFocus={() => pieceDetailsMode === "hover" && piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
                 onBlur={() => pieceDetailsMode === "hover" && setHoveredPiece(null)}
                 aria-disabled={!interactive}
-                aria-label={`${String.fromCharCode(97 + colIndex)}${rows - rowIndex}${
+                aria-label={`${boardSquareLabel({ row: rowIndex, col: colIndex }, rows)}${
                   piece ? `, ${piece.color} ${piece.name}` : ""
-                }${piece && pieceDetailsMode === "double-tap" ? ", double tap for details" : ""}`}
+                }${actionTarget ? `, ${actionTarget.label}` : ""}${
+                  piece && pieceDetailsMode === "double-tap" ? ", double tap for details" : ""
+                }`}
               >
-                {showCoordinates && visibleColIndex === 0 ? (
-                  <span className="board-coordinate board-rank">{rows - rowIndex}</span>
-                ) : null}
-                {showCoordinates && visibleRowIndex === rows - 1 ? (
-                  <span className="board-coordinate board-file">
-                    {String.fromCharCode(97 + colIndex)}
-                  </span>
-                ) : null}
                 {affinityColor ? (
                   <span className="affinity-marker" aria-hidden="true">
                     {affinityColor === "white" ? "W" : "B"}
@@ -228,8 +334,31 @@ function ChessBoard({
                 <span className={pieceClassName}>
                   {piece ? <PieceGlyph piece={piece} /> : null}
                 </span>
+                {pieceEffects.length ? (
+                  <span className="board-effect-stack" aria-label="Active piece effects">
+                    {pieceEffects.map((effect) => (
+                      <span
+                        className={`board-effect-badge effect-${effect.kind} effect-${effect.role}`}
+                        key={`${effect.id}-${effect.role}`}
+                        title={`${effect.label}: ${effect.description}`}
+                      >
+                        <i>{effect.icon}</i>
+                        <small>{effect.remainingTurns}</small>
+                      </span>
+                    ))}
+                  </span>
+                ) : null}
                 {isValidTarget ? <span className="move-dot" /> : null}
                 {isExtraTarget ? <span className="command-target-ring" /> : null}
+                {actionTarget ? (
+                  <span
+                    className={`board-action-marker marker-${actionTarget.boardMarker}`}
+                    title={actionTarget.label}
+                    aria-hidden="true"
+                  >
+                    <i>{actionTarget.icon}</i>
+                  </span>
+                ) : null}
               </button>
             );
           })
