@@ -6,6 +6,7 @@ from uuid import uuid4
 from backend.catalog import SPECIAL_ABILITIES
 from backend.models import CaptureEvent, GameResult, GameState, MoveRecord, Piece
 from backend.rules.movement import in_bounds
+from backend.rules.tuning import catapult_projectile_profiles, piece_parameter
 
 ABILITY_ICONS = {ability["id"]: ability["icon"] for ability in SPECIAL_ABILITIES}
 ABILITY_COOLDOWN_TURNS = {
@@ -203,13 +204,13 @@ def _adjacent_positions(state: GameState, row: int, col: int):
                 yield target_row, target_col
 
 
-def _recruitment_threshold(piece: Piece) -> int:
+def _recruitment_threshold(state: GameState, piece: Piece) -> int:
     points = piece.points if piece.points is not None else 99
     if points <= 3:
-        return 3
+        return piece_parameter(state, "hypnotizer", "weakContactTurns")
     if points <= 5:
-        return 4
-    return 5
+        return piece_parameter(state, "hypnotizer", "mediumContactTurns")
+    return piece_parameter(state, "hypnotizer", "strongContactTurns")
 
 
 def _process_hypnotizer(
@@ -250,7 +251,7 @@ def _process_hypnotizer(
 
     target_row, target_col, target = selected
     progress = int(hypnotizer.runtime.get("recruit_progress", 0)) + 1
-    threshold = _recruitment_threshold(target)
+    threshold = _recruitment_threshold(state, target)
     hypnotizer.runtime["recruit_progress"] = progress
     hypnotizer.runtime["recruit_threshold"] = threshold
     hypnotizer.runtime["recruit_target_name"] = target.name
@@ -279,6 +280,11 @@ def _process_diplomat(
     diplomat: Piece,
     messages: list[str],
 ) -> bool:
+    contact_turns = piece_parameter(state, "diplomat", "contactTurns")
+    pacified_turns = piece_parameter(state, "diplomat", "pacifiedTurns")
+    retirement_threshold = piece_parameter(
+        state, "diplomat", "retireAfterPacifications"
+    )
     contacts = dict(diplomat.runtime.get("diplomat_contacts", {}))
     adjacent_ids: set[str] = set()
     newly_pacified = 0
@@ -294,14 +300,15 @@ def _process_diplomat(
         adjacent_ids.add(target.piece_id)
         progress = int(contacts.get(target.piece_id, 0)) + 1
         contacts[target.piece_id] = progress
-        if progress < 2:
+        if progress < contact_turns:
             continue
 
-        until_turn = state.turn_counts[target.color] + 5
+        until_turn = state.turn_counts[target.color] + pacified_turns
         if int(target.runtime.get("pacified_until_turn", 0)) <= state.turn_counts[target.color]:
             newly_pacified += 1
             messages.append(
-                f"{diplomat.color.title()}'s Diplomat pacified {target.name} for 5 turns."
+                f"{diplomat.color.title()}'s Diplomat pacified {target.name} for "
+                f"{pacified_turns} turns."
             )
         target.runtime["pacified_until_turn"] = max(
             int(target.runtime.get("pacified_until_turn", 0)),
@@ -320,9 +327,12 @@ def _process_diplomat(
     }
     retire_count = int(diplomat.runtime.get("pacifications", 0)) + newly_pacified
     diplomat.runtime["pacifications"] = retire_count
-    if retire_count >= 5:
+    if retire_count >= retirement_threshold:
         state.board.grid[row][col] = None
-        messages.append(f"{diplomat.color.title()}'s Diplomat retired after five pacifications.")
+        messages.append(
+            f"{diplomat.color.title()}'s Diplomat retired after "
+            f"{retirement_threshold} pacifications."
+        )
         return True
     return False
 
@@ -429,7 +439,8 @@ class VariantActionRules:
                 if piece_runtime_active(state, piece, "catapult_ready_turn"):
                     continue
                 for lane in (-1, 0, 1):
-                    for distance in (2, 3):
+                    for skipped_squares, recovery_turns in catapult_projectile_profiles(state):
+                        distance = skipped_squares + 1
                         target_row = row + direction * distance
                         target_col = col + lane * distance
                         if not in_bounds(
@@ -462,8 +473,8 @@ class VariantActionRules:
                                 "label": f"Fire at {target.name}",
                                 "boardMarker": "attack",
                                 "description": (
-                                    f"Projectile crosses {distance - 1} square(s), then the "
-                                    f"Catapult recovers for {2 if distance == 2 else 4} turns."
+                                    f"Projectile crosses {skipped_squares} square(s), then the "
+                                    f"Catapult recovers for {recovery_turns} turns."
                                 ),
                                 "source": {"row": row, "col": col},
                                 "target": {"row": target_row, "col": target_col},
@@ -473,32 +484,59 @@ class VariantActionRules:
 
     def _barricade_actions(self, state: GameState, color: str) -> list[dict]:
         actions: list[dict] = []
+        control_range = piece_parameter(state, "barricade", "controlRange")
+        movement_distance = piece_parameter(state, "barricade", "movementDistance")
         for row, board_row in enumerate(state.board.grid):
             for col, piece in enumerate(board_row):
                 if piece is None or piece.type != "barricade":
                     continue
-                touching = any(
-                    (neighbor := state.board.grid[r][c]) is not None
+                controlled = any(
+                    max(abs(source_row - row), abs(source_col - col)) <= control_range
+                    and (neighbor := state.board.grid[source_row][source_col]) is not None
                     and neighbor.color == color
-                    for r, c in _adjacent_positions(state, row, col)
+                    for source_row in range(
+                        max(0, row - control_range),
+                        min(state.board.rows, row + control_range + 1),
+                    )
+                    for source_col in range(
+                        max(0, col - control_range),
+                        min(state.board.cols, col + control_range + 1),
+                    )
                 )
-                if not touching:
+                if not controlled:
                     continue
-                for target_row, target_col in _adjacent_positions(state, row, col):
-                    if state.board.grid[target_row][target_col] is None:
-                        actions.append(
-                            {
-                                "id": f"barricade:{piece.piece_id}:{target_row}:{target_col}",
-                                "actionType": "move_barricade",
-                                "owner": color,
-                                "icon": "🧱",
-                                "label": "Move Barricade",
-                                "boardMarker": "move",
-                                "description": "Move the adjacent neutral wall one square.",
-                                "source": {"row": row, "col": col},
-                                "target": {"row": target_row, "col": target_col},
-                            }
-                        )
+                for dr in (-1, 0, 1):
+                    for dc in (-1, 0, 1):
+                        if dr == 0 and dc == 0:
+                            continue
+                        for distance in range(1, movement_distance + 1):
+                            target_row = row + dr * distance
+                            target_col = col + dc * distance
+                            if not in_bounds(
+                                state.board.rows,
+                                state.board.cols,
+                                target_row,
+                                target_col,
+                            ):
+                                break
+                            if state.board.grid[target_row][target_col] is not None:
+                                break
+                            actions.append(
+                                {
+                                    "id": f"barricade:{piece.piece_id}:{target_row}:{target_col}",
+                                    "actionType": "move_barricade",
+                                    "owner": color,
+                                    "icon": "🧱",
+                                    "label": "Move Barricade",
+                                    "boardMarker": "move",
+                                    "description": (
+                                        f"Move the controlled neutral wall up to "
+                                        f"{movement_distance} square(s)."
+                                    ),
+                                    "source": {"row": row, "col": col},
+                                    "target": {"row": target_row, "col": target_col},
+                                }
+                            )
         return actions
 
     def _barricade_demolition_actions(
@@ -797,8 +835,8 @@ class VariantActionRules:
             catapult = self._piece_at(state, source)
             victim = self._piece_at(state, target)
             state.board.grid[target[0]][target[1]] = None
-            distance = abs(target[0] - source[0])
-            cooldown = 2 if distance == 2 else 4
+            skipped_squares = abs(target[0] - source[0]) - 1
+            cooldown = dict(catapult_projectile_profiles(state))[skipped_squares]
             catapult.runtime["catapult_ready_turn"] = state.turn_counts[color] + cooldown + 1
             captures.append(CaptureEvent(row=target[0], col=target[1], piece=victim, reason="Catapult projectile"))
             explanation = f"{color.title()}'s Catapult fired and captured {victim.name}."
@@ -1039,10 +1077,11 @@ def public_countdowns(state: GameState) -> list[dict]:
 
             if piece.type == "diplomat":
                 contacts = dict(piece.runtime.get("diplomat_contacts", {}))
+                contact_turns = piece_parameter(state, "diplomat", "contactTurns")
                 for target_id, progress_value in contacts.items():
                     progress = int(progress_value)
                     target_match = find_piece(state, target_id)
-                    remaining = 2 - progress
+                    remaining = contact_turns - progress
                     if target_match is None or remaining <= 0:
                         continue
                     target = target_match[2]

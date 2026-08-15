@@ -54,3 +54,24 @@ def ability_parameter(state: GameState, ability_id: str, parameter_id: str) -> i
         return _ability_defaults()[ability_id][parameter_id]
     except KeyError as error:
         raise KeyError(f"Unknown {ability_id} parameter: {parameter_id}") from error
+
+
+def catapult_projectile_profiles(state: GameState) -> list[tuple[int, int]]:
+    """Return unique (skipped squares, recovery turns) profiles."""
+    profiles = (
+        (
+            piece_parameter(state, "catapult", "shortProjectileSkip"),
+            piece_parameter(state, "catapult", "shortRecoveryTurns"),
+        ),
+        (
+            piece_parameter(state, "catapult", "longProjectileSkip"),
+            piece_parameter(state, "catapult", "longRecoveryTurns"),
+        ),
+    )
+    shortest_recovery: dict[int, int] = {}
+    for skipped_squares, recovery_turns in profiles:
+        shortest_recovery[skipped_squares] = min(
+            recovery_turns,
+            shortest_recovery.get(skipped_squares, recovery_turns),
+        )
+    return sorted(shortest_recovery.items())

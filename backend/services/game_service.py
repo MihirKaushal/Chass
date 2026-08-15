@@ -102,6 +102,7 @@ from backend.repositories import (
     create_game_repository,
 )
 from backend.rules import RuleEngine
+from backend.rules.tuning import piece_parameter
 from backend.rules.variant_system import (
     FINISHED_STATUSES,
     ability_cooldown_remaining,
@@ -1717,11 +1718,17 @@ class GameService:
                         ready_turn - current_turn,
                     )
                 if piece.type == "diplomat":
+                    contact_turns = piece_parameter(
+                        game_state, "diplomat", "contactTurns"
+                    )
+                    runtime["diplomat_retirement_threshold"] = piece_parameter(
+                        game_state, "diplomat", "retireAfterPacifications"
+                    )
                     runtime["diplomat_contacts_status"] = [
                         {
                             "targetName": piece_names.get(target_id, "enemy piece"),
                             "progress": int(progress),
-                            "required": 2,
+                            "required": contact_turns,
                         }
                         for target_id, progress in dict(
                             runtime.get("diplomat_contacts", {})
