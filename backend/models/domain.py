@@ -183,6 +183,7 @@ class SpecialAbilityConfig(BaseModel):
     enabled: bool = False
     allowed: list[str] = Field(default_factory=list)
     max_per_player: int = Field(default=1, ge=1)
+    parameters: dict[str, dict[str, int]] = Field(default_factory=dict)
 
 
 class CustomRulesConfig(BaseModel):
@@ -204,6 +205,7 @@ class GameConfiguration(BaseModel):
     enabled_piece_types: list[str] = Field(
         default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"]
     )
+    piece_parameters: dict[str, dict[str, int]] = Field(default_factory=dict)
     initial_layout: list[dict[str, Any]] = Field(default_factory=list)
     victory: VictoryConfig = Field(default_factory=VictoryConfig)
     custom_rules: CustomRulesConfig = Field(default_factory=CustomRulesConfig)
