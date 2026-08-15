@@ -415,6 +415,139 @@ def test_catapult_action_creates_public_countdown_and_tooltip_runtime(client):
     assert updated["board"][4][4] is None
 
 
+def test_catapult_uses_configured_projectile_range_and_recovery(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "catapult"],
+        pieceParameters={
+            "catapult": {
+                "movementDistance": 1,
+                "shortProjectileSkip": 2,
+                "shortRecoveryTurns": 3,
+                "longProjectileSkip": 2,
+                "longRecoveryTurns": 5,
+            }
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 4, "type": "catapult", "color": "white"},
+            {"row": 3, "col": 4, "type": "rook", "color": "black"},
+        ],
+        victory={"mode": "king_capture", "kingPoints": 1},
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    projectiles = [
+        action
+        for action in game["availableActions"]
+        if action["actionType"] == "catapult_projectile"
+    ]
+
+    assert len(projectiles) == 1
+    assert projectiles[0]["target"] == {"row": 3, "col": 4}
+    assert "3 turns" in projectiles[0]["description"]
+    assert game["configuration"]["pieceParameters"]["catapult"][
+        "shortRecoveryTurns"
+    ] == 3
+
+    fired = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": projectiles[0]["actionType"],
+            "source": projectiles[0]["source"],
+            "target": projectiles[0]["target"],
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    countdown = next(item for item in fired["countdowns"] if item["kind"] == "catapult")
+    assert countdown["remainingTurns"] == 3
+
+
+def test_custom_contact_and_borrowed_movement_values_drive_piece_rules(client):
+    hypnotizer_payload = configured_game(
+        enabledPieces=[*classic_types(), "hypnotizer"],
+        pieceParameters={"hypnotizer": {"weakContactTurns": 1}},
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 0, "type": "hypnotizer", "color": "white"},
+            {"row": 5, "col": 0, "type": "pawn", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "white"},
+        ],
+    )
+    hypnotizer_game = client.post("/game/create", json=hypnotizer_payload).json()["game"]
+    recruited = client.post(
+        f"/game/{hypnotizer_game['id']}/move",
+        json={
+            "fromRow": 7,
+            "fromCol": 0,
+            "toRow": 7,
+            "toCol": 1,
+            "expectedVersion": hypnotizer_game["version"],
+        },
+    ).json()
+    assert recruited["board"][5][0]["color"] == "white"
+
+    cannibal_payload = configured_game(
+        enabledPieces=[*classic_types(), "cannibal"],
+        pieceParameters={"cannibal": {"borrowedMovementMoves": 2}},
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 5, "col": 0, "type": "cannibal", "color": "white"},
+            {"row": 6, "col": 0, "type": "pawn", "color": "white"},
+        ],
+    )
+    cannibal_game = client.post("/game/create", json=cannibal_payload).json()["game"]
+    consumed = client.post(
+        f"/game/{cannibal_game['id']}/move",
+        json={
+            "fromRow": 5,
+            "fromCol": 0,
+            "toRow": 6,
+            "toCol": 0,
+            "expectedVersion": cannibal_game["version"],
+        },
+    )
+    assert consumed.status_code == 200
+    assert consumed.json()["board"][6][0]["runtime"]["cannibal_moves_remaining"] == 2
+
+
+def test_diplomat_uses_configured_contact_duration_and_retirement(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "diplomat"],
+        pieceParameters={
+            "diplomat": {
+                "contactTurns": 1,
+                "pacifiedTurns": 3,
+                "retireAfterPacifications": 2,
+            }
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 0, "type": "diplomat", "color": "white"},
+            {"row": 5, "col": 0, "type": "pawn", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "white"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    updated = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 7,
+            "fromCol": 0,
+            "toRow": 7,
+            "toCol": 1,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    pawn = updated["board"][5][0]
+    diplomat = updated["board"][6][0]
+    assert pawn["runtime"]["pacified_until_turn_remaining"] == 3
+    assert diplomat["runtime"]["pacifications"] == 1
+    assert diplomat["runtime"]["diplomat_retirement_threshold"] == 2
+
+
 def test_online_ability_choices_stay_private_until_both_lock(client):
     payload = configured_game(
         specialAbilities={
@@ -1513,6 +1646,27 @@ def test_maharani_can_cross_exactly_one_blocker_to_capture(client):
     assert captured.json()["board"][4][0]["type"] == "maharani"
 
 
+def test_maharani_uses_configured_blocker_count(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "maharani"],
+        pieceParameters={"maharani": {"blockersCrossed": 2}},
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "maharani", "color": "white"},
+            {"row": 6, "col": 0, "type": "pawn", "color": "white"},
+            {"row": 5, "col": 0, "type": "pawn", "color": "white"},
+            {"row": 3, "col": 0, "type": "rook", "color": "black"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    assert any(
+        move["from"] == {"row": 7, "col": 0}
+        and move["to"] == {"row": 3, "col": 0}
+        for move in game["validMoves"]
+    )
+
+
 def test_barricade_is_neutral_and_movable_only_through_special_action(client):
     payload = configured_game(
         enabledPieces=[*classic_types(), "barricade"],
@@ -1552,6 +1706,27 @@ def test_barricade_is_neutral_and_movable_only_through_special_action(client):
     updated = moved.json()
     assert updated["board"][3][3] is None
     assert updated["board"][3][2]["color"] == "neutral"
+
+
+def test_barricade_uses_configured_control_and_movement_ranges(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "barricade"],
+        pieceParameters={
+            "barricade": {"controlRange": 2, "movementDistance": 2}
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 3, "col": 3, "type": "barricade", "color": "neutral"},
+            {"row": 5, "col": 3, "type": "pawn", "color": "white"},
+        ],
+    )
+    game = client.post("/game/create", json=payload).json()["game"]
+    assert any(
+        action["actionType"] == "move_barricade"
+        and action["target"] == {"row": 1, "col": 3}
+        for action in game["availableActions"]
+    )
 
 
 def test_either_rook_can_sacrifice_itself_to_demolish_a_visible_barricade(client):

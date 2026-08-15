@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from backend.models import GameState, Move
 from backend.rules.base import Rule, RuleContext, ValidationResult
+from backend.rules.tuning import piece_parameter
 from backend.rules.variant_system import (
     FINISHED_STATUSES,
     affinity_start_squares,
@@ -168,10 +169,20 @@ class CannibalRule(Rule):
             return ValidationResult(is_valid=True)
 
         backward = 1 if piece.color == "white" else -1
-        if move.to_row - move.from_row != backward or abs(move.to_col - move.from_col) > 1:
+        row_delta = move.to_row - move.from_row
+        col_delta = move.to_col - move.from_col
+        distance = abs(row_delta)
+        consume_distance = piece_parameter(state, "cannibal", "consumeDistance")
+        if (
+            row_delta != backward * distance
+            or abs(col_delta) not in {0, distance}
+            or not 1 <= distance <= consume_distance
+        ):
             return ValidationResult(
                 is_valid=False,
-                reason="A Cannibal can consume only directly or diagonally behind itself.",
+                reason=(
+                    "A Cannibal can consume only within its configured backward range."
+                ),
             )
         if target.type in {"barricade", "diplomat"} or piece_runtime_active(
             state,
@@ -226,19 +237,22 @@ class CannibalRule(Rule):
         )
         piece.runtime["cannibal_form"] = inherited_type
         piece.runtime["cannibal_form_name"] = inherited_name
-        piece.runtime["cannibal_moves_remaining"] = 5
+        borrowed_moves = piece_parameter(
+            state, "cannibal", "borrowedMovementMoves"
+        )
+        piece.runtime["cannibal_moves_remaining"] = borrowed_moves
         piece.runtime["cannibal_super_state"] = super_state
         if not context.simulated:
             if super_state:
                 context.messages.append(
                     "Cannibal consumed another Cannibal and entered Super State with "
-                    "Queen mobility for 5 moves."
+                    f"Queen mobility for {borrowed_moves} moves."
                 )
             else:
                 allegiance = "allied" if target.color == piece.color else "enemy"
                 context.messages.append(
                     f"Cannibal consumed an {allegiance} {target.name} and borrowed "
-                    f"{inherited_name} mobility for 5 moves."
+                    f"{inherited_name} mobility for {borrowed_moves} moves."
                 )
 
 

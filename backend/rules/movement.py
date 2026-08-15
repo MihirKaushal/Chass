@@ -3,6 +3,7 @@ from __future__ import annotations
 from math import gcd
 
 from backend.models import GameState, MoveOption, MovePattern, Piece
+from backend.rules.tuning import catapult_projectile_profiles, piece_parameter
 
 
 def in_bounds(rows: int, cols: int, row: int, col: int) -> bool:
@@ -134,6 +135,7 @@ def _maharani_jump_moves(
     piece: Piece,
 ) -> list[MoveOption]:
     moves: list[MoveOption] = []
+    blockers_required = piece_parameter(state, "maharani", "blockersCrossed")
     for step_row, step_col in (
         (-1, -1),
         (-1, 0),
@@ -144,7 +146,7 @@ def _maharani_jump_moves(
         (1, 0),
         (1, 1),
     ):
-        crossed_piece = False
+        blockers_crossed = 0
         distance = 1
         while True:
             target_row = row + step_row * distance
@@ -154,9 +156,9 @@ def _maharani_jump_moves(
             target = state.board.grid[target_row][target_col]
             if target is not None and target.type == "barricade":
                 break
-            if not crossed_piece:
+            if blockers_crossed < blockers_required:
                 if target is not None:
-                    crossed_piece = True
+                    blockers_crossed += 1
                 distance += 1
                 continue
             option = _option(
@@ -166,7 +168,7 @@ def _maharani_jump_moves(
                 col,
                 target_row,
                 target_col,
-                "Maharani crossed one occupied square",
+                f"Maharani crossed {blockers_required} occupied square(s)",
             )
             if option is not None:
                 moves.append(option)
@@ -182,6 +184,7 @@ def _maharani_jump_attacks(
     col: int,
 ) -> set[tuple[int, int]]:
     attacks: set[tuple[int, int]] = set()
+    blockers_required = piece_parameter(state, "maharani", "blockersCrossed")
     for step_row, step_col in (
         (-1, -1),
         (-1, 0),
@@ -192,7 +195,7 @@ def _maharani_jump_attacks(
         (1, 0),
         (1, 1),
     ):
-        crossed_piece = False
+        blockers_crossed = 0
         distance = 1
         while True:
             target_row = row + step_row * distance
@@ -202,9 +205,9 @@ def _maharani_jump_attacks(
             target = state.board.grid[target_row][target_col]
             if target is not None and target.type == "barricade":
                 break
-            if not crossed_piece:
+            if blockers_crossed < blockers_required:
                 if target is not None:
-                    crossed_piece = True
+                    blockers_crossed += 1
                 distance += 1
                 continue
             if target is None or target.type != "diplomat":
@@ -269,44 +272,54 @@ def _cannibal_moves(
 
     moves: list[MoveOption] = []
     backward = 1 if piece.color == "white" else -1
-    edible_squares = {(row + backward, col + dc) for dc in (-1, 0, 1)}
+    movement_distance = piece_parameter(state, "cannibal", "movementDistance")
+    consume_distance = piece_parameter(state, "cannibal", "consumeDistance")
     for dr in (-1, 0, 1):
         for dc in (-1, 0, 1):
             if dr == 0 and dc == 0:
                 continue
-            target_row, target_col = row + dr, col + dc
-            if not in_bounds(
-                state.board.rows,
-                state.board.cols,
-                target_row,
-                target_col,
-            ):
-                continue
-            target = state.board.grid[target_row][target_col]
-            if target is None:
-                moves.append(
-                    MoveOption(
-                        from_row=row,
-                        from_col=col,
-                        to_row=target_row,
-                        to_col=target_col,
-                        explanation="Cannibal movement",
+            maximum = max(
+                movement_distance,
+                consume_distance if dr == backward else 0,
+            )
+            for distance in range(1, maximum + 1):
+                target_row, target_col = row + dr * distance, col + dc * distance
+                if not in_bounds(
+                    state.board.rows,
+                    state.board.cols,
+                    target_row,
+                    target_col,
+                ):
+                    break
+                target = state.board.grid[target_row][target_col]
+                if target is None:
+                    if distance <= movement_distance:
+                        moves.append(
+                            MoveOption(
+                                from_row=row,
+                                from_col=col,
+                                to_row=target_row,
+                                to_col=target_col,
+                                explanation="Cannibal movement",
+                            )
+                        )
+                    continue
+                if (
+                    dr == backward
+                    and distance <= consume_distance
+                    and _cannibal_can_consume(state, target)
+                ):
+                    moves.append(
+                        MoveOption(
+                            from_row=row,
+                            from_col=col,
+                            to_row=target_row,
+                            to_col=target_col,
+                            captures=[{"row": target_row, "col": target_col, "piece": target}],
+                            explanation=f"Cannibal consumes {target.name}",
+                        )
                     )
-                )
-            elif (
-                (target_row, target_col) in edible_squares
-                and _cannibal_can_consume(state, target)
-            ):
-                moves.append(
-                    MoveOption(
-                        from_row=row,
-                        from_col=col,
-                        to_row=target_row,
-                        to_col=target_col,
-                        captures=[{"row": target_row, "col": target_col, "piece": target}],
-                        explanation=f"Cannibal consumes {target.name}",
-                    )
-                )
+                break
     return moves
 
 
@@ -319,14 +332,19 @@ def _cannibal_attacks(
     if int(piece.runtime.get("cannibal_moves_remaining", 0)) > 0:
         return set()
     backward = 1 if piece.color == "white" else -1
+    consume_distance = piece_parameter(state, "cannibal", "consumeDistance")
     attacks: set[tuple[int, int]] = set()
     for dc in (-1, 0, 1):
-        target_row, target_col = row + backward, col + dc
-        if not in_bounds(state.board.rows, state.board.cols, target_row, target_col):
-            continue
-        target = state.board.grid[target_row][target_col]
-        if target is None or _cannibal_can_consume(state, target):
-            attacks.add((target_row, target_col))
+        for distance in range(1, consume_distance + 1):
+            target_row = row + backward * distance
+            target_col = col + dc * distance
+            if not in_bounds(state.board.rows, state.board.cols, target_row, target_col):
+                break
+            target = state.board.grid[target_row][target_col]
+            if target is None or _cannibal_can_consume(state, target):
+                attacks.add((target_row, target_col))
+            if target is not None:
+                break
     return attacks
 
 
@@ -484,7 +502,8 @@ def generate_piece_attacks(state: GameState, row: int, col: int) -> set[tuple[in
     ):
         direction = -1 if piece.color == "white" else 1
         for dc in (-1, 0, 1):
-            for distance in (2, 3):
+            for skipped_squares, _ in catapult_projectile_profiles(state):
+                distance = skipped_squares + 1
                 target_row = row + direction * distance
                 target_col = col + dc * distance
                 if not in_bounds(
