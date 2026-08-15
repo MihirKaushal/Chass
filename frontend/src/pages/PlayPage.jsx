@@ -75,9 +75,13 @@ function PlayPage({
           extraTargets={powerTargets}
           affinitySquares={game.affinity?.enabled ? game.affinity.squares : (game.centerDominion?.squares || {})}
           objectiveSquares={game.royalCenter?.squares || []}
+          showCoordinates
           pieceDetailsMode="double-tap"
+          availableActions={selectedPower ? [] : game.availableActions}
+          onAction={onAction}
+          countdowns={game.countdowns}
         />
-        <p className="board-detail-hint">Double-tap or double-click a piece to view details.</p>
+        <p className="board-detail-hint">Blue dots move pieces. Red targets attack or sacrifice; teal and gold targets use special actions. Double-tap for details.</p>
       </section>
 
       <GameInfoPanel game={game} />

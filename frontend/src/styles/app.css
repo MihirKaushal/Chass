@@ -867,23 +867,55 @@ button.secondary {
   pointer-events: none;
 }
 
-.board-coordinate {
+.board-coordinate-frame {
   position: absolute;
-  color: rgba(26, 54, 93, 0.75);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: clamp(0.45rem, 1vw, 0.6rem);
-  line-height: 1;
+  inset: 0;
+  z-index: 8;
   pointer-events: none;
 }
 
-.board-rank {
-  top: 4px;
-  left: 4px;
+.board-files,
+.board-ranks {
+  position: absolute;
+  display: grid;
+  color: rgba(26, 54, 93, 0.75);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: clamp(0.45rem, 1vw, 0.6rem);
+  font-weight: 700;
+  line-height: 1;
 }
 
-.board-file {
-  right: 4px;
-  bottom: 4px;
+.board-files {
+  right: 0;
+  left: 0;
+  height: 0.85rem;
+  text-align: center;
+}
+
+.board-files-top {
+  bottom: calc(100% + 0.2rem);
+  align-items: end;
+}
+
+.board-files-bottom {
+  top: calc(100% + 0.2rem);
+  align-items: start;
+}
+
+.board-ranks {
+  top: 0;
+  bottom: 0;
+  width: 0.9rem;
+  align-items: center;
+  text-align: center;
+}
+
+.board-ranks-left {
+  right: calc(100% + 0.18rem);
+}
+
+.board-ranks-right {
+  left: calc(100% + 0.18rem);
 }
 
 .square.command-target {
@@ -909,6 +941,135 @@ button.secondary {
   border-radius: 50%;
   background: rgba(43, 108, 176, 0.45);
   animation: pulse 900ms ease-in-out infinite;
+}
+
+.square.action-source-selected {
+  outline: 3px solid var(--gambit-gold);
+  outline-offset: -3px;
+}
+
+.square.board-action-target {
+  cursor: crosshair;
+  outline: 2px dashed rgba(26, 54, 93, 0.58);
+  outline-offset: -3px;
+}
+
+.board-action-marker {
+  position: absolute;
+  z-index: 5;
+  width: clamp(16px, 35%, 28px);
+  aspect-ratio: 1;
+  display: grid;
+  place-items: center;
+  border: 3px solid var(--accent);
+  border-radius: 50%;
+  color: white;
+  background: rgba(43, 108, 176, 0.32);
+  box-shadow: 0 0 0 4px rgba(26, 54, 93, 0.12);
+  pointer-events: none;
+  animation: action-target-pulse 900ms ease-in-out infinite;
+}
+
+.board-action-marker i {
+  font-size: clamp(0.48rem, 1vw, 0.72rem);
+  font-style: normal;
+  line-height: 1;
+}
+
+.marker-attack,
+.marker-sacrifice {
+  border-color: #9f2f28;
+  background: rgba(197, 57, 48, 0.76);
+  box-shadow: 0 0 0 4px rgba(159, 47, 40, 0.18);
+}
+
+.marker-move {
+  border-color: #176b6b;
+  color: var(--deep);
+  background: rgba(91, 193, 184, 0.72);
+  box-shadow: 0 0 0 4px rgba(23, 107, 107, 0.16);
+}
+
+.marker-ability,
+.marker-swap {
+  border-color: #8a5510;
+  color: var(--deep);
+  background: rgba(245, 208, 115, 0.82);
+  box-shadow: 0 0 0 4px rgba(138, 85, 16, 0.17);
+}
+
+.marker-summon {
+  border-color: #25674b;
+  background: rgba(47, 118, 88, 0.78);
+  box-shadow: 0 0 0 4px rgba(37, 103, 75, 0.17);
+}
+
+.board-effect-stack {
+  position: absolute;
+  right: 3px;
+  bottom: 3px;
+  z-index: 7;
+  display: flex;
+  flex-wrap: wrap-reverse;
+  justify-content: flex-end;
+  gap: 2px;
+  max-width: calc(100% - 6px);
+  pointer-events: none;
+}
+
+.board-effect-badge {
+  min-width: 1.15rem;
+  height: 1.15rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  padding: 0 0.16rem;
+  border: 1px solid rgba(255, 255, 255, 0.86);
+  border-radius: 999px;
+  color: white;
+  background: var(--deep);
+  box-shadow: 0 1px 4px rgba(26, 54, 93, 0.34);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: clamp(0.42rem, 0.8vw, 0.58rem);
+}
+
+.board-effect-badge i {
+  font-style: normal;
+  line-height: 1;
+}
+
+.board-effect-badge small {
+  color: inherit;
+  font-size: 0.48rem;
+  font-weight: 800;
+}
+
+.board-effect-badge.effect-pacified {
+  background: #49677f;
+}
+
+.board-effect-badge.effect-recruitment.effect-target {
+  background: #9f2f28;
+}
+
+.board-effect-badge.effect-diplomat_contact.effect-target {
+  color: var(--deep);
+  background: #e1ad4d;
+}
+
+.square.has-pacified-effect .piece {
+  filter: saturate(0.45);
+  opacity: 0.72;
+}
+
+.square.has-recruitment-effect {
+  box-shadow: inset 0 0 0 3px rgba(159, 47, 40, 0.4);
+}
+
+@keyframes action-target-pulse {
+  0%, 100% { transform: scale(0.88); }
+  50% { transform: scale(1); }
 }
 
 .piece {

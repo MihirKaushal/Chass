@@ -2,6 +2,22 @@ function squareKey(row, col) {
   return `${row}-${col}`;
 }
 
+export function boardFileLabel(column) {
+  let value = Number(column) + 1;
+  let result = "";
+  while (value > 0) {
+    value -= 1;
+    result = String.fromCharCode(97 + (value % 26)) + result;
+    value = Math.floor(value / 26);
+  }
+  return result;
+}
+
+export function boardSquareLabel(position, rows = 8) {
+  if (!position) return "";
+  return `${boardFileLabel(position.col)}${rows - position.row}`;
+}
+
 export function centeredBoardSquares(rows, cols, count) {
   if (rows <= 0 || cols <= 0 || count <= 0) return [];
 
