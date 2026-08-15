@@ -47,7 +47,12 @@ class RuleEngine:
         )
 
     def generate_piece_moves(self, state: GameState, row: int, col: int) -> list[MoveOption]:
-        return generate_piece_moves(state, row, col)
+        options = generate_piece_moves(state, row, col)
+        for rule, setting in self._iter_enabled_rules(state):
+            options.extend(
+                rule.generate_moves(state, row, col, self, setting.params)
+            )
+        return list({(option.to_row, option.to_col): option for option in options}.values())
 
     def available_rules(self) -> list[Rule]:
         return [self._rules[rule_id] for rule_id in self._rule_order]
@@ -88,6 +93,8 @@ class RuleEngine:
         if moving_piece is None:
             raise ValueError("No piece found at source square")
 
+        moved_piece_was_unmoved = not moving_piece.has_moved
+        original_piece_type = moving_piece.type
         state.board.grid[move.from_row][move.from_col] = None
         moving_piece.has_moved = True
         state.board.grid[move.to_row][move.to_col] = moving_piece
@@ -96,6 +103,10 @@ class RuleEngine:
                 moved_piece=moving_piece,
                 target_piece=target_piece,
                 simulated=False,
+                metadata={
+                    "moved_piece_was_unmoved": moved_piece_was_unmoved,
+                    "original_piece_type": original_piece_type,
+                },
             ),
             moving_piece,
         )

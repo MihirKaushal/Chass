@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Protocol
+from typing import Any, Protocol
 
 from backend.models import CaptureEvent, GameState, Move, MoveOption, Piece
 
@@ -19,6 +19,7 @@ class RuleContext:
     moved_piece: Piece | None = None
     target_piece: Piece | None = None
     simulated: bool = False
+    metadata: dict[str, Any] = field(default_factory=dict)
 
     def add_capture(
         self,
@@ -41,6 +42,14 @@ class MovementHelper(Protocol):
 
     def is_king_in_check(self, state: GameState, color: str) -> bool: ...
 
+    def is_square_attacked_by_color(
+        self,
+        state: GameState,
+        row: int,
+        col: int,
+        attacker_color: str,
+    ) -> bool: ...
+
     def find_king(self, state: GameState, color: str) -> tuple[int, int] | None: ...
 
     def simulate_move_for_validation(self, state: GameState, move: Move) -> GameState: ...
@@ -55,6 +64,16 @@ class Rule:
     tier: str = "basic"
     can_disable: bool = True
     apply_in_simulation: bool = True
+
+    def generate_moves(
+        self,
+        state: GameState,
+        row: int,
+        col: int,
+        helper: MovementHelper,
+        params: dict,
+    ) -> list[MoveOption]:
+        return []
 
     def validate(
         self,
