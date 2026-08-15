@@ -301,8 +301,8 @@ class MovePatternPayload(BaseModel):
 
 
 class PieceDefinitionPayload(BaseModel):
-    type: str
-    displayName: str
+    type: str = Field(min_length=1, max_length=64, pattern=r"^[a-z][a-z0-9_]*$")
+    displayName: str = Field(min_length=1, max_length=80)
     symbols: dict[str, str]
     patterns: list[MovePatternPayload]
     points: int | None = Field(default=None, ge=0)
@@ -432,6 +432,9 @@ class CreateGameRequest(BaseModel):
                 raise ValueError("Gambit setup rows cannot cross the board midpoint")
             if gambit.maxPieces > gambit.setupRows * self.boardCols:
                 raise ValueError("Gambit deployment rows do not have enough squares")
+        custom_types = [piece.type for piece in self.customPieces]
+        if len(custom_types) != len(set(custom_types)):
+            raise ValueError("Custom piece types must be unique")
         return self
 
 

@@ -289,6 +289,15 @@ def _piece_definition_from_payload(payload: PieceDefinitionPayload) -> PieceDefi
     )
 
 
+def _piece_catalog_for_request(
+    request: CreateGameRequest,
+) -> dict[str, PieceDefinition]:
+    catalog = build_catalog_piece_definitions()
+    for custom_piece in request.customPieces:
+        catalog[custom_piece.type] = _piece_definition_from_payload(custom_piece)
+    return catalog
+
+
 def _apply_piece_patch(
     piece_definitions: dict[str, PieceDefinition],
     patch: PieceDefinitionPatch,
@@ -358,15 +367,17 @@ def _center_affinity_squares(board_rows: int, board_cols: int) -> dict[str, list
 
 def _configuration_from_request(
     request: CreateGameRequest,
+    catalog: dict[str, PieceDefinition],
 ) -> tuple[
     GameConfiguration,
     dict[str, PieceDefinition],
     GambitState | None,
 ]:
     payload = request.configuration
-    catalog = build_catalog_piece_definitions()
     if payload is None:
         definitions = build_default_piece_definitions()
+        for custom_piece in request.customPieces:
+            definitions[custom_piece.type] = catalog[custom_piece.type].model_copy(deep=True)
         configuration = GameConfiguration(
             preset_id="gambit" if request.variant == "gambit" else "classic",
             custom_rules=CustomRulesConfig(
@@ -409,7 +420,7 @@ def _configuration_from_request(
                 )
 
     try:
-        piece_parameters = normalize_piece_parameters(payload.pieceParameters)
+        piece_parameters = normalize_piece_parameters(payload.pieceParameters, catalog)
         ability_parameters = normalize_ability_parameters(
             payload.specialAbilities.parameters
         )
@@ -768,15 +779,17 @@ class GameService:
         return f"{get_settings().frontend_url}/join/{invite_token}"
 
     def create_game(self, request: CreateGameRequest) -> GameSessionResponse:
-        validation = self.engine.configuration.validate(request)
+        piece_catalog = _piece_catalog_for_request(request)
+        validation = self.engine.configuration.validate(
+            request,
+            piece_definitions=piece_catalog,
+        )
         if not validation.valid:
             raise HTTPException(status_code=400, detail=validation.errors[0])
-        configuration, piece_definitions, gambit_state = _configuration_from_request(request)
-        for custom_piece in request.customPieces:
-            definition = _piece_definition_from_payload(custom_piece)
-            if definition.points is not None and definition.points < 0:
-                raise HTTPException(status_code=400, detail="Piece points cannot be negative.")
-            piece_definitions[definition.type] = definition
+        configuration, piece_definitions, gambit_state = _configuration_from_request(
+            request,
+            piece_catalog,
+        )
 
         rule_settings = _apply_rule_patches(
             settings=self.engine.default_rule_settings(),
@@ -949,8 +962,12 @@ class GameService:
         self,
         request: CreateGameRequest,
     ) -> ConfigurationValidationResponse:
+        piece_catalog = _piece_catalog_for_request(request)
         return ConfigurationValidationResponse(
-            **self.engine.configuration.validate(request).as_dict()
+            **self.engine.configuration.validate(
+                request,
+                piece_definitions=piece_catalog,
+            ).as_dict()
         )
 
     def viewer_color(self, record: GameRecord, player_token: str | None) -> str | None:
