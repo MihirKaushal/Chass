@@ -393,6 +393,7 @@ def test_catapult_action_creates_public_countdown_and_tooltip_runtime(client):
         for action in game["availableActions"]
         if action["actionType"] == "catapult_projectile"
     )
+    assert projectile["boardMarker"] == "attack"
 
     fired = client.post(
         f"/game/{game['id']}/action",
@@ -870,6 +871,8 @@ def test_diplomat_contact_is_public_and_attached_to_piece_runtime(client):
     diplomat = updated["board"][6][0]
     assert countdown["owner"] == "white"
     assert countdown["remainingTurns"] == 1
+    assert countdown["targetPieceId"] == updated["board"][5][0]["pieceId"]
+    assert countdown["targetPieceName"] == "Pawn"
     assert diplomat["runtime"]["diplomat_contacts_status"] == [
         {"targetName": "Pawn", "progress": 1, "required": 2}
     ]
@@ -1535,6 +1538,7 @@ def test_barricade_is_neutral_and_movable_only_through_special_action(client):
         for item in game["availableActions"]
         if item["actionType"] == "move_barricade" and item["target"] == {"row": 3, "col": 2}
     )
+    assert action["boardMarker"] == "move"
     moved = client.post(
         f"/game/{game['id']}/action",
         json={
@@ -1578,6 +1582,7 @@ def test_either_rook_can_sacrifice_itself_to_demolish_a_visible_barricade(client
     )
     assert white_action["source"] == {"row": 3, "col": 0}
     assert white_action["target"] == {"row": 3, "col": 3}
+    assert white_action["boardMarker"] == "sacrifice"
 
     demolished = client.post(
         f"/game/{game['id']}/action",
@@ -1641,7 +1646,7 @@ def test_hypnotizer_recruits_weak_piece_after_three_owner_turns(client):
         (0, 6, 0, 7),
         (7, 7, 7, 6),
     ]
-    for from_row, from_col, to_row, to_col in sequence:
+    for move_index, (from_row, from_col, to_row, to_col) in enumerate(sequence):
         response = client.post(
             f"/game/{game['id']}/move",
             json={
@@ -1654,6 +1659,13 @@ def test_hypnotizer_recruits_weak_piece_after_three_owner_turns(client):
         )
         assert response.status_code == 200
         game = response.json()
+        if move_index == 0:
+            countdown = next(
+                item for item in game["countdowns"] if item["kind"] == "recruitment"
+            )
+            target = game["board"][5][0]
+            assert countdown["targetPieceId"] == target["pieceId"]
+            assert countdown["targetPieceName"] == "Pawn"
     assert game["board"][5][0]["type"] == "pawn"
     assert game["board"][5][0]["color"] == "white"
 

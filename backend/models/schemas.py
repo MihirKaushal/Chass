@@ -188,6 +188,8 @@ class CountdownView(BaseModel):
     unit: Literal["turn", "move"] = "turn"
     pieceId: str | None = None
     pieceName: str | None = None
+    targetPieceId: str | None = None
+    targetPieceName: str | None = None
 
 
 class AvailableActionView(BaseModel):
@@ -197,6 +199,7 @@ class AvailableActionView(BaseModel):
     icon: str = ""
     label: str
     description: str
+    boardMarker: str = "ability"
     source: Position | None = None
     target: Position | None = None
     secondary: Position | None = None

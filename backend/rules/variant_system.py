@@ -460,6 +460,7 @@ class VariantActionRules:
                                 "owner": color,
                                 "icon": "🎯",
                                 "label": f"Fire at {target.name}",
+                                "boardMarker": "attack",
                                 "description": (
                                     f"Projectile crosses {distance - 1} square(s), then the "
                                     f"Catapult recovers for {2 if distance == 2 else 4} turns."
@@ -492,6 +493,7 @@ class VariantActionRules:
                                 "owner": color,
                                 "icon": "🧱",
                                 "label": "Move Barricade",
+                                "boardMarker": "move",
                                 "description": "Move the adjacent neutral wall one square.",
                                 "source": {"row": row, "col": col},
                                 "target": {"row": target_row, "col": target_col},
@@ -534,6 +536,7 @@ class VariantActionRules:
                                     "owner": color,
                                     "icon": "✹",
                                     "label": "Demolish Barricade",
+                                    "boardMarker": "sacrifice",
                                     "description": (
                                         "Sacrifice this Rook to remove the first Barricade "
                                         "on its clear rank or file. No points are scored."
@@ -578,6 +581,7 @@ class VariantActionRules:
                         "owner": color,
                         "icon": "⇄",
                         "label": f"Getaway with {piece.name}",
+                        "boardMarker": "swap",
                         "description": "Use your one Getaway to swap the King with your Queen.",
                         "source": {"row": king[0], "col": king[1]},
                         "target": {"row": row, "col": col},
@@ -614,6 +618,7 @@ class VariantActionRules:
                             "owner": color,
                             "icon": "✝",
                             "label": "Episcopal Shift",
+                            "boardMarker": "ability",
                             "description": "Shift this Bishop onto the opposite square color.",
                             "source": {"row": row, "col": col},
                             "target": {"row": target_row, "col": target_col},
@@ -648,6 +653,7 @@ class VariantActionRules:
                             "owner": color,
                             "icon": "⚖",
                             "label": f"Trade {own_piece.name}",
+                            "boardMarker": "sacrifice",
                             "description": f"Sacrifice it to remove the enemy {enemy_piece.name}.",
                             "source": {"row": own_row, "col": own_col},
                             "target": {"row": enemy_row, "col": enemy_col},
@@ -700,6 +706,7 @@ class VariantActionRules:
                         "owner": color,
                         "icon": "☠",
                         "label": f"Recruit {captured.name}",
+                        "boardMarker": "summon",
                         "description": f"Spend {cost} score and deploy it on this home square.",
                         "target": {"row": row, "col": col},
                         "params": {"capturedPieceId": captured.piece_id},
@@ -1004,6 +1011,8 @@ def public_countdowns(state: GameState) -> list[dict]:
                     )
 
             if piece.type == "hypnotizer" and piece.runtime.get("recruit_target_id"):
+                target_id = str(piece.runtime["recruit_target_id"])
+                target_match = find_piece(state, target_id)
                 remaining = int(piece.runtime.get("recruit_threshold", 0)) - int(
                     piece.runtime.get("recruit_progress", 0)
                 )
@@ -1021,6 +1030,10 @@ def public_countdowns(state: GameState) -> list[dict]:
                             "remainingTurns": remaining,
                             "pieceId": piece.piece_id,
                             "pieceName": piece.name,
+                            "targetPieceId": target_id,
+                            "targetPieceName": (
+                                target_match[2].name if target_match is not None else None
+                            ),
                         }
                     )
 
@@ -1044,6 +1057,8 @@ def public_countdowns(state: GameState) -> list[dict]:
                             "remainingTurns": remaining,
                             "pieceId": piece.piece_id,
                             "pieceName": piece.name,
+                            "targetPieceId": target.piece_id,
+                            "targetPieceName": target.name,
                         }
                     )
 
