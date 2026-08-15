@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from backend.catalog import adaptive_back_rank, classic_layout
+from backend.catalog import POPULAR_PRESETS, adaptive_back_rank, classic_layout
 
 
 @pytest.mark.parametrize("cols", range(4, 17))
@@ -33,3 +33,10 @@ def test_classic_layout_adapts_armies_to_board_width(cols: int):
 )
 def test_adaptive_back_rank_keeps_one_king(cols: int, expected: list[str]):
     assert adaptive_back_rank(cols) == expected
+
+
+def test_king_hunt_copy_matches_capture_rules():
+    king_hunt = next(mode for mode in POPULAR_PRESETS if mode["id"] == "king_hunt")
+    assert king_hunt["summary"] == (
+        "Check restrictions are disabled; capture the opposing King to win."
+    )
