@@ -10,6 +10,7 @@ from fastapi import HTTPException
 
 from backend.catalog import (
     VICTORY_MODES,
+    adaptive_back_rank,
     build_catalog_piece_definitions,
     build_default_draft_pool,
     catalog_payload,
@@ -142,30 +143,6 @@ def build_default_piece_definitions() -> dict[str, PieceDefinition]:
     return build_catalog_default_piece_definitions()
 
 
-def _build_back_rank(board_cols: int) -> list[str]:
-    rank: list[str] = ["pawn"] * board_cols
-    left = 0
-    right = board_cols - 1
-    cycle = ["rook", "knight", "bishop"]
-    cycle_index = 0
-
-    while right - left + 1 > 2:
-        piece_type = cycle[cycle_index % len(cycle)]
-        rank[left] = piece_type
-        rank[right] = piece_type
-        left += 1
-        right -= 1
-        cycle_index += 1
-
-    if board_cols % 2 == 0:
-        rank[left] = "queen"
-        rank[right] = "king"
-    else:
-        rank[left] = "king"
-
-    return rank
-
-
 def _create_piece_instance(
     piece_type: str,
     color: str,
@@ -226,8 +203,8 @@ def _initial_board(
         white_back_rank = classic_back_rank
     else:
         piece_columns = list(range(board_cols))
-        black_back_rank = _build_back_rank(board_cols)
-        white_back_rank = _build_back_rank(board_cols)
+        black_back_rank = adaptive_back_rank(board_cols)
+        white_back_rank = adaptive_back_rank(board_cols)
 
     if board_rows >= 1:
         for index, col in enumerate(piece_columns):

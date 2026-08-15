@@ -259,16 +259,36 @@ def build_default_draft_pool(piece_types: set[str] | list[str]) -> dict[str, int
     }
 
 
+def adaptive_back_rank(cols: int) -> list[str]:
+    if cols >= len(CLASSIC_BACK_RANK):
+        return list(CLASSIC_BACK_RANK)
+
+    rank = ["pawn"] * cols
+    left = 0
+    right = cols - 1
+    cycle = ("rook", "knight", "bishop")
+    cycle_index = 0
+    while right - left + 1 > 2:
+        piece_type = cycle[cycle_index % len(cycle)]
+        rank[left] = piece_type
+        rank[right] = piece_type
+        left += 1
+        right -= 1
+        cycle_index += 1
+
+    if cols % 2 == 0:
+        rank[left] = "queen"
+        rank[right] = "king"
+    else:
+        rank[left] = "king"
+    return rank
+
+
 def classic_layout(rows: int = 8, cols: int = 8) -> list[dict[str, Any]]:
-    if rows < 4 or cols < 8:
-        king_col = cols // 2
-        return [
-            {"row": 0, "col": king_col, "type": "king", "color": "black"},
-            {"row": rows - 1, "col": king_col, "type": "king", "color": "white"},
-        ]
-    start_col = (cols - len(CLASSIC_BACK_RANK)) // 2
+    back_rank = adaptive_back_rank(cols)
+    start_col = (cols - len(back_rank)) // 2
     placements: list[dict[str, Any]] = []
-    for index, piece_type in enumerate(CLASSIC_BACK_RANK):
+    for index, piece_type in enumerate(back_rank):
         col = start_col + index
         placements.extend(
             [
