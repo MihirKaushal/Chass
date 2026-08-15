@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from copy import deepcopy
 from typing import Any
 
@@ -46,7 +47,22 @@ def _parameter(
 
 
 def _render_template(template: str, values: dict[str, int]) -> str:
-    return template.format_map(values)
+    rendered = template.format_map(values)
+
+    def pluralize(match: re.Match[str]) -> str:
+        value = int(match.group(1))
+        modifier = match.group(2)
+        unit = match.group(3)
+        return f"{value} {modifier}{unit if value == 1 else f'{unit}s'}"
+
+    return re.sub(
+        (
+            r"\b(\d+) ((?:own |Cannibal |affected-player )?)"
+            r"(square|turn|move|blocker|time|use|pacification)\(s\)"
+        ),
+        pluralize,
+        rendered,
+    )
 
 
 def _normalize_values(

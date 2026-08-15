@@ -1,4 +1,5 @@
 import PieceGlyph from "./PieceGlyph";
+import { parameterValueLabel } from "../variantTuning";
 
 function title(value) {
   return value ? value.charAt(0).toUpperCase() + value.slice(1) : "";
@@ -8,6 +9,7 @@ function PieceTooltip({ piece, placement = "above", edge = "center", onClose = n
   if (!piece) return null;
 
   const customRules = piece.customAttributes?.customRules || piece.customAttributes?.rules || [];
+  const configuredParameters = piece.customAttributes?.configuredParameters || [];
   const runtimeItems = [];
   if (piece.runtime?.catapult_ready_turn_remaining > 0) {
     runtimeItems.push(`Projectile ready in ${piece.runtime.catapult_ready_turn_remaining} own turns`);
@@ -24,7 +26,10 @@ function PieceTooltip({ piece, placement = "above", edge = "center", onClose = n
     );
   }
   if (piece.runtime?.pacifications) {
-    runtimeItems.push(`Diplomat pacifications: ${piece.runtime.pacifications}/5`);
+    const retirementThreshold = piece.runtime.diplomat_retirement_threshold
+      || configuredParameters.find((parameter) => parameter.id === "retireAfterPacifications")?.value
+      || "?";
+    runtimeItems.push(`Diplomat pacifications: ${piece.runtime.pacifications}/${retirementThreshold}`);
   }
   if (piece.runtime?.episcopal_ready_turn_remaining > 0) {
     runtimeItems.push(`Episcopal ready in ${piece.runtime.episcopal_ready_turn_remaining} own turns`);
@@ -65,6 +70,14 @@ function PieceTooltip({ piece, placement = "above", edge = "center", onClose = n
       <span>{piece.points ?? 0} points</span>
       {piece.description ? <p><b>Role</b>{piece.description}</p> : null}
       {piece.movement ? <p><b>Movement</b>{piece.movement}</p> : null}
+      {configuredParameters.length ? (
+        <p>
+          <b>Configured Values</b>
+          {configuredParameters
+            .map((parameter) => `${parameter.label}: ${parameterValueLabel(parameter)}`)
+            .join(" · ")}
+        </p>
+      ) : null}
       {customRules.length ? <p><b>Special Rules</b>{customRules.join(" · ")}</p> : null}
       {runtimeItems.length ? (
         <div className="tooltip-runtime">

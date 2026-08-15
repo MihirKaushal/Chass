@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { boardSquareLabel } from "../boardGeometry";
+import { effectiveCatalogEntry } from "../variantTuning";
 import PieceGlyph from "./PieceGlyph";
 
 function title(value) {
@@ -285,13 +286,16 @@ function CustomPiecesDisclosure({ game }) {
   );
 }
 
-function SpecialAbilitiesDisclosure({ abilities, catalog }) {
+function SpecialAbilitiesDisclosure({ abilities, catalog, parameters }) {
   const selected = abilities?.selected || {};
   const abilityIds = [...new Set(
     Object.values(selected).flatMap((items) => Array.isArray(items) ? items : []).filter((abilityId) => abilityId !== "locked")
   )];
   const definitions = new Map(
-    (catalog?.specialAbilities || []).map((ability) => [ability.id, ability])
+    (catalog?.specialAbilities || []).map((ability) => [
+      ability.id,
+      effectiveCatalogEntry(ability, parameters?.[ability.id]),
+    ])
   );
 
   return (
@@ -308,7 +312,7 @@ function SpecialAbilitiesDisclosure({ abilities, catalog }) {
             <article className="effect-reference-card" key={abilityId}>
               <header>
                 <strong>{definition?.icon ? `${definition.icon} ` : ""}{definition?.name || title(abilityId)}</strong>
-                {definition?.usageLimit ? <span>{definition.usageLimit === 1 ? "One Use" : `${definition.usageLimit} Uses`}</span> : definition?.cooldownTurns ? <span>{definition.cooldownTurns}-Turn Cooldown</span> : <span>Enabled</span>}
+                {definition?.usageLimit != null ? <span>{definition.usageLimit === 1 ? "One Use" : `${definition.usageLimit} Uses`}</span> : definition?.cooldownTurns != null ? <span>{definition.cooldownTurns ? `${definition.cooldownTurns}-Turn Cooldown` : "No Cooldown"}</span> : <span>Enabled</span>}
               </header>
               <p>{definition?.summary || "A selected special ability for this match."}</p>
               <div className="ability-owner-statuses">
@@ -318,7 +322,7 @@ function SpecialAbilitiesDisclosure({ abilities, catalog }) {
                   return (
                     <div key={color}>
                       <strong>{title(color)}</strong>
-                      <span>{remaining ? `${remaining} own turns remaining` : definition?.usageLimit && uses >= definition.usageLimit ? "Used" : "Ready"}</span>
+                      <span>{remaining ? `${remaining} own turns remaining` : definition?.usageLimit != null && uses >= definition.usageLimit ? "Used" : "Ready"}</span>
                       <small>{uses} use{uses === 1 ? "" : "s"}</small>
                     </div>
                   );
@@ -337,7 +341,11 @@ function EnabledEffects({ game, catalog }) {
     <div className="enabled-effects" aria-label="Enabled match options">
       <SpecialRulesDisclosure game={game} />
       <CustomPiecesDisclosure game={game} />
-      <SpecialAbilitiesDisclosure abilities={game.abilities} catalog={catalog} />
+      <SpecialAbilitiesDisclosure
+        abilities={game.abilities}
+        catalog={catalog}
+        parameters={game.configuration?.specialAbilities?.parameters}
+      />
     </div>
   );
 }

@@ -99,6 +99,12 @@ def test_catalog_describes_custom_content(client):
         "power_of_love",
     }
     assert all(piece["description"] and piece["movement"] for piece in catalog["pieces"])
+    assert all(
+        piece["tunableParameters"]
+        for piece in catalog["pieces"]
+        if piece["isCustom"]
+    )
+    assert all(ability["tunableParameters"] for ability in catalog["specialAbilities"])
     assert {formation["id"] for formation in catalog["formations"]} >= {
         "horde",
         "castle_siege",
@@ -216,6 +222,18 @@ def test_configuration_warns_when_getaway_players_have_no_queens(client):
 
     assert result["valid"] is True
     assert "Getaway requires a Queen for both players." in result["warnings"]
+
+
+def test_configuration_rejects_out_of_range_tunable_values(client):
+    payload = configured_game(
+        enabledPieces=[*classic_types(), "catapult"],
+        pieceParameters={"catapult": {"shortRecoveryTurns": 51}},
+    )
+
+    result = client.post("/game/validate", json=payload).json()
+
+    assert result["valid"] is False
+    assert any("Short Recovery" in error for error in result["errors"])
 
 
 def test_horde_castle_and_sixteen_square_presets_create_playable_boards(client):
@@ -457,6 +475,16 @@ def test_catapult_uses_configured_projectile_range_and_recovery(client):
     assert game["configuration"]["pieceParameters"]["catapult"][
         "shortRecoveryTurns"
     ] == 3
+    definition = next(
+        item for item in game["pieceDefinitions"] if item["type"] == "catapult"
+    )
+    configured_values = {
+        item["id"]: item["value"]
+        for item in definition["customAttributes"]["configuredParameters"]
+    }
+    assert configured_values["shortProjectileSkip"] == 2
+    assert configured_values["shortRecoveryTurns"] == 3
+    assert "recover for 3 own turns" in definition["customAttributes"]["rules"][0]
 
     fired = client.post(
         f"/game/{game['id']}/action",
