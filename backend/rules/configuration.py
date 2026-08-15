@@ -75,7 +75,7 @@ class ConfigurationRuleEngine:
             (payload.specialAbilities.parameters, normalize_ability_parameters),
         ):
             try:
-                normalizer(supplied)
+                normalizer(supplied, pieces) if normalizer is normalize_piece_parameters else normalizer(supplied)
             except ValueError as error:
                 result.errors.append(f"{error}.")
 

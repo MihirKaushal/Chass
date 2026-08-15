@@ -225,8 +225,9 @@ def configure_special_ability(
 
 def normalize_piece_parameters(
     supplied: dict[str, dict[str, int]],
+    definitions: dict[str, PieceDefinition] | None = None,
 ) -> dict[str, dict[str, int]]:
-    catalog = build_catalog_piece_definitions()
+    catalog = definitions or build_catalog_piece_definitions()
     unknown = sorted(set(supplied) - set(catalog))
     if unknown:
         raise ValueError(f"Unknown piece parameter group: {unknown[0]}")
