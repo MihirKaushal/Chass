@@ -45,9 +45,18 @@ def configured_game(**overrides) -> dict:
     }
 
 
-def start_local_ability_game(client, ability: str, **overrides) -> dict:
+def start_local_ability_game(
+    client,
+    ability: str,
+    *,
+    ability_parameters: dict[str, int] | None = None,
+    **overrides,
+) -> dict:
+    special_abilities = {"enabled": True, "allowed": [ability]}
+    if ability_parameters is not None:
+        special_abilities["parameters"] = {ability: ability_parameters}
     payload = configured_game(
-        specialAbilities={"enabled": True, "allowed": [ability]},
+        specialAbilities=special_abilities,
         **overrides,
     )
     game = client.post("/game/create", json=payload).json()["game"]
@@ -1174,6 +1183,33 @@ def test_eye_for_an_eye_removes_matching_pieces_without_scoring(client):
     )
 
 
+def test_eye_for_an_eye_uses_configured_recharge(client):
+    game = start_local_ability_game(
+        client,
+        "eye_for_an_eye",
+        ability_parameters={"cooldownTurns": 3},
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "white"},
+            {"row": 0, "col": 0, "type": "rook", "color": "black"},
+        ],
+    )
+    action = next(
+        item for item in game["availableActions"] if item["actionType"] == "eye_for_an_eye"
+    )
+    updated = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": action["actionType"],
+            "source": action["source"],
+            "target": action["target"],
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    assert updated["abilities"]["cooldowns"]["white"]["eye_for_an_eye"] == 3
+
+
 def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
     game = start_local_ability_game(
         client,
@@ -1205,10 +1241,43 @@ def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
     assert updated["board"][5][2]["runtime"]["episcopal_ready_turn_remaining"] == 6
 
 
+def test_episcopal_uses_configured_shift_distance_and_recharge(client):
+    game = start_local_ability_game(
+        client,
+        "episcopal",
+        ability_parameters={"cooldownTurns": 2, "shiftDistance": 3},
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 2, "type": "bishop", "color": "white"},
+        ],
+    )
+    action = next(
+        item
+        for item in game["availableActions"]
+        if item["actionType"] == "episcopal" and item["target"] == {"row": 3, "col": 2}
+    )
+    updated = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": action["actionType"],
+            "source": action["source"],
+            "target": action["target"],
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    assert updated["board"][3][2]["type"] == "bishop"
+    assert updated["abilities"]["cooldowns"]["white"]["episcopal"] == 2
+    assert next(
+        item for item in updated["countdowns"] if item["kind"] == "episcopal"
+    )["remainingTurns"] == 2
+
+
 def test_power_of_love_grants_queen_mobility_after_queen_capture(client):
     game = start_local_ability_game(
         client,
         "power_of_love",
+        ability_parameters={"durationTurns": 4},
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "king", "color": "black"},
@@ -1239,7 +1308,7 @@ def test_power_of_love_grants_queen_mobility_after_queen_capture(client):
     assert captured.status_code == 200
     updated = captured.json()
     king = updated["board"][7][6]
-    assert king["runtime"]["love_until_turn_remaining"] == 10
+    assert king["runtime"]["love_until_turn_remaining"] == 4
     assert any(
         move["from"] == {"row": 7, "col": 6} and move["to"] == {"row": 4, "col": 3}
         for move in updated["validMoves"]
@@ -1250,6 +1319,7 @@ def test_necromancy_spends_score_and_recruits_captured_enemy(client):
     game = start_local_ability_game(
         client,
         "necromancy",
+        ability_parameters={"cooldownTurns": 3},
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "king", "color": "black"},
@@ -1296,9 +1366,9 @@ def test_necromancy_spends_score_and_recruits_captured_enemy(client):
     assert revived["color"] == "white"
     assert updated["spentScore"]["white"] == 1
     assert updated["score"]["white"] == 0
-    assert updated["abilities"]["cooldowns"]["white"]["necromancy"] == 9
+    assert updated["abilities"]["cooldowns"]["white"]["necromancy"] == 3
     assert any(
-        item["kind"] == "necromancy" and item["remainingTurns"] == 9
+        item["kind"] == "necromancy" and item["remainingTurns"] == 3
         for item in updated["countdowns"]
     )
 
@@ -1307,9 +1377,10 @@ def test_kamikaze_final_rank_blast_ends_game_when_king_is_in_range(client):
     game = start_local_ability_game(
         client,
         "kamikaze",
+        ability_parameters={"blastRadius": 3},
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
-            {"row": 0, "col": 2, "type": "king", "color": "black"},
+            {"row": 0, "col": 3, "type": "king", "color": "black"},
             {"row": 1, "col": 0, "type": "pawn", "color": "white"},
         ],
     )
@@ -1365,6 +1436,91 @@ def test_getaway_swaps_the_king_with_a_queen_to_escape_checkmate(client):
     assert not any(item["kind"] == "getaway" for item in updated["countdowns"])
     assert updated["abilities"]["usageCount"]["white"]["getaway"] == 1
     assert updated["currentPlayer"] == "black"
+
+
+def test_getaway_uses_configured_per_game_limit(client):
+    from backend.routes.game import game_service
+
+    game = start_local_ability_game(
+        client,
+        "getaway",
+        ability_parameters={"usesPerGame": 2},
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "queen", "color": "white"},
+            {"row": 1, "col": 6, "type": "pawn", "color": "white"},
+            {"row": 1, "col": 0, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "black"},
+            {"row": 5, "col": 6, "type": "queen", "color": "black"},
+        ],
+    )
+    first = next(
+        item for item in game["availableActions"] if item["actionType"] == "getaway"
+    )
+    first_result = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": first["actionType"],
+            "source": first["source"],
+            "target": first["target"],
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    assert first_result["abilities"]["usageCount"]["white"]["getaway"] == 1
+
+    record = game_service.repository.get_game(game["id"])
+    state = record.state.clone()
+    state.board.grid[7][7], state.board.grid[0][7] = (
+        state.board.grid[0][7],
+        state.board.grid[7][7],
+    )
+    state.current_player = "white"
+    state.game_status = "check"
+    state.winner = None
+    state.phase = "play"
+    state.result = None
+    prepared = game_service.repository.save_game(
+        state,
+        record.version,
+        expires_at=record.expires_at,
+    )
+    prepared_view = client.get(f"/game/{game['id']}").json()
+    second = next(
+        item
+        for item in prepared_view["availableActions"]
+        if item["actionType"] == "getaway"
+    )
+    second_result = client.post(
+        f"/game/{game['id']}/action",
+        json={
+            "actionType": second["actionType"],
+            "source": second["source"],
+            "target": second["target"],
+            "expectedVersion": prepared.version,
+        },
+    ).json()
+    assert second_result["abilities"]["usageCount"]["white"]["getaway"] == 2
+
+    exhausted_record = game_service.repository.get_game(game["id"])
+    exhausted_state = exhausted_record.state.clone()
+    exhausted_state.board.grid[7][7], exhausted_state.board.grid[0][7] = (
+        exhausted_state.board.grid[0][7],
+        exhausted_state.board.grid[7][7],
+    )
+    exhausted_state.current_player = "white"
+    exhausted_state.game_status = "check"
+    exhausted_state.phase = "play"
+    exhausted = game_service.repository.save_game(
+        exhausted_state,
+        exhausted_record.version,
+        expires_at=exhausted_record.expires_at,
+    )
+    exhausted_view = client.get(f"/game/{game['id']}").json()
+    assert exhausted_view["version"] == exhausted.version
+    assert not any(
+        item["actionType"] == "getaway"
+        for item in exhausted_view["availableActions"]
+    )
 
 
 def test_getaway_does_not_offer_a_rook_swap(client):

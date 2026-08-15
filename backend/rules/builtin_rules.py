@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from backend.models import GameState, Move
 from backend.rules.base import Rule, RuleContext, ValidationResult
-from backend.rules.tuning import piece_parameter
+from backend.rules.tuning import ability_parameter, piece_parameter
 from backend.rules.variant_system import (
     FINISHED_STATUSES,
     affinity_start_squares,
@@ -322,8 +322,9 @@ class PromotionRule(Rule):
         ):
             state.board.grid[move.to_row][move.to_col] = None
             enemy_king_hit = False
+            blast_radius = ability_parameter(state, "kamikaze", "blastRadius")
             for direction in (-1, 1):
-                for distance in (1, 2):
+                for distance in range(1, blast_radius + 1):
                     target_col = move.to_col + direction * distance
                     if not 0 <= target_col < state.board.cols:
                         break

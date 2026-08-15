@@ -6,12 +6,17 @@ from uuid import uuid4
 from backend.catalog import SPECIAL_ABILITIES
 from backend.models import CaptureEvent, GameResult, GameState, MoveRecord, Piece
 from backend.rules.movement import in_bounds
-from backend.rules.tuning import catapult_projectile_profiles, piece_parameter
+from backend.rules.tuning import (
+    ability_parameter,
+    catapult_projectile_profiles,
+    piece_parameter,
+)
 
 ABILITY_ICONS = {ability["id"]: ability["icon"] for ability in SPECIAL_ABILITIES}
-ABILITY_COOLDOWN_TURNS = {
-    "necromancy": 9,
-    "eye_for_an_eye": 10,
+ABILITY_COOLDOWN_PARAMETERS = {
+    ability["id"]: ability["cooldownTurnsParameter"]
+    for ability in SPECIAL_ABILITIES
+    if ability.get("cooldownTurnsParameter")
 }
 FINISHED_STATUSES = {
     "checkmate",
@@ -151,10 +156,6 @@ def has_ability(state: GameState, color: str, ability_id: str) -> bool:
     return ability_id in state.abilities.selected.get(color, [])
 
 
-def ability_was_used(state: GameState, color: str, ability_id: str) -> bool:
-    return bool(state.abilities.used.get(color, {}).get(ability_id, False))
-
-
 def mark_ability_used(state: GameState, color: str, ability_id: str) -> None:
     state.abilities.used[color][ability_id] = True
 
@@ -164,8 +165,13 @@ def ability_is_ready(state: GameState, color: str, ability_id: str) -> bool:
 
 
 def start_ability_cooldown(state: GameState, color: str, ability_id: str) -> None:
+    cooldown_turns = ability_parameter(
+        state,
+        ability_id,
+        ABILITY_COOLDOWN_PARAMETERS[ability_id],
+    )
     state.abilities.runtime[color][f"{ability_id}_ready_turn"] = (
-        state.turn_counts[color] + ABILITY_COOLDOWN_TURNS[ability_id] + 1
+        state.turn_counts[color] + cooldown_turns + 1
     )
     usage = state.abilities.usage_count[color]
     usage[ability_id] = int(usage.get(ability_id, 0)) + 1
@@ -191,7 +197,12 @@ def trigger_power_of_love(state: GameState, captures: list[CaptureEvent]) -> Non
         for row in state.board.grid:
             for piece in row:
                 if piece is not None and piece.type == "king" and piece.color == color:
-                    piece.runtime["love_until_turn"] = state.turn_counts[color] + 10
+                    duration = ability_parameter(
+                        state, "power_of_love", "durationTurns"
+                    )
+                    piece.runtime["love_until_turn"] = (
+                        state.turn_counts[color] + duration
+                    )
 
 
 def _adjacent_positions(state: GameState, row: int, col: int):
@@ -590,9 +601,11 @@ class VariantActionRules:
         return actions
 
     def _getaway_actions(self, state: GameState, color: str, helper) -> list[dict]:
+        usage_limit = ability_parameter(state, "getaway", "usesPerGame")
+        uses = int(state.abilities.usage_count[color].get("getaway", 0))
         if (
             not has_ability(state, color, "getaway")
-            or ability_was_used(state, color, "getaway")
+            or uses >= usage_limit
             or state.game_status != "check"
             or helper.has_any_legal_move(state, color)
         ):
@@ -620,7 +633,10 @@ class VariantActionRules:
                         "icon": "⇄",
                         "label": f"Getaway with {piece.name}",
                         "boardMarker": "swap",
-                        "description": "Use your one Getaway to swap the King with your Queen.",
+                        "description": (
+                            f"Use Getaway {uses + 1} of {usage_limit} to swap the King "
+                            "with your Queen."
+                        ),
                         "source": {"row": king[0], "col": king[1]},
                         "target": {"row": row, "col": col},
                     }
@@ -633,35 +649,45 @@ class VariantActionRules:
         ready_turn = int(state.abilities.runtime[color].get("episcopal_ready_turn", 0))
         if state.turn_counts[color] < ready_turn:
             return []
+        shift_distance = ability_parameter(state, "episcopal", "shiftDistance")
         actions = []
         for row, board_row in enumerate(state.board.grid):
             for col, piece in enumerate(board_row):
                 if piece is None or piece.color != color or piece.type != "bishop":
                     continue
                 for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                    target_row, target_col = row + dr, col + dc
-                    if not in_bounds(
-                        state.board.rows, state.board.cols, target_row, target_col
-                    ):
-                        continue
-                    target = state.board.grid[target_row][target_col]
-                    if target is not None and (
-                        target.color == color or not self._capture_is_legal(state, target)
-                    ):
-                        continue
-                    actions.append(
-                        {
-                            "id": f"episcopal:{piece.piece_id}:{target_row}:{target_col}",
-                            "actionType": "episcopal",
-                            "owner": color,
-                            "icon": "✝",
-                            "label": "Episcopal Shift",
-                            "boardMarker": "ability",
-                            "description": "Shift this Bishop onto the opposite square color.",
-                            "source": {"row": row, "col": col},
-                            "target": {"row": target_row, "col": target_col},
-                        }
-                    )
+                    for distance in range(1, shift_distance + 1):
+                        target_row = row + dr * distance
+                        target_col = col + dc * distance
+                        if not in_bounds(
+                            state.board.rows, state.board.cols, target_row, target_col
+                        ):
+                            break
+                        target = state.board.grid[target_row][target_col]
+                        if target is not None and (
+                            target.color == color
+                            or not self._capture_is_legal(state, target)
+                        ):
+                            break
+                        # A cardinal shift changes square color only at odd distances.
+                        if distance % 2:
+                            actions.append(
+                                {
+                                    "id": f"episcopal:{piece.piece_id}:{target_row}:{target_col}",
+                                    "actionType": "episcopal",
+                                    "owner": color,
+                                    "icon": "✝",
+                                    "label": "Episcopal Shift",
+                                    "boardMarker": "ability",
+                                    "description": (
+                                        "Shift this Bishop onto the opposite square color."
+                                    ),
+                                    "source": {"row": row, "col": col},
+                                    "target": {"row": target_row, "col": target_col},
+                                }
+                            )
+                        if target is not None:
+                            break
         return actions
 
     def _eye_actions(self, state: GameState, color: str, helper) -> list[dict]:
@@ -886,7 +912,10 @@ class VariantActionRules:
             bishop.has_moved = True
             if victim is not None:
                 captures.append(CaptureEvent(row=target[0], col=target[1], piece=victim, reason="Episcopal shift"))
-            state.abilities.runtime[color]["episcopal_ready_turn"] = state.turn_counts[color] + 7
+            cooldown = ability_parameter(state, "episcopal", "cooldownTurns")
+            state.abilities.runtime[color]["episcopal_ready_turn"] = (
+                state.turn_counts[color] + cooldown + 1
+            )
             explanation = f"{color.title()} used Episcopal to shift a Bishop."
             piece_type = "bishop"
         elif action_type == "getaway":
@@ -1118,7 +1147,7 @@ def public_countdowns(state: GameState) -> list[dict]:
                     }
                 )
         for selected in state.abilities.selected.get(color, []):
-            if selected not in ABILITY_COOLDOWN_TURNS:
+            if selected not in ABILITY_COOLDOWN_PARAMETERS:
                 continue
             remaining = ability_cooldown_remaining(state, color, selected)
             if remaining > 0:
