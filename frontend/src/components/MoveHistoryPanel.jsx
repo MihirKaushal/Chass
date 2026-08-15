@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import { boardSquareLabel } from "../boardGeometry";
 import PieceGlyph from "./PieceGlyph";
 
 function title(value) {
@@ -15,11 +16,6 @@ function formatValue(value) {
   if (Array.isArray(value)) return value.map(label).join(", ");
   if (value && typeof value === "object") return JSON.stringify(value);
   return label(value);
-}
-
-function squareLabel(position, rows = 8) {
-  if (!position) return "";
-  return `${String.fromCharCode(65 + position.col)}${rows - position.row}`;
 }
 
 function MatchClock({ clock }) {
@@ -59,11 +55,11 @@ function GameStateSummary({ gameStatus, winner, score, abilities, clock, centerD
     <section className="panel-section">
       <h3>Game State</h3>
       <div className="state-summary">
-        <span><b>Status</b>{title(gameStatus)}</span>
-        <span><b>Winner</b>{title(winner) || "None"}</span>
-        <span><b>Score</b>{score?.white ?? 0} / {score?.black ?? 0}</span>
+        <span><b>Status</b><span>{title(gameStatus)}</span></span>
+        <span><b>Winner</b><span>{title(winner) || "None"}</span></span>
+        <span><b>Score</b><span>{score?.white ?? 0} / {score?.black ?? 0}</span></span>
         {abilities?.enabled ? (
-          <span><b>Abilities</b>{abilityNames(abilities.selected?.white)} / {abilityNames(abilities.selected?.black)}</span>
+          <span><b>Abilities</b><span>{abilityNames(abilities.selected?.white)} / {abilityNames(abilities.selected?.black)}</span></span>
         ) : null}
       </div>
       <MatchClock clock={clock} />
@@ -170,7 +166,7 @@ function ActionPanel({ actions = [], onAction, actionLoading, boardRows }) {
             {options.map((action) => (
               <button type="button" key={action.id} disabled={actionLoading} onClick={() => onAction(action)}>
                 <strong>{action.label}</strong>
-                <small>{action.source ? `${squareLabel(action.source, boardRows)} → ` : ""}{action.target ? squareLabel(action.target, boardRows) : ""}</small>
+                <small>{action.source ? `${boardSquareLabel(action.source, boardRows)} to ` : ""}{action.target ? boardSquareLabel(action.target, boardRows) : ""}</small>
                 <span>{action.description}</span>
               </button>
             ))}
@@ -358,6 +354,13 @@ export function EffectsPanel({ game, catalog, onAction, actionLoading, children 
 }
 
 export function GameInfoPanel({ game }) {
+  const boardRows = game.boardRows ?? game.boardSize;
+  const moveSquares = (move) => {
+    const from = boardSquareLabel(move.from, boardRows);
+    const to = boardSquareLabel(move.to, boardRows);
+    return from === to ? to : `${from} to ${to}`;
+  };
+
   return (
     <aside className="history-panel">
       <GameStateSummary gameStatus={game.gameStatus} winner={game.winner} score={game.score} abilities={game.abilities} clock={game.clock} centerDominion={game.centerDominion} royalCenter={game.royalCenter} checkRace={game.checkRace} />
@@ -365,7 +368,7 @@ export function GameInfoPanel({ game }) {
       <section className="panel-section history-section">
         <h3>Move History</h3>
         {game.lastMoveExplanation ? <p className="move-explanation">{game.lastMoveExplanation}</p> : null}
-        <ol>{[...(game.history || [])].reverse().map((move) => <li key={move.moveNumber}><span>{move.moveNumber}. {move.actionType === "move" ? title(move.piece) : title(move.actionType)} ({title(move.player)})</span><small>{move.explanation}</small></li>)}</ol>
+        <ol>{[...(game.history || [])].reverse().map((move) => <li key={move.moveNumber}><span className="history-move-heading"><strong>{move.moveNumber}. {move.actionType === "move" ? title(move.piece) : title(move.actionType)} ({title(move.player)})</strong><em>{moveSquares(move)}</em></span><small>{move.explanation}</small></li>)}</ol>
       </section>
     </aside>
   );
