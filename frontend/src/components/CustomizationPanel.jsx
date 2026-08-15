@@ -31,16 +31,33 @@ function coordinate(row, col, rows) {
   return `${String.fromCharCode(65 + col)}${rows - row}`;
 }
 
-function classicLayout(rows, cols) {
-  if (rows < 4 || cols < 8) {
-    const kingCol = Math.floor(cols / 2);
-    return [
-      { row: 0, col: kingCol, type: "king", color: "black" },
-      { row: rows - 1, col: kingCol, type: "king", color: "white" },
-    ];
+function adaptiveBackRank(cols) {
+  if (cols >= BACK_RANK.length) return [...BACK_RANK];
+  const rank = Array(cols).fill("pawn");
+  const cycle = ["rook", "knight", "bishop"];
+  let left = 0;
+  let right = cols - 1;
+  let cycleIndex = 0;
+  while (right - left + 1 > 2) {
+    rank[left] = cycle[cycleIndex % cycle.length];
+    rank[right] = cycle[cycleIndex % cycle.length];
+    left += 1;
+    right -= 1;
+    cycleIndex += 1;
   }
-  const startCol = Math.floor((cols - BACK_RANK.length) / 2);
-  return BACK_RANK.flatMap((type, index) => {
+  if (cols % 2 === 0) {
+    rank[left] = "queen";
+    rank[right] = "king";
+  } else {
+    rank[left] = "king";
+  }
+  return rank;
+}
+
+function classicLayout(rows, cols) {
+  const backRank = adaptiveBackRank(cols);
+  const startCol = Math.floor((cols - backRank.length) / 2);
+  return backRank.flatMap((type, index) => {
     const col = startCol + index;
     return [
       { row: 0, col, type, color: "black" },
