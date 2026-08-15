@@ -3,7 +3,11 @@ from __future__ import annotations
 from math import gcd
 
 from backend.models import GameState, MoveOption, MovePattern, Piece
-from backend.rules.tuning import catapult_projectile_profiles, piece_parameter
+from backend.rules.tuning import (
+    ability_parameter,
+    catapult_projectile_profiles,
+    piece_parameter,
+)
 
 
 def in_bounds(rows: int, cols: int, row: int, col: int) -> bool:
@@ -525,10 +529,20 @@ def generate_piece_attacks(state: GameState, row: int, col: int) -> set[tuple[in
     if piece.type == "bishop" and "episcopal" in selected:
         ready_turn = int(state.abilities.runtime[piece.color].get("episcopal_ready_turn", 0))
         if state.turn_counts[piece.color] >= ready_turn:
+            shift_distance = ability_parameter(state, "episcopal", "shiftDistance")
             for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                target_row, target_col = row + dr, col + dc
-                if in_bounds(state.board.rows, state.board.cols, target_row, target_col):
+                for distance in range(1, shift_distance + 1):
+                    target_row = row + dr * distance
+                    target_col = col + dc * distance
+                    if not in_bounds(
+                        state.board.rows, state.board.cols, target_row, target_col
+                    ):
+                        break
                     target = state.board.grid[target_row][target_col]
-                    if target is None or target.type not in {"barricade", "diplomat"}:
+                    if target is not None and target.type in {"barricade", "diplomat"}:
+                        break
+                    if distance % 2:
                         attacks.add((target_row, target_col))
+                    if target is not None:
+                        break
     return attacks
