@@ -1224,7 +1224,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "id": "king_hunt",
         "name": "King Hunt",
         "icon": "⚔",
-        "summary": "Checks are warnings, but the King must actually be captured.",
+        "summary": "Check restrictions are disabled; capture the opposing King to win.",
         "boardRows": 8,
         "boardCols": 8,
         "formationId": "classic",

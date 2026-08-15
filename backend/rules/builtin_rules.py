@@ -20,6 +20,10 @@ def opposing_color(color: str) -> str:
     return "black" if color == "white" else "white"
 
 
+def quantity(value: int, singular: str, plural: str | None = None) -> str:
+    return f"{value} {singular if value == 1 else plural or f'{singular}s'}"
+
+
 class BoundsRule(Rule):
     id = "bounds"
     name = "Board Bounds"
@@ -618,9 +622,12 @@ class ConfigurableVictoryRule(Rule):
                 winner=winner,
                 description=(
                     f"{winner.title()} won! {winner.title()} got to "
-                    f"{config.target_points} points."
+                    f"{quantity(config.target_points, 'point')}."
                     if winner
-                    else f"Draw! Both players got to {config.target_points} points."
+                    else (
+                        "Draw! Both players got to "
+                        f"{quantity(config.target_points, 'point')}."
+                    )
                 ),
             )
             return
@@ -665,9 +672,12 @@ class ConfigurableVictoryRule(Rule):
                 winner=winner,
                 description=(
                     f"{winner.title()} won the Royal Score match with "
-                    f"{state.score[winner]} points."
+                    f"{quantity(state.score[winner], 'point')}."
                     if winner
-                    else f"Draw! Royal defeat ended the match at {white_score} points each."
+                    else (
+                        "Draw! Royal defeat ended the match at "
+                        f"{quantity(white_score, 'point')} each."
+                    )
                 ),
             )
 
@@ -734,7 +744,7 @@ class CenterDominionRule(Rule):
             winner=winner,
             description=(
                 f"{winner.title()} won! {winner.title()} held both center squares for "
-                f"{target} consecutive rounds."
+                f"{quantity(target, 'consecutive round')}."
             ),
         )
 
@@ -860,9 +870,12 @@ class ScoreTargetWinRule(Rule):
             trigger="score",
             winner=winner,
             description=(
-                f"{winner.title()} won! {winner.title()} got to {target_score} points."
+                f"{winner.title()} won! {winner.title()} got to "
+                f"{quantity(target_score, 'point')}."
                 if winner
-                else f"Draw! Both players got to {target_score} points."
+                else (
+                    f"Draw! Both players got to {quantity(target_score, 'point')}."
+                )
             ),
         )
 

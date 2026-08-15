@@ -89,7 +89,7 @@ function buildEndgameMessage(game) {
     const scoreTargetRule = findRule(game.rules, "score_target_win");
     const targetScore = Number(scoreTargetRule?.params?.targetScore ?? 21);
     const normalizedTarget = Number.isFinite(targetScore) ? targetScore : 21;
-    return `${winnerLabel} won! ${winnerLabel} got to ${normalizedTarget} points.`;
+    return `${winnerLabel} won! ${winnerLabel} got to ${normalizedTarget} point${normalizedTarget === 1 ? "" : "s"}.`;
   }
 
   if (game.gameStatus === "stalemate") {

@@ -423,7 +423,8 @@ class CommandPointRule:
             return ValidationResult(False, f"It is {state.current_player}'s turn.")
         cost = config.power_costs[power]
         if state.affinity.command_points[color] < cost:
-            return ValidationResult(False, f"{power.title()} requires {cost} command points.")
+            unit = "command point" if cost == 1 else "command points"
+            return ValidationResult(False, f"{power.title()} requires {cost} {unit}.")
         used = state.affinity.power_usage[color].get(power, 0)
         cap = config.power_usage_caps[power]
         if used >= cap:

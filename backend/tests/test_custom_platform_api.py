@@ -167,7 +167,7 @@ def test_affinity_custom_rule_is_available_in_classic_games(client):
         },
     )
     assert command.status_code == 400
-    assert "requires 1 command points" in command.json()["detail"]
+    assert "requires 1 command point" in command.json()["detail"]
 
 
 def test_catalog_formations_have_complete_horde_and_castle_armies(client):
@@ -681,6 +681,7 @@ def test_point_race_resolves_before_no_move_fallback(client):
     assert finished["gameStatus"] == "points"
     assert finished["winner"] == "white"
     assert finished["result"]["reasonCode"] == "point_target"
+    assert finished["result"]["description"].endswith("got to 1 point.")
 
 
 def test_center_dominion_wins_after_surviving_the_opponent_turn(client):
@@ -737,7 +738,9 @@ def test_center_dominion_wins_after_surviving_the_opponent_turn(client):
     assert finished["gameStatus"] == "center_dominion"
     assert finished["winner"] == "white"
     assert finished["result"]["reasonCode"] == "center_dominion"
-    assert "held both center squares" in finished["result"]["description"]
+    assert finished["result"]["description"].endswith(
+        "held both center squares for 1 consecutive round."
+    )
 
 
 def test_royal_center_wins_when_king_reaches_adaptive_objective(client):
