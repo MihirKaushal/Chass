@@ -3,10 +3,12 @@ import { useEffect, useMemo, useState } from "react";
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { affinitySquares, barricadeSquares, objectiveCenterSquares } from "../boardGeometry";
 import {
+  applyParameterChange,
   effectiveCatalogEntry,
   mergeParameterGroups,
   parameterDefault,
   parameterDefaults,
+  parameterMaximum,
   parameterValueLabel,
 } from "../variantTuning";
 import PieceGlyph from "./PieceGlyph";
@@ -470,6 +472,15 @@ function TunableParameterFields({
   onChange,
 }) {
   if (!parameters?.length) return null;
+  const resolvedValues = Object.fromEntries(
+    parameters.map((parameter) => [
+      parameter.id,
+      values?.[parameter.id] ?? parameterDefault(parameter, {
+        rows: boardRows,
+        cols: boardCols,
+      }),
+    ])
+  );
   return (
     <fieldset className="tuning-fieldset" disabled={disabled}>
       <legend>Behavior Settings</legend>
@@ -479,19 +490,25 @@ function TunableParameterFields({
             rows: boardRows,
             cols: boardCols,
           });
+          const maximum = parameterMaximum(parameter, resolvedValues);
           return (
           <label key={parameter.id}>
             <span>{parameter.label}</span>
             <input
               type="number"
               min={parameter.min}
-              max={parameter.max}
+              max={maximum}
               step="1"
-              value={values?.[parameter.id] ?? defaultValue}
-              onChange={(event) => onChange(
-                parameter.id,
-                clamp(event.target.value, parameter.min, parameter.max)
-              )}
+              value={resolvedValues[parameter.id]}
+              onChange={(event) => {
+                const value = clamp(event.target.value, parameter.min, maximum);
+                onChange(applyParameterChange(
+                  parameters,
+                  resolvedValues,
+                  parameter.id,
+                  value
+                ));
+              }}
             />
             <small>
               {parameter.description} Default: {parameterValueLabel(parameter, defaultValue)}.
@@ -925,15 +942,12 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                       disabled={!enabled}
                       boardRows={draft.boardRows}
                       boardCols={draft.boardCols}
-                      onChange={(parameterId, value) => setDraft((current) => ({
+                      onChange={(nextValues) => setDraft((current) => ({
                         ...current,
                         presetId: "custom",
                         pieceParameters: {
                           ...current.pieceParameters,
-                          [piece.type]: {
-                            ...current.pieceParameters[piece.type],
-                            [parameterId]: value,
-                          },
+                          [piece.type]: nextValues,
                         },
                       }))}
                     />
@@ -1012,17 +1026,14 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                       disabled={!enabled || Boolean(reason)}
                       boardRows={draft.boardRows}
                       boardCols={draft.boardCols}
-                      onChange={(parameterId, value) => setDraft((current) => ({
+                      onChange={(nextValues) => setDraft((current) => ({
                         ...current,
                         presetId: "custom",
                         specialAbilities: {
                           ...current.specialAbilities,
                           parameters: {
                             ...current.specialAbilities.parameters,
-                            [ability.id]: {
-                              ...current.specialAbilities.parameters[ability.id],
-                              [parameterId]: value,
-                            },
+                            [ability.id]: nextValues,
                           },
                         },
                       }))}

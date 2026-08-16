@@ -39,6 +39,9 @@ def destinations(game: dict, row: int, col: int) -> set[tuple[int, int]]:
 def test_elephant_catalog_exposes_editable_defaults(client):
     catalog = client.get("/game/catalog").json()
     elephant = next(piece for piece in catalog["pieces"] if piece["type"] == "elephant")
+    parameter_specs = {
+        parameter["id"]: parameter for parameter in elephant["tunableParameters"]
+    }
     parameters = {
         parameter["id"]: parameter["default"]
         for parameter in elephant["tunableParameters"]
@@ -50,7 +53,34 @@ def test_elephant_catalog_exposes_editable_defaults(client):
         "chargeDistance": 2,
         "alliedChargeLimit": 1,
     }
+    assert parameter_specs["alliedChargeLimit"]["maxParameter"] == "chargeDistance"
     assert any("Cannibal" in rule for rule in elephant["rules"])
+
+
+def test_elephant_allied_charge_limit_cannot_exceed_charge_distance(client):
+    payload = elephant_game(
+        [
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 6, "col": 3, "type": "elephant", "color": "white"},
+        ],
+        piece_parameters={
+            "movementDistance": 4,
+            "chargeDistance": 2,
+            "alliedChargeLimit": 3,
+        },
+    )
+
+    validation = client.post("/game/validate", json=payload).json()
+    assert validation["valid"] is False
+    assert any(
+        "Allied Charge Limit cannot exceed Charge Distance" in error
+        for error in validation["errors"]
+    )
+
+    created = client.post("/game/create", json=payload)
+    assert created.status_code == 400
+    assert "Allied Charge Limit cannot exceed Charge Distance" in created.json()["detail"]
 
 
 def test_elephant_moves_forward_or_sideways_but_captures_only_by_charge(client):

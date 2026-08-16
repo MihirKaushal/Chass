@@ -2,8 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  applyParameterChange,
   effectiveCatalogEntry,
   parameterDefaults,
+  parameterMaximum,
   scorchUsageDefault,
 } from "./variantTuning.js";
 
@@ -35,4 +37,44 @@ test("Scorch renders configured values in descriptions", () => {
   });
 
   assert.equal(configured.summary, "Scorch 5 squares with 3 turns between uses.");
+});
+
+const elephantParameters = [
+  { id: "chargeDistance", min: 1, max: 16, default: 2 },
+  {
+    id: "alliedChargeLimit",
+    min: 0,
+    max: 16,
+    default: 1,
+    maxParameter: "chargeDistance",
+  },
+];
+
+test("Elephant allied charge limit follows the configured charge distance", () => {
+  const alliedLimit = elephantParameters[1];
+
+  assert.equal(parameterMaximum(alliedLimit, { chargeDistance: 2 }), 2);
+  assert.equal(parameterMaximum(alliedLimit, { chargeDistance: 5 }), 5);
+});
+
+test("Lowering Elephant charge distance clamps its allied charge limit", () => {
+  assert.deepEqual(
+    applyParameterChange(
+      elephantParameters,
+      { chargeDistance: 4, alliedChargeLimit: 3 },
+      "chargeDistance",
+      2
+    ),
+    { chargeDistance: 2, alliedChargeLimit: 2 }
+  );
+
+  assert.deepEqual(
+    applyParameterChange(
+      elephantParameters,
+      { chargeDistance: 2, alliedChargeLimit: 1 },
+      "chargeDistance",
+      4
+    ),
+    { chargeDistance: 4, alliedChargeLimit: 1 }
+  );
 });

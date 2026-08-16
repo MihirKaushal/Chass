@@ -40,6 +40,36 @@ export function parameterDefaults(entries, context = {}) {
   );
 }
 
+export function parameterMaximum(parameter, values = {}) {
+  const configuredMaximum = Number(parameter.max);
+  if (!parameter.maxParameter) return configuredMaximum;
+
+  const linkedMaximum = Number(values[parameter.maxParameter]);
+  return Number.isFinite(linkedMaximum)
+    ? Math.min(configuredMaximum, linkedMaximum)
+    : configuredMaximum;
+}
+
+export function applyParameterChange(parameters, values, parameterId, value) {
+  const updated = { ...values, [parameterId]: value };
+
+  // Linked limits only reduce values, so a short pass resolves dependency chains.
+  for (let pass = 0; pass < parameters.length; pass += 1) {
+    let changed = false;
+    parameters.forEach((parameter) => {
+      const current = Number(updated[parameter.id]);
+      const maximum = parameterMaximum(parameter, updated);
+      if (Number.isFinite(current) && current > maximum) {
+        updated[parameter.id] = maximum;
+        changed = true;
+      }
+    });
+    if (!changed) break;
+  }
+
+  return updated;
+}
+
 export function mergeParameterGroups(defaults, supplied = {}) {
   return Object.fromEntries(
     Object.entries(defaults).map(([ownerId, values]) => [
