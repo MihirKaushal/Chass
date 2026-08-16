@@ -12,8 +12,8 @@ boards and pieces, modular rules, and real-time synchronization.
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
 - Chass Gambit with maximum-budget hidden deployment, center affinity, and command powers
-- Maharani, Catapult, Barricade, Hypnotizer, and Diplomat custom pieces
-- Six optional player abilities with private pre-game selection
+- Maharani, Catapult, Barricade, Hypnotizer, Diplomat, Cannibal, and Elephant custom pieces
+- Seven optional player abilities, including persistent Scorch terrain, with private pre-game selection
 - Checkmate, King Capture, Timed, Point Race, Elimination, and Royal Score victories
 - Shareable, one-use game invitation links and invite codes
 - Live WebSocket updates, reconnect, presence, and state recovery

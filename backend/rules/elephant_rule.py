@@ -3,6 +3,7 @@ from __future__ import annotations
 from backend.models import CaptureEvent, GameState, Move, MoveOption, Piece
 from backend.rules.base import Rule, RuleContext
 from backend.rules.movement import in_bounds
+from backend.rules.terrain import is_scorched
 from backend.rules.tuning import piece_parameter
 from backend.rules.variant_system import (
     direct_king_capture_allowed,
@@ -61,6 +62,8 @@ class ElephantRule(Rule):
         targets: list[tuple[int, int, Piece]] = []
         allied_count = 0
         for target_row, target_col in lane:
+            if is_scorched(state, target_row, target_col):
+                return None
             target = state.board.grid[target_row][target_col]
             if target is None:
                 continue
@@ -113,6 +116,8 @@ class ElephantRule(Rule):
                     target_row,
                     target_col,
                 ):
+                    break
+                if is_scorched(state, target_row, target_col):
                     break
                 if state.board.grid[target_row][target_col] is not None:
                     break

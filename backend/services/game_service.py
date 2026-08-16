@@ -15,6 +15,7 @@ from backend.catalog import (
     build_default_draft_pool,
     catalog_payload,
     configure_piece_definition,
+    default_scorch_uses,
     normalize_ability_parameters,
     normalize_piece_parameters,
 )
@@ -50,6 +51,7 @@ from backend.models.schemas import (
     AffinityView,
     AvailableActionView,
     BoardPlacement,
+    BoardTerrainView,
     CaptureView,
     CenterDominionView,
     CheckRaceView,
@@ -404,6 +406,11 @@ def _configuration_from_request(
         ability_parameters = normalize_ability_parameters(
             payload.specialAbilities.parameters
         )
+        if "usesPerGame" not in payload.specialAbilities.parameters.get("scorch", {}):
+            ability_parameters["scorch"]["usesPerGame"] = default_scorch_uses(
+                request.boardRows,
+                request.boardCols,
+            )
     except ValueError as error:
         raise HTTPException(status_code=400, detail=str(error)) from error
 
@@ -1452,6 +1459,7 @@ class GameService:
             game_state.turn_counts = {"white": 0, "black": 0}
             game_state.history_epoch += 1
             game_state.history = []
+            game_state.terrain = []
             game_state.captured_pieces = {"white": [], "black": []}
             game_state.winner = None
             game_state.game_status = "active"
@@ -1490,6 +1498,7 @@ class GameService:
         game_state.turn_counts = {"white": 0, "black": 0}
         game_state.history_epoch += 1
         game_state.history = []
+        game_state.terrain = []
         game_state.captured_pieces = {"white": [], "black": []}
         game_state.winner = None
         game_state.game_status = "active"
@@ -1686,6 +1695,7 @@ class GameService:
         game_state.classic = ClassicRuleState()
         game_state.history_epoch += 1
         game_state.history = []
+        game_state.terrain = []
         game_state.captured_pieces = {"white": [], "black": []}
         game_state.winner = None
         game_state.game_status = "active"
@@ -2267,6 +2277,17 @@ class GameService:
             boardCols=game_state.board.cols,
             boardSize=game_state.board.size,
             board=board_view,
+            terrain=[
+                BoardTerrainView(
+                    terrainId=terrain.terrain_id,
+                    kind=terrain.kind,
+                    row=terrain.row,
+                    col=terrain.col,
+                    owner=terrain.owner,
+                    metadata=terrain.metadata,
+                )
+                for terrain in game_state.terrain
+            ],
             currentPlayer=game_state.current_player,
             validMoves=valid_move_views,
             rules=rule_views,

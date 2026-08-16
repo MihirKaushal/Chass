@@ -11,6 +11,15 @@ class Position(BaseModel):
     col: int
 
 
+class BoardTerrainView(BaseModel):
+    terrainId: str
+    kind: str
+    row: int
+    col: int
+    owner: str | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class PieceView(BaseModel):
     pieceId: str
     type: str
@@ -271,6 +280,7 @@ class GameResponse(BaseModel):
     boardCols: int
     boardSize: int
     board: list[list[PieceView | None]]
+    terrain: list[BoardTerrainView] = Field(default_factory=list)
     currentPlayer: str
     validMoves: list[ValidMoveView]
     rules: list[RuleView]
@@ -354,7 +364,7 @@ class VictoryConfigPayload(BaseModel):
 
 class SpecialAbilityConfigPayload(BaseModel):
     enabled: bool = False
-    maxPerPlayer: int = Field(default=1, ge=1, le=6)
+    maxPerPlayer: int = Field(default=1, ge=1, le=16)
     parameters: dict[str, dict[str, int]] = Field(default_factory=dict)
     allowed: list[
         Literal[
@@ -364,6 +374,7 @@ class SpecialAbilityConfigPayload(BaseModel):
             "kamikaze",
             "episcopal",
             "power_of_love",
+            "scorch",
         ]
     ] = Field(default_factory=list)
 
@@ -501,6 +512,7 @@ class GameActionRequest(BaseModel):
         "getaway",
         "eye_for_an_eye",
         "episcopal",
+        "scorch",
     ]
     source: Position | None = None
     target: Position | None = None
@@ -517,7 +529,8 @@ class AbilitySelectionRequest(BaseModel):
         "kamikaze",
         "episcopal",
         "power_of_love",
-    ]] | None = Field(default=None, min_length=1, max_length=6)
+        "scorch",
+    ]] | None = Field(default=None, min_length=1, max_length=16)
     abilityId: Literal[
         "necromancy",
         "getaway",
@@ -525,6 +538,7 @@ class AbilitySelectionRequest(BaseModel):
         "kamikaze",
         "episcopal",
         "power_of_love",
+        "scorch",
     ] | None = None
     expectedVersion: int | None = Field(default=None, ge=1)
 

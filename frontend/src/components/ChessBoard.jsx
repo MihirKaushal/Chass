@@ -27,6 +27,8 @@ function ChessBoard({
   availableActions = [],
   onAction = null,
   countdowns = [],
+  terrain = [],
+  globalActions = [],
 }) {
   const [hoveredPiece, setHoveredPiece] = useState(null);
   const [selectedActionSource, setSelectedActionSource] = useState(null);
@@ -35,6 +37,7 @@ function ChessBoard({
   const onActionRef = useRef(onAction);
   const actionsBySourceRef = useRef(new Map());
   const selectedSourceActionsRef = useRef([]);
+  const globalActionMapRef = useRef(new Map());
   onSquareClickRef.current = onSquareClick;
   onActionRef.current = onAction;
   const rows = boardRows ?? boardSize ?? board.length;
@@ -66,6 +69,16 @@ function ChessBoard({
   actionsBySourceRef.current = actionsBySource;
   selectedSourceActionsRef.current = selectedSourceActions;
   const actionTargetMap = new Map();
+  const globalActionMap = useMemo(
+    () => new Map(
+      globalActions
+        .filter((action) => action.target)
+        .map((action) => [`${action.target.row}-${action.target.col}`, action])
+    ),
+    [globalActions]
+  );
+  globalActionMapRef.current = globalActionMap;
+  globalActionMap.forEach((action, key) => actionTargetMap.set(key, action));
   selectedSourceActions.forEach((action) => {
     actionTargetMap.set(`${action.target.row}-${action.target.col}`, action);
   });
@@ -95,6 +108,9 @@ function ChessBoard({
   );
   const editableRowSet = new Set(editableRows);
   const foggedRowSet = new Set(foggedRows);
+  const terrainMap = new Map(
+    terrain.map((feature) => [`${feature.row}-${feature.col}`, feature])
+  );
   const longEdge = "var(--board-long-edge, min(68vh, 680px))";
   const boardWidth = cols >= rows ? longEdge : `calc(${longEdge} * ${cols / rows})`;
   const boardHeight = rows >= cols ? longEdge : `calc(${longEdge} * ${rows / cols})`;
@@ -124,6 +140,12 @@ function ChessBoard({
 
   const activateSquare = (row, col) => {
     setHoveredPiece(null);
+    const globalAction = globalActionMapRef.current.get(`${row}-${col}`);
+    if (globalAction && onActionRef.current) {
+      setSelectedActionSource(null);
+      onActionRef.current(globalAction);
+      return;
+    }
     const targetAction = selectedSourceActionsRef.current.find(
       (action) => action.target.row === row && action.target.col === col
     );
@@ -240,6 +262,7 @@ function ChessBoard({
             const colIndex = boardFlipped ? cols - 1 - visibleColIndex : visibleColIndex;
 
             const piece = board[rowIndex][colIndex];
+            const terrainFeature = terrainMap.get(`${rowIndex}-${colIndex}`);
             const key = `${visibleRowIndex}-${visibleColIndex}`;
             const isLight = (rowIndex + colIndex) % 2 === 0;
             const isSelected =
@@ -280,6 +303,7 @@ function ChessBoard({
               editableRowSet.has(rowIndex) ? "deployment-zone" : "",
               foggedRowSet.has(rowIndex) ? "fogged-square" : "",
               piece?.isCustom ? "custom-square" : "",
+              terrainFeature?.kind === "scorched" ? "scorched-square" : "",
               !interactive ? "readonly" : "",
             ]
               .filter(Boolean)
@@ -319,10 +343,14 @@ function ChessBoard({
                 aria-disabled={!interactive}
                 aria-label={`${boardSquareLabel({ row: rowIndex, col: colIndex }, rows)}${
                   piece ? `, ${piece.color} ${piece.name}` : ""
-                }${actionTarget ? `, ${actionTarget.label}` : ""}${
+                }${terrainFeature?.kind === "scorched" ? ", scorched and impassable" : ""}${
+                  actionTarget ? `, ${actionTarget.label}` : ""}${
                   piece && pieceDetailsMode === "double-tap" ? ", double tap for details" : ""
                 }`}
               >
+                {terrainFeature?.kind === "scorched" ? (
+                  <span className="terrain-marker terrain-scorched" aria-hidden="true">♨</span>
+                ) : null}
                 {affinityColor ? (
                   <span className="affinity-marker" aria-hidden="true">
                     {affinityColor === "white" ? "W" : "B"}
