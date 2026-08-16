@@ -495,6 +495,7 @@ function GambitPlay({
   historyLoading,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
+  const [selectedGlobalActionType, setSelectedGlobalActionType] = useState(null);
   const [evolveTo, setEvolveTo] = useState("knight");
   const lastMove = game.history.length ? game.history[game.history.length - 1] : null;
   const powerTargets = selectedPower
@@ -504,10 +505,38 @@ function GambitPlay({
     () => new Set(powerTargets.map((target) => `${target.row}-${target.col}`)),
     [powerTargets]
   );
+  const globalActions = useMemo(
+    () => game.availableActions.filter(
+      (action) => !action.source && action.actionType === selectedGlobalActionType
+    ),
+    [game.availableActions, selectedGlobalActionType]
+  );
 
   useEffect(() => {
     setSelectedPower(null);
+    setSelectedGlobalActionType(null);
   }, [game.currentPlayer, game.phase]);
+
+  useEffect(() => {
+    if (selectedGlobalActionType && !globalActions.length) {
+      setSelectedGlobalActionType(null);
+    }
+  }, [globalActions.length, selectedGlobalActionType]);
+
+  const selectPower = (power) => {
+    setSelectedPower(power);
+    if (power) setSelectedGlobalActionType(null);
+  };
+
+  const selectGlobalAction = (actionType) => {
+    setSelectedGlobalActionType(actionType);
+    if (actionType) setSelectedPower(null);
+  };
+
+  const handleAction = (action) => {
+    setSelectedGlobalActionType(null);
+    onAction(action);
+  };
 
   const handleSquare = (row, col) => {
     if (selectedPower) {
@@ -527,12 +556,19 @@ function GambitPlay({
 
   return (
     <main className="play-layout play-layout-three-column gambit-play-layout">
-      <EffectsPanel game={game} catalog={catalog} onAction={onAction} actionLoading={actionLoading}>
+      <EffectsPanel
+        game={game}
+        catalog={catalog}
+        onAction={handleAction}
+        actionLoading={actionLoading}
+        selectedGlobalActionType={selectedGlobalActionType}
+        onSelectGlobalActionType={selectGlobalAction}
+      >
         <CommandPanel
           game={game}
           interactive={interactive && !actionLoading}
           selectedPower={selectedPower}
-          onSelectPower={setSelectedPower}
+          onSelectPower={selectPower}
           evolveTo={evolveTo}
           setEvolveTo={setEvolveTo}
         />
@@ -554,11 +590,13 @@ function GambitPlay({
           objectiveSquares={game.royalCenter?.squares || []}
           showCoordinates
           pieceDetailsMode="double-tap"
-          availableActions={selectedPower ? [] : game.availableActions}
-          onAction={onAction}
           countdowns={game.countdowns}
+          terrain={game.terrain}
+          globalActions={globalActions}
+          availableActions={selectedPower || selectedGlobalActionType ? [] : game.availableActions}
+          onAction={handleAction}
         />
-        <p className="board-detail-hint">Blue dots move pieces. Red targets attack or sacrifice; teal and gold targets use special actions. Double-tap for details.</p>
+        <p className="board-detail-hint">Blue dots move pieces. Red targets attack or sacrifice; teal, gold, and ember targets use special actions. Double-tap for details.</p>
       </section>
 
       <GameInfoPanel

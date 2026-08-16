@@ -3,6 +3,7 @@ from __future__ import annotations
 from math import gcd
 
 from backend.models import GameState, MoveOption, MovePattern, Piece
+from backend.rules.terrain import is_scorched
 from backend.rules.tuning import (
     ability_parameter,
     catapult_projectile_profiles,
@@ -51,7 +52,10 @@ def _path_is_clear(
     current_row = from_row + step_row
     current_col = from_col + step_col
     while current_row != to_row or current_col != to_col:
-        if state.board.grid[current_row][current_col] is not None:
+        if (
+            state.board.grid[current_row][current_col] is not None
+            or is_scorched(state, current_row, current_col)
+        ):
             return False
         current_row += step_row
         current_col += step_col
@@ -158,6 +162,7 @@ def _maharani_jump_moves(
             if not in_bounds(state.board.rows, state.board.cols, target_row, target_col):
                 break
             target = state.board.grid[target_row][target_col]
+            scorched = is_scorched(state, target_row, target_col)
             if target is not None and target.type == "barricade":
                 break
             if blockers_crossed < blockers_required:
@@ -165,17 +170,18 @@ def _maharani_jump_moves(
                     blockers_crossed += 1
                 distance += 1
                 continue
-            option = _option(
-                state,
-                piece,
-                row,
-                col,
-                target_row,
-                target_col,
-                f"Maharani crossed {blockers_required} occupied square(s)",
-            )
-            if option is not None:
-                moves.append(option)
+            if not scorched:
+                option = _option(
+                    state,
+                    piece,
+                    row,
+                    col,
+                    target_row,
+                    target_col,
+                    f"Maharani crossed {blockers_required} occupied square(s)",
+                )
+                if option is not None:
+                    moves.append(option)
             if target is not None:
                 break
             distance += 1
@@ -207,6 +213,7 @@ def _maharani_jump_attacks(
             if not in_bounds(state.board.rows, state.board.cols, target_row, target_col):
                 break
             target = state.board.grid[target_row][target_col]
+            scorched = is_scorched(state, target_row, target_col)
             if target is not None and target.type == "barricade":
                 break
             if blockers_crossed < blockers_required:
@@ -214,7 +221,7 @@ def _maharani_jump_attacks(
                     blockers_crossed += 1
                 distance += 1
                 continue
-            if target is None or target.type != "diplomat":
+            if not scorched and (target is None or target.type != "diplomat"):
                 attacks.add((target_row, target_col))
             if target is not None:
                 break
@@ -296,6 +303,8 @@ def _cannibal_moves(
                 ):
                     break
                 target = state.board.grid[target_row][target_col]
+                if is_scorched(state, target_row, target_col):
+                    break
                 if target is None:
                     if distance <= movement_distance:
                         moves.append(
@@ -344,6 +353,8 @@ def _cannibal_attacks(
             target_col = col + dc * distance
             if not in_bounds(state.board.rows, state.board.cols, target_row, target_col):
                 break
+            if is_scorched(state, target_row, target_col):
+                break
             target = state.board.grid[target_row][target_col]
             if target is None or _cannibal_can_consume(state, target):
                 attacks.add((target_row, target_col))
@@ -388,6 +399,8 @@ def generate_piece_moves(state: GameState, row: int, col: int) -> list[MoveOptio
                 break
 
             target_piece = state.board.grid[target_row][target_col]
+            if is_scorched(state, target_row, target_col):
+                break
             path_clear = not pattern.requires_clear_path or _path_is_clear(
                 state, row, col, target_row, target_col
             )
@@ -471,6 +484,8 @@ def _pattern_attack_squares(
             ):
                 break
             target = state.board.grid[target_row][target_col]
+            if is_scorched(state, target_row, target_col):
+                break
             if target is not None and target.type in {"barricade", "diplomat"}:
                 break
             attacks.add((target_row, target_col))
@@ -539,6 +554,8 @@ def generate_piece_attacks(state: GameState, row: int, col: int) -> set[tuple[in
                     ):
                         break
                     target = state.board.grid[target_row][target_col]
+                    if is_scorched(state, target_row, target_col):
+                        break
                     if target is not None and target.type in {"barricade", "diplomat"}:
                         break
                     if distance % 2:

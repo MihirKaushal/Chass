@@ -14,6 +14,7 @@ from backend.models import (
 )
 from backend.rules.base import ValidationResult
 from backend.rules.builtin_rules import opposing_color
+from backend.rules.terrain import is_scorched
 from backend.rules.variant_system import (
     affinity_start_squares,
     barricade_start_squares,
@@ -492,7 +493,7 @@ class PawnReinforcementRule(GambitPowerRule):
             (row, col)
             for row in sorted(rows)
             for col in range(state.board.cols)
-            if state.board.grid[row][col] is None
+            if state.board.grid[row][col] is None and not is_scorched(state, row, col)
         ]
 
     def apply_to_board(
@@ -562,7 +563,7 @@ class RookStrongholdRule(GambitPowerRule):
             (row, col)
             for row in sorted(rows)
             for col in range(state.board.cols)
-            if state.board.grid[row][col] is None
+            if state.board.grid[row][col] is None and not is_scorched(state, row, col)
         ]
 
     def apply_to_board(

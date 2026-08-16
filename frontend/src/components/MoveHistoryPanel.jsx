@@ -150,7 +150,14 @@ function CountdownPanel({ countdowns = [] }) {
   );
 }
 
-function ActionPanel({ actions = [], onAction, actionLoading, boardRows }) {
+function ActionPanel({
+  actions = [],
+  onAction,
+  actionLoading,
+  boardRows,
+  selectedGlobalActionType,
+  onSelectGlobalActionType,
+}) {
   const groups = useMemo(() => {
     const result = new Map();
     actions.forEach((action) => result.set(action.actionType, [...(result.get(action.actionType) || []), action]));
@@ -160,11 +167,25 @@ function ActionPanel({ actions = [], onAction, actionLoading, boardRows }) {
   return (
     <section className="panel-section action-panel">
       <h3>Special Actions</h3>
-      {groups.map(([type, options]) => (
-        <details key={type} open={groups.length === 1}>
+      {groups.map(([type, options]) => {
+        const boardTargeted = type === "scorch";
+        const selected = selectedGlobalActionType === type;
+        return (
+        <details key={type} open={groups.length === 1 || selected}>
           <summary><span>{options[0].icon} {title(type)}</span><b>{options.length}</b></summary>
           <div className="action-option-list">
-            {options.map((action) => (
+            {boardTargeted ? (
+              <button
+                type="button"
+                className={selected ? "board-target-action selected" : "board-target-action"}
+                disabled={actionLoading}
+                onClick={() => onSelectGlobalActionType?.(selected ? null : type)}
+              >
+                <strong>{selected ? "Cancel Board Selection" : "Choose A Square"}</strong>
+                <small>{options.length} legal target{options.length === 1 ? "" : "s"}</small>
+                <span>{selected ? "Legal squares are marked on the board." : options[0].description}</span>
+              </button>
+            ) : options.map((action) => (
               <button type="button" key={action.id} disabled={actionLoading} onClick={() => onAction(action)}>
                 <strong>{action.label}</strong>
                 <small>{action.source ? `${boardSquareLabel(action.source, boardRows)} to ` : ""}{action.target ? boardSquareLabel(action.target, boardRows) : ""}</small>
@@ -173,7 +194,7 @@ function ActionPanel({ actions = [], onAction, actionLoading, boardRows }) {
             ))}
           </div>
         </details>
-      ))}
+      );})}
     </section>
   );
 }
@@ -350,12 +371,27 @@ function EnabledEffects({ game, catalog }) {
   );
 }
 
-export function EffectsPanel({ game, catalog, onAction, actionLoading, children }) {
+export function EffectsPanel({
+  game,
+  catalog,
+  onAction,
+  actionLoading,
+  selectedGlobalActionType,
+  onSelectGlobalActionType,
+  children,
+}) {
   return (
     <aside className="effects-panel">
       {children}
       <CountdownPanel countdowns={game.countdowns} />
-      <ActionPanel actions={game.availableActions} onAction={onAction} actionLoading={actionLoading} boardRows={game.boardRows ?? game.boardSize} />
+      <ActionPanel
+        actions={game.availableActions}
+        onAction={onAction}
+        actionLoading={actionLoading}
+        boardRows={game.boardRows ?? game.boardSize}
+        selectedGlobalActionType={selectedGlobalActionType}
+        onSelectGlobalActionType={onSelectGlobalActionType}
+      />
       <EnabledEffects game={game} catalog={catalog} />
     </aside>
   );

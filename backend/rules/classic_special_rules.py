@@ -5,6 +5,7 @@ import json
 
 from backend.models import CaptureEvent, GameState, Move, MoveOption, Piece
 from backend.rules.base import Rule, RuleContext
+from backend.rules.terrain import is_scorched
 from backend.rules.variant_system import FINISHED_STATUSES, finish_game, uses_royal_safety
 
 CLASSIC_PIECE_TYPES = frozenset({"pawn", "knight", "bishop", "rook", "queen", "king"})
@@ -29,6 +30,8 @@ def _uses_classic_draw_rules(state: GameState) -> bool:
     if state.configuration.custom_rules.affinity_enabled:
         return False
     if state.configuration.special_abilities.enabled:
+        return False
+    if state.terrain:
         return False
     if _enabled_rule_ids(state) & {"double_capture_rook", "score_target_win"}:
         return False
@@ -88,6 +91,9 @@ def _position_key(state: GameState, side_to_move: str) -> str:
     ]
     payload = {
         "pieces": pieces,
+        "terrain": sorted(
+            (terrain.kind, terrain.row, terrain.col) for terrain in state.terrain
+        ),
         "side": side_to_move,
         "enPassant": _en_passant_target(state, side_to_move),
     }
@@ -115,6 +121,8 @@ class CastlingRule(Rule):
     ) -> tuple[int, Piece] | None:
         columns = range(king_col + direction, state.board.cols if direction > 0 else -1, direction)
         for col in columns:
+            if is_scorched(state, row, col):
+                return None
             piece = state.board.grid[row][col]
             if piece is None:
                 continue
@@ -154,6 +162,11 @@ class CastlingRule(Rule):
             transit_col = col + direction
             destination_col = col + 2 * direction
             if not 0 <= destination_col < state.board.cols:
+                continue
+            if any(
+                is_scorched(state, row, square_col)
+                for square_col in (transit_col, destination_col)
+            ):
                 continue
             if any(
                 helper.is_square_attacked_by_color(state, row, square_col, enemy)
@@ -253,6 +266,8 @@ class EnPassantRule(Rule):
         if target_row != row + direction or abs(target_col - col) != 1:
             return None
         if state.board.grid[target_row][target_col] is not None:
+            return None
+        if is_scorched(state, target_row, target_col):
             return None
         last_move = _last_double_pawn_move(state)
         if (

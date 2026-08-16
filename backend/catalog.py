@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 from copy import deepcopy
+from math import floor, sqrt
 from typing import Any
 
 from backend.models import MovePattern, PieceDefinition
@@ -35,8 +36,9 @@ def _parameter(
     minimum: int,
     maximum: int,
     unit: str,
+    dynamic_default: str | None = None,
 ) -> dict[str, Any]:
-    return {
+    parameter = {
         "id": parameter_id,
         "label": label,
         "description": description,
@@ -45,6 +47,13 @@ def _parameter(
         "max": maximum,
         "unit": unit,
     }
+    if dynamic_default:
+        parameter["dynamicDefault"] = dynamic_default
+    return parameter
+
+
+def default_scorch_uses(rows: int, cols: int) -> int:
+    return max(1, floor((sqrt(rows * cols) / 4) + 0.5))
 
 
 def _render_template(template: str, values: dict[str, int]) -> str:
@@ -1191,6 +1200,63 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
             "The King remains subject to check and may never move onto an attacked square.",
             "Losing another Queen refreshes the {durationTurns}-turn duration instead of stacking it.",
             "The empowered King can give check and checkmate normally.",
+        ],
+        "details": [],
+    },
+    {
+        "id": "scorch",
+        "name": "Scorch",
+        "icon": "♨",
+        "summary": (
+            "Permanently scorch an empty square, then recharge for 10 turns."
+        ),
+        "summaryTemplate": (
+            "Permanently scorch an empty square up to {usesPerGame} time(s), then "
+            "recharge for {cooldownTurns} turn(s)."
+        ),
+        "cooldownTurns": 10,
+        "cooldownTurnsParameter": "cooldownTurns",
+        "usageLimit": 2,
+        "usageLimitParameter": "usesPerGame",
+        "tunableParameters": [
+            _parameter(
+                "cooldownTurns",
+                "Recharge",
+                "Own turns before Scorch can be used again.",
+                10,
+                0,
+                50,
+                "turn",
+            ),
+            _parameter(
+                "usesPerGame",
+                "Uses Per Game",
+                "Squares each player may scorch. The default is the square root of board "
+                "area divided by four, rounded to the nearest whole use.",
+                2,
+                1,
+                256,
+                "use",
+                "board_sqrt_quarter",
+            ),
+            _parameter(
+                "minimumGap",
+                "Minimum Gap",
+                "Clear squares required in every direction around an existing scorched square.",
+                1,
+                0,
+                15,
+                "square",
+            ),
+        ],
+        "detailTemplates": [
+            "Only an empty, unscorched square may be selected.",
+            "A scorched square cannot be occupied and blocks normal sliding movement.",
+            "Jumping pieces and projectiles may cross it, but no piece may land on it.",
+            "New scorched squares must remain more than {minimumGap} square(s) away in "
+            "every direction from existing scorched squares.",
+            "Each player has {usesPerGame} use(s), and every activation starts a "
+            "{cooldownTurns}-turn recharge.",
         ],
         "details": [],
     },

@@ -4,8 +4,9 @@ from dataclasses import dataclass
 from uuid import uuid4
 
 from backend.catalog import SPECIAL_ABILITIES
-from backend.models import CaptureEvent, GameResult, GameState, MoveRecord, Piece
+from backend.models import BoardTerrain, CaptureEvent, GameResult, GameState, MoveRecord, Piece
 from backend.rules.movement import in_bounds
+from backend.rules.terrain import is_scorched, scorched_squares
 from backend.rules.tuning import (
     ability_parameter,
     catapult_projectile_profiles,
@@ -530,6 +531,8 @@ class VariantActionRules:
                                 target_col,
                             ):
                                 break
+                            if is_scorched(state, target_row, target_col):
+                                break
                             if state.board.grid[target_row][target_col] is not None:
                                 break
                             actions.append(
@@ -569,6 +572,8 @@ class VariantActionRules:
                         target_row,
                         target_col,
                     ):
+                        if is_scorched(state, target_row, target_col):
+                            break
                         target = state.board.grid[target_row][target_col]
                         if target is None:
                             target_row += dr
@@ -663,6 +668,8 @@ class VariantActionRules:
                             state.board.rows, state.board.cols, target_row, target_col
                         ):
                             break
+                        if is_scorched(state, target_row, target_col):
+                            break
                         target = state.board.grid[target_row][target_col]
                         if target is not None and (
                             target.color == color
@@ -749,7 +756,7 @@ class VariantActionRules:
             (row, col)
             for row in sorted(home_rows)
             for col in range(state.board.cols)
-            if state.board.grid[row][col] is None
+            if state.board.grid[row][col] is None and not is_scorched(state, row, col)
         ]
         if not empty:
             return []
@@ -778,6 +785,41 @@ class VariantActionRules:
                 )
         return actions
 
+    def _scorch_actions(self, state: GameState, color: str) -> list[dict]:
+        usage_limit = ability_parameter(state, "scorch", "usesPerGame")
+        usage = int(state.abilities.usage_count[color].get("scorch", 0))
+        if (
+            not has_ability(state, color, "scorch")
+            or not ability_is_ready(state, color, "scorch")
+            or usage >= usage_limit
+        ):
+            return []
+
+        minimum_gap = ability_parameter(state, "scorch", "minimumGap")
+        existing = scorched_squares(state)
+        return [
+            {
+                "id": f"scorch:{row}:{col}",
+                "actionType": "scorch",
+                "owner": color,
+                "icon": "♨",
+                "label": "Scorch Square",
+                "boardMarker": "scorch",
+                "description": (
+                    f"Permanently block this square. Use {usage + 1} of {usage_limit}."
+                ),
+                "target": {"row": row, "col": col},
+            }
+            for row in range(state.board.rows)
+            for col in range(state.board.cols)
+            if state.board.grid[row][col] is None
+            and not is_scorched(state, row, col)
+            and all(
+                max(abs(row - scorched_row), abs(col - scorched_col)) > minimum_gap
+                for scorched_row, scorched_col in existing
+            )
+        ]
+
     def available_actions(self, state: GameState, color: str, helper) -> list[dict]:
         if state.phase != "play" or state.current_player != color:
             return []
@@ -789,6 +831,7 @@ class VariantActionRules:
             *self._episcopal_actions(state, color),
             *self._eye_actions(state, color, helper),
             *self._necromancy_actions(state, color),
+            *self._scorch_actions(state, color),
         ]
         legal: list[dict] = []
         for action in actions:
@@ -968,6 +1011,33 @@ class VariantActionRules:
             mark_ability_used(state, color, "necromancy")
             explanation = f"{color.title()} spent {cost} score to recruit {captured.name}."
             piece_type = captured.type
+            source = target
+        elif action_type == "scorch":
+            assert target is not None
+            if state.board.grid[target[0]][target[1]] is not None or is_scorched(
+                state,
+                target[0],
+                target[1],
+            ):
+                raise ValueError("Scorch requires an empty, unscorched square.")
+            minimum_gap = ability_parameter(state, "scorch", "minimumGap")
+            if any(
+                max(abs(target[0] - row), abs(target[1] - col)) <= minimum_gap
+                for row, col in scorched_squares(state)
+            ):
+                raise ValueError("That square is too close to another scorched square.")
+            state.terrain.append(
+                BoardTerrain(
+                    kind="scorched",
+                    row=target[0],
+                    col=target[1],
+                    owner=color,
+                )
+            )
+            start_ability_cooldown(state, color, "scorch")
+            mark_ability_used(state, color, "scorch")
+            explanation = f"{color.title()} permanently scorched a square."
+            piece_type = "scorch"
             source = target
         else:
             raise ValueError("Unknown special action.")

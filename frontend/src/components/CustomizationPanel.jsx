@@ -5,6 +5,7 @@ import { affinitySquares, barricadeSquares, objectiveCenterSquares } from "../bo
 import {
   effectiveCatalogEntry,
   mergeParameterGroups,
+  parameterDefault,
   parameterDefaults,
   parameterValueLabel,
 } from "../variantTuning";
@@ -25,6 +26,31 @@ function clamp(value, minimum, maximum) {
   const number = Number(value);
   if (!Number.isFinite(number)) return minimum;
   return Math.max(minimum, Math.min(maximum, Math.trunc(number)));
+}
+
+function resizeDynamicParameterDefaults(
+  groups,
+  entries,
+  previousContext,
+  nextContext
+) {
+  const resized = { ...groups };
+  entries.forEach((entry) => {
+    const dynamicParameters = (entry.tunableParameters || []).filter(
+      (parameter) => parameter.dynamicDefault
+    );
+    if (!dynamicParameters.length) return;
+    resized[entry.id] = { ...groups[entry.id] };
+    dynamicParameters.forEach((parameter) => {
+      if (
+        groups[entry.id]?.[parameter.id]
+        === parameterDefault(parameter, previousContext)
+      ) {
+        resized[entry.id][parameter.id] = parameterDefault(parameter, nextContext);
+      }
+    });
+  });
+  return resized;
 }
 
 function coordinate(row, col, rows) {
@@ -89,7 +115,7 @@ function defaultDraft(catalog) {
       : (DEFAULT_DRAFT_POOL[piece.type] ?? 2);
   });
   const pieceParameters = parameterDefaults(catalog.pieces);
-  const abilityParameters = parameterDefaults(catalog.specialAbilities);
+  const abilityParameters = parameterDefaults(catalog.specialAbilities, { rows: 8, cols: 8 });
   return {
     schemaVersion: 2,
     presetId: "classic",
@@ -140,6 +166,25 @@ function loadSavedDraft(catalog) {
         clamp(savedPoints[piece.type] ?? base.pointValues[piece.type], 0, catalog.limits.pointMax),
       ])
     );
+    const abilityParameters = mergeParameterGroups(
+      base.specialAbilities.parameters,
+      configuration.specialAbilities?.parameters
+    );
+    catalog.specialAbilities.forEach((ability) => {
+      (ability.tunableParameters || [])
+        .filter((parameter) => parameter.dynamicDefault)
+        .forEach((parameter) => {
+          if (!Object.hasOwn(
+            configuration.specialAbilities?.parameters?.[ability.id] || {},
+            parameter.id
+          )) {
+            abilityParameters[ability.id][parameter.id] = parameterDefault(
+              parameter,
+              { rows: boardRows, cols: boardCols }
+            );
+          }
+        });
+    });
     return {
       ...base,
       schemaVersion: 2,
@@ -174,10 +219,7 @@ function loadSavedDraft(catalog) {
       specialAbilities: {
         ...base.specialAbilities,
         ...(configuration.specialAbilities || {}),
-        parameters: mergeParameterGroups(
-          base.specialAbilities.parameters,
-          configuration.specialAbilities?.parameters
-        ),
+        parameters: abilityParameters,
       },
       gambit: {
         ...base.gambit,
@@ -204,6 +246,10 @@ function applyModeToDraft(current, mode, catalog) {
   const cols = mode.boardCols;
   const formationId = mode.formationId || "classic";
   const layout = formationLayout(catalog, formationId, rows, cols);
+  const specialAbilities = {
+    ...defaults.specialAbilities,
+    parameters: parameterDefaults(catalog.specialAbilities, { rows, cols }),
+  };
   return {
     ...current,
     presetId: mode.id,
@@ -223,7 +269,7 @@ function applyModeToDraft(current, mode, catalog) {
     placements: layout,
     victory: { ...current.victory, ...mode.victory },
     customRules: { ...defaults.customRules, ...(mode.customRules || {}) },
-    specialAbilities: defaults.specialAbilities,
+    specialAbilities,
     gambit: { ...defaults.gambit, enabled: false, draftEnabled: false, ...mode.gambit },
   };
 }
@@ -415,13 +461,25 @@ function Toggle({ checked, onChange, label, description }) {
   );
 }
 
-function TunableParameterFields({ parameters, values, disabled = false, onChange }) {
+function TunableParameterFields({
+  parameters,
+  values,
+  disabled = false,
+  boardRows = 8,
+  boardCols = 8,
+  onChange,
+}) {
   if (!parameters?.length) return null;
   return (
     <fieldset className="tuning-fieldset" disabled={disabled}>
       <legend>Behavior Settings</legend>
       <div className="tuning-field-grid">
-        {parameters.map((parameter) => (
+        {parameters.map((parameter) => {
+          const defaultValue = parameterDefault(parameter, {
+            rows: boardRows,
+            cols: boardCols,
+          });
+          return (
           <label key={parameter.id}>
             <span>{parameter.label}</span>
             <input
@@ -429,17 +487,18 @@ function TunableParameterFields({ parameters, values, disabled = false, onChange
               min={parameter.min}
               max={parameter.max}
               step="1"
-              value={values?.[parameter.id] ?? parameter.default}
+              value={values?.[parameter.id] ?? defaultValue}
               onChange={(event) => onChange(
                 parameter.id,
                 clamp(event.target.value, parameter.min, parameter.max)
               )}
             />
             <small>
-              {parameter.description} Default: {parameterValueLabel(parameter, parameter.default)}.
+              {parameter.description} Default: {parameterValueLabel(parameter, defaultValue)}.
             </small>
           </label>
-        ))}
+          );
+        })}
       </div>
     </fieldset>
   );
@@ -669,39 +728,58 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const applyFormation = (formation) => {
     const disabled = formation.disabledAbilities || {};
     setSelectedTool(null);
-    setDraft((current) => ({
-      ...current,
-      presetId: formation.id,
-      formationId: formation.id,
-      boardRows: formation.boardRows,
-      boardCols: formation.boardCols,
-      enabledPieces: [...STANDARD_TYPES],
-      placements: formation.initialLayout,
-      victory: { ...current.victory, mode: formation.defaultVictory },
-      specialAbilities: {
-        ...current.specialAbilities,
-        allowed: current.specialAbilities.allowed.filter((ability) => !disabled[ability]),
-      },
-      gambit: { ...current.gambit, enabled: false, draftEnabled: false },
-    }));
+    setDraft((current) => {
+      return {
+        ...current,
+        presetId: formation.id,
+        formationId: formation.id,
+        boardRows: formation.boardRows,
+        boardCols: formation.boardCols,
+        enabledPieces: [...STANDARD_TYPES],
+        placements: formation.initialLayout,
+        victory: { ...current.victory, mode: formation.defaultVictory },
+        specialAbilities: {
+          ...current.specialAbilities,
+          allowed: current.specialAbilities.allowed.filter((ability) => !disabled[ability]),
+          parameters: resizeDynamicParameterDefaults(
+            current.specialAbilities.parameters,
+            catalog.specialAbilities,
+            { rows: current.boardRows, cols: current.boardCols },
+            { rows: formation.boardRows, cols: formation.boardCols }
+          ),
+        },
+        gambit: { ...current.gambit, enabled: false, draftEnabled: false },
+      };
+    });
   };
 
   const changeDimensions = (nextRows, nextCols) => {
     const rows = clamp(nextRows, MIN_DIMENSION, MAX_DIMENSION);
     const cols = clamp(nextCols, MIN_DIMENSION, MAX_DIMENSION);
-    setDraft((current) => ({
-      ...current,
-      presetId: "custom",
-      formationId: "custom",
-      boardRows: rows,
-      boardCols: cols,
-      barricadeCount: Math.min(current.barricadeCount, Math.max(1, Math.floor(cols / 2))),
-      placements: centeredResize(current.placements, current.boardRows, current.boardCols, rows, cols),
-      gambit: {
-        ...current.gambit,
-        setupRows: Math.min(current.gambit.setupRows, Math.max(1, Math.floor(rows / 2))),
-      },
-    }));
+    setDraft((current) => {
+      return {
+        ...current,
+        presetId: "custom",
+        formationId: "custom",
+        boardRows: rows,
+        boardCols: cols,
+        barricadeCount: Math.min(current.barricadeCount, Math.max(1, Math.floor(cols / 2))),
+        placements: centeredResize(current.placements, current.boardRows, current.boardCols, rows, cols),
+        specialAbilities: {
+          ...current.specialAbilities,
+          parameters: resizeDynamicParameterDefaults(
+            current.specialAbilities.parameters,
+            catalog.specialAbilities,
+            { rows: current.boardRows, cols: current.boardCols },
+            { rows, cols }
+          ),
+        },
+        gambit: {
+          ...current.gambit,
+          setupRows: Math.min(current.gambit.setupRows, Math.max(1, Math.floor(rows / 2))),
+        },
+      };
+    });
   };
 
   const togglePiece = (pieceType, enabled) => {
@@ -845,6 +923,8 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                       parameters={piece.tunableParameters}
                       values={draft.pieceParameters[piece.type]}
                       disabled={!enabled}
+                      boardRows={draft.boardRows}
+                      boardCols={draft.boardCols}
                       onChange={(parameterId, value) => setDraft((current) => ({
                         ...current,
                         presetId: "custom",
@@ -930,6 +1010,8 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                       parameters={ability.tunableParameters}
                       values={draft.specialAbilities.parameters[ability.id]}
                       disabled={!enabled || Boolean(reason)}
+                      boardRows={draft.boardRows}
+                      boardCols={draft.boardCols}
                       onChange={(parameterId, value) => setDraft((current) => ({
                         ...current,
                         presetId: "custom",

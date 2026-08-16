@@ -15,14 +15,25 @@ export function renderTuningTemplate(template, values) {
   return pluralizeCopy(rendered);
 }
 
-export function parameterDefaults(entries) {
+export function scorchUsageDefault(rows, cols) {
+  return Math.max(1, Math.floor((Math.sqrt(rows * cols) / 4) + 0.5));
+}
+
+export function parameterDefault(parameter, context = {}) {
+  if (parameter.dynamicDefault === "board_sqrt_quarter") {
+    return scorchUsageDefault(context.rows ?? 8, context.cols ?? 8);
+  }
+  return parameter.default;
+}
+
+export function parameterDefaults(entries, context = {}) {
   return Object.fromEntries(
     entries.map((entry) => [
       entry.type || entry.id,
       Object.fromEntries(
         (entry.tunableParameters || []).map((parameter) => [
           parameter.id,
-          parameter.default,
+          parameterDefault(parameter, context),
         ])
       ),
     ])

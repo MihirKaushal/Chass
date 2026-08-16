@@ -97,6 +97,7 @@ def test_catalog_describes_custom_content(client):
         "kamikaze",
         "episcopal",
         "power_of_love",
+        "scorch",
     }
     assert all(piece["description"] and piece["movement"] for piece in catalog["pieces"])
     assert all(

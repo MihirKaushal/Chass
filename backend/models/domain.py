@@ -145,6 +145,15 @@ class Board(BaseModel):
         return squares
 
 
+class BoardTerrain(BaseModel):
+    terrain_id: str = Field(default_factory=lambda: str(uuid4()))
+    kind: str
+    row: int
+    col: int
+    owner: Color | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
 class Move(BaseModel):
     model_config = ConfigDict(populate_by_name=True)
 
@@ -445,6 +454,7 @@ class GambitState(BaseModel):
 class GameState(BaseModel):
     id: str
     board: Board
+    terrain: list[BoardTerrain] = Field(default_factory=list)
     variant: GameVariant = "classic"
     phase: GamePhase = "play"
     gambit: GambitState | None = None

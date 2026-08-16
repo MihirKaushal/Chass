@@ -784,6 +784,30 @@ button.secondary {
   box-shadow: inset 0 0 0 3px rgba(99, 179, 237, 0.45);
 }
 
+.square.scorched-square {
+  cursor: not-allowed;
+  background:
+    radial-gradient(circle at 30% 28%, rgba(250, 194, 91, 0.36) 0 5%, transparent 6%),
+    radial-gradient(circle at 68% 62%, rgba(20, 17, 15, 0.68) 0 18%, transparent 20%),
+    repeating-linear-gradient(135deg, #3d3028 0 5px, #201d1b 5px 9px);
+  box-shadow: inset 0 0 0 2px rgba(111, 45, 27, 0.9);
+}
+
+.terrain-marker {
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 52%;
+  aspect-ratio: 1;
+  border: 1px solid rgba(255, 223, 160, 0.72);
+  border-radius: 50%;
+  color: #ffe2a3;
+  background: rgba(34, 25, 21, 0.76);
+  font-size: clamp(0.52rem, 1.25vw, 1rem);
+  line-height: 1;
+  box-shadow: 0 0 12px rgba(211, 103, 45, 0.42);
+}
+
 .square > * {
   position: relative;
   z-index: 2;
@@ -988,6 +1012,18 @@ button.secondary {
   color: var(--deep);
   background: rgba(91, 193, 184, 0.72);
   box-shadow: 0 0 0 4px rgba(23, 107, 107, 0.16);
+}
+
+.marker-scorch {
+  border-color: #7f2f21;
+  background: rgba(205, 86, 39, 0.84);
+  box-shadow: 0 0 0 4px rgba(127, 47, 33, 0.2);
+}
+
+.square.action-scorch .board-action-marker {
+  width: clamp(12px, 27%, 22px);
+  border-width: 2px;
+  animation: none;
 }
 
 .marker-ability,
@@ -4065,6 +4101,17 @@ details[open] > summary > .disclosure-arrow {
   color: var(--accent);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.6rem;
+}
+
+.action-option-list .board-target-action.selected {
+  color: #fff8eb;
+  border-color: #7f2f21;
+  background: linear-gradient(135deg, #9b3f28, #c85d32);
+}
+
+.action-option-list .board-target-action.selected small,
+.action-option-list .board-target-action.selected > span {
+  color: rgba(255, 248, 235, 0.82);
 }
 
 .clock-panel > div {
