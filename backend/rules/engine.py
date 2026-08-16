@@ -54,6 +54,19 @@ class RuleEngine:
             )
         return list({(option.to_row, option.to_col): option for option in options}.values())
 
+    def generate_piece_attacks(
+        self,
+        state: GameState,
+        row: int,
+        col: int,
+    ) -> set[tuple[int, int]]:
+        attacks = generate_piece_attacks(state, row, col)
+        for rule, setting in self._iter_enabled_rules(state):
+            attacks.update(
+                rule.generate_attacks(state, row, col, self, setting.params)
+            )
+        return attacks
+
     def available_rules(self) -> list[Rule]:
         return [self._rules[rule_id] for rule_id in self._rule_order]
 
@@ -150,7 +163,7 @@ class RuleEngine:
         attacker_color: str,
     ) -> bool:
         return any(
-            (row, col) in generate_piece_attacks(state, source_row, source_col)
+            (row, col) in self.generate_piece_attacks(state, source_row, source_col)
             for source_row, board_row in enumerate(state.board.grid)
             for source_col, piece in enumerate(board_row)
             if piece is not None and piece.color == attacker_color

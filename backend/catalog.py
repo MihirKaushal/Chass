@@ -14,6 +14,7 @@ CUSTOM_PIECE_TYPES = (
     "hypnotizer",
     "diplomat",
     "cannibal",
+    "elephant",
 )
 CLASSIC_BACK_RANK = ("rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook")
 DEFAULT_DRAFT_POOL_COUNTS = {
@@ -57,8 +58,8 @@ def _render_template(template: str, values: dict[str, int]) -> str:
 
     return re.sub(
         (
-            r"\b(\d+) ((?:own |Cannibal |affected-player )?)"
-            r"(square|turn|move|blocker|time|use|pacification)\(s\)"
+            r"\b(\d+) ((?:own |Cannibal |affected-player |allied )?)"
+            r"(square|turn|move|blocker|time|use|pacification|piece)\(s\)"
         ),
         pluralize,
         rendered,
@@ -933,6 +934,72 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                 ],
             },
             metadata={"family": "chass_custom", "visualKey": "cannibal"},
+        ),
+        "elephant": PieceDefinition(
+            type="elephant",
+            display_name="Elephant",
+            symbols={"white": "E", "black": "e"},
+            icon="E",
+            description=(
+                "A forward-driving heavy piece that moves without capturing or charges "
+                "through a short lane to remove its occupants."
+            ),
+            movement_summary=(
+                "Moves forward or sideways up to four clear squares without capturing. "
+                "Its two-square charge removes pieces on both traversed squares."
+            ),
+            points=7,
+            is_custom=True,
+            behavior="elephant",
+            patterns=[],
+            custom_attributes={
+                "tunableParameters": [
+                    _parameter(
+                        "movementDistance",
+                        "Movement Distance",
+                        "Maximum clear distance for a non-capturing forward or sideways move.",
+                        4,
+                        1,
+                        16,
+                        "square",
+                    ),
+                    _parameter(
+                        "chargeDistance",
+                        "Charge Distance",
+                        "Exact number of forward or sideways squares covered by a charge.",
+                        2,
+                        1,
+                        16,
+                        "square",
+                    ),
+                    _parameter(
+                        "alliedChargeLimit",
+                        "Allied Charge Limit",
+                        "Maximum allied pieces that a single charge may remove.",
+                        1,
+                        0,
+                        16,
+                        "piece",
+                    ),
+                ],
+                "descriptionTemplate": (
+                    "A forward-driving heavy piece that moves without capturing or charges "
+                    "through a short lane to remove its occupants."
+                ),
+                "movementTemplate": (
+                    "Moves forward or sideways up to {movementDistance} clear square(s) "
+                    "without capturing. A charge travels exactly {chargeDistance} square(s) "
+                    "and removes every permitted piece on those squares. It never moves backward."
+                ),
+                "ruleTemplates": [
+                    "A charge may remove up to {alliedChargeLimit} allied piece(s)",
+                    "Cannot charge through a Barricade, protected piece, or unavailable square",
+                    "Cannot charge through its own King",
+                    "Charging another Elephant eliminates both Elephants",
+                    "Cannot be consumed by a Cannibal",
+                ],
+            },
+            metadata={"family": "chass_custom", "visualKey": "elephant"},
         ),
     }
     return pieces
