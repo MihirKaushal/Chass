@@ -223,7 +223,7 @@ def _maharani_jump_attacks(
 
 
 def _cannibal_can_consume(state: GameState, target: Piece) -> bool:
-    if target.type in {"barricade", "diplomat"}:
+    if target.type in {"barricade", "diplomat", "elephant"}:
         return False
     return not _runtime_active(state, target, "capture_immune_until_turn")
 

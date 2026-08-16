@@ -75,6 +75,16 @@ class Rule:
     ) -> list[MoveOption]:
         return []
 
+    def generate_attacks(
+        self,
+        state: GameState,
+        row: int,
+        col: int,
+        helper: MovementHelper,
+        params: dict,
+    ) -> set[tuple[int, int]]:
+        return set()
+
     def validate(
         self,
         state: GameState,

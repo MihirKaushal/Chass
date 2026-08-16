@@ -5,6 +5,7 @@ const CUSTOM_VISUALS = new Set([
   "hypnotizer",
   "diplomat",
   "cannibal",
+  "elephant",
 ]);
 
 function CustomPieceMark({ type }) {
@@ -44,6 +45,15 @@ function CustomPieceMark({ type }) {
         <path d="M9 17c8-8 38-8 46 0v30c-8 9-38 9-46 0V17Zm8 8 8 8 7-10 7 10 8-8v17H17V25Z" />
         <path d="M18 47h28M24 47v7M32 47v8M40 47v7" />
         <circle cx="21" cy="18" r="3" /><circle cx="43" cy="18" r="3" />
+      </svg>
+    );
+  }
+  if (type === "elephant") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <path d="M14 47h36l4 9H10l4-9Zm4-4V26c0-10 7-17 18-17 10 0 18 7 18 17v12c0 7-5 11-11 11h-4V36h7V25c0-5-4-9-10-9s-10 4-10 10v17H18Z" />
+        <path d="M22 24c-7 0-11 4-11 10 0 5 4 9 10 9M43 21c5 3 8 8 8 14" />
+        <circle cx="38" cy="24" r="2.5" />
       </svg>
     );
   }

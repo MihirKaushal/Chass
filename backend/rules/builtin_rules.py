@@ -3,6 +3,7 @@ from __future__ import annotations
 from backend.models import GameState, Move
 from backend.rules.base import Rule, RuleContext, ValidationResult
 from backend.rules.classic_special_rules import CastlingRule, ClassicDrawRule, EnPassantRule
+from backend.rules.elephant_rule import ElephantRule
 from backend.rules.tuning import ability_parameter, piece_parameter
 from backend.rules.variant_system import (
     FINISHED_STATUSES,
@@ -120,7 +121,7 @@ class CaptureRule(Rule):
     ) -> None:
         if context.target_piece is None or context.moved_piece is None:
             return
-        if context.moved_piece.type == "cannibal":
+        if context.moved_piece.type in {"cannibal", "elephant"}:
             return
         if context.target_piece.color == context.moved_piece.color:
             return
@@ -189,7 +190,7 @@ class CannibalRule(Rule):
                     "A Cannibal can consume only within its configured backward range."
                 ),
             )
-        if target.type in {"barricade", "diplomat"} or piece_runtime_active(
+        if target.type in {"barricade", "diplomat", "elephant"} or piece_runtime_active(
             state,
             target,
             "capture_immune_until_turn",
@@ -971,6 +972,7 @@ classic_chess_rules: list[Rule] = [
     MovementPatternRule(),
     CastlingRule(),
     EnPassantRule(),
+    ElephantRule(),
     CheckRule(),
     CaptureRule(),
     CannibalRule(),
