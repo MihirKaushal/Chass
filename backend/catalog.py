@@ -37,6 +37,7 @@ def _parameter(
     maximum: int,
     unit: str,
     dynamic_default: str | None = None,
+    maximum_parameter: str | None = None,
 ) -> dict[str, Any]:
     parameter = {
         "id": parameter_id,
@@ -49,6 +50,8 @@ def _parameter(
     }
     if dynamic_default:
         parameter["dynamicDefault"] = dynamic_default
+    if maximum_parameter:
+        parameter["maxParameter"] = maximum_parameter
     return parameter
 
 
@@ -97,6 +100,21 @@ def _normalize_values(
                 f"{spec['min']} and {spec['max']}"
             )
         normalized[parameter_id] = value
+
+    for parameter_id, spec in spec_map.items():
+        maximum_parameter = spec.get("maxParameter")
+        if not maximum_parameter:
+            continue
+        maximum_spec = spec_map.get(maximum_parameter)
+        if maximum_spec is None:
+            raise ValueError(
+                f"{owner_name} {spec['label']} has an unknown maximum setting"
+            )
+        if normalized[parameter_id] > normalized[maximum_parameter]:
+            raise ValueError(
+                f"{owner_name} {spec['label']} cannot exceed "
+                f"{maximum_spec['label']}"
+            )
     return normalized
 
 
@@ -984,11 +1002,15 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     _parameter(
                         "alliedChargeLimit",
                         "Allied Charge Limit",
-                        "Maximum allied pieces that a single charge may remove.",
+                        (
+                            "Maximum allied pieces that a single charge may remove. "
+                            "Cannot exceed Charge Distance."
+                        ),
                         1,
                         0,
                         16,
                         "piece",
+                        maximum_parameter="chargeDistance",
                     ),
                 ],
                 "descriptionTemplate": (
