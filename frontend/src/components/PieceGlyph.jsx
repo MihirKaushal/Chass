@@ -39,21 +39,34 @@ function CustomPieceMark({ type }) {
       </svg>
     );
   }
+  if (type === "diplomat") {
+    return (
+      <svg viewBox="0 0 64 64" aria-hidden="true">
+        <circle cx="32" cy="24" r="16" />
+        <path d="M16 24h32M19 15c8 4 18 4 26 0M19 33c8-4 18-4 26 0" />
+        <path d="M32 8c6 5 9 10 9 16s-3 12-9 16c-6-4-9-10-9-16s3-11 9-16Z" />
+        <path d="M27 40v7h-8l-4 9h34l-4-9h-8v-7" />
+      </svg>
+    );
+  }
   if (type === "cannibal") {
     return (
       <svg viewBox="0 0 64 64" aria-hidden="true">
-        <path d="M9 17c8-8 38-8 46 0v30c-8 9-38 9-46 0V17Zm8 8 8 8 7-10 7 10 8-8v17H17V25Z" />
-        <path d="M18 47h28M24 47v7M32 47v8M40 47v7" />
-        <circle cx="21" cy="18" r="3" /><circle cx="43" cy="18" r="3" />
+        <path d="M13 19c5-11 33-11 38 0v21c0 11-8 18-19 18S13 51 13 40V19Z" />
+        <path d="m20 25 7 3M44 25l-7 3" />
+        <path d="M17 37c4-8 26-8 30 0-2 11-8 17-15 17s-13-6-15-17Z" />
+        <path d="m19 37 5 8 4-10 4 10 4-10 4 10 5-8" />
       </svg>
     );
   }
   if (type === "elephant") {
     return (
       <svg viewBox="0 0 64 64" aria-hidden="true">
-        <path d="M14 47h36l4 9H10l4-9Zm4-4V26c0-10 7-17 18-17 10 0 18 7 18 17v12c0 7-5 11-11 11h-4V36h7V25c0-5-4-9-10-9s-10 4-10 10v17H18Z" />
-        <path d="M22 24c-7 0-11 4-11 10 0 5 4 9 10 9M43 21c5 3 8 8 8 14" />
-        <circle cx="38" cy="24" r="2.5" />
+        <path d="M24 20c-5-9-15-9-19 0-5 11 2 23 18 23M40 20c5-9 15-9 19 0 5 11-2 23-18 23" />
+        <path d="M23 18c2-7 16-7 18 0l2 16c0 6-5 11-11 11s-11-5-11-11l2-16Z" />
+        <path d="M32 34v18c0 5 3 8 7 8s7-3 7-7" />
+        <path d="M24 35c-4 4-4 9-1 13M40 35c4 4 4 9 1 13" />
+        <circle cx="27" cy="27" r="2" /><circle cx="37" cy="27" r="2" />
       </svg>
     );
   }
