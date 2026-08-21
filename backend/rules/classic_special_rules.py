@@ -6,6 +6,7 @@ from collections.abc import Iterable
 
 from backend.models import CaptureEvent, GameState, Move, MoveOption, Piece
 from backend.rules.base import Rule, RuleContext
+from backend.rules.material import StartingMaterialRule
 from backend.rules.terrain import is_scorched
 from backend.rules.variant_system import FINISHED_STATUSES, finish_game, uses_royal_safety
 
@@ -411,20 +412,21 @@ class ClassicDrawRule(Rule):
 
     @staticmethod
     def _insufficient_material(state: GameState) -> bool:
-        non_kings = [
-            (row, col, piece)
+        placements = [
+            {
+                "row": row,
+                "col": col,
+                "type": piece.type,
+                "color": piece.color,
+            }
             for row, board_row in enumerate(state.board.grid)
             for col, piece in enumerate(board_row)
-            if piece is not None and piece.type != "king"
+            if piece is not None
         ]
-        if not non_kings:
-            return True
-        if len(non_kings) == 1:
-            return non_kings[0][2].type in {"bishop", "knight"}
-        if len(non_kings) == 2 and all(piece.type == "bishop" for _, _, piece in non_kings):
-            colors = {(row + col) % 2 for row, col, _ in non_kings}
-            return len(colors) == 1
-        return False
+        return not StartingMaterialRule.checkmate_material_is_sufficient(
+            placements,
+            state.piece_definitions,
+        )
 
     def apply(
         self,
