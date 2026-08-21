@@ -396,7 +396,12 @@ export function EffectsPanel({
   );
 }
 
-export function GameInfoPanel({ game, onLoadEarlierHistory, historyLoading = false }) {
+export function GameInfoPanel({
+  game,
+  briefing = null,
+  onLoadEarlierHistory,
+  historyLoading = false,
+}) {
   const boardRows = game.boardRows ?? game.boardSize;
   const moveSquares = (move) => {
     const from = boardSquareLabel(move.from, boardRows);
@@ -406,6 +411,7 @@ export function GameInfoPanel({ game, onLoadEarlierHistory, historyLoading = fal
 
   return (
     <aside className="history-panel">
+      {briefing}
       <GameStateSummary gameStatus={game.gameStatus} winner={game.winner} score={game.score} abilities={game.abilities} clock={game.clock} centerDominion={game.centerDominion} royalCenter={game.royalCenter} checkRace={game.checkRace} />
       <CapturedPieces capturedPieces={game.capturedPieces} />
       <section className="panel-section history-section">

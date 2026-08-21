@@ -3656,8 +3656,7 @@ button.secondary {
 
 .play-game-briefing {
   width: 100%;
-  max-width: var(--board-long-edge);
-  margin-bottom: 0.85rem;
+  margin-bottom: 1rem;
   box-sizing: border-box;
 }
 

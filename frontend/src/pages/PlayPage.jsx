@@ -111,16 +111,18 @@ function PlayPage({
         ) : null}
     </EffectsPanel>
   );
+  const matchBriefing = (
+    <GameBriefing
+      boardRows={game.boardRows ?? game.boardSize}
+      boardCols={game.boardCols ?? game.boardSize}
+      configuration={game.configuration}
+      catalog={catalog}
+      label="Match Brief"
+      className="play-game-briefing"
+    />
+  );
   const board = (
     <section className="board-section">
-        <GameBriefing
-          boardRows={game.boardRows ?? game.boardSize}
-          boardCols={game.boardCols ?? game.boardSize}
-          configuration={game.configuration}
-          catalog={catalog}
-          label="Match Brief"
-          className="play-game-briefing"
-        />
         <ActiveActionStrip
           game={game}
           selectedSquare={selectedSquare}
@@ -157,6 +159,7 @@ function PlayPage({
   const infoPanel = (
     <GameInfoPanel
         game={game}
+        briefing={matchBriefing}
         onLoadEarlierHistory={onLoadEarlierHistory}
         historyLoading={historyLoading}
     />
