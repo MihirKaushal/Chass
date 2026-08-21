@@ -158,6 +158,7 @@ class ConfigurationRuleEngine:
             result.errors.append(
                 "Starting Barricade positions must remain empty in the board center."
             )
+        pawn_promotion_rows = {"white": 0, "black": request.boardRows - 1}
         for placement in placements:
             square = placement["row"], placement["col"]
             if not (
@@ -174,10 +175,10 @@ class ConfigurationRuleEngine:
                 result.errors.append("Barricades must be neutral.")
             if placement["type"] != "barricade" and placement["color"] == "neutral":
                 result.errors.append("Only Barricades may be neutral.")
-            if placement["type"] == "pawn" and placement["row"] in {
-                0,
-                request.boardRows - 1,
-            }:
+            if (
+                placement["type"] == "pawn"
+                and placement["row"] == pawn_promotion_rows.get(placement["color"])
+            ):
                 result.errors.append("Pawns cannot begin on a promotion rank.")
 
         if not payload.gambit.enabled:
