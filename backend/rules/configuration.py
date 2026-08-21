@@ -199,6 +199,10 @@ class ConfigurationRuleEngine:
                 for piece in effective
                 if piece["type"] == "king" and piece["color"] in {"white", "black"}
             }
+            if len(effective) == 2 and all(piece["type"] == "king" for piece in effective):
+                result.errors.append(
+                    "A game cannot begin with only two Kings; add at least one non-King piece."
+                )
             if (
                 len(kings) == 2
                 and max(
