@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
-import { locateConfigurationIssue } from "../configurationIssues";
+import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
 import { matchesRulebookSearch } from "../rulebookSearch";
 import {
   applyParameterChange,
@@ -356,6 +356,7 @@ function ConfigurationBoard({
   onUndo,
   canUndo,
   onRestore,
+  highlightedIssueSquares = [],
 }) {
   const definitionMap = useMemo(
     () => new Map(catalog.pieces.map((piece) => [piece.type, piece])),
@@ -384,6 +385,10 @@ function ConfigurationBoard({
       affinityEnabled: draft.customRules.affinityEnabled,
     }).map((square) => `${square.row}-${square.col}`)
   );
+  const issueSquareMap = useMemo(
+    () => new Set(highlightedIssueSquares.map((square) => `${square.row}-${square.col}`)),
+    [highlightedIssueSquares]
+  );
 
   return (
     <div className="studio-preview-stack" data-setting-key="board-editor">
@@ -410,6 +415,7 @@ function ConfigurationBoard({
                 draft.pieceParameters[placement?.type]
               );
               const significantCenter = significantCenterMap.has(squareKey);
+              const issueSquare = issueSquareMap.has(squareKey);
               const centerStartConflict = Boolean(
                 !draft.gambit.enabled
                 && significantCenter
@@ -429,13 +435,14 @@ function ConfigurationBoard({
                     draft.gambit.enabled ? "readonly" : "",
                     significantCenter ? "studio-affinity" : "",
                     centerStartConflict ? "center-start-conflict" : "",
+                    issueSquare ? "issue-square-highlight" : "",
                   ].filter(Boolean).join(" ")}
                   onClick={() => onPlace(row, col)}
-                  aria-label={`${coordinate(row, col, draft.boardRows)}${piece ? `, ${piece.color} ${piece.name}` : ""}${centerStartConflict ? ", invalid occupied center starting square" : ""}`}
+                  aria-label={`${coordinate(row, col, draft.boardRows)}${piece ? `, ${piece.color} ${piece.name}` : ""}${centerStartConflict ? ", invalid occupied center starting square" : ""}${issueSquare ? ", highlighted configuration issue" : ""}`}
                 >
                   {col === 0 ? <span className="studio-rank">{draft.boardRows - row}</span> : null}
                   {row === draft.boardRows - 1 ? <span className="studio-file">{String.fromCharCode(65 + col)}</span> : null}
-                  {centerStartConflict ? <span className="center-start-warning" aria-hidden="true">!</span> : null}
+                  {centerStartConflict || issueSquare ? <span className="center-start-warning" aria-hidden="true">!</span> : null}
                   {piece ? (
                     <>
                       <span className={`studio-piece piece-${piece.color} ${piece.isCustom ? "custom" : ""}`}>
@@ -823,6 +830,9 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const [restoreFormationId, setRestoreFormationId] = useState("classic");
   const [creatingMode, setCreatingMode] = useState("");
   const [error, setError] = useState("");
+  const [highlightedIssueSquares, setHighlightedIssueSquares] = useState([]);
+  const issueSquareTimerRef = useRef(null);
+  const settingHighlightTimerRef = useRef(null);
   const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, requestKey: null });
   const validationRequest = useMemo(() => (draft ? buildRequest(draft) : null), [draft]);
   const validationRequestKey = useMemo(
@@ -873,6 +883,16 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     }, 250);
     return () => { cancelled = true; window.clearTimeout(timer); };
   }, [validationRequest, validationRequestKey]);
+
+  useEffect(() => {
+    setHighlightedIssueSquares([]);
+    window.clearTimeout(issueSquareTimerRef.current);
+  }, [validationRequestKey]);
+
+  useEffect(() => () => {
+    window.clearTimeout(issueSquareTimerRef.current);
+    window.clearTimeout(settingHighlightTimerRef.current);
+  }, []);
 
   const definitionMap = useMemo(
     () => new Map((catalog?.pieces || []).map((piece) => [piece.type, piece])),
@@ -1168,6 +1188,15 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
   const focusValidationIssue = (message) => {
     const { sectionId, settingKey } = locateConfigurationIssue(message);
+    const issueSquares = configurationIssueSquares(message, draft);
+    window.clearTimeout(issueSquareTimerRef.current);
+    setHighlightedIssueSquares(issueSquares);
+    if (issueSquares.length) {
+      issueSquareTimerRef.current = window.setTimeout(
+        () => setHighlightedIssueSquares([]),
+        2600
+      );
+    }
     const section = document.getElementById(sectionId);
     if (section instanceof HTMLDetailsElement) section.open = true;
 
@@ -1177,13 +1206,14 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       document.querySelectorAll(".configuration-issue-highlight").forEach(
         (element) => element.classList.remove("configuration-issue-highlight")
       );
+      window.clearTimeout(settingHighlightTimerRef.current);
       target.classList.add("configuration-issue-highlight");
       target.scrollIntoView({ behavior: "smooth", block: "center" });
       const focusTarget = target.matches("button, input, select")
         ? target
         : target.querySelector("input, select, button");
       window.setTimeout(() => focusTarget?.focus({ preventScroll: true }), 350);
-      window.setTimeout(
+      settingHighlightTimerRef.current = window.setTimeout(
         () => target.classList.remove("configuration-issue-highlight"),
         2600
       );
@@ -1211,6 +1241,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             onUndo={undoBoard}
             canUndo={Boolean(boardHistory.length)}
             onRestore={restoreFormation}
+            highlightedIssueSquares={highlightedIssueSquares}
           />
           <GameBriefing
             boardRows={draft.boardRows}
@@ -1397,16 +1428,6 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
           ) : (
             <small>{validation.warnings[0] || "Choose local play or create an online invite."}</small>
           )}
-          {validation.errors.length > 1 ? (
-            <div className="validation-issue-popover" aria-label="Choose an issue to fix">
-              <span>Choose an issue to fix</span>
-              {validation.errors.map((issue, index) => (
-                <button type="button" key={`${issue}-menu-${index}`} onClick={() => focusValidationIssue(issue)}>
-                  <b>{index + 1}</b><span>{issue}</span>
-                </button>
-              ))}
-            </div>
-          ) : null}
         </div>
         <div className="launch-actions"><button type="button" disabled={!canLaunch} onClick={() => create("local")}>{creatingMode === "local" ? "Building..." : "Start Local Game"}</button><button type="button" className="secondary" disabled={!canLaunch} onClick={() => create("online")}>{creatingMode === "online" ? "Creating Invite..." : "Create Online Game"}</button></div>
       </section>
