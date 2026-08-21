@@ -683,7 +683,12 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const [selectedTool, setSelectedTool] = useState(null);
   const [creatingMode, setCreatingMode] = useState("");
   const [error, setError] = useState("");
-  const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {} });
+  const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, requestKey: null });
+  const validationRequest = useMemo(() => (draft ? buildRequest(draft) : null), [draft]);
+  const validationRequestKey = useMemo(
+    () => (validationRequest ? JSON.stringify(validationRequest) : null),
+    [validationRequest]
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -701,22 +706,28 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   }, [initialPreset]);
 
   useEffect(() => {
-    if (!draft) return undefined;
+    if (!validationRequest || !validationRequestKey) return undefined;
     let cancelled = false;
-    setValidation((current) => ({ ...current, status: "checking" }));
+    setValidation((current) => ({ ...current, status: "checking", requestKey: null }));
     const timer = window.setTimeout(() => {
-      validateGameConfiguration(buildRequest(draft))
+      validateGameConfiguration(validationRequest)
         .then((result) => {
-          if (!cancelled) setValidation({ status: result.valid ? "valid" : "invalid", ...result });
+          if (!cancelled) {
+            setValidation({
+              status: result.valid ? "valid" : "invalid",
+              ...result,
+              requestKey: validationRequestKey,
+            });
+          }
         })
         .catch((requestError) => {
           if (!cancelled) {
-            setValidation({ status: "invalid", valid: false, errors: [requestError.message], warnings: [], disabledOptions: {} });
+            setValidation({ status: "invalid", valid: false, errors: [requestError.message], warnings: [], disabledOptions: {}, requestKey: null });
           }
         });
-    }, 500);
+    }, 250);
     return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [draft]);
+  }, [validationRequest, validationRequestKey]);
 
   const definitionMap = useMemo(
     () => new Map((catalog?.pieces || []).map((piece) => [piece.type, piece])),
@@ -869,10 +880,12 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     setError("");
     const request = buildRequest(draft, mode);
     try {
-      const latestValidation = await validateGameConfiguration(request);
-      setValidation({ status: latestValidation.valid ? "valid" : "invalid", ...latestValidation });
-      if (!latestValidation.valid) {
-        setError(latestValidation.errors[0]);
+      if (
+        validation.status !== "valid" ||
+        !validation.valid ||
+        validation.requestKey !== validationRequestKey
+      ) {
+        setError("Wait for the current configuration check to finish.");
         setCreatingMode("");
         return;
       }
@@ -883,7 +896,11 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     }
   };
 
-  const canLaunch = validation.status === "valid" && validation.valid && !creatingMode;
+  const canLaunch =
+    validation.status === "valid" &&
+    validation.valid &&
+    validation.requestKey === validationRequestKey &&
+    !creatingMode;
   const validationSummary =
     validation.status === "checking" || validation.status === "loading"
       ? "Checking configuration..."

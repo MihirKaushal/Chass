@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 
-import { warmApi } from "../api/gameApi";
+import { getCatalog } from "../api/gameApi";
 import LandingNav from "../components/LandingNav";
 import SiteFooter from "../components/SiteFooter";
 
@@ -12,7 +12,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    warmApi();
+    getCatalog().catch(() => {});
   }, []);
 
   const start = async (mode) => {
