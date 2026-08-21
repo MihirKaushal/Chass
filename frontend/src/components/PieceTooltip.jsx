@@ -1,4 +1,5 @@
 import PieceGlyph from "./PieceGlyph";
+import IconCloseButton from "./IconCloseButton";
 import { parameterValueLabel } from "../variantTuning";
 
 function title(value) {
@@ -54,17 +55,14 @@ function PieceTooltip({ piece, placement = "above", edge = "center", onClose = n
       aria-label={onClose ? `${piece.name} details` : undefined}
     >
       {onClose ? (
-        <button
-          type="button"
+        <IconCloseButton
           className="piece-tooltip-close"
-          aria-label="Close piece details"
+          label="Close piece details"
           onClick={(event) => {
             event.stopPropagation();
             onClose();
           }}
-        >
-          ×
-        </button>
+        />
       ) : null}
       <div className="tooltip-title">
         <PieceGlyph piece={piece} />

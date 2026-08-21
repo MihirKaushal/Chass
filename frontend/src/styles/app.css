@@ -1622,23 +1622,43 @@ button.secondary {
   pointer-events: auto;
 }
 
+.icon-close-button {
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid rgba(26, 54, 93, 0.28);
+  border-radius: 50%;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  font-family: "IBM Plex Mono", monospace;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.icon-close-button > span {
+  display: block;
+  line-height: 1;
+}
+
+.icon-close-button:hover,
+.icon-close-button:focus-visible {
+  color: var(--deep);
+  background: var(--accent-soft);
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .piece-tooltip-close {
   position: absolute;
   top: 0.3rem;
   right: 0.3rem;
   width: 1.15rem;
   height: 1.15rem;
-  display: grid;
-  place-items: center;
-  padding: 0;
   border: 1px solid rgba(255, 255, 255, 0.35);
-  border-radius: 50%;
   color: white;
   background: rgba(255, 255, 255, 0.1);
-  cursor: pointer;
   font-size: 0.85rem;
-  font-weight: 700;
-  line-height: 1;
 }
 
 .piece-tooltip-close:hover,
@@ -1650,15 +1670,14 @@ button.secondary {
 
 .board-marker-guide {
   position: relative;
-  z-index: 100;
+  z-index: 4;
   width: 100%;
   margin-top: 1rem;
   display: flex;
   justify-content: flex-end;
 }
 
-.board-marker-guide-trigger,
-.board-marker-guide-close {
+.board-marker-guide-trigger {
   display: grid;
   place-items: center;
   padding: 0;
@@ -1692,7 +1711,7 @@ button.secondary {
   position: absolute;
   bottom: calc(100% + 0.55rem);
   right: 0;
-  z-index: 110;
+  z-index: 5;
   width: min(350px, calc(100vw - 2.5rem));
   max-height: min(460px, 65vh);
   overflow-y: auto;
@@ -1735,6 +1754,8 @@ button.secondary {
   width: 1.6rem;
   height: 1.6rem;
   border: 1px solid rgba(26, 54, 93, 0.24);
+  color: white;
+  background: var(--accent);
   font-size: 1rem;
 }
 
@@ -5156,7 +5177,7 @@ details[open] > summary > .disclosure-arrow {
 
   .responsive-play-panel {
     position: fixed;
-    z-index: 82;
+    z-index: 200;
     right: 50%;
     bottom: 0;
     width: min(680px, calc(100% - 1.2rem));
@@ -5182,35 +5203,23 @@ details[open] > summary > .disclosure-arrow {
   .play-panel-drawer-header {
     min-height: 3rem;
     display: grid;
-    grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+    grid-template-columns: minmax(0, 1fr) 2.5rem;
     align-items: center;
     padding: 0.28rem 0.5rem 0.4rem;
     border-bottom: 1px solid rgba(26, 54, 93, 0.14);
     background: rgba(255, 255, 255, 0.4);
-    text-align: center;
+    text-align: left;
   }
 
-  .play-panel-grab,
+  .play-panel-drawer-header > strong {
+    min-width: 0;
+    padding-left: 0.35rem;
+  }
+
   .play-panel-close {
     width: 2.25rem;
     height: 2.25rem;
-    display: grid;
-    place-items: center;
-    border: 0;
-    border-radius: 50%;
-    color: var(--deep);
-    background: transparent;
-    cursor: pointer;
-  }
-
-  .play-panel-grab i {
-    width: 1.65rem;
-    height: 0.24rem;
-    border-radius: 999px;
-    background: rgba(26, 54, 93, 0.34);
-  }
-
-  .play-panel-close {
+    justify-self: end;
     font-size: 1.35rem;
   }
 
@@ -5227,7 +5236,7 @@ details[open] > summary > .disclosure-arrow {
 
   .play-panel-backdrop {
     position: fixed;
-    z-index: 81;
+    z-index: 199;
     inset: 0;
     display: block;
     border: 0;

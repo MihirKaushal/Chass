@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
+import IconCloseButton from "./IconCloseButton";
+
 const COMPACT_QUERY = "(max-width: 1300px)";
 
 function useCompactPlayLayout() {
@@ -27,23 +29,12 @@ function Drawer({ id, label, openPanel, compact, onClose, children }) {
       inert={compact && !isOpen ? "" : undefined}
     >
       <header className="play-panel-drawer-header">
-        <button
-          type="button"
-          className="play-panel-grab"
-          aria-label={`Close ${label}`}
-          onClick={onClose}
-        >
-          <i />
-        </button>
         <strong>{label}</strong>
-        <button
-          type="button"
+        <IconCloseButton
           className="play-panel-close"
-          aria-label={`Close ${label}`}
+          label={`Close ${label}`}
           onClick={onClose}
-        >
-          ×
-        </button>
+        />
       </header>
       {children}
     </div>

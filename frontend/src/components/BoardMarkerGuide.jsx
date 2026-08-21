@@ -1,5 +1,7 @@
 import { useEffect, useId, useRef, useState } from "react";
 
+import IconCloseButton from "./IconCloseButton";
+
 const MARKERS = [
   {
     color: "Blue dot",
@@ -108,15 +110,12 @@ function BoardMarkerGuide() {
               <span>Board Guide</span>
               <h2 id={`${panelId}-title`}>Target Markers</h2>
             </div>
-            <button
+            <IconCloseButton
               ref={closeRef}
-              type="button"
               className="board-marker-guide-close"
-              aria-label="Close board marker guide"
+              label="Close board marker guide"
               onClick={closeGuide}
-            >
-              ×
-            </button>
+            />
           </header>
 
           <ul className="board-marker-guide-list">
