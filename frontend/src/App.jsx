@@ -20,6 +20,7 @@ import {
   useCommandPower,
 } from "./api/gameApi";
 import OnlineLobby from "./components/OnlineLobby";
+import PageSkeleton from "./components/PageSkeleton";
 import SiteFooter from "./components/SiteFooter";
 import TopNav from "./components/TopNav";
 import {
@@ -765,15 +766,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   };
 
   if (initialLoading && !game) {
-    return (
-      <div className="app-shell centered">
-        <div className="loading-card">
-          <span className="loading-mark" />
-          <h1>Loading the board</h1>
-          <p>Free hosts may need a moment to wake up.</p>
-        </div>
-      </div>
-    );
+    return <PageSkeleton variant="play" />;
   }
 
   if (!game) {
