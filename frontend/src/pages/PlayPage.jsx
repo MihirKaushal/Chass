@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import ActiveActionStrip from "../components/ActiveActionStrip";
 import BoardMarkerGuide from "../components/BoardMarkerGuide";
 import ChessBoard from "../components/ChessBoard";
 import GameBriefing from "../components/GameBriefing";
@@ -21,6 +22,7 @@ function PlayPage({
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
   const [selectedGlobalActionType, setSelectedGlobalActionType] = useState(null);
+  const [selectedBoardAction, setSelectedBoardAction] = useState(null);
   const [evolveTo, setEvolveTo] = useState("knight");
   const lastMove = game.history.length ? game.history[game.history.length - 1] : null;
   const powerTargets = selectedPower
@@ -40,6 +42,7 @@ function PlayPage({
   useEffect(() => {
     setSelectedPower(null);
     setSelectedGlobalActionType(null);
+    setSelectedBoardAction(null);
   }, [game.currentPlayer, game.phase]);
 
   useEffect(() => {
@@ -50,16 +53,23 @@ function PlayPage({
 
   const selectPower = (power) => {
     setSelectedPower(power);
-    if (power) setSelectedGlobalActionType(null);
+    if (power) {
+      setSelectedGlobalActionType(null);
+      setSelectedBoardAction(null);
+    }
   };
 
   const selectGlobalAction = (actionType) => {
     setSelectedGlobalActionType(actionType);
-    if (actionType) setSelectedPower(null);
+    if (actionType) {
+      setSelectedPower(null);
+      setSelectedBoardAction(null);
+    }
   };
 
   const handleAction = (action) => {
     setSelectedGlobalActionType(null);
+    setSelectedBoardAction(null);
     onAction(action);
   };
 
@@ -110,6 +120,14 @@ function PlayPage({
           label="Match Brief"
           className="play-game-briefing"
         />
+        <ActiveActionStrip
+          game={game}
+          selectedSquare={selectedSquare}
+          selectedBoardAction={selectedBoardAction}
+          selectedPower={selectedPower}
+          selectedGlobalActionType={selectedGlobalActionType}
+          powerTargets={powerTargets}
+        />
         <ChessBoard
           board={game.board}
           boardRows={game.boardRows ?? game.boardSize}
@@ -130,6 +148,7 @@ function PlayPage({
           globalActions={globalActions}
           availableActions={selectedPower || selectedGlobalActionType ? [] : game.availableActions}
           onAction={handleAction}
+          onActionSelectionChange={setSelectedBoardAction}
         />
         <BoardMarkerGuide />
       </section>
