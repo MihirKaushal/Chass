@@ -427,7 +427,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                 MovePattern(dr=-1, dc=1, mode="capture", relative_to_color=True),
                 MovePattern(dr=-1, dc=-1, mode="capture", relative_to_color=True),
             ],
-            metadata={"family": "classic"},
+            metadata={"family": "classic", "materialClass": "promotable"},
         ),
         "rook": PieceDefinition(
             type="rook",
@@ -449,7 +449,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                 MovePattern(dr=0, dc=1, repeat=True, requires_clear_path=True),
                 MovePattern(dr=0, dc=-1, repeat=True, requires_clear_path=True),
             ],
-            metadata={"family": "classic"},
+            metadata={"family": "classic", "materialClass": "major"},
         ),
         "knight": PieceDefinition(
             type="knight",
@@ -463,7 +463,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
             ),
             points=3,
             patterns=_knight_patterns(),
-            metadata={"family": "classic"},
+            metadata={"family": "classic", "materialClass": "minor"},
         ),
         "bishop": PieceDefinition(
             type="bishop",
@@ -479,7 +479,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                 MovePattern(dr=-1, dc=1, repeat=True, requires_clear_path=True),
                 MovePattern(dr=-1, dc=-1, repeat=True, requires_clear_path=True),
             ],
-            metadata={"family": "classic"},
+            metadata={"family": "classic", "materialClass": "bishop"},
         ),
         "queen": PieceDefinition(
             type="queen",
@@ -490,7 +490,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
             movement_summary="Moves any number of clear squares in any straight direction.",
             points=9,
             patterns=_queen_patterns(),
-            metadata={"family": "classic"},
+            metadata={"family": "classic", "materialClass": "major"},
         ),
         "king": PieceDefinition(
             type="king",
@@ -510,7 +510,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                 MovePattern(dr=-1, dc=1),
                 MovePattern(dr=-1, dc=-1),
             ],
-            metadata={"family": "classic"},
+            metadata={"family": "classic", "materialClass": "royal"},
         ),
         "maharani": PieceDefinition(
             type="maharani",
@@ -554,7 +554,11 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     "May cross exactly {blockersCrossed} blocker(s)",
                 ],
             },
-            metadata={"family": "chass_custom", "visualKey": "maharani"},
+            metadata={
+                "family": "chass_custom",
+                "visualKey": "maharani",
+                "materialClass": "major",
+            },
         ),
         "catapult": PieceDefinition(
             type="catapult",
@@ -640,7 +644,11 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     "Barricades block projectiles",
                 ],
             },
-            metadata={"family": "chass_custom", "visualKey": "catapult"},
+            metadata={
+                "family": "chass_custom",
+                "visualKey": "catapult",
+                "materialClass": "major",
+            },
         ),
         "barricade": PieceDefinition(
             type="barricade",
@@ -699,6 +707,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                 "family": "chass_custom",
                 "neutral": True,
                 "visualKey": "barricade",
+                "materialClass": "support",
             },
         ),
         "hypnotizer": PieceDefinition(
@@ -797,7 +806,11 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     "Contact progress resets if separated",
                 ],
             },
-            metadata={"family": "chass_custom", "visualKey": "hypnotizer"},
+            metadata={
+                "family": "chass_custom",
+                "visualKey": "hypnotizer",
+                "materialClass": "support",
+            },
         ),
         "diplomat": PieceDefinition(
             type="diplomat",
@@ -880,7 +893,11 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     "Retires after {retireAfterPacifications} pacification(s)",
                 ],
             },
-            metadata={"family": "chass_custom", "visualKey": "diplomat"},
+            metadata={
+                "family": "chass_custom",
+                "visualKey": "diplomat",
+                "materialClass": "support",
+            },
         ),
         "cannibal": PieceDefinition(
             type="cannibal",
@@ -960,7 +977,11 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     "Cannot be revived by Necromancy",
                 ],
             },
-            metadata={"family": "chass_custom", "visualKey": "cannibal"},
+            metadata={
+                "family": "chass_custom",
+                "visualKey": "cannibal",
+                "materialClass": "minor",
+            },
         ),
         "elephant": PieceDefinition(
             type="elephant",
@@ -1030,7 +1051,11 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                     "Cannot be consumed by a Cannibal",
                 ],
             },
-            metadata={"family": "chass_custom", "visualKey": "elephant"},
+            metadata={
+                "family": "chass_custom",
+                "visualKey": "elephant",
+                "materialClass": "major",
+            },
         ),
     }
     return pieces
