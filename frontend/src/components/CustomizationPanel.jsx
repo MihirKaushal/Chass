@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { affinitySquares, barricadeSquares, objectiveCenterSquares } from "../boardGeometry";
 import { locateConfigurationIssue } from "../configurationIssues";
+import { matchesRulebookSearch } from "../rulebookSearch";
 import {
   applyParameterChange,
   effectiveCatalogEntry,
@@ -592,8 +593,19 @@ function CollapsibleStudioSection({
   );
 }
 
-function RulebookSection({ id, title: heading, description, className = "", children }) {
+function RulebookSection({
+  id,
+  title: heading,
+  description,
+  className = "",
+  revealKey = "",
+  children,
+}) {
   const [open, setOpen] = useState(true);
+
+  useEffect(() => {
+    if (revealKey) setOpen(true);
+  }, [revealKey]);
 
   return (
     <details
@@ -612,13 +624,102 @@ function RulebookSection({ id, title: heading, description, className = "", chil
 }
 
 function Rulebook({ catalog, draft }) {
+  const [query, setQuery] = useState("");
+  const [enabledOnly, setEnabledOnly] = useState(false);
+  const effectivePieces = catalog.pieces.map((piece) => effectiveCatalogEntry(
+    piece,
+    draft.pieceParameters[piece.type]
+  ));
+  const visiblePieces = effectivePieces.filter((piece) => (
+    (!enabledOnly || draft.enabledPieces.includes(piece.type))
+    && matchesRulebookSearch(
+      query,
+      piece,
+      `${draft.pointValues[piece.type] ?? 0} points`
+    )
+  ));
+  const visibleVictoryModes = catalog.victoryModes.filter((mode) => (
+    (!enabledOnly || draft.victory.mode === mode.id)
+    && matchesRulebookSearch(query, mode)
+  ));
+  const affinityCopy = [
+    "Affinity Squares",
+    "Each color receives two adaptive center squares. Hold both squares assigned to your color through the opponent's turn to earn one command point.",
+    "Spend one point for a Pawn, two to evolve a Pawn, or three for a Rook. A command uses the normal turn and must leave the King safe.",
+    "Command Point Cap",
+    `The cap controls how many unused command points a player may save. The current cap is ${draft.customRules.commandPointCap}.`,
+  ];
+  const showAffinity = (!enabledOnly || draft.customRules.affinityEnabled)
+    && matchesRulebookSearch(query, affinityCopy);
+  const effectiveAbilities = catalog.specialAbilities.map((ability) => effectiveCatalogEntry(
+    ability,
+    draft.specialAbilities.parameters[ability.id]
+  ));
+  const visibleAbilities = effectiveAbilities.filter((ability) => (
+    (
+      !enabledOnly
+      || (
+        draft.specialAbilities.enabled
+        && draft.specialAbilities.allowed.includes(ability.id)
+      )
+    )
+    && matchesRulebookSearch(query, ability)
+  ));
+  const showGambit = (!enabledOnly || draft.gambit.enabled)
+    && matchesRulebookSearch(query, catalog.gambit, "Draft Gambit");
+  const enabledTimedEntries = [
+    ...effectivePieces.filter((piece) => draft.enabledPieces.includes(piece.type)),
+    ...effectiveAbilities.filter((ability) => (
+      draft.specialAbilities.enabled
+      && draft.specialAbilities.allowed.includes(ability.id)
+    )),
+  ].some((entry) => ["round", "cooldown", "recharge", "duration", "rest"].some(
+    (term) => matchesRulebookSearch(
+      term,
+      entry.configuredParameters,
+      entry.rules,
+      entry.details
+    )
+  ));
+  const countdownCopy = "Countdowns decrease when the affected player completes a turn. Both players see active timers in the Play sidebar and in piece details.";
+  const showCountdowns = (!enabledOnly || enabledTimedEntries)
+    && matchesRulebookSearch(query, "Turns And Countdowns", countdownCopy);
+  const resultCount = visiblePieces.length
+    + visibleVictoryModes.length
+    + Number(showAffinity)
+    + visibleAbilities.length
+    + Number(showGambit)
+    + Number(showCountdowns);
+  const revealKey = query || (enabledOnly ? "enabled" : "");
+
   return (
     <section className="rulebook" id="rulebook">
       <header className="rulebook-hero">
-        <div>
+        <div className="rulebook-hero-copy">
           <span className="eyebrow">Complete Reference</span>
           <h2>The Chass Rulebook</h2>
           <p>Detailed behavior for every built-in piece, victory rule, ability, and Gambit system.</p>
+          <div className="rulebook-search-tools">
+            <label className="rulebook-search">
+              <span className="visually-hidden">Search the rulebook</span>
+              <input
+                type="search"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder="Search pieces, rules, or abilities"
+              />
+              {query ? <button type="button" onClick={() => setQuery("")} aria-label="Clear rulebook search">Clear</button> : null}
+            </label>
+            <label className="rulebook-enabled-filter">
+              <input
+                type="checkbox"
+                checked={enabledOnly}
+                onChange={(event) => setEnabledOnly(event.target.checked)}
+              />
+              <span>Enabled Only</span>
+            </label>
+            {(query || enabledOnly) ? <small>{resultCount} reference{resultCount === 1 ? "" : "s"} shown</small> : null}
+          </div>
         </div>
         <nav aria-label="Rulebook sections">
           <a href="#rulebook-pieces">Pieces</a>
@@ -629,14 +730,9 @@ function Rulebook({ catalog, draft }) {
         </nav>
       </header>
 
-      <RulebookSection id="rulebook-pieces" title="Piece Encyclopedia" description="Movement, value, and special behavior.">
+      <RulebookSection id="rulebook-pieces" title="Piece Encyclopedia" description="Movement, value, and special behavior." revealKey={revealKey}>
         <div className="rulebook-entry-grid">
-          {catalog.pieces.map((piece) => {
-            const effectivePiece = effectiveCatalogEntry(
-              piece,
-              draft.pieceParameters[piece.type]
-            );
-            return (
+          {visiblePieces.map((effectivePiece) => (
             <details className="rulebook-entry" key={effectivePiece.type}>
               <summary>
                 <span className="entry-icon"><PieceGlyph type={effectivePiece.type} color="black" symbol={effectivePiece.symbols.black || effectivePiece.icon} /></span>
@@ -649,18 +745,20 @@ function Rulebook({ catalog, draft }) {
               <ConfiguredParameterList parameters={effectivePiece.configuredParameters} />
               {effectivePiece.rules.length ? <ul>{effectivePiece.rules.map((rule) => <li key={rule}>{rule}</li>)}</ul> : null}
             </details>
-          );})}
+          ))}
         </div>
+        {!visiblePieces.length ? <p className="rulebook-empty">No matching pieces in this configuration.</p> : null}
       </RulebookSection>
 
-      <RulebookSection id="rulebook-victory" title="Victory Rules" description="What ends a match and decides its result.">
+      <RulebookSection id="rulebook-victory" title="Victory Rules" description="What ends a match and decides its result." revealKey={revealKey}>
         <div className="rulebook-strip">
-          {catalog.victoryModes.map((mode) => <div key={mode.id}><i>{mode.icon}</i><strong>{mode.name}</strong><p>{mode.summary}</p></div>)}
+          {visibleVictoryModes.map((mode) => <div key={mode.id}><i>{mode.icon}</i><strong>{mode.name}</strong><p>{mode.summary}</p></div>)}
         </div>
+        {!visibleVictoryModes.length ? <p className="rulebook-empty">No matching victory rules in this configuration.</p> : null}
       </RulebookSection>
 
-      <RulebookSection id="rulebook-custom-rules" title="Custom Rules" description="Optional board-wide systems that work with any compatible game mode.">
-        <div className="rulebook-gambit-copy">
+      <RulebookSection id="rulebook-custom-rules" title="Custom Rules" description="Optional board-wide systems that work with any compatible game mode." revealKey={revealKey}>
+        {showAffinity ? <div className="rulebook-gambit-copy">
           <div>
             <h4>Affinity Squares</h4>
             <p>Each color receives two adaptive center squares. Hold both squares assigned to your color through the opponent&apos;s turn to earn one command point.</p>
@@ -670,39 +768,37 @@ function Rulebook({ catalog, draft }) {
             <h4>Command Point Cap</h4>
             <p>The cap controls how many unused command points a player may save. It defaults to three and can be changed without enabling Chass Gambit.</p>
           </div>
-        </div>
+        </div> : <p className="rulebook-empty">No matching custom rules in this configuration.</p>}
       </RulebookSection>
 
-      <RulebookSection id="rulebook-abilities" title="Special Ability Codex" description="Each player privately chooses the configured number of enabled abilities.">
+      <RulebookSection id="rulebook-abilities" title="Special Ability Codex" description="Each player privately chooses the configured number of enabled abilities." revealKey={revealKey}>
         <div className="rulebook-entry-grid">
-          {catalog.specialAbilities.map((ability) => {
-            const effectiveAbility = effectiveCatalogEntry(
-              ability,
-              draft.specialAbilities.parameters[ability.id]
-            );
-            return (
+          {visibleAbilities.map((effectiveAbility) => (
             <details className="rulebook-entry ability-entry" key={effectiveAbility.id}>
               <summary><span className="entry-icon">{effectiveAbility.icon}</span><span><strong>{effectiveAbility.name}</strong><small>Player ability</small></span></summary>
               <p>{effectiveAbility.summary}</p>
               <ConfiguredParameterList parameters={effectiveAbility.configuredParameters} />
               <ul>{effectiveAbility.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
             </details>
-          );})}
+          ))}
         </div>
+        {!visibleAbilities.length ? <p className="rulebook-empty">No matching abilities in this configuration.</p> : null}
       </RulebookSection>
 
-      <RulebookSection id="rulebook-gambit" title={`${catalog.gambit.icon} ${catalog.gambit.name}`} description={catalog.gambit.summary}>
-        <div className="rulebook-gambit-copy">
+      <RulebookSection id="rulebook-gambit" title={`${catalog.gambit.icon} ${catalog.gambit.name}`} description={catalog.gambit.summary} revealKey={revealKey}>
+        {showGambit ? <div className="rulebook-gambit-copy">
           <ol>{catalog.gambit.details.map((detail) => <li key={detail}>{detail}</li>)}</ol>
           <div>
             <h4>Draft Gambit</h4>
             <ol>{catalog.gambit.draftDetails.map((detail) => <li key={detail}>{detail}</li>)}</ol>
           </div>
-        </div>
+        </div> : <p className="rulebook-empty">No matching Gambit rules in this configuration.</p>}
       </RulebookSection>
 
-      <RulebookSection title="Turns And Countdowns" description="How timed effects are counted." className="countdown-reference">
-        <p>Countdowns decrease when the affected player completes a turn. Both players see active timers in the Play sidebar and in piece tooltips.</p>
+      <RulebookSection title="Turns And Countdowns" description="How timed effects are counted." className="countdown-reference" revealKey={revealKey}>
+        {showCountdowns
+          ? <p>{countdownCopy}</p>
+          : <p className="rulebook-empty">No matching countdown rules in this configuration.</p>}
       </RulebookSection>
     </section>
   );
