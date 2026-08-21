@@ -45,6 +45,9 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
       <main className="landing-shell">
         <section className="landing-hero">
           <LandingNav active="play" onPlay={() => {}} onCustomize={onCustomize} />
+          <div className="landing-brand-mark" aria-hidden="true">
+            <img src="/chass-mark.svg" alt="" />
+          </div>
           <div className="landing-copy">
             <span className="eyebrow">Build the rules. Play the board.</span>
             <h1>Chass!</h1>
