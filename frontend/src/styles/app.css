@@ -3450,6 +3450,22 @@ button.secondary {
   box-shadow: inset 0 0 0 4px rgba(159, 47, 40, 0.9);
 }
 
+.studio-square.issue-square-highlight {
+  z-index: 6;
+  box-shadow:
+    inset 0 0 0 4px rgba(159, 47, 40, 0.96),
+    0 0 0 4px rgba(214, 88, 68, 0.32);
+  animation: issue-square-pulse 700ms ease-in-out 2;
+}
+
+@keyframes issue-square-pulse {
+  50% {
+    box-shadow:
+      inset 0 0 0 4px rgba(159, 47, 40, 0.48),
+      0 0 0 8px rgba(214, 88, 68, 0.12);
+  }
+}
+
 .center-start-warning {
   position: absolute;
   z-index: 5;
@@ -4366,8 +4382,7 @@ details[open] > summary > .disclosure-arrow {
   text-align: left;
 }
 
-.validation-inline-issues button b,
-.validation-issue-popover button > b {
+.validation-inline-issues button b {
   flex: 0 0 auto;
   width: 1.1rem;
   height: 1.1rem;
@@ -4378,68 +4393,6 @@ details[open] > summary > .disclosure-arrow {
   background: #f8d9d2;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.56rem;
-}
-
-.validation-issue-popover {
-  position: absolute;
-  z-index: 24;
-  bottom: calc(100% + 0.85rem);
-  left: -0.45rem;
-  width: min(520px, calc(100vw - 2rem));
-  display: grid;
-  gap: 0.38rem;
-  padding: 0.7rem;
-  border: 1px solid rgba(26, 54, 93, 0.24);
-  border-radius: 12px;
-  color: var(--deep);
-  background: #f8ead2;
-  box-shadow: 0 16px 38px rgba(26, 54, 93, 0.25);
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(0.4rem);
-  pointer-events: none;
-  transition: opacity 150ms ease, transform 150ms ease, visibility 150ms step-end;
-}
-
-.validation-issue-popover::after {
-  content: "";
-  position: absolute;
-  top: 100%;
-  left: 2rem;
-  border: 0.48rem solid transparent;
-  border-top-color: #f8ead2;
-}
-
-.studio-launch-bar:hover .validation-issue-popover,
-.studio-launch-bar:focus-within .validation-issue-popover {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
-  transition: opacity 150ms ease, transform 150ms ease, visibility 0ms;
-}
-
-.validation-issue-popover > span {
-  color: rgba(26, 54, 93, 0.62);
-  font-family: "IBM Plex Mono", monospace;
-  font-size: 0.62rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.validation-issue-popover button {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.52rem 0.58rem;
-  border: 1px solid rgba(123, 31, 31, 0.14);
-  border-radius: 8px;
-  color: var(--deep);
-  background: rgba(255, 255, 255, 0.55);
-  cursor: pointer;
-  text-align: left;
 }
 
 .configuration-issue-highlight {

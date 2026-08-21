@@ -1,3 +1,5 @@
+import { barricadeSquares, significantCenterSquares } from "./boardGeometry.js";
+
 const ISSUE_RULES = [
   {
     pattern: /point target cannot exceed/i,
@@ -55,4 +57,107 @@ export function locateConfigurationIssue(message = "") {
     sectionId: "studio-pieces",
     settingKey: "board-editor",
   };
+}
+
+function issueSquareKey(square) {
+  return `${square.row}-${square.col}`;
+}
+
+function uniqueVisibleSquares(squares, rows, cols) {
+  const unique = new Map();
+  squares.forEach((square) => {
+    if (
+      Number.isInteger(square?.row)
+      && Number.isInteger(square?.col)
+      && square.row >= 0
+      && square.row < rows
+      && square.col >= 0
+      && square.col < cols
+    ) {
+      unique.set(issueSquareKey(square), { row: square.row, col: square.col });
+    }
+  });
+  return [...unique.values()];
+}
+
+export function configurationIssueSquares(message = "", draft = {}) {
+  const rows = Number(draft.boardRows);
+  const cols = Number(draft.boardCols);
+  const placements = Array.isArray(draft.placements) ? draft.placements : [];
+  if (!Number.isInteger(rows) || !Number.isInteger(cols)) return [];
+
+  let matches = [];
+  if (/pawns cannot begin on a promotion rank/i.test(message)) {
+    matches = placements.filter((piece) => (
+      piece.type === "pawn"
+      && (
+        (piece.color === "white" && piece.row === 0)
+        || (piece.color === "black" && piece.row === rows - 1)
+      )
+    ));
+  } else if (/two kings cannot begin on touching squares/i.test(message)) {
+    const whiteKings = placements.filter((piece) => piece.type === "king" && piece.color === "white");
+    const blackKings = placements.filter((piece) => piece.type === "king" && piece.color === "black");
+    whiteKings.forEach((whiteKing) => {
+      blackKings.forEach((blackKing) => {
+        if (
+          Math.max(
+            Math.abs(whiteKing.row - blackKing.row),
+            Math.abs(whiteKing.col - blackKing.col)
+          ) <= 1
+        ) {
+          matches.push(whiteKing, blackKing);
+        }
+      });
+    });
+  } else if (
+    /marked center squares|only barricades may start there|kings? must begin outside.*royal center/i.test(message)
+  ) {
+    const centerKeys = new Set(
+      significantCenterSquares(rows, cols, {
+        victoryMode: draft.victory?.mode,
+        affinityEnabled: Boolean(draft.customRules?.affinityEnabled),
+      }).map(issueSquareKey)
+    );
+    matches = placements.filter((piece) => (
+      piece.type !== "barricade" && centerKeys.has(issueSquareKey(piece))
+    ));
+  } else if (/starting barricade positions must remain empty/i.test(message)) {
+    const reservedKeys = new Set(
+      barricadeSquares(rows, cols, draft.barricadeCount || 0).map(issueSquareKey)
+    );
+    matches = placements.filter((piece) => (
+      piece.type !== "barricade" && reservedKeys.has(issueSquareKey(piece))
+    ));
+  } else if (/starting barricades must use the reserved central squares/i.test(message)) {
+    const reservedKeys = new Set(
+      barricadeSquares(rows, cols, draft.barricadeCount || 0).map(issueSquareKey)
+    );
+    matches = placements.filter((piece) => (
+      piece.type === "barricade" && !reservedKeys.has(issueSquareKey(piece))
+    ));
+  } else if (/only one piece may occupy each starting square/i.test(message)) {
+    const counts = new Map();
+    placements.forEach((piece) => {
+      const key = issueSquareKey(piece);
+      counts.set(key, (counts.get(key) || 0) + 1);
+    });
+    matches = placements.filter((piece) => counts.get(issueSquareKey(piece)) > 1);
+  } else if (/must begin with exactly one king/i.test(message)) {
+    const color = message.match(/^(white|black)/i)?.[1]?.toLowerCase();
+    const kings = placements.filter((piece) => piece.type === "king" && piece.color === color);
+    matches = kings.length > 1 ? kings : [];
+  } else if (/^starting .+ is not enabled/i.test(message)) {
+    const pieceType = message.match(/^starting (.+) is not enabled/i)?.[1]
+      ?.trim()
+      .toLowerCase()
+      .replaceAll(" ", "_");
+    matches = placements.filter((piece) => piece.type === pieceType);
+  } else if (/barricades must be neutral/i.test(message)) {
+    matches = placements.filter((piece) => piece.type === "barricade" && piece.color !== "neutral");
+  } else if (/only barricades may be neutral/i.test(message)) {
+    matches = placements.filter((piece) => piece.type !== "barricade" && piece.color === "neutral");
+  }
+
+  return uniqueVisibleSquares(matches, rows, cols);
 }

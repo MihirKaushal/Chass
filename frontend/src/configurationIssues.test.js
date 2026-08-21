@@ -1,7 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { locateConfigurationIssue } from "./configurationIssues.js";
+import {
+  configurationIssueSquares,
+  locateConfigurationIssue,
+} from "./configurationIssues.js";
 
 test("configuration issues route to the setting that can fix them", () => {
   assert.deepEqual(locateConfigurationIssue("Insufficient material."), {
@@ -36,4 +39,57 @@ test("configuration issues route to the setting that can fix them", () => {
     sectionId: "studio-pieces",
     settingKey: "board-editor",
   });
+});
+
+test("configuration issues identify promotion-rank and touching-King squares", () => {
+  const draft = {
+    boardRows: 8,
+    boardCols: 8,
+    placements: [
+      { row: 0, col: 0, type: "pawn", color: "white" },
+      { row: 7, col: 7, type: "pawn", color: "black" },
+      { row: 7, col: 0, type: "pawn", color: "white" },
+      { row: 4, col: 4, type: "king", color: "white" },
+      { row: 5, col: 5, type: "king", color: "black" },
+    ],
+  };
+
+  assert.deepEqual(
+    configurationIssueSquares("Pawns cannot begin on a promotion rank.", draft),
+    [{ row: 0, col: 0 }, { row: 7, col: 7 }]
+  );
+  assert.deepEqual(
+    configurationIssueSquares("The two Kings cannot begin on touching squares.", draft),
+    [{ row: 4, col: 4 }, { row: 5, col: 5 }]
+  );
+});
+
+test("configuration issues identify occupied center and reserved Barricade squares", () => {
+  const draft = {
+    boardRows: 8,
+    boardCols: 8,
+    barricadeCount: 2,
+    victory: { mode: "center_dominion" },
+    customRules: { affinityEnabled: false },
+    placements: [
+      { row: 3, col: 3, type: "bishop", color: "white" },
+      { row: 4, col: 4, type: "pawn", color: "black" },
+      { row: 0, col: 0, type: "rook", color: "white" },
+    ],
+  };
+
+  assert.deepEqual(
+    configurationIssueSquares(
+      "Marked center squares must begin empty when they affect the rules; only Barricades may start there.",
+      draft
+    ),
+    [{ row: 3, col: 3 }, { row: 4, col: 4 }]
+  );
+  assert.deepEqual(
+    configurationIssueSquares(
+      "Starting Barricade positions must remain empty in the board center.",
+      draft
+    ),
+    [{ row: 3, col: 3 }, { row: 4, col: 4 }]
+  );
 });
