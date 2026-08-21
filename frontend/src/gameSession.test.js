@@ -1,7 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { mergeHistoryRecords, playerHasAbility } from "./gameSession.js";
+import {
+  mergeHistoryRecords,
+  playerHasAbility,
+  projectPendingMove,
+} from "./gameSession.js";
 
 test("playerHasAbility reads list-shaped selections", () => {
   const game = {
@@ -32,4 +36,78 @@ test("mergeHistoryRecords orders pages and removes overlap", () => {
 
   assert.deepEqual(merged.map((record) => record.moveNumber), [1, 2, 3]);
   assert.equal(merged[1].explanation, "newer");
+});
+
+test("projectPendingMove applies server-provided movement and captures", () => {
+  const pawn = { pieceId: "white-pawn", type: "pawn", color: "white" };
+  const enemy = { pieceId: "black-pawn", type: "pawn", color: "black" };
+  const game = {
+    board: [
+      [null, null, null],
+      [null, enemy, null],
+      [null, pawn, null],
+    ],
+  };
+
+  const projected = projectPendingMove(game, {
+    from: { row: 2, col: 1 },
+    to: { row: 1, col: 1 },
+    captures: [{ row: 1, col: 1, piece: enemy }],
+  });
+
+  assert.equal(projected.board[2][1], null);
+  assert.equal(projected.board[1][1].pieceId, "white-pawn");
+  assert.equal(projected.board[1][1].isOptimistic, true);
+  assert.equal(game.board[2][1], pawn);
+  assert.equal(game.board[1][1], enemy);
+});
+
+test("projectPendingMove previews promotion without mutating authoritative state", () => {
+  const pawn = { pieceId: "pawn", type: "pawn", name: "Pawn", color: "white" };
+  const game = {
+    board: [[null], [pawn]],
+    pieceDefinitions: [
+      {
+        type: "queen",
+        name: "Queen",
+        points: 9,
+        symbols: { white: "Q" },
+        icon: "Q",
+        description: "Queen movement.",
+        movement: "Slides in every direction.",
+        isCustom: false,
+      },
+    ],
+  };
+
+  const projected = projectPendingMove(
+    game,
+    { from: { row: 1, col: 0 }, to: { row: 0, col: 0 }, captures: [] },
+    "queen"
+  );
+
+  assert.equal(projected.board[0][0].type, "queen");
+  assert.equal(projected.board[0][0].name, "Queen");
+  assert.equal(game.board[1][0].type, "pawn");
+});
+
+test("projectPendingMove previews both pieces when castling", () => {
+  const king = { pieceId: "king", type: "king", color: "white" };
+  const rook = { pieceId: "rook", type: "rook", color: "white" };
+  const game = {
+    board: [[null, null, null, null, king, null, null, rook]],
+  };
+
+  const projected = projectPendingMove(game, {
+    from: { row: 0, col: 4 },
+    to: { row: 0, col: 6 },
+    captures: [],
+  });
+
+  assert.equal(projected.board[0][4], null);
+  assert.equal(projected.board[0][5].pieceId, "rook");
+  assert.equal(projected.board[0][6].pieceId, "king");
+  assert.equal(projected.board[0][7], null);
+  assert.equal(game.board[0][4], king);
+  assert.equal(game.board[0][7], rook);
 });

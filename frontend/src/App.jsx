@@ -27,6 +27,7 @@ import {
   loadGameSession,
   mergeHistoryRecords,
   playerHasAbility,
+  projectPendingMove,
   saveGameSession,
   updateGameSession,
 } from "./gameSession";
@@ -173,14 +174,17 @@ function sessionFromResponse(response) {
   };
 }
 
-function GameWorkspace({ gameId }) {
+function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
+  const startedWithBootstrapRef = useRef(initialGame?.id === gameId);
   const [session, setSession] = useState(() => loadGameSession(gameId));
-  const [game, setGame] = useState(null);
-  const gameRef = useRef(null);
+  const [game, setGame] = useState(initialGame);
+  const gameRef = useRef(initialGame);
   const [catalog, setCatalog] = useState(null);
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [pendingPromotion, setPendingPromotion] = useState(null);
-  const [initialLoading, setInitialLoading] = useState(true);
+  const [pendingMove, setPendingMove] = useState(null);
+  const pendingMoveIdRef = useRef(0);
+  const [initialLoading, setInitialLoading] = useState(!initialGame);
   const [actionLoading, setActionLoading] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyArchive, setHistoryArchive] = useState({
@@ -222,6 +226,11 @@ function GameWorkspace({ gameId }) {
 
       gameRef.current = incoming;
       setGame(incoming);
+      setPendingMove((currentPending) => (
+        currentPending && incoming.version > currentPending.baseVersion
+          ? null
+          : currentPending
+      ));
       setInitialLoading(false);
     },
     [gameId]
@@ -247,6 +256,11 @@ function GameWorkspace({ gameId }) {
   }, [applyIncomingGame, gameId, session]);
 
   useEffect(() => {
+    if (startedWithBootstrapRef.current) {
+      onBootstrapConsumed?.(gameId);
+      return undefined;
+    }
+
     let cancelled = false;
     setInitialLoading(true);
     setError("");
@@ -279,7 +293,7 @@ function GameWorkspace({ gameId }) {
     return () => {
       cancelled = true;
     };
-  }, [applyIncomingGame, gameId, session?.token]);
+  }, [applyIncomingGame, gameId, onBootstrapConsumed, session?.token]);
 
   const connectionStatus = useGameSocket({
     gameId,
@@ -335,6 +349,15 @@ function GameWorkspace({ gameId }) {
       },
     };
   }, [game, historyArchive]);
+
+  const visibleGame = useMemo(
+    () => projectPendingMove(
+      historyGame,
+      pendingMove?.move,
+      pendingMove?.promotion
+    ),
+    [historyGame, pendingMove]
+  );
 
   const handleLoadEarlierHistory = useCallback(async () => {
     if (!game || historyLoading) return;
@@ -528,7 +551,26 @@ function GameWorkspace({ gameId }) {
     return updated;
   };
 
-  const submitMove = async (fromSquare, toSquare, promotion = null) => {
+  const submitMove = async (fromSquare, toSquare, promotion = null, moveOption = null) => {
+    const current = gameRef.current;
+    const previewMove = moveOption || current?.validMoves.find(
+      (move) =>
+        move.from.row === fromSquare.row &&
+        move.from.col === fromSquare.col &&
+        move.to.row === toSquare.row &&
+        move.to.col === toSquare.col
+    );
+    const pendingId = pendingMoveIdRef.current + 1;
+    pendingMoveIdRef.current = pendingId;
+    if (current && previewMove) {
+      setPendingMove({
+        id: pendingId,
+        baseVersion: current.version,
+        move: previewMove,
+        promotion,
+      });
+      setSelectedSquare(null);
+    }
     try {
       await runAction(() =>
         mutate(makeMove, {
@@ -541,6 +583,10 @@ function GameWorkspace({ gameId }) {
       );
     } catch {
       // The shared error banner explains rejected moves.
+    } finally {
+      setPendingMove((currentPending) => (
+        currentPending?.id === pendingId ? null : currentPending
+      ));
     }
   };
 
@@ -642,9 +688,9 @@ function GameWorkspace({ gameId }) {
       const finalRank =
         movingPiece?.color === "white" ? 0 : (game.boardRows ?? game.boardSize) - 1;
       if (movingPiece?.type === "pawn" && row === finalRank) {
-        setPendingPromotion({ from: selectedSquare, to: { row, col } });
+        setPendingPromotion({ from: selectedSquare, to: { row, col }, move: chosenMove });
       } else {
-        submitMove(selectedSquare, { row, col });
+        submitMove(selectedSquare, { row, col }, null, chosenMove);
       }
       return;
     }
@@ -782,7 +828,11 @@ function GameWorkspace({ gameId }) {
 
       {error ? <p className="global-error">{error}</p> : null}
       {socketMessage ? <p className="sync-message">{socketMessage}</p> : null}
-      {actionLoading ? <p className="global-loading">Syncing authoritative game state...</p> : null}
+      {actionLoading ? (
+        <p className="global-loading">
+          {pendingMove ? "Confirming move..." : "Syncing authoritative game state..."}
+        </p>
+      ) : null}
       <RestartRequestPanel
         game={game}
         playerColor={session?.color}
@@ -817,7 +867,7 @@ function GameWorkspace({ gameId }) {
         />
       ) : game.variant === "gambit" ? (
         <GambitPage
-          game={historyGame}
+          game={visibleGame}
           selectedSquare={selectedSquare}
           onSquareClick={handleSquareClick}
           boardFlipped={boardFlipped}
@@ -835,7 +885,7 @@ function GameWorkspace({ gameId }) {
         />
       ) : (
         <PlayPage
-          game={historyGame}
+          game={visibleGame}
           selectedSquare={selectedSquare}
           onSquareClick={handleSquareClick}
           boardFlipped={boardFlipped}
@@ -865,7 +915,7 @@ function GameWorkspace({ gameId }) {
                   onClick={() => {
                     const pending = pendingPromotion;
                     setPendingPromotion(null);
-                    submitMove(pending.from, pending.to, pieceType);
+                    submitMove(pending.from, pending.to, pieceType, pending.move);
                   }}
                 >
                   {colorLabel(pieceType)}
@@ -878,7 +928,7 @@ function GameWorkspace({ gameId }) {
                   onClick={() => {
                     const pending = pendingPromotion;
                     setPendingPromotion(null);
-                    submitMove(pending.from, pending.to, "kamikaze");
+                    submitMove(pending.from, pending.to, "kamikaze", pending.move);
                   }}
                 >
                   ✹ Kamikaze
@@ -947,6 +997,10 @@ function GameWorkspace({ gameId }) {
 
 function App() {
   const route = useRoute();
+  const bootstrapGamesRef = useRef(new Map());
+  const handleBootstrapConsumed = useCallback((gameId) => {
+    bootstrapGamesRef.current.delete(gameId);
+  }, []);
 
   const handleCreate = async (request) => {
     const payload =
@@ -963,6 +1017,7 @@ function App() {
     const response = await createGame(payload);
     const session = sessionFromResponse(response);
     saveGameSession(response.game.id, session);
+    bootstrapGamesRef.current.set(response.game.id, response.game);
     navigate(`/game/${response.game.id}`);
   };
 
@@ -970,6 +1025,7 @@ function App() {
     const response = await joinGame(inviteToken);
     const session = sessionFromResponse(response);
     saveGameSession(response.game.id, session);
+    bootstrapGamesRef.current.set(response.game.id, response.game);
     navigate(`/game/${response.game.id}`, { replace: true });
   };
 
@@ -984,7 +1040,14 @@ function App() {
   }
 
   if (route.name === "game") {
-    return <GameWorkspace key={route.gameId} gameId={route.gameId} />;
+    return (
+      <GameWorkspace
+        key={route.gameId}
+        gameId={route.gameId}
+        initialGame={bootstrapGamesRef.current.get(route.gameId) || null}
+        onBootstrapConsumed={handleBootstrapConsumed}
+      />
+    );
   }
 
   if (route.name === "customize") {
