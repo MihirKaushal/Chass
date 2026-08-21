@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 
+import BoardMarkerGuide from "../components/BoardMarkerGuide";
 import ChessBoard from "../components/ChessBoard";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 import { CommandPanel } from "./GambitPage";
@@ -121,7 +122,7 @@ function PlayPage({
           availableActions={selectedPower || selectedGlobalActionType ? [] : game.availableActions}
           onAction={handleAction}
         />
-        <p className="board-detail-hint">Blue dots move pieces. Red targets attack or sacrifice; teal, gold, and ember targets use special actions. Double-tap for details.</p>
+        <BoardMarkerGuide />
       </section>
 
       <GameInfoPanel
