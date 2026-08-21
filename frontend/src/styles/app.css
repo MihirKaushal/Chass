@@ -1524,6 +1524,16 @@ button.secondary {
   scrollbar-color: rgba(43, 108, 176, 0.4) transparent;
 }
 
+.responsive-play-panel {
+  display: contents;
+}
+
+.play-panel-drawer-header,
+.play-panel-dock,
+.play-panel-backdrop {
+  display: none;
+}
+
 .enabled-effects {
   display: grid;
   gap: 0.55rem;
@@ -4573,18 +4583,150 @@ details[open] > summary > .disclosure-arrow {
     justify-items: stretch;
   }
 
-  .play-layout-three-column .effects-panel {
-    order: 2;
-    max-height: none;
-  }
-
   .play-layout-three-column .board-section {
     order: 1;
   }
 
-  .play-layout-three-column .history-panel {
-    order: 3;
+  .responsive-play-panel {
+    position: fixed;
+    z-index: 82;
+    right: 50%;
+    bottom: 0;
+    width: min(680px, calc(100% - 1.2rem));
+    max-height: min(78vh, 760px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid rgba(26, 54, 93, 0.28);
+    border-radius: 20px 20px 0 0;
+    background: var(--panel);
+    box-shadow: 0 -18px 50px rgba(26, 54, 93, 0.26);
+    transform: translate(50%, calc(100% + 1.5rem));
+    visibility: hidden;
+    transition: transform 240ms ease, visibility 240ms step-end;
+  }
+
+  .responsive-play-panel.is-open {
+    transform: translate(50%, 0);
+    visibility: visible;
+    transition: transform 240ms ease, visibility 0ms;
+  }
+
+  .play-panel-drawer-header {
+    min-height: 3rem;
+    display: grid;
+    grid-template-columns: 2.5rem minmax(0, 1fr) 2.5rem;
+    align-items: center;
+    padding: 0.28rem 0.5rem 0.4rem;
+    border-bottom: 1px solid rgba(26, 54, 93, 0.14);
+    background: rgba(255, 255, 255, 0.4);
+    text-align: center;
+  }
+
+  .play-panel-grab,
+  .play-panel-close {
+    width: 2.25rem;
+    height: 2.25rem;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    color: var(--deep);
+    background: transparent;
+    cursor: pointer;
+  }
+
+  .play-panel-grab i {
+    width: 1.65rem;
+    height: 0.24rem;
+    border-radius: 999px;
+    background: rgba(26, 54, 93, 0.34);
+  }
+
+  .play-panel-close {
+    font-size: 1.35rem;
+  }
+
+  .responsive-play-panel > .effects-panel,
+  .responsive-play-panel > .history-panel {
+    width: 100%;
     max-height: none;
+    overflow: auto;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .play-panel-backdrop {
+    position: fixed;
+    z-index: 81;
+    inset: 0;
+    display: block;
+    border: 0;
+    padding: 0;
+    background: rgba(26, 54, 93, 0.35);
+    cursor: default;
+  }
+
+  .play-panel-dock {
+    position: sticky;
+    z-index: 35;
+    bottom: max(0.55rem, env(safe-area-inset-bottom));
+    order: 2;
+    width: min(520px, calc(100% - 1rem));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    justify-self: center;
+    margin: 0.75rem auto 0;
+    padding: 0.4rem;
+    border: 1px solid rgba(26, 54, 93, 0.22);
+    border-radius: 15px;
+    background: rgba(234, 216, 181, 0.94);
+    box-shadow: 0 12px 28px rgba(26, 54, 93, 0.2);
+    backdrop-filter: blur(10px);
+  }
+
+  .play-panel-dock button {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.62rem 0.72rem;
+    border: 0;
+    border-radius: 10px;
+    color: var(--deep);
+    background: rgba(255, 255, 255, 0.48);
+    cursor: pointer;
+    font-weight: 800;
+  }
+
+  .play-panel-dock button.active {
+    color: white;
+    background: var(--accent);
+  }
+
+  .play-panel-dock button > i {
+    font-style: normal;
+    font-size: 1rem;
+  }
+
+  .play-panel-dock button > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .play-panel-dock button > b {
+    min-width: 1.35rem;
+    padding: 0.16rem 0.35rem;
+    border-radius: 999px;
+    color: var(--deep);
+    background: rgba(99, 179, 237, 0.26);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.62rem;
   }
 }
 

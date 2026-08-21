@@ -5,6 +5,7 @@ import BoardMarkerGuide from "../components/BoardMarkerGuide";
 import ChessBoard from "../components/ChessBoard";
 import GameBriefing from "../components/GameBriefing";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
+import ResponsivePlayLayout from "../components/ResponsivePlayLayout";
 import { CommandPanel } from "./GambitPage";
 
 function PlayPage({
@@ -89,9 +90,8 @@ function PlayPage({
     onSquareClick(row, col);
   };
 
-  return (
-    <main className="play-layout play-layout-three-column">
-      <EffectsPanel
+  const effectsPanel = (
+    <EffectsPanel
         game={game}
         catalog={catalog}
         onAction={handleAction}
@@ -109,9 +109,10 @@ function PlayPage({
             setEvolveTo={setEvolveTo}
           />
         ) : null}
-      </EffectsPanel>
-
-      <section className="board-section">
+    </EffectsPanel>
+  );
+  const board = (
+    <section className="board-section">
         <GameBriefing
           boardRows={game.boardRows ?? game.boardSize}
           boardCols={game.boardCols ?? game.boardSize}
@@ -151,14 +152,24 @@ function PlayPage({
           onActionSelectionChange={setSelectedBoardAction}
         />
         <BoardMarkerGuide />
-      </section>
-
-      <GameInfoPanel
+    </section>
+  );
+  const infoPanel = (
+    <GameInfoPanel
         game={game}
         onLoadEarlierHistory={onLoadEarlierHistory}
         historyLoading={historyLoading}
-      />
-    </main>
+    />
+  );
+
+  return (
+    <ResponsivePlayLayout
+      effects={effectsPanel}
+      board={board}
+      info={infoPanel}
+      effectCount={(game.countdowns?.length || 0) + (game.availableActions?.length ? 1 : 0)}
+      moveCount={game.historyPagination?.totalMoves ?? game.history.length}
+    />
   );
 }
 
