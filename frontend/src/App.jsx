@@ -828,11 +828,17 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
 
       {error ? <p className="global-error">{error}</p> : null}
       {socketMessage ? <p className="sync-message">{socketMessage}</p> : null}
-      {actionLoading ? (
-        <p className="global-loading">
-          {pendingMove ? "Confirming move..." : "Syncing authoritative game state..."}
-        </p>
-      ) : null}
+      <p
+        className={`global-loading${actionLoading ? " is-visible" : ""}`}
+        aria-live="polite"
+        aria-atomic="true"
+      >
+        {actionLoading
+          ? pendingMove
+            ? "Confirming move..."
+            : "Syncing authoritative game state..."
+          : ""}
+      </p>
       <RestartRequestPanel
         game={game}
         playerColor={session?.color}
