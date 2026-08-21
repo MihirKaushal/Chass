@@ -1,6 +1,6 @@
 function pluralizeCopy(copy) {
   return copy.replace(
-    /\b(\d+) ((?:own |Cannibal |affected-player |allied )?)(square|turn|move|blocker|time|use|pacification|piece)\(s\)/g,
+    /\b(\d+) ((?:[A-Za-z-]+ )*)(square|turn|move|blocker|time|use|pacification|piece)\(s\)/g,
     (_, rawValue, modifier, unit) => (
       `${rawValue} ${modifier}${Number(rawValue) === 1 ? unit : `${unit}s`}`
     )

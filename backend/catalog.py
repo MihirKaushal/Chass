@@ -70,7 +70,7 @@ def _render_template(template: str, values: dict[str, int]) -> str:
 
     return re.sub(
         (
-            r"\b(\d+) ((?:own |Cannibal |affected-player |allied )?)"
+            r"\b(\d+) ((?:[A-Za-z-]+ )*)"
             r"(square|turn|move|blocker|time|use|pacification|piece)\(s\)"
         ),
         pluralize,
