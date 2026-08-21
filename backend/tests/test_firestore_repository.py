@@ -9,7 +9,7 @@ from fastapi import HTTPException
 from google.api_core.exceptions import FailedPrecondition
 
 from backend.models import GameState, MoveRecord
-from backend.models.schemas import CreateGameRequest, JoinGameRequest
+from backend.models.schemas import CreateGameRequest, JoinGameRequest, MoveRequest
 from backend.repositories import ConcurrentUpdateError, MoveAudit
 from backend.repositories.firestore_repository import (
     GAMES,
@@ -192,6 +192,7 @@ class FakeFirestoreClient:
     def __init__(self):
         self.documents = defaultdict(dict)
         self.revisions = defaultdict(dict)
+        self.reads = defaultdict(int)
         self.revision_counter = 0
         self.transaction_reads = 0
 
@@ -205,6 +206,7 @@ class FakeFirestoreClient:
         return FakeTransaction(self)
 
     def snapshot(self, reference):
+        self.reads[reference.collection_name] += 1
         data = self.documents[reference.collection_name].get(reference.id)
         return FakeSnapshot(
             reference,
@@ -339,6 +341,33 @@ def test_firestore_versions_and_move_audits_are_atomic(firestore_service):
             expected_revision=record.persistence_revision,
             current_record=record,
         )
+
+
+def test_firestore_online_move_reuses_authorized_player_and_revision(firestore_service):
+    service, repository, client = firestore_service
+    created = service.create_game(CreateGameRequest(mode="online"))
+    service.join_game(JoinGameRequest(inviteToken=created.inviteToken))
+    record = repository.get_game(created.game.id)
+    assert record is not None
+
+    client.reads.clear()
+    transaction_reads = client.transaction_reads
+    saved, _, viewer_color = service.move_piece(
+        created.game.id,
+        MoveRequest(
+            fromRow=6,
+            fromCol=4,
+            toRow=4,
+            toCol=4,
+            expectedVersion=record.version,
+        ),
+        created.playerToken,
+    )
+
+    assert saved.version == record.version + 1
+    assert viewer_color == "white"
+    assert client.reads[PLAYERS] == 1
+    assert client.transaction_reads == transaction_reads
 
 
 def test_firestore_pages_complete_history_outside_game_document(firestore_service):
