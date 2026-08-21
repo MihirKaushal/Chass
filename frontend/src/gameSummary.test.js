@@ -36,7 +36,7 @@ test("briefing keeps the selected victory and modifiers concise", () => {
       title: "10x8 Custom Match",
       summary: "Give check 4 times first; checkmate also wins.",
       tags: [
-        "Affinity squares enabled",
+        "Affinity squares start empty",
         "2 abilities per player",
         "2 custom piece types",
       ],
@@ -67,4 +67,22 @@ test("briefing recognizes presets and Gambit setup", () => {
   assert.equal(gambit.title, "8x8 Draft Gambit");
   assert.equal(gambit.summary, "10 minutes per player; running out of time loses.");
   assert.deepEqual(gambit.tags, ["Shared draft and private deployment"]);
+});
+
+test("center-focused briefings explain the empty starting objective", () => {
+  const dominion = buildGameBriefing({
+    configuration: {
+      victory: { mode: "center_dominion", dominionRounds: 2 },
+      gambit: { enabled: false },
+    },
+  });
+  const royalCenter = buildGameBriefing({
+    configuration: {
+      victory: { mode: "royal_center" },
+      gambit: { enabled: false },
+    },
+  });
+
+  assert.match(dominion.summary, /Begin with the center empty/);
+  assert.match(royalCenter.summary, /Begin with the center empty/);
 });

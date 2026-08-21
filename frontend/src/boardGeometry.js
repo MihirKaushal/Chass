@@ -90,3 +90,22 @@ export function affinitySquares(rows, cols) {
     black: [{ row: upperRow, col: rightCol }, { row: lowerRow, col: leftCol }],
   };
 }
+
+export function significantCenterSquares(
+  rows,
+  cols,
+  { victoryMode = "", affinityEnabled = false } = {}
+) {
+  const squares = new Map();
+  const add = ({ row, col }) => squares.set(squareKey(row, col), { row, col });
+
+  if (victoryMode === "center_dominion" || affinityEnabled) {
+    Object.values(affinitySquares(rows, cols)).flat().forEach(add);
+  }
+  if (victoryMode === "royal_center") {
+    objectiveCenterSquares(rows, cols).forEach(add);
+  }
+  return [...squares.values()].sort((left, right) => (
+    left.row - right.row || left.col - right.col
+  ));
+}

@@ -5,7 +5,7 @@ const ISSUE_RULES = [
     settingKey: "target-points",
   },
   {
-    pattern: /kings? must begin outside|starting piece must be inside|starting square|starting barricade|promotion rank|touching squares/i,
+    pattern: /kings? must begin outside|starting piece must be inside|starting square|starting barricade|marked center squares|only barricades may start|promotion rank|touching squares/i,
     sectionId: "studio-pieces",
     settingKey: "board-editor",
   },

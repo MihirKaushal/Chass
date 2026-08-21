@@ -33,6 +33,10 @@ FINISHED_STATUSES = {
     "check_race",
     "draw",
 }
+CENTER_START_RESTRICTION_MESSAGE = (
+    "Marked center squares must begin empty when they affect the rules; "
+    "only Barricades may start there."
+)
 
 
 def barricade_start_square(rows: int, cols: int) -> tuple[int, int]:
@@ -110,6 +114,26 @@ def affinity_start_squares(
         "white": [(upper_row, left_col), (lower_row, right_col)],
         "black": [(upper_row, right_col), (lower_row, left_col)],
     }
+
+
+def significant_center_start_squares(
+    rows: int,
+    cols: int,
+    *,
+    victory_mode: str | None = None,
+    affinity_enabled: bool = False,
+) -> list[tuple[int, int]]:
+    """Return center squares that must be contested rather than pre-occupied."""
+    squares: set[tuple[int, int]] = set()
+    if victory_mode == "center_dominion" or affinity_enabled:
+        squares.update(
+            square
+            for color_squares in affinity_start_squares(rows, cols).values()
+            for square in color_squares
+        )
+    if victory_mode == "royal_center":
+        squares.update(objective_center_squares(rows, cols))
+    return sorted(squares)
 
 
 def opposing_color(color: str) -> str:
