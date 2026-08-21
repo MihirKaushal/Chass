@@ -2,7 +2,16 @@ from __future__ import annotations
 
 from typing import Annotated
 
-from fastapi import APIRouter, Header, HTTPException, Query, Request, WebSocket, WebSocketDisconnect
+from fastapi import (
+    APIRouter,
+    Header,
+    HTTPException,
+    Query,
+    Request,
+    Response,
+    WebSocket,
+    WebSocketDisconnect,
+)
 from starlette.concurrency import run_in_threadpool
 
 from backend.models.schemas import (
@@ -91,7 +100,8 @@ async def validate_game_configuration(
 
 
 @router.get("/catalog")
-async def get_catalog() -> dict:
+async def get_catalog(response: Response) -> dict:
+    response.headers["Cache-Control"] = "public, max-age=300, stale-while-revalidate=86400"
     return game_service.catalog()
 
 

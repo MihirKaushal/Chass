@@ -79,6 +79,9 @@ def start_local_ability_game(
 def test_catalog_describes_custom_content(client):
     response = client.get("/game/catalog")
     assert response.status_code == 200
+    assert response.headers["cache-control"] == (
+        "public, max-age=300, stale-while-revalidate=86400"
+    )
     catalog = response.json()
 
     assert catalog["schemaVersion"] == 2

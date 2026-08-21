@@ -50,10 +50,6 @@ export function getCatalog() {
   return catalogPromise;
 }
 
-export function warmApi() {
-  return fetch(`${API_BASE}/health`, { method: "GET" }).catch(() => null);
-}
-
 export function validateGameConfiguration(payload) {
   return request("/game/validate", {
     method: "POST",
