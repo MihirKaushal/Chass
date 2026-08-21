@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { boardSquareLabel } from "../boardGeometry";
 import { effectiveCatalogEntry } from "../variantTuning";
+import { victoryDisplayMetadata } from "../victoryDisplay";
 import PieceGlyph from "./PieceGlyph";
 
 function title(value) {
@@ -235,22 +236,20 @@ function SpecialRulesDisclosure({ game }) {
     >
       <div className="effect-disclosure-list">
         {activeRules.map((rule) => {
-          const configuredVictory = rule.id === "configured_victory"
-            ? Object.fromEntries(
-                Object.entries(game.configuration?.victory || {}).filter(
-                  ([key, value]) => key !== "mode" && value != null
-                )
-              )
-            : {};
-          const params = Object.entries({ ...configuredVictory, ...(rule.params || {}) });
+          const params = rule.id === "configured_victory"
+            ? victoryDisplayMetadata(game.configuration?.victory)
+            : Object.entries(rule.params || {}).map(([key, value]) => ({
+                label: label(key),
+                value: formatValue(value),
+              }));
           return (
             <article className="effect-reference-card" key={rule.id}>
               <header><strong>{rule.name}</strong><span>Enabled</span></header>
               <p>{rule.description}</p>
               {params.length ? (
                 <dl className="effect-metadata">
-                  {params.map(([key, value]) => (
-                    <div key={key}><dt>{label(key)}</dt><dd>{formatValue(value)}</dd></div>
+                  {params.map((item) => (
+                    <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>
                   ))}
                 </dl>
               ) : null}
