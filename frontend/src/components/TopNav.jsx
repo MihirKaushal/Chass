@@ -49,12 +49,17 @@ function TopNav({
         </button>
       </nav>
 
-      <div className="game-meta">
-        <span className="turn-pill">
-          {phase === "play" ? `Turn: ${title(currentPlayer)}` : statusLabel}
+      <div className="game-hud">
+        <span className="turn-banner">
+          <i aria-hidden="true" />
+          {phase === "play" && !winner ? `${title(currentPlayer)} to move` : statusLabel}
         </span>
-        <span className="status-pill">Status: {statusLabel}</span>
-        <span className="mode-pill">
+        {phase === "play" && !winner ? (
+          <span className="status-chip">
+            {gameStatus === "active" ? "In Play" : title(gameStatus)}
+          </span>
+        ) : null}
+        <span className="mode-chip">
           {mode === "online"
             ? `${title(playerColor || "Online")} / ${connectionStatus}`
             : "Local Room"}

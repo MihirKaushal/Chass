@@ -138,7 +138,7 @@ textarea {
   color: white;
 }
 
-.game-meta {
+.game-hud {
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -146,26 +146,40 @@ textarea {
   justify-content: flex-end;
 }
 
-.turn-pill,
-.status-pill,
-.mode-pill {
+.turn-banner,
+.status-chip,
+.mode-chip {
   padding: 0.3rem 0.8rem;
   border-radius: 999px;
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.78rem;
 }
 
-.turn-pill {
-  background: rgba(43, 108, 176, 0.14);
-  border: 1px solid rgba(43, 108, 176, 0.3);
+.turn-banner {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.48rem;
+  padding: 0.48rem 0.9rem;
+  color: white;
+  background: var(--deep);
+  border: 1px solid rgba(26, 54, 93, 0.5);
+  font-weight: 800;
 }
 
-.status-pill {
+.turn-banner i {
+  width: 0.52rem;
+  height: 0.52rem;
+  border-radius: 50%;
+  background: var(--accent-soft);
+  box-shadow: 0 0 0 4px rgba(99, 179, 237, 0.16);
+}
+
+.status-chip {
   background: rgba(99, 179, 237, 0.22);
   border: 1px solid rgba(43, 108, 176, 0.33);
 }
 
-.mode-pill {
+.mode-chip {
   background: rgba(255, 255, 255, 0.48);
   border: 1px solid rgba(26, 54, 93, 0.18);
 }
@@ -2803,7 +2817,7 @@ button.secondary {
     grid-template-columns: 1fr auto;
   }
 
-  .game-meta {
+  .game-hud {
     grid-column: 1 / -1;
     justify-content: flex-start;
   }
@@ -2871,7 +2885,7 @@ button.secondary {
     padding: 1.35rem 1.3rem 1rem;
   }
 
-  .game-meta {
+  .game-hud {
     width: 100%;
   }
 
@@ -3205,7 +3219,7 @@ button.secondary {
   opacity: 0.42;
 }
 
-.studio-summary-card {
+.game-briefing {
   padding: 0.9rem 1rem;
   border-left: 4px solid var(--accent);
   border-radius: 12px;
@@ -3213,18 +3227,42 @@ button.secondary {
   color: white;
 }
 
-.studio-summary-card span,
-.studio-summary-card p {
+.game-briefing > span,
+.game-briefing > p {
   display: block;
   margin: 0.22rem 0 0;
   color: rgba(255, 255, 255, 0.72);
   font-size: 0.76rem;
 }
 
-.studio-summary-card strong {
+.game-briefing > strong {
   display: block;
   margin-top: 0.2rem;
   font-size: 1.16rem;
+}
+
+.game-briefing-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.62rem;
+}
+
+.game-briefing-tags small {
+  padding: 0.25rem 0.45rem;
+  border: 1px solid rgba(99, 179, 237, 0.28);
+  border-radius: 999px;
+  color: rgba(255, 255, 255, 0.82);
+  background: rgba(99, 179, 237, 0.12);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6rem;
+}
+
+.play-game-briefing {
+  width: 100%;
+  max-width: var(--board-long-edge);
+  margin-bottom: 0.85rem;
+  box-sizing: border-box;
 }
 
 .studio-controls {
