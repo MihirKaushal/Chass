@@ -1107,6 +1107,8 @@ button.secondary {
 }
 
 .board-section {
+  position: relative;
+  isolation: isolate;
   display: grid;
   place-items: center;
   background: rgba(234, 216, 181, 0.55);
@@ -1705,7 +1707,7 @@ button.secondary {
 
 .board-marker-guide {
   position: relative;
-  z-index: 4;
+  z-index: 100;
   width: 100%;
   margin-top: 1rem;
   display: flex;
@@ -1768,7 +1770,7 @@ button.secondary {
   border-bottom: 1px solid rgba(26, 54, 93, 0.18);
 }
 
-.board-marker-guide-header span {
+.board-marker-guide-header > div > span {
   display: block;
   margin-bottom: 0.16rem;
   color: var(--accent);
