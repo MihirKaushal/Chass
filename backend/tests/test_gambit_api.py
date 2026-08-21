@@ -284,6 +284,22 @@ def test_draft_armies_begin_with_kings_and_cannot_draft_another(client):
     assert locked.json()["gambit"]["draftPassed"]["white"] is True
 
 
+def test_draft_cannot_finish_with_only_the_assigned_kings(client):
+    game = client.post("/game/create", json=draft_gambit_payload()).json()["game"]
+    white_passed = client.post(
+        f"/game/{game['id']}/gambit/draft",
+        json={"action": "pass", "expectedVersion": game["version"]},
+    ).json()
+
+    black_pass = client.post(
+        f"/game/{game['id']}/gambit/draft",
+        json={"action": "pass", "expectedVersion": white_passed["version"]},
+    )
+
+    assert black_pass.status_code == 400
+    assert black_pass.json()["detail"] == "Insufficient material."
+
+
 def test_draft_configuration_requires_exactly_two_shared_kings(client):
     payload = draft_gambit_payload()
     payload["configuration"]["gambit"]["draftPool"]["king"] = 1

@@ -135,3 +135,23 @@ def test_gambit_configuration_requires_an_affordable_sufficient_army():
         enabled_piece_types=["king", "bishop"],
         budget=6,
     )
+
+
+def test_gambit_feasibility_builds_material_for_both_players():
+    common = {
+        "definitions": DEFINITIONS,
+        "enabled_piece_types": ["king", "bishop"],
+        "piece_caps": {"king": 1, "bishop": 1},
+        "piece_costs": {"king": 0, "bishop": 3},
+        "budget": 3,
+        "max_pieces": 2,
+    }
+
+    assert StartingMaterialRule.can_build_sufficient_army(
+        **common,
+        victory_mode="check_race",
+    )
+    assert StartingMaterialRule.can_build_sufficient_army(
+        **common,
+        victory_mode="center_dominion",
+    )

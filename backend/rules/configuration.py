@@ -12,7 +12,7 @@ from backend.catalog import (
 )
 from backend.models import PieceDefinition
 from backend.models.schemas import CreateGameRequest
-from backend.rules.classic_special_rules import uses_classic_draw_rules
+from backend.rules.material import INSUFFICIENT_MATERIAL_MESSAGE, StartingMaterialRule
 from backend.rules.variant_system import barricade_start_squares, objective_center_squares
 
 
@@ -43,6 +43,7 @@ class ConfigurationRuleEngine:
     def __init__(self) -> None:
         self._pieces = build_catalog_piece_definitions()
         self._formations = {item["id"]: item for item in FORMATION_PRESETS}
+        self.material = StartingMaterialRule()
 
     def validate(
         self,
@@ -202,25 +203,6 @@ class ConfigurationRuleEngine:
                 if piece["type"] == "king" and piece["color"] in {"white", "black"}
             }
             if (
-                len(effective) == 2
-                and all(piece["type"] == "king" for piece in effective)
-                and uses_classic_draw_rules(
-                    variant=request.variant,
-                    victory_mode=payload.victory.mode,
-                    affinity_enabled=payload.customRules.affinityEnabled,
-                    special_abilities_enabled=payload.specialAbilities.enabled,
-                    has_terrain=False,
-                    enabled_rule_ids={
-                        patch.id for patch in request.rules if patch.enabled is True
-                    },
-                    piece_types=(piece["type"] for piece in effective),
-                )
-            ):
-                result.errors.append(
-                    "This classic setup would draw immediately with only two Kings; "
-                    "add at least one non-King piece."
-                )
-            if (
                 len(kings) == 2
                 and max(
                     abs(kings["white"][0] - kings["black"][0]),
@@ -273,19 +255,9 @@ class ConfigurationRuleEngine:
         pieces: dict[str, PieceDefinition],
     ) -> None:
         mode = payload.victory.mode
-        if mode in {"checkmate", "timed", "royal_score", "check_race"}:
-            attackers = {
-                color: any(
-                    piece["color"] == color
-                    and piece["type"] not in {"king", "barricade", "diplomat", "hypnotizer"}
-                    for piece in placements
-                )
-                for color in ("white", "black")
-            }
-            if not all(attackers.values()):
-                result.warnings.append(
-                    "Each player needs at least one attacking piece for this victory rule."
-                )
+        material_issue = self.material.issue(mode, placements, pieces)
+        if material_issue:
+            result.errors.append(material_issue)
         if mode == "royal_center":
             targets = set(objective_center_squares(board_rows, board_cols))
             if any(
@@ -350,6 +322,16 @@ class ConfigurationRuleEngine:
             result.errors.append(
                 "The Gambit point limit must be high enough to include the required King."
             )
+        if not self.material.can_build_sufficient_army(
+            victory_mode=payload.victory.mode,
+            definitions=pieces,
+            enabled_piece_types=enabled,
+            piece_caps=caps,
+            piece_costs=points,
+            budget=gambit.budget,
+            max_pieces=gambit.maxPieces,
+        ):
+            result.errors.append(INSUFFICIENT_MATERIAL_MESSAGE)
 
         if gambit.draftEnabled:
             pool = build_default_draft_pool(enabled)

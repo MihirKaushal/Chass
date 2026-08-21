@@ -14,6 +14,7 @@ from backend.models import (
 )
 from backend.rules.base import ValidationResult
 from backend.rules.builtin_rules import opposing_color
+from backend.rules.material import StartingMaterialRule
 from backend.rules.terrain import is_scorched
 from backend.rules.variant_system import (
     affinity_start_squares,
@@ -264,6 +265,23 @@ class SharedDraftRule:
 
         other = opposing_color(color)
         if all(next_gambit.draft_passed.values()):
+            material = [
+                {
+                    "row": 0 if draft_color == "black" else state.board.rows - 1,
+                    "col": index % state.board.cols,
+                    "type": piece_type,
+                    "color": draft_color,
+                }
+                for draft_color in ("white", "black")
+                for index, piece_type in enumerate(next_gambit.draft_picks[draft_color])
+            ]
+            material_issue = StartingMaterialRule.issue(
+                state.configuration.victory.mode,
+                material,
+                state.piece_definitions,
+            )
+            if material_issue:
+                raise ValueError(material_issue)
             next_state.phase = "deployment"
             next_gambit.active_deployment_color = "white"
         elif next_gambit.draft_passed[other]:
@@ -587,6 +605,7 @@ class GambitRuleSet:
     )
 
     def __init__(self) -> None:
+        self.material = StartingMaterialRule()
         self.point_budget = PointBudgetRule()
         self.deployment_zone = DeploymentZoneRule()
         self.piece_limits = PieceLimitRule()
@@ -794,6 +813,31 @@ class GambitRuleSet:
             return next_state
 
         if not all(next_gambit.deployment_ready.values()):
+            return next_state
+
+        material = [
+            {
+                "row": piece.row,
+                "col": piece.col,
+                "type": piece.type,
+                "color": deployment_color,
+            }
+            for deployment_color in ("white", "black")
+            for piece in next_gambit.deployments[deployment_color]
+        ]
+        material_issue = self.material.issue(
+            next_state.configuration.victory.mode,
+            material,
+            next_state.piece_definitions,
+        )
+        if material_issue:
+            next_gambit.deployment_ready = {"white": False, "black": False}
+            next_gambit.setup_message = material_issue
+            if mode == "local":
+                next_gambit.active_deployment_color = "white"
+                next_state.phase = "handoff"
+            else:
+                next_state.phase = "deployment"
             return next_state
 
         if not self.opening_safety.is_legal(next_state, helper):

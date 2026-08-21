@@ -171,9 +171,12 @@ def test_insufficient_material_draws_only_for_dead_positions(client):
         {"row": 0, "col": 0, "type": "king", "color": "black"},
     ]
     for material in cases:
-        game = create_game(client, [*kings, *material])
-        assert game["gameStatus"] == "draw"
-        assert game["result"]["reasonCode"] == "insufficient_material"
+        validation = client.post(
+            "/game/validate",
+            json=configured_game([*kings, *material]),
+        ).json()
+        assert validation["valid"] is False
+        assert validation["errors"] == ["Insufficient material."]
 
     opposite_bishops = create_game(
         client,
@@ -190,6 +193,18 @@ def test_insufficient_material_draws_only_for_dead_positions(client):
         [*kings, {"row": 6, "col": 2, "type": "rook", "color": "white"}],
     )
     assert rook_material["gameStatus"] == "active"
+
+    becomes_dead = create_game(
+        client,
+        [
+            *kings,
+            {"row": 4, "col": 4, "type": "knight", "color": "white"},
+            {"row": 2, "col": 3, "type": "rook", "color": "black"},
+        ],
+    )
+    becomes_dead = move(client, becomes_dead, (4, 4), (2, 3))
+    assert becomes_dead["gameStatus"] == "draw"
+    assert becomes_dead["result"]["reasonCode"] == "insufficient_material"
 
 
 def test_threefold_repetition_ends_the_game(client):
