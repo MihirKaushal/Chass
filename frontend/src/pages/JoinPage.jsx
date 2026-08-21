@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import PageSkeleton from "../components/PageSkeleton";
 
 function JoinPage({ inviteToken, onJoin, onHome }) {
   const startedRef = useRef(false);
@@ -25,11 +26,13 @@ function JoinPage({ inviteToken, onJoin, onHome }) {
     join();
   }, [inviteToken]);
 
+  if (!error) return <PageSkeleton variant="play" />;
+
   return (
     <main className="landing-shell">
       <section className="join-card">
         <span className="eyebrow">Private game invitation</span>
-        <h1>{error ? "Unable to join" : "Taking the Black seat"}</h1>
+        <h1>Unable to join</h1>
         {status ? <p className="join-status">{status}</p> : null}
         {error ? <p className="landing-error">{error}</p> : null}
         {error ? (

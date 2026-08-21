@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { getCatalog } from "../api/gameApi";
 import LandingNav from "../components/LandingNav";
+import PageSkeleton from "../components/PageSkeleton";
 import SiteFooter from "../components/SiteFooter";
 
 
@@ -36,6 +37,8 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
     setError("");
     onJoinCode(normalized);
   };
+
+  if (creatingMode) return <PageSkeleton variant="play" />;
 
   return (
     <div className="page-frame">

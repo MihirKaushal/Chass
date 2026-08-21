@@ -14,6 +14,7 @@ import {
   parameterValueLabel,
 } from "../variantTuning";
 import GameBriefing from "./GameBriefing";
+import PageSkeleton from "./PageSkeleton";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
 
@@ -869,7 +870,10 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   );
 
   if (!catalog || !draft) {
-    return <section className="customization-panel studio-loading"><span className="loading-mark" /><h2>Opening The Chass Workshop</h2><p>{error || "Loading game options..."}</p></section>;
+    if (error) {
+      return <section className="customization-panel studio-loading"><h2>Customization Unavailable</h2><p>{error}</p></section>;
+    }
+    return <PageSkeleton variant="customize" embedded />;
   }
 
   const currentFormation = catalog.formations.find((formation) => formation.id === draft.formationId);
