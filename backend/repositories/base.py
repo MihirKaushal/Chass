@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Protocol
+from typing import Any, Protocol
 
 from backend.models import GameState, MoveRecord
 
@@ -43,6 +43,7 @@ class GameRecord:
     updated_at: datetime
     expires_at: datetime | None
     history_paged: bool = False
+    persistence_revision: Any | None = None
 
     @property
     def ready(self) -> bool:
@@ -155,4 +156,6 @@ class GameRepository(Protocol):
         expected_version: int,
         audit: MoveAudit | None = None,
         expires_at: datetime | None = None,
+        expected_revision: Any | None = None,
+        current_record: GameRecord | None = None,
     ) -> GameRecord: ...

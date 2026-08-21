@@ -6,6 +6,7 @@ from datetime import datetime, timedelta, timezone
 
 import pytest
 from fastapi import HTTPException
+from google.api_core.exceptions import FailedPrecondition
 
 from backend.models import GameState, MoveRecord
 from backend.models.schemas import CreateGameRequest, JoinGameRequest
@@ -22,11 +23,12 @@ from backend.services.game_service import GameService
 
 
 class FakeSnapshot:
-    def __init__(self, reference, data):
+    def __init__(self, reference, data, update_time=None):
         self.reference = reference
         self.id = reference.id
         self._data = deepcopy(data)
         self.exists = data is not None
+        self.update_time = update_time
 
     def to_dict(self):
         return deepcopy(self._data) if self.exists else None
@@ -43,7 +45,8 @@ class FakeDocumentReference:
             return transaction.read(self)
         return self.client.snapshot(self)
 
-    def update(self, values):
+    def update(self, values, option=None):
+        self.client.validate_option(self, option)
         self.client.apply("update", self, values)
 
     def delete(self):
@@ -112,7 +115,13 @@ class FakeQuery:
                     self.collection_name,
                     document_id,
                 )
-                snapshots.append(FakeSnapshot(reference, data))
+                snapshots.append(
+                    FakeSnapshot(
+                        reference,
+                        data,
+                        self.client.revisions[self.collection_name].get(document_id),
+                    )
+                )
         for field_path, direction in reversed(self.orders):
             descending = "DESCENDING" in str(direction).upper()
             snapshots.sort(
@@ -136,18 +145,27 @@ class FakeWriteGroup:
         self.operations = []
 
     def set(self, reference, values):
-        self.operations.append(("set", reference, deepcopy(values)))
+        self.operations.append(("set", reference, deepcopy(values), None))
 
-    def update(self, reference, values):
-        self.operations.append(("update", reference, deepcopy(values)))
+    def update(self, reference, values, option=None):
+        self.operations.append(("update", reference, deepcopy(values), option))
 
     def delete(self, reference):
-        self.operations.append(("delete", reference, None))
+        self.operations.append(("delete", reference, None, None))
 
     def commit(self):
-        for operation, reference, values in self.operations:
-            self.client.apply(operation, reference, values)
+        for _, reference, _, option in self.operations:
+            self.client.validate_option(reference, option)
+        results = []
+        for operation, reference, values, _ in self.operations:
+            results.append(FakeWriteResult(self.client.apply(operation, reference, values)))
         self.operations.clear()
+        return results
+
+
+class FakeWriteResult:
+    def __init__(self, update_time):
+        self.update_time = update_time
 
 
 class FakeTransaction(FakeWriteGroup):
@@ -158,20 +176,24 @@ class FakeTransaction(FakeWriteGroup):
     def read(self, reference):
         if self.write_started:
             raise AssertionError("Firestore transactions must complete reads before writes")
+        self.client.transaction_reads += 1
         return self.client.snapshot(reference)
 
     def set(self, reference, values):
         self.write_started = True
         super().set(reference, values)
 
-    def update(self, reference, values):
+    def update(self, reference, values, option=None):
         self.write_started = True
-        super().update(reference, values)
+        super().update(reference, values, option=option)
 
 
 class FakeFirestoreClient:
     def __init__(self):
         self.documents = defaultdict(dict)
+        self.revisions = defaultdict(dict)
+        self.revision_counter = 0
+        self.transaction_reads = 0
 
     def collection(self, collection_name):
         return FakeCollection(self, collection_name)
@@ -184,7 +206,25 @@ class FakeFirestoreClient:
 
     def snapshot(self, reference):
         data = self.documents[reference.collection_name].get(reference.id)
-        return FakeSnapshot(reference, data)
+        return FakeSnapshot(
+            reference,
+            data,
+            self.revisions[reference.collection_name].get(reference.id),
+        )
+
+    def validate_option(self, reference, option):
+        if option is None:
+            return
+        expected = getattr(option, "_last_update_time", None)
+        current = self.revisions[reference.collection_name].get(reference.id)
+        if current != expected:
+            raise FailedPrecondition("Fake document revision changed")
+
+    def next_revision(self):
+        self.revision_counter += 1
+        return datetime(2025, 1, 1, tzinfo=timezone.utc) + timedelta(
+            microseconds=self.revision_counter
+        )
 
     def apply(self, operation, reference, values):
         collection = self.documents[reference.collection_name]
@@ -196,6 +236,11 @@ class FakeFirestoreClient:
             collection[reference.id].update(deepcopy(values))
         elif operation == "delete":
             collection.pop(reference.id, None)
+            self.revisions[reference.collection_name].pop(reference.id, None)
+            return None
+        revision = self.next_revision()
+        self.revisions[reference.collection_name][reference.id] = revision
+        return revision
 
 
 def fake_transactional(function):
@@ -272,18 +317,28 @@ def test_firestore_versions_and_move_audits_are_atomic(firestore_service):
         explanation="Pawn moved.",
     )
     next_expiration = datetime.now(timezone.utc) + timedelta(hours=24)
+    transaction_reads = client.transaction_reads
     saved = repository.save_game(
         record.state,
         expected_version=1,
         audit=audit,
         expires_at=next_expiration,
+        expected_revision=record.persistence_revision,
+        current_record=record,
     )
     assert saved.version == 2
     assert saved.expires_at == next_expiration
+    assert saved.persistence_revision != record.persistence_revision
+    assert client.transaction_reads == transaction_reads
     assert f"{created.game.id}_2" in client.documents[MOVES]
 
     with pytest.raises(ConcurrentUpdateError):
-        repository.save_game(record.state, expected_version=1)
+        repository.save_game(
+            record.state,
+            expected_version=1,
+            expected_revision=record.persistence_revision,
+            current_record=record,
+        )
 
 
 def test_firestore_pages_complete_history_outside_game_document(firestore_service):

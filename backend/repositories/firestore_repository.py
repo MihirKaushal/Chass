@@ -3,7 +3,9 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
+from google.api_core.exceptions import FailedPrecondition, NotFound
 from google.cloud import firestore
+from google.cloud.firestore_v1 import LastUpdateOption
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from backend.firebase_client import get_firestore_client
@@ -44,7 +46,10 @@ class FirestoreGameRepository:
         self.client = client or get_firestore_client()
 
     @staticmethod
-    def _record_from_data(data: dict[str, Any]) -> GameRecord:
+    def _record_from_data(
+        data: dict[str, Any],
+        persistence_revision: Any | None = None,
+    ) -> GameRecord:
         state_json = data.get("state_json")
         if not isinstance(state_json, str):
             raise RepositoryError("Stored game state is missing or invalid")
@@ -63,6 +68,7 @@ class FirestoreGameRepository:
                 int(data.get("history_storage_version", 1))
                 >= HISTORY_STORAGE_VERSION
             ),
+            persistence_revision=persistence_revision,
         )
 
     @staticmethod
@@ -165,8 +171,13 @@ class FirestoreGameRepository:
                 },
             )
 
-        batch.commit()
-        return self._record_from_data(game_data)
+        write_results = batch.commit()
+        revision = (
+            getattr(write_results[0], "update_time", None)
+            if write_results
+            else None
+        )
+        return self._record_from_data(game_data, revision)
 
     def _delete_matching_documents(self, collection_name: str, game_id: str) -> None:
         collection = self.client.collection(collection_name)
@@ -277,7 +288,10 @@ class FirestoreGameRepository:
         expires_at = _as_utc(data.get("expires_at"))
         if expires_at is not None and expires_at <= datetime.now(timezone.utc):
             raise ExpiredGameError("Game has expired")
-        return self._record_from_data(data)
+        return self._record_from_data(
+            data,
+            getattr(snapshot, "update_time", None),
+        )
 
     def get_history_page(
         self,
@@ -485,7 +499,19 @@ class FirestoreGameRepository:
         expected_version: int,
         audit: MoveAudit | None = None,
         expires_at: datetime | None = None,
+        expected_revision: Any | None = None,
+        current_record: GameRecord | None = None,
     ) -> GameRecord:
+        if expected_revision is not None and current_record is not None:
+            return self._save_game_with_revision(
+                state,
+                expected_version,
+                expected_revision,
+                current_record,
+                audit,
+                expires_at,
+            )
+
         game_ref = self.client.collection(GAMES).document(state.id)
         transaction = self.client.transaction()
 
@@ -564,3 +590,82 @@ class FirestoreGameRepository:
             return updated_game
 
         return self._record_from_data(save(transaction))
+
+    def _save_game_with_revision(
+        self,
+        state: GameState,
+        expected_version: int,
+        expected_revision: Any,
+        current_record: GameRecord,
+        audit: MoveAudit | None,
+        expires_at: datetime | None,
+    ) -> GameRecord:
+        game_ref = self.client.collection(GAMES).document(state.id)
+        now = datetime.now(timezone.utc)
+        next_version = expected_version + 1
+        stored_state_json = self._state_json_for_storage(state, paged=True)
+        updated_fields = {
+            "state_json": stored_state_json,
+            "version": next_version,
+            "updated_at": now,
+            **({"expires_at": expires_at} if expires_at is not None else {}),
+        }
+
+        batch = self.client.batch()
+        batch.update(
+            game_ref,
+            updated_fields,
+            option=LastUpdateOption(expected_revision),
+        )
+        if audit is not None:
+            move_record = audit.as_record()
+            move_ref = self.client.collection(MOVES).document(
+                f"{state.id}_{next_version}"
+            )
+            batch.set(
+                move_ref,
+                {
+                    "game_id": state.id,
+                    "history_key": f"{state.id}:{state.history_epoch}",
+                    "history_epoch": state.history_epoch,
+                    "game_version": next_version,
+                    "move_number": audit.move_number,
+                    "player_color": audit.player_color,
+                    "piece_type": audit.piece_type,
+                    "from_row": audit.from_row,
+                    "from_col": audit.from_col,
+                    "to_row": audit.to_row,
+                    "to_col": audit.to_col,
+                    "explanation": audit.explanation,
+                    "action_type": move_record.action_type,
+                    "record_json": move_record.model_dump_json(),
+                    "created_at": now,
+                },
+            )
+
+        try:
+            write_results = batch.commit()
+        except (FailedPrecondition, NotFound) as error:
+            raise ConcurrentUpdateError(
+                "Game changed on another device. Refreshing will load the latest position."
+            ) from error
+
+        revision = (
+            getattr(write_results[0], "update_time", None)
+            if write_results
+            else None
+        )
+        return GameRecord(
+            state=state,
+            mode=current_record.mode,
+            version=next_version,
+            player_colors=current_record.player_colors,
+            updated_at=now,
+            expires_at=(
+                expires_at
+                if expires_at is not None
+                else current_record.expires_at
+            ),
+            history_paged=current_record.history_paged,
+            persistence_revision=revision,
+        )

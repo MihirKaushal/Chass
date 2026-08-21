@@ -691,6 +691,10 @@ class GameService:
                     record.state,
                     record.version,
                     expires_at=record.expires_at,
+                    expected_revision=(
+                        record.persistence_revision if record.history_paged else None
+                    ),
+                    current_record=record,
                 )
             except ConcurrentUpdateError as error:
                 latest = self.repository.get_game(game_id)
@@ -743,8 +747,8 @@ class GameService:
 
     def _save(
         self,
+        record: GameRecord,
         state: GameState,
-        expected_version: int,
         audit: MoveAudit | None = None,
         *,
         preserve_rematch: bool = False,
@@ -754,9 +758,13 @@ class GameService:
         try:
             return self.repository.save_game(
                 state,
-                expected_version,
+                record.version,
                 audit,
                 expires_at=self._expiration_deadline(),
+                expected_revision=(
+                    record.persistence_revision if record.history_paged else None
+                ),
+                current_record=record,
             )
         except ConcurrentUpdateError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
@@ -929,7 +937,7 @@ class GameService:
                 next_state.clock.turn_started_at = now
             if next_state.phase == "play":
                 self.engine.evaluate_state(next_state)
-            record = self._save(next_state, record.version)
+            record = self._save(record, next_state)
 
         return GameSessionResponse(
             game=self.serialize_game(record, viewer_color="black"),
@@ -1070,7 +1078,7 @@ class GameService:
         color = self._setup_color(authorized)
         if state.abilities.selected[color]:
             raise HTTPException(status_code=409, detail="This ability choice is already locked.")
-        expected = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
         next_state = state.clone()
         next_state.abilities.selected[color] = choices
 
@@ -1089,7 +1097,7 @@ class GameService:
                 next_state.clock.turn_started_at = datetime.now(timezone.utc)
             if next_state.phase == "play":
                 self.engine.evaluate_state(next_state)
-        return self._save(next_state, expected)
+        return self._save(record, next_state)
 
     def complete_setup_handoff(
         self,
@@ -1101,7 +1109,7 @@ class GameService:
         record = authorized.record
         if record.mode != "local" or record.state.phase != "handoff":
             raise HTTPException(status_code=409, detail="No private handoff is waiting.")
-        expected = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
         next_state = record.state.clone()
         if (
             next_state.configuration.special_abilities.enabled
@@ -1114,7 +1122,7 @@ class GameService:
             next_state.phase = "play"
         if next_state.phase == "play":
             self.engine.evaluate_state(next_state)
-        return self._save(next_state, expected)
+        return self._save(record, next_state)
 
     def use_custom_action(
         self,
@@ -1132,7 +1140,7 @@ class GameService:
                 )
             if authorized.player is None or authorized.player.color != color:
                 raise HTTPException(status_code=403, detail=f"Only {color} can act right now.")
-        expected = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
         try:
             next_state, explanation = self.engine.apply_custom_action(
                 record.state,
@@ -1143,8 +1151,8 @@ class GameService:
             raise HTTPException(status_code=400, detail=str(error)) from error
         action = next_state.history[-1]
         saved = self._save(
+            record,
             next_state,
-            expected,
             MoveAudit.from_record(action),
         )
         return saved, explanation
@@ -1187,7 +1195,7 @@ class GameService:
         else:
             color = state.gambit.draft_active_color
 
-        expected_version = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
         try:
             next_state = self.engine.gambit.shared_draft.apply(
                 state,
@@ -1197,7 +1205,7 @@ class GameService:
             )
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
-        return self._save(next_state, expected_version)
+        return self._save(record, next_state)
 
     def update_gambit_deployment(
         self,
@@ -1225,7 +1233,7 @@ class GameService:
                 raise HTTPException(status_code=400, detail=str(error)) from error
 
             try:
-                return self._save(next_state, record.version)
+                return self._save(record, next_state)
             except HTTPException as error:
                 if error.status_code != 409 or record.mode != "online" or attempt == 2:
                     raise
@@ -1258,7 +1266,7 @@ class GameService:
 
             self.engine.evaluate_state(next_state)
             try:
-                return self._save(next_state, record.version)
+                return self._save(record, next_state)
             except HTTPException as error:
                 if error.status_code != 409 or record.mode != "online" or attempt == 2:
                     raise
@@ -1272,7 +1280,7 @@ class GameService:
     ) -> GameRecord:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
-        expected_version = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
         try:
             next_state = self.engine.gambit.complete_handoff(
                 record.state,
@@ -1280,7 +1288,7 @@ class GameService:
             )
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
-        return self._save(next_state, expected_version)
+        return self._save(record, next_state)
 
     def use_command_power(
         self,
@@ -1305,7 +1313,7 @@ class GameService:
         else:
             color = record.state.current_player
 
-        expected_version = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
         try:
             next_state, explanation = self.engine.apply_command_power(
                 record.state,
@@ -1320,8 +1328,8 @@ class GameService:
 
         action_record = next_state.history[-1]
         saved = self._save(
+            record,
             next_state,
-            expected_version,
             MoveAudit.from_record(action_record),
         )
         return saved, explanation
@@ -1360,7 +1368,7 @@ class GameService:
                     detail=f"Only {game_state.current_player} can move right now",
                 )
 
-        expected_version = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
         move = Move(
             fromRow=request.fromRow,
             fromCol=request.fromCol,
@@ -1376,8 +1384,8 @@ class GameService:
 
         move_record = next_state.history[-1]
         saved = self._save(
+            record,
             next_state,
-            expected_version,
             MoveAudit.from_record(move_record),
         )
         return saved, explanation
@@ -1396,10 +1404,10 @@ class GameService:
                 status_code=409,
                 detail="Chass Gambit rules are managed by its dedicated variant setup.",
             )
-        expected_version = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
         game_state.rules = _apply_rule_patches(game_state.rules, request.rules, self.engine)
         self.engine.evaluate_state(game_state)
-        return self._save(game_state, expected_version)
+        return self._save(record, game_state)
 
     def update_pieces(
         self,
@@ -1415,14 +1423,14 @@ class GameService:
                 status_code=409,
                 detail="Piece editing is not available during a Chass Gambit match.",
             )
-        expected_version = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
 
         for patch in request.pieces:
             _apply_piece_patch(game_state.piece_definitions, patch)
 
         _sync_piece_metadata(game_state)
         self.engine.evaluate_state(game_state)
-        return self._save(game_state, expected_version)
+        return self._save(record, game_state)
 
     def _reset_state(self, record: GameRecord, request: ResetGameRequest) -> GameState:
         game_state = record.state
@@ -1543,7 +1551,7 @@ class GameService:
                 status_code=409,
                 detail="Both players must join before requesting a restart.",
             )
-        expected_version = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
         if record.mode == "online":
             if authorized.player is None:
                 raise HTTPException(status_code=403, detail="A player seat is required.")
@@ -1587,7 +1595,7 @@ class GameService:
 
         if state.rematch.status == "pending" and all(state.rematch.approvals.values()):
             state = self._reset_state(replace(record, state=state), ResetGameRequest())
-        return self._save(state, expected_version, preserve_rematch=True)
+        return self._save(record, state, preserve_rematch=True)
 
     def update_board_layout(
         self,
@@ -1613,7 +1621,7 @@ class GameService:
                 status_code=409,
                 detail="The starting layout cannot be changed after an opponent joins.",
             )
-        expected_version = self._expected_version(record, request.expectedVersion)
+        self._expected_version(record, request.expectedVersion)
 
         board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows
         board_cols = request.boardCols if request.boardCols is not None else game_state.board.cols
@@ -1717,7 +1725,7 @@ class GameService:
             game_state.clock.turn_started_at = datetime.now(timezone.utc)
 
         self.engine.evaluate_state(game_state)
-        return self._save(game_state, expected_version)
+        return self._save(record, game_state)
 
     def serialize_game(
         self,
