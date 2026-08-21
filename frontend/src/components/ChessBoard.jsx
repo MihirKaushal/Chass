@@ -313,6 +313,7 @@ function ChessBoard({
               piece ? "piece" : "piece ghost",
               piece?.isCustom ? "custom-piece" : "default-piece",
               piece ? `piece-${piece.color}` : "",
+              piece?.isOptimistic ? "piece-optimistic" : "",
             ]
               .filter(Boolean)
               .join(" ");

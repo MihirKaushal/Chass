@@ -1142,6 +1142,21 @@ button.secondary {
   overflow: visible;
 }
 
+.piece-optimistic {
+  animation: optimistic-piece-arrival 180ms ease-out both;
+}
+
+@keyframes optimistic-piece-arrival {
+  from {
+    opacity: 0.45;
+    transform: scale(0.82);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
 .square:hover .piece {
   transform: scale(1.08);
 }

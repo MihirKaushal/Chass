@@ -81,3 +81,72 @@ export function mergeHistoryRecords(...groups) {
   });
   return [...records.values()].sort((left, right) => left.moveNumber - right.moveNumber);
 }
+
+export function projectPendingMove(game, move, promotion = null) {
+  if (!game?.board || !move?.from || !move?.to) return game;
+
+  const board = game.board.map((row) => [...row]);
+  const movingPiece = board[move.from.row]?.[move.from.col];
+  if (!movingPiece || !board[move.to.row]) return game;
+
+  for (const capture of move.captures || []) {
+    if (board[capture.row]?.[capture.col] !== undefined) {
+      board[capture.row][capture.col] = null;
+    }
+  }
+  board[move.from.row][move.from.col] = null;
+
+  if (promotion === "kamikaze") {
+    board[move.to.row][move.to.col] = null;
+  } else {
+    const promotedDefinition = promotion
+      ? game.pieceDefinitions?.find((definition) => definition.type === promotion)
+      : null;
+    board[move.to.row][move.to.col] = {
+      ...movingPiece,
+      ...(promotedDefinition
+        ? {
+            type: promotedDefinition.type,
+            name: promotedDefinition.name,
+            points: promotedDefinition.points,
+            symbol: promotedDefinition.symbols?.[movingPiece.color] || promotedDefinition.icon,
+            icon: promotedDefinition.icon,
+            description: promotedDefinition.description,
+            movement: promotedDefinition.movement,
+            customAttributes: promotedDefinition.customAttributes || {},
+            isCustom: promotedDefinition.isCustom,
+          }
+        : {}),
+      isOptimistic: true,
+    };
+
+    if (
+      movingPiece.type === "king" &&
+      move.from.row === move.to.row &&
+      Math.abs(move.to.col - move.from.col) === 2
+    ) {
+      const direction = move.to.col > move.from.col ? 1 : -1;
+      for (
+        let rookCol = move.from.col + direction;
+        rookCol >= 0 && rookCol < board[move.from.row].length;
+        rookCol += direction
+      ) {
+        const candidate = board[move.from.row][rookCol];
+        if (!candidate) continue;
+        if (rookCol === move.to.col && candidate.pieceId === movingPiece.pieceId) {
+          continue;
+        }
+        if (candidate.type === "rook" && candidate.color === movingPiece.color) {
+          board[move.from.row][rookCol] = null;
+          board[move.from.row][move.from.col + direction] = {
+            ...candidate,
+            isOptimistic: true,
+          };
+        }
+        break;
+      }
+    }
+  }
+
+  return { ...game, board };
+}
