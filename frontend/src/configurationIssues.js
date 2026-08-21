@@ -5,6 +5,11 @@ const ISSUE_RULES = [
     settingKey: "target-points",
   },
   {
+    pattern: /kings? must begin outside|starting piece must be inside|starting square|starting barricade|promotion rank|touching squares/i,
+    sectionId: "studio-pieces",
+    settingKey: "board-editor",
+  },
+  {
     pattern: /royal center|victory|check race|checkmate|point race|end.game/i,
     sectionId: "studio-victory",
     settingKey: "victory-mode",
@@ -15,7 +20,7 @@ const ISSUE_RULES = [
     settingKey: "ability-options",
   },
   {
-    pattern: /gambit|army cap|army slot|piece limit|point limit|required king|shared draft|draft pool|private setup|maximum queens|board midpoint|deployment rows/i,
+    pattern: /gambit|army cap|army slot|piece limit|point limit|required king|shared draft|draft pool|army draft|private setup|maximum queens|board midpoint|deployment rows/i,
     sectionId: "studio-gambit",
     settingKey: "gambit-settings",
   },
@@ -30,7 +35,7 @@ const ISSUE_RULES = [
     settingKey: "popular-modes",
   },
   {
-    pattern: /uses a \d+x\d+ board|inside the board/i,
+    pattern: /uses a \d+x\d+ board/i,
     sectionId: "studio-board-size",
     settingKey: "board-dimensions",
   },
