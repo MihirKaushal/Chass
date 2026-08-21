@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from backend.catalog import POPULAR_PRESETS, adaptive_back_rank, classic_layout
+from backend.catalog import POPULAR_PRESETS, adaptive_back_rank, catalog_payload, classic_layout
 
 
 @pytest.mark.parametrize("cols", range(4, 17))
@@ -40,3 +40,12 @@ def test_king_hunt_copy_matches_capture_rules():
     assert king_hunt["summary"] == (
         "Check restrictions are disabled; capture the opposing King to win."
     )
+
+
+def test_configured_catalog_copy_pluralizes_descriptive_counts():
+    pieces = {piece["type"]: piece for piece in catalog_payload()["pieces"]}
+
+    assert "1 clear square forward" in pieces["catapult"]["movement"]
+    assert "1 occupied square" in pieces["maharani"]["movement"]
+    assert "square(s)" not in pieces["catapult"]["movement"]
+    assert "blocker(s)" not in " ".join(pieces["maharani"]["rules"])

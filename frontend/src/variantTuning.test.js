@@ -6,6 +6,7 @@ import {
   effectiveCatalogEntry,
   parameterDefaults,
   parameterMaximum,
+  renderTuningTemplate,
   scorchUsageDefault,
 } from "./variantTuning.js";
 
@@ -37,6 +38,16 @@ test("Scorch renders configured values in descriptions", () => {
   });
 
   assert.equal(configured.summary, "Scorch 5 squares with 3 turns between uses.");
+});
+
+test("configured descriptions pluralize counts with movement modifiers", () => {
+  assert.equal(
+    renderTuningTemplate(
+      "Moves up to {distance} clear square(s) after {recovery} own turn(s).",
+      { distance: 1, recovery: 2 }
+    ),
+    "Moves up to 1 clear square after 2 own turns."
+  );
 });
 
 const elephantParameters = [
