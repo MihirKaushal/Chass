@@ -20,4 +20,16 @@ test("configuration issues route to the setting that can fix them", () => {
     sectionId: "studio-gambit",
     settingKey: "gambit-settings",
   });
+  assert.deepEqual(locateConfigurationIssue("Kings must begin outside the Royal Center objective squares."), {
+    sectionId: "studio-pieces",
+    settingKey: "board-editor",
+  });
+  assert.deepEqual(locateConfigurationIssue("Every starting piece must be inside the board."), {
+    sectionId: "studio-pieces",
+    settingKey: "board-editor",
+  });
+  assert.deepEqual(locateConfigurationIssue("Barricades are neutral and cannot enter the army draft."), {
+    sectionId: "studio-gambit",
+    settingKey: "gambit-settings",
+  });
 });
