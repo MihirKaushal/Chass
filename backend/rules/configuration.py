@@ -12,6 +12,7 @@ from backend.catalog import (
 )
 from backend.models import PieceDefinition
 from backend.models.schemas import CreateGameRequest
+from backend.rules.classic_special_rules import uses_classic_draw_rules
 from backend.rules.variant_system import barricade_start_squares, objective_center_squares
 
 
@@ -200,9 +201,24 @@ class ConfigurationRuleEngine:
                 for piece in effective
                 if piece["type"] == "king" and piece["color"] in {"white", "black"}
             }
-            if len(effective) == 2 and all(piece["type"] == "king" for piece in effective):
+            if (
+                len(effective) == 2
+                and all(piece["type"] == "king" for piece in effective)
+                and uses_classic_draw_rules(
+                    variant=request.variant,
+                    victory_mode=payload.victory.mode,
+                    affinity_enabled=payload.customRules.affinityEnabled,
+                    special_abilities_enabled=payload.specialAbilities.enabled,
+                    has_terrain=False,
+                    enabled_rule_ids={
+                        patch.id for patch in request.rules if patch.enabled is True
+                    },
+                    piece_types=(piece["type"] for piece in effective),
+                )
+            ):
                 result.errors.append(
-                    "A game cannot begin with only two Kings; add at least one non-King piece."
+                    "This classic setup would draw immediately with only two Kings; "
+                    "add at least one non-King piece."
                 )
             if (
                 len(kings) == 2
