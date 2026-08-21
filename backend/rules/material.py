@@ -199,16 +199,20 @@ class StartingMaterialRule:
                 total_cost = king_cost + sum(int(piece_costs.get(piece_type, 0)) for piece_type in selected)
                 if total_cost > budget:
                     continue
-                synthetic = [{"row": 0, "col": 0, "type": "king", "color": "white"}]
-                synthetic.extend(
-                    {
-                        "row": 1,
-                        "col": index,
-                        "type": piece_type,
-                        "color": "white",
-                    }
-                    for index, piece_type in enumerate(selected)
-                )
+                synthetic = [
+                    {"row": 3, "col": 3, "type": "king", "color": "white"},
+                    {"row": 0, "col": 3, "type": "king", "color": "black"},
+                ]
+                for color, row in (("white", 2), ("black", 1)):
+                    synthetic.extend(
+                        {
+                            "row": row,
+                            "col": index,
+                            "type": piece_type,
+                            "color": color,
+                        }
+                        for index, piece_type in enumerate(selected)
+                    )
                 if cls.is_sufficient(victory_mode, synthetic, definitions):
                     return True
         return False

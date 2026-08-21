@@ -240,14 +240,123 @@ def test_configuration_rejects_a_two_king_start(client):
     assert validation.status_code == 200
     result = validation.json()
     assert result["valid"] is False
-    assert result["errors"] == [
-        "This classic setup would draw immediately with only two Kings; "
-        "add at least one non-King piece."
-    ]
+    assert result["errors"] == ["Insufficient material."]
 
     creation = client.post("/game/create", json=payload)
     assert creation.status_code == 400
     assert creation.json()["detail"] == result["errors"][0]
+
+
+def test_every_victory_mode_rejects_a_pure_king_start(client):
+    kings = [
+        {"row": 7, "col": 7, "type": "king", "color": "white"},
+        {"row": 0, "col": 0, "type": "king", "color": "black"},
+    ]
+    victory_modes = (
+        "checkmate",
+        "king_capture",
+        "timed",
+        "point_race",
+        "elimination",
+        "royal_score",
+        "center_dominion",
+        "royal_center",
+        "check_race",
+    )
+
+    for mode in victory_modes:
+        payload = configured_game(
+            initialLayout=kings,
+            victory={
+                "mode": mode,
+                "targetPoints": 1,
+                "timeSeconds": 600,
+                "kingPoints": 1,
+                "dominionRounds": 3,
+                "checkTarget": 3,
+            },
+        )
+        result = client.post("/game/validate", json=payload).json()
+        assert result["valid"] is False, mode
+        assert result["errors"][0] == "Insufficient material.", mode
+
+    scorch_payload = configured_game(
+        initialLayout=kings,
+        specialAbilities={
+            "enabled": True,
+            "allowed": ["scorch"],
+            "maxPerPlayer": 1,
+        },
+    )
+    scorch_result = client.post("/game/validate", json=scorch_payload).json()
+    assert scorch_result["errors"][0] == "Insufficient material."
+
+
+def test_material_validation_changes_with_the_victory_objective(client):
+    kings = [
+        {"row": 7, "col": 7, "type": "king", "color": "white"},
+        {"row": 0, "col": 0, "type": "king", "color": "black"},
+    ]
+    white_bishop = {"row": 6, "col": 2, "type": "bishop", "color": "white"}
+    black_bishop = {"row": 1, "col": 4, "type": "bishop", "color": "black"}
+
+    for mode in ("checkmate", "timed", "royal_score", "check_race", "center_dominion"):
+        invalid = client.post(
+            "/game/validate",
+            json=configured_game(
+                initialLayout=[*kings, white_bishop],
+                victory={"mode": mode},
+            ),
+        ).json()
+        assert invalid["errors"][0] == "Insufficient material.", mode
+
+    for mode in ("king_capture", "elimination", "royal_center"):
+        valid = client.post(
+            "/game/validate",
+            json=configured_game(
+                initialLayout=[*kings, white_bishop],
+                victory={"mode": mode},
+            ),
+        ).json()
+        assert valid["valid"] is True, mode
+
+    for mode in ("check_race", "center_dominion"):
+        valid = client.post(
+            "/game/validate",
+            json=configured_game(
+                initialLayout=[*kings, white_bishop, black_bishop],
+                victory={"mode": mode},
+            ),
+        ).json()
+        assert valid["valid"] is True, mode
+
+
+def test_custom_piece_material_profiles_reach_configuration_validation(client):
+    kings = [
+        {"row": 7, "col": 7, "type": "king", "color": "white"},
+        {"row": 0, "col": 0, "type": "king", "color": "black"},
+    ]
+
+    for piece_type in ("maharani", "catapult", "elephant"):
+        payload = configured_game(
+            enabledPieces=[*classic_types(), piece_type],
+            initialLayout=[
+                *kings,
+                {"row": 6, "col": 2, "type": piece_type, "color": "white"},
+            ],
+        )
+        assert client.post("/game/validate", json=payload).json()["valid"] is True
+
+    for piece_type in ("hypnotizer", "diplomat", "cannibal"):
+        payload = configured_game(
+            enabledPieces=[*classic_types(), piece_type],
+            initialLayout=[
+                *kings,
+                {"row": 6, "col": 2, "type": piece_type, "color": "white"},
+            ],
+        )
+        result = client.post("/game/validate", json=payload).json()
+        assert result["errors"][0] == "Insufficient material."
 
 
 def test_pawn_promotion_rank_validation_follows_piece_direction(client):
@@ -807,6 +916,7 @@ def test_royal_center_wins_when_king_reaches_adaptive_objective(client):
         initialLayout=[
             {"row": 2, "col": 3, "type": "king", "color": "white"},
             {"row": 0, "col": 0, "type": "king", "color": "black"},
+            {"row": 6, "col": 0, "type": "bishop", "color": "white"},
         ],
         victory={"mode": "royal_center"},
     )
@@ -842,6 +952,7 @@ def test_check_race_counts_each_completed_check_once(client):
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "king", "color": "black"},
             {"row": 4, "col": 0, "type": "rook", "color": "white"},
+            {"row": 2, "col": 2, "type": "knight", "color": "black"},
         ],
         victory={"mode": "check_race", "checkTarget": 2},
     )
@@ -1110,7 +1221,7 @@ def test_gambit_point_limit_does_not_require_an_exact_piece_total(client):
         piecePoints={"pawn": 3, "king": 0},
         gambit={
             "enabled": True,
-            "budget": 2,
+            "budget": 4,
             "maxPieces": 2,
             "setupRows": 1,
             "maxQueens": 0,
@@ -1122,7 +1233,7 @@ def test_gambit_point_limit_does_not_require_an_exact_piece_total(client):
     response = client.post("/game/create", json=payload)
     assert response.status_code == 200
     game = response.json()["game"]
-    assert game["gambit"]["config"]["budget"] == 2
+    assert game["gambit"]["config"]["budget"] == 4
     assert game["gambit"]["config"]["requireExactBudget"] is False
 
 
@@ -1167,18 +1278,18 @@ def test_timed_gambit_clock_restarts_when_hidden_armies_reveal(client):
     from backend.routes.game import game_service
 
     payload = configured_game(
-        enabledPieces=["king"],
-        piecePoints={"king": 0},
+        enabledPieces=["rook", "king"],
+        piecePoints={"rook": 5, "king": 0},
         victory={"mode": "timed", "timeSeconds": 30},
         gambit={
             "enabled": True,
-            "budget": 0,
-            "maxPieces": 1,
+            "budget": 5,
+            "maxPieces": 2,
             "setupRows": 2,
             "maxQueens": 0,
             "affinityEnabled": False,
             "commandPointCap": 3,
-            "pieceCaps": {"king": 1},
+            "pieceCaps": {"rook": 1, "king": 1},
         },
     )
     game = client.post("/game/create", json=payload).json()["game"]
@@ -1202,9 +1313,19 @@ def test_timed_gambit_clock_restarts_when_hidden_armies_reveal(client):
             "expectedVersion": prepared.version,
         },
     ).json()
+    white_rook = client.post(
+        f"/game/{game['id']}/gambit/deployment",
+        json={
+            "action": "place",
+            "row": 7,
+            "col": 0,
+            "pieceType": "rook",
+            "expectedVersion": white_king["version"],
+        },
+    ).json()
     white_ready = client.post(
         f"/game/{game['id']}/gambit/ready",
-        json={"expectedVersion": white_king["version"]},
+        json={"expectedVersion": white_rook["version"]},
     ).json()
     handoff = client.post(
         f"/game/{game['id']}/gambit/handoff",
@@ -1220,9 +1341,19 @@ def test_timed_gambit_clock_restarts_when_hidden_armies_reveal(client):
             "expectedVersion": handoff["version"],
         },
     ).json()
+    black_rook = client.post(
+        f"/game/{game['id']}/gambit/deployment",
+        json={
+            "action": "place",
+            "row": 0,
+            "col": 0,
+            "pieceType": "rook",
+            "expectedVersion": black_king["version"],
+        },
+    ).json()
     revealed = client.post(
         f"/game/{game['id']}/gambit/ready",
-        json={"expectedVersion": black_king["version"]},
+        json={"expectedVersion": black_rook["version"]},
     )
     assert revealed.status_code == 200
     finished_setup = revealed.json()
@@ -1301,6 +1432,7 @@ def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "white"},
             {"row": 6, "col": 2, "type": "bishop", "color": "white"},
         ],
     )
@@ -1333,6 +1465,7 @@ def test_episcopal_uses_configured_shift_distance_and_recharge(client):
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "white"},
             {"row": 6, "col": 2, "type": "bishop", "color": "white"},
         ],
     )

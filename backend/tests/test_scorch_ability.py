@@ -87,6 +87,7 @@ def base_layout(rows: int = 8, cols: int = 8) -> list[dict]:
     return [
         {"row": rows - 1, "col": cols - 1, "type": "king", "color": "white"},
         {"row": 0, "col": cols - 1, "type": "king", "color": "black"},
+        {"row": rows - 1, "col": 0, "type": "rook", "color": "white"},
     ]
 
 
