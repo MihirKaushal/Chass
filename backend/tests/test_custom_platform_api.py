@@ -241,7 +241,8 @@ def test_configuration_rejects_a_two_king_start(client):
     result = validation.json()
     assert result["valid"] is False
     assert result["errors"] == [
-        "A game cannot begin with only two Kings; add at least one non-King piece."
+        "This classic setup would draw immediately with only two Kings; "
+        "add at least one non-King piece."
     ]
 
     creation = client.post("/game/create", json=payload)

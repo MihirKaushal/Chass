@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from collections.abc import Iterable
 
 from backend.models import CaptureEvent, GameState, Move, MoveOption, Piece
 from backend.rules.base import Rule, RuleContext
@@ -9,6 +10,7 @@ from backend.rules.terrain import is_scorched
 from backend.rules.variant_system import FINISHED_STATUSES, finish_game, uses_royal_safety
 
 CLASSIC_PIECE_TYPES = frozenset({"pawn", "knight", "bishop", "rook", "queen", "king"})
+CLASSIC_DRAW_BLOCKING_RULE_IDS = frozenset({"double_capture_rook", "score_target_win"})
 IRREVERSIBLE_RIGHTS_TYPES = frozenset({"king", "rook"})
 POSITION_RIGHTS_TYPES = frozenset({"pawn", "king", "rook"})
 
@@ -21,24 +23,46 @@ def _enabled_rule_ids(state: GameState) -> set[str]:
     return {setting.id for setting in state.rules if setting.enabled}
 
 
-def _uses_classic_draw_rules(state: GameState) -> bool:
-    if state.variant != "classic" or state.configuration.victory.mode not in {
+def uses_classic_draw_rules(
+    *,
+    variant: str,
+    victory_mode: str,
+    affinity_enabled: bool,
+    special_abilities_enabled: bool,
+    has_terrain: bool,
+    enabled_rule_ids: set[str],
+    piece_types: Iterable[str],
+) -> bool:
+    if variant != "classic" or victory_mode not in {
         "checkmate",
         "timed",
     }:
         return False
-    if state.configuration.custom_rules.affinity_enabled:
+    if affinity_enabled:
         return False
-    if state.configuration.special_abilities.enabled:
+    if special_abilities_enabled:
         return False
-    if state.terrain:
+    if has_terrain:
         return False
-    if _enabled_rule_ids(state) & {"double_capture_rook", "score_target_win"}:
+    if enabled_rule_ids & CLASSIC_DRAW_BLOCKING_RULE_IDS:
         return False
-    return all(
-        piece is None or piece.type in CLASSIC_PIECE_TYPES
-        for board_row in state.board.grid
-        for piece in board_row
+    return all(piece_type in CLASSIC_PIECE_TYPES for piece_type in piece_types)
+
+
+def _uses_classic_draw_rules(state: GameState) -> bool:
+    return uses_classic_draw_rules(
+        variant=state.variant,
+        victory_mode=state.configuration.victory.mode,
+        affinity_enabled=state.configuration.custom_rules.affinity_enabled,
+        special_abilities_enabled=state.configuration.special_abilities.enabled,
+        has_terrain=bool(state.terrain),
+        enabled_rule_ids=_enabled_rule_ids(state),
+        piece_types=(
+            piece.type
+            for board_row in state.board.grid
+            for piece in board_row
+            if piece is not None
+        ),
     )
 
 
