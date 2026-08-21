@@ -310,6 +310,8 @@ class SqlGameRepository:
         expected_version: int,
         audit: MoveAudit | None = None,
         expires_at: datetime | None = None,
+        expected_revision: object | None = None,
+        current_record: GameRecord | None = None,
     ) -> GameRecord:
         now = datetime.now(timezone.utc)
         next_version = expected_version + 1
