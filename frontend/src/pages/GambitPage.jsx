@@ -6,6 +6,7 @@ import ChessBoard from "../components/ChessBoard";
 import GameBriefing from "../components/GameBriefing";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 import PieceGlyph from "../components/PieceGlyph";
+import ResponsivePlayLayout from "../components/ResponsivePlayLayout";
 
 
 const PIECE_ORDER = ["king", "queen", "rook", "bishop", "knight", "pawn"];
@@ -566,9 +567,8 @@ function GambitPlay({
     onSquareClick(row, col);
   };
 
-  return (
-    <main className="play-layout play-layout-three-column gambit-play-layout">
-      <EffectsPanel
+  const effectsPanel = (
+    <EffectsPanel
         game={game}
         catalog={catalog}
         onAction={handleAction}
@@ -584,9 +584,10 @@ function GambitPlay({
           evolveTo={evolveTo}
           setEvolveTo={setEvolveTo}
         />
-      </EffectsPanel>
-
-      <section className="board-section gambit-battle-board">
+    </EffectsPanel>
+  );
+  const board = (
+    <section className="board-section gambit-battle-board">
         <GameBriefing
           boardRows={game.boardRows ?? game.boardSize}
           boardCols={game.boardCols ?? game.boardSize}
@@ -626,14 +627,25 @@ function GambitPlay({
           onActionSelectionChange={setSelectedBoardAction}
         />
         <BoardMarkerGuide />
-      </section>
-
-      <GameInfoPanel
+    </section>
+  );
+  const infoPanel = (
+    <GameInfoPanel
         game={game}
         onLoadEarlierHistory={onLoadEarlierHistory}
         historyLoading={historyLoading}
-      />
-    </main>
+    />
+  );
+
+  return (
+    <ResponsivePlayLayout
+      className="gambit-play-layout"
+      effects={effectsPanel}
+      board={board}
+      info={infoPanel}
+      effectCount={(game.countdowns?.length || 0) + (game.availableActions?.length ? 1 : 0)}
+      moveCount={game.historyPagination?.totalMoves ?? game.history.length}
+    />
   );
 }
 
