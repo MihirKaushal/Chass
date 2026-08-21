@@ -3229,6 +3229,42 @@ button.secondary {
   opacity: 0.42;
 }
 
+.board-editor-toolbar {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.42rem;
+  padding-top: 0.72rem;
+  border-top: 1px solid rgba(26, 54, 93, 0.14);
+}
+
+.board-editor-toolbar button {
+  min-width: 0;
+  padding: 0.5rem 0.58rem;
+  border: 1px solid rgba(43, 108, 176, 0.2);
+  border-radius: 9px;
+  color: var(--deep);
+  background: rgba(43, 108, 176, 0.1);
+  cursor: pointer;
+  font-size: 0.68rem;
+  font-weight: 750;
+}
+
+.board-editor-toolbar button:first-child {
+  grid-column: 1 / -1;
+  color: white;
+  background: var(--accent);
+}
+
+.board-editor-toolbar .clear-board-button {
+  color: #7b1f1f;
+  border-color: rgba(123, 31, 31, 0.2);
+  background: rgba(123, 31, 31, 0.08);
+}
+
+.board-editor-toolbar button:disabled {
+  cursor: not-allowed;
+}
+
 .game-briefing {
   padding: 0.9rem 1rem;
   border-left: 4px solid var(--accent);
@@ -3942,10 +3978,135 @@ details[open] > summary > .disclosure-arrow {
   gap: 0.08rem;
 }
 
+.launch-validation-copy {
+  position: relative;
+  min-width: 0;
+}
+
 .studio-launch-bar span,
 .studio-launch-bar small {
   color: rgba(255, 255, 255, 0.68);
   font-size: 0.7rem;
+}
+
+.studio-launch-bar.validation-invalid {
+  border-color: rgba(255, 181, 181, 0.42);
+  background: rgba(89, 29, 35, 0.97);
+}
+
+.validation-inline-issues {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  margin-top: 0.32rem;
+}
+
+.validation-inline-issues button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.34rem;
+  max-width: 100%;
+  padding: 0.22rem 0.42rem;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 7px;
+  color: white;
+  background: rgba(255, 255, 255, 0.1);
+  cursor: pointer;
+  font-size: 0.66rem;
+  line-height: 1.25;
+  text-align: left;
+}
+
+.validation-inline-issues button b,
+.validation-issue-popover button > b {
+  flex: 0 0 auto;
+  width: 1.1rem;
+  height: 1.1rem;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  color: #7b1f1f;
+  background: #f8d9d2;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.56rem;
+}
+
+.validation-issue-popover {
+  position: absolute;
+  z-index: 24;
+  bottom: calc(100% + 0.85rem);
+  left: -0.45rem;
+  width: min(520px, calc(100vw - 2rem));
+  display: grid;
+  gap: 0.38rem;
+  padding: 0.7rem;
+  border: 1px solid rgba(26, 54, 93, 0.24);
+  border-radius: 12px;
+  color: var(--deep);
+  background: #f8ead2;
+  box-shadow: 0 16px 38px rgba(26, 54, 93, 0.25);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(0.4rem);
+  pointer-events: none;
+  transition: opacity 150ms ease, transform 150ms ease, visibility 150ms step-end;
+}
+
+.validation-issue-popover::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 2rem;
+  border: 0.48rem solid transparent;
+  border-top-color: #f8ead2;
+}
+
+.studio-launch-bar:hover .validation-issue-popover,
+.studio-launch-bar:focus-within .validation-issue-popover {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+  pointer-events: auto;
+  transition: opacity 150ms ease, transform 150ms ease, visibility 0ms;
+}
+
+.validation-issue-popover > span {
+  color: rgba(26, 54, 93, 0.62);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.validation-issue-popover button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.52rem 0.58rem;
+  border: 1px solid rgba(123, 31, 31, 0.14);
+  border-radius: 8px;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.55);
+  cursor: pointer;
+  text-align: left;
+}
+
+.configuration-issue-highlight {
+  position: relative;
+  z-index: 3;
+  border-radius: 12px;
+  outline: 4px solid rgba(214, 88, 68, 0.78);
+  outline-offset: 4px;
+  animation: configuration-issue-pulse 700ms ease-in-out 2;
+}
+
+@keyframes configuration-issue-pulse {
+  50% {
+    outline-color: rgba(214, 88, 68, 0.28);
+    box-shadow: 0 0 0 8px rgba(214, 88, 68, 0.1);
+  }
 }
 
 .launch-actions {
