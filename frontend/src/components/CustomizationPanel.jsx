@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { affinitySquares, barricadeSquares, objectiveCenterSquares } from "../boardGeometry";
+import { locateConfigurationIssue } from "../configurationIssues";
 import {
   applyParameterChange,
   effectiveCatalogEntry,
@@ -341,7 +342,19 @@ function previewPiece(placement, definition, points, configuredParameters) {
   };
 }
 
-function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlace, onClearBoard }) {
+function ConfigurationBoard({
+  draft,
+  catalog,
+  selectedTool,
+  onSelectTool,
+  onPlace,
+  onClearBoard,
+  onClearColor,
+  onMirror,
+  onUndo,
+  canUndo,
+  onRestore,
+}) {
   const definitionMap = useMemo(
     () => new Map(catalog.pieces.map((piece) => [piece.type, piece])),
     [catalog]
@@ -373,7 +386,7 @@ function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlac
   );
 
   return (
-    <div className="studio-preview-stack">
+    <div className="studio-preview-stack" data-setting-key="board-editor">
       <div className="studio-board-frame">
         <div
           className="studio-board"
@@ -444,19 +457,29 @@ function ConfigurationBoard({ draft, catalog, selectedTool, onSelectTool, onPlac
             <button type="button" className="text-button" onClick={() => onSelectTool({ kind: "erase" })}>
               Use Eraser
             </button>
-            <button type="button" className="text-button clear-board-button" disabled={!draft.placements.length} onClick={onClearBoard}>
-              Clear Board
+            <button type="button" className="text-button" disabled={!canUndo} onClick={onUndo}>
+              Undo
             </button>
           </div>
         ) : null}
       </div>
+      {!draft.gambit.enabled ? (
+        <div className="board-editor-toolbar" aria-label="Board editor shortcuts">
+          <button type="button" onClick={onRestore}>Restore Formation</button>
+          <button type="button" onClick={() => onMirror("white")}>Mirror White To Black</button>
+          <button type="button" onClick={() => onMirror("black")}>Mirror Black To White</button>
+          <button type="button" disabled={!draft.placements.some((piece) => piece.color === "white")} onClick={() => onClearColor("white")}>Clear White</button>
+          <button type="button" disabled={!draft.placements.some((piece) => piece.color === "black")} onClick={() => onClearColor("black")}>Clear Black</button>
+          <button type="button" className="clear-board-button" disabled={!draft.placements.length} onClick={onClearBoard}>Clear All</button>
+        </div>
+      ) : null}
     </div>
   );
 }
 
-function Toggle({ checked, onChange, label, description }) {
+function Toggle({ checked, onChange, label, description, settingKey }) {
   return (
-    <label className="studio-toggle">
+    <label className="studio-toggle" data-setting-key={settingKey}>
       <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
       <span className="toggle-track" aria-hidden="true"><i /></span>
       <span className="toggle-copy"><strong>{label}</strong><small>{description}</small></span>
@@ -544,12 +567,19 @@ function DisclosureArrow() {
   return <span className="disclosure-arrow" aria-hidden="true" />;
 }
 
-function CollapsibleStudioSection({ title: heading, description, className = "", children }) {
+function CollapsibleStudioSection({
+  title: heading,
+  description,
+  className = "",
+  sectionId,
+  children,
+}) {
   const [open, setOpen] = useState(true);
 
   return (
     <details
       className={`studio-section studio-disclosure ${className}`.trim()}
+      id={sectionId}
       open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
     >
@@ -682,6 +712,8 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const [catalog, setCatalog] = useState(null);
   const [draft, setDraft] = useState(null);
   const [selectedTool, setSelectedTool] = useState(null);
+  const [boardHistory, setBoardHistory] = useState([]);
+  const [restoreFormationId, setRestoreFormationId] = useState("classic");
   const [creatingMode, setCreatingMode] = useState("");
   const [error, setError] = useState("");
   const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, requestKey: null });
@@ -699,6 +731,11 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         let initial = loadSavedDraft(payload);
         const preset = payload.popularModes.find((mode) => mode.id === initialPreset);
         if (preset) initial = applyModeToDraft(initial, preset, payload);
+        setRestoreFormationId(
+          initial.formationId && initial.formationId !== "custom"
+            ? initial.formationId
+            : "classic"
+        );
         setCatalog(payload);
         setDraft(initial);
       })
@@ -751,12 +788,16 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
   const applyPopularMode = (mode) => {
     setSelectedTool(null);
+    setBoardHistory([]);
+    setRestoreFormationId(mode.formationId || "classic");
     setDraft((current) => applyModeToDraft(current, mode, catalog));
   };
 
   const applyFormation = (formation) => {
     const disabled = formation.disabledAbilities || {};
     setSelectedTool(null);
+    setBoardHistory([]);
+    setRestoreFormationId(formation.id);
     setDraft((current) => {
       return {
         ...current,
@@ -785,6 +826,8 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const changeDimensions = (nextRows, nextCols) => {
     const rows = clamp(nextRows, MIN_DIMENSION, MAX_DIMENSION);
     const cols = clamp(nextCols, MIN_DIMENSION, MAX_DIMENSION);
+    setBoardHistory([]);
+    setRestoreFormationId("classic");
     setDraft((current) => {
       return {
         ...current,
@@ -813,6 +856,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
   const togglePiece = (pieceType, enabled) => {
     if (pieceType === "king" && !enabled) return;
+    setBoardHistory([]);
     setDraft((current) => ({
       ...current,
       presetId: "custom",
@@ -835,6 +879,10 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       draft.barricadeCount
     ).some((square) => square.row === row && square.col === col);
     if (reserved) return;
+    setBoardHistory((history) => [
+      ...history,
+      { placements: draft.placements },
+    ].slice(-40));
     setDraft((current) => {
       const withoutSquare = current.placements.filter((piece) => piece.row !== row || piece.col !== col);
       return {
@@ -849,12 +897,111 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   };
 
   const clearBoard = () => {
+    if (!draft.placements.length) return;
     setSelectedTool(null);
+    setBoardHistory((history) => [
+      ...history,
+      { placements: draft.placements },
+    ].slice(-40));
     setDraft((current) => ({
       ...current,
       presetId: "custom",
       formationId: "custom",
       placements: [],
+    }));
+  };
+
+  const clearColor = (color) => {
+    if (!draft.placements.some((piece) => piece.color === color)) return;
+    setSelectedTool(null);
+    setBoardHistory((history) => [
+      ...history,
+      { placements: draft.placements },
+    ].slice(-40));
+    setDraft((current) => ({
+      ...current,
+      presetId: "custom",
+      formationId: "custom",
+      placements: current.placements.filter((piece) => piece.color !== color),
+    }));
+  };
+
+  const mirrorColor = (sourceColor) => {
+    const targetColor = sourceColor === "white" ? "black" : "white";
+    const sourcePieces = draft.placements.filter((piece) => piece.color === sourceColor);
+    if (!sourcePieces.length) return;
+    setSelectedTool(null);
+    setBoardHistory((history) => [
+      ...history,
+      { placements: draft.placements },
+    ].slice(-40));
+    setDraft((current) => {
+      const retained = current.placements.filter((piece) => piece.color !== targetColor);
+      const occupied = new Set(retained.map((piece) => `${piece.row}-${piece.col}`));
+      const reserved = new Set(
+        (current.enabledPieces.includes("barricade")
+          ? barricadeSquares(current.boardRows, current.boardCols, current.barricadeCount)
+          : []
+        ).map((square) => `${square.row}-${square.col}`)
+      );
+      const mirrored = sourcePieces
+        .map((piece) => ({
+          ...piece,
+          row: current.boardRows - 1 - piece.row,
+          color: targetColor,
+        }))
+        .filter((piece) => {
+          const key = `${piece.row}-${piece.col}`;
+          if (occupied.has(key) || reserved.has(key)) return false;
+          occupied.add(key);
+          return true;
+        });
+      return {
+        ...current,
+        presetId: "custom",
+        formationId: "custom",
+        placements: [...retained, ...mirrored],
+      };
+    });
+  };
+
+  const undoBoard = () => {
+    const previous = boardHistory[boardHistory.length - 1];
+    if (!previous) return;
+    setSelectedTool(null);
+    setBoardHistory((history) => history.slice(0, -1));
+    setDraft((current) => ({
+      ...current,
+      presetId: "custom",
+      formationId: "custom",
+      placements: previous.placements,
+    }));
+  };
+
+  const restoreFormation = () => {
+    const formation = catalog.formations.find(
+      (item) => item.id === restoreFormationId
+        && item.boardRows === draft.boardRows
+        && item.boardCols === draft.boardCols
+    );
+    const targetId = formation?.id || "classic";
+    const placements = formationLayout(
+      catalog,
+      targetId,
+      draft.boardRows,
+      draft.boardCols
+    );
+    setSelectedTool(null);
+    setBoardHistory((history) => [
+      ...history,
+      { placements: draft.placements },
+    ].slice(-40));
+    setRestoreFormationId(targetId);
+    setDraft((current) => ({
+      ...current,
+      presetId: targetId,
+      formationId: targetId,
+      placements,
     }));
   };
 
@@ -909,6 +1056,30 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         ? "Configuration valid"
         : `${validation.errors.length} setting issue${validation.errors.length === 1 ? "" : "s"}`;
 
+  const focusValidationIssue = (message) => {
+    const { sectionId, settingKey } = locateConfigurationIssue(message);
+    const section = document.getElementById(sectionId);
+    if (section instanceof HTMLDetailsElement) section.open = true;
+
+    window.requestAnimationFrame(() => {
+      const target = document.querySelector(`[data-setting-key="${settingKey}"]`) || section;
+      if (!target) return;
+      document.querySelectorAll(".configuration-issue-highlight").forEach(
+        (element) => element.classList.remove("configuration-issue-highlight")
+      );
+      target.classList.add("configuration-issue-highlight");
+      target.scrollIntoView({ behavior: "smooth", block: "center" });
+      const focusTarget = target.matches("button, input, select")
+        ? target
+        : target.querySelector("input, select, button");
+      window.setTimeout(() => focusTarget?.focus({ preventScroll: true }), 350);
+      window.setTimeout(
+        () => target.classList.remove("configuration-issue-highlight"),
+        2600
+      );
+    });
+  };
+
   return (
     <section className="customization-panel configuration-studio">
       <header className="studio-hero">
@@ -918,7 +1089,19 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
       <div className="studio-shell">
         <aside className="studio-preview-column">
-          <ConfigurationBoard draft={draft} catalog={catalog} selectedTool={selectedTool} onSelectTool={setSelectedTool} onPlace={placeTool} onClearBoard={clearBoard} />
+          <ConfigurationBoard
+            draft={draft}
+            catalog={catalog}
+            selectedTool={selectedTool}
+            onSelectTool={setSelectedTool}
+            onPlace={placeTool}
+            onClearBoard={clearBoard}
+            onClearColor={clearColor}
+            onMirror={mirrorColor}
+            onUndo={undoBoard}
+            canUndo={Boolean(boardHistory.length)}
+            onRestore={restoreFormation}
+          />
           <GameBriefing
             boardRows={draft.boardRows}
             boardCols={draft.boardCols}
@@ -937,8 +1120,8 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         </aside>
 
         <div className="studio-controls">
-          <CollapsibleStudioSection title="Popular Modes" description="Load a complete starting configuration.">
-            <div className="mode-preset-grid">
+          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Popular Modes" description="Load a complete starting configuration.">
+            <div className="mode-preset-grid" data-setting-key="popular-modes">
               {catalog.popularModes.map((mode) => <button type="button" key={mode.id} className={draft.presetId === mode.id ? "selected" : ""} onClick={() => applyPopularMode(mode)}><i>{mode.icon}</i><strong>{mode.name}</strong><small>{mode.summary}</small></button>)}
             </div>
             <h3 className="formation-heading">Board Formations</h3>
@@ -947,8 +1130,8 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection title="Board Size" description="Choose a preset or set dimensions from 4 to 16.">
-            <div className="dimension-presets">
+          <CollapsibleStudioSection sectionId="studio-board-size" title="Board Size" description="Choose a preset or set dimensions from 4 to 16.">
+            <div className="dimension-presets" data-setting-key="board-dimensions">
               {[8, 10, 16].map((size) => <button type="button" key={size} className={draft.boardRows === size && draft.boardCols === size ? "active" : "secondary"} onClick={() => changeDimensions(size, size)}>{size}x{size}</button>)}
               <span>Custom</span>
               <label>Rows<input type="number" min={MIN_DIMENSION} max={MAX_DIMENSION} value={draft.boardRows} onChange={(event) => changeDimensions(event.target.value, draft.boardCols)} /></label>
@@ -956,7 +1139,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection title="Pieces" description="Enable pieces, set values of zero or more, and edit the starting board.">
+          <CollapsibleStudioSection sectionId="studio-pieces" title="Pieces" description="Enable pieces, set values of zero or more, and edit the starting board.">
             <div className="piece-catalog-grid">
               {catalog.pieces.map((piece) => {
                 const enabled = draft.enabledPieces.includes(piece.type);
@@ -996,15 +1179,15 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection title="End Game Logic" description="Choose the condition that decides the result.">
-            <div className="victory-grid">
+          <CollapsibleStudioSection sectionId="studio-victory" title="End Game Logic" description="Choose the condition that decides the result.">
+            <div className="victory-grid" data-setting-key="victory-mode">
               {catalog.victoryModes.map((mode) => {
                 const reason = disabledVictoryModes[mode.id];
                 return <button type="button" key={mode.id} className={draft.victory.mode === mode.id ? "selected" : ""} disabled={Boolean(reason)} title={reason || ""} onClick={() => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, mode: mode.id } }))}><i>{mode.icon}</i><span><strong>{mode.name}</strong><small>{reason || mode.summary}</small></span></button>;
               })}
             </div>
             <div className="conditional-fields">
-              {draft.victory.mode === "point_race" ? <label>Target Score<input type="number" min="1" value={draft.victory.targetPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, targetPoints: Math.max(1, Number(event.target.value)) } }))} /><small>Captured-piece points needed to win.</small></label> : null}
+              {draft.victory.mode === "point_race" ? <label data-setting-key="target-points">Target Score<input type="number" min="1" value={draft.victory.targetPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, targetPoints: Math.max(1, Number(event.target.value)) } }))} /><small>Captured-piece points needed to win.</small></label> : null}
               {draft.victory.mode === "timed" ? <label>Minutes Per Player<input type="number" min="1" max="1440" value={Math.round(draft.victory.timeSeconds / 60)} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, timeSeconds: Math.max(60, Number(event.target.value) * 60) } }))} /><small>The server controls both clocks.</small></label> : null}
               {draft.victory.mode === "center_dominion" ? <label>Rounds To Hold<input type="number" min="1" max="20" value={draft.victory.dominionRounds} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, dominionRounds: clamp(event.target.value, 1, 20) } }))} /><small>Both marked squares must stay occupied through this many opponent turns. Checkmate also wins.</small></label> : null}
               {draft.victory.mode === "check_race" ? <label>Checks To Win<input type="number" min="1" max="100" value={draft.victory.checkTarget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, checkTarget: clamp(event.target.value, 1, 100) } }))} /><small>The first player to give this many checks wins. Checkmate also wins immediately.</small></label> : null}
@@ -1012,18 +1195,18 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection title="Custom Rules" description="Add optional board-wide systems to any game mode." className="ability-config-section">
-            <Toggle checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Control both center squares of your color to earn command points." />
+          <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any game mode." className="ability-config-section">
+            <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Control both center squares of your color to earn command points." />
             {draft.customRules.affinityEnabled ? <div className="conditional-fields">
               <label>Command Point Cap<input type="number" min="0" max="20" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clamp(event.target.value, 0, 20) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
             </div> : null}
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection title="Special Abilities" description="Each player privately chooses the configured number of allowed abilities before play." className="ability-config-section">
-            <Toggle checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
+          <CollapsibleStudioSection sectionId="studio-abilities" title="Special Abilities" description="Each player privately chooses the configured number of allowed abilities before play." className="ability-config-section">
+            <Toggle settingKey="ability-options" checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
             {draft.specialAbilities.enabled ? <>
               <div className="conditional-fields"><label>Abilities Per Player<input type="number" min="1" max={Math.max(1, draft.specialAbilities.allowed.length)} value={draft.specialAbilities.maxPerPlayer} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, maxPerPlayer: clamp(event.target.value, 1, Math.max(1, current.specialAbilities.allowed.length)) } }))} /><small>How many abilities each player selects. The default is 1.</small></label></div>
-              <div className="ability-option-grid">{catalog.specialAbilities.map((ability) => {
+              <div className="ability-option-grid" data-setting-key="ability-options">{catalog.specialAbilities.map((ability) => {
                 const enabled = draft.specialAbilities.allowed.includes(ability.id);
                 const reason = disabledAbilities[ability.id];
                 const effectiveAbility = effectiveCatalogEntry(
@@ -1076,9 +1259,9 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </> : null}
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection title="Chass Gambit" description="Add private army construction to this board and ruleset." className="gambit-config-section">
+          <CollapsibleStudioSection sectionId="studio-gambit" title="Chass Gambit" description="Add private army construction to this board and ruleset." className="gambit-config-section">
             <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled, draftEnabled: enabled ? current.gambit.draftEnabled : false } }))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
-            {draft.gambit.enabled ? <div className="gambit-settings-grid">
+            {draft.gambit.enabled ? <div className="gambit-settings-grid" data-setting-key="gambit-settings">
               <label>Maximum Points<input type="number" min="0" value={draft.gambit.budget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, budget: Math.max(0, Number(event.target.value)) } }))} /><small>Players may spend less, but cannot exceed this limit.</small></label>
               <label>Maximum Pieces<input type="number" min="1" max="128" value={draft.gambit.maxPieces} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, maxPieces: Math.max(1, Number(event.target.value)) } }))} /><small>Includes the required King.</small></label>
               <label>Private Setup Rows<input type="number" min="1" max={Math.floor(draft.boardRows / 2)} value={draft.gambit.setupRows} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, setupRows: clamp(event.target.value, 1, Math.max(1, Math.floor(current.boardRows / 2))) } }))} /><small>Rows nearest each player that they may edit.</small></label>
@@ -1090,7 +1273,31 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       </div>
 
       <section className={`studio-launch-bar validation-${validation.status}`}>
-        <div><span>Ready To Launch</span><strong>{validationSummary}</strong><small>{validation.errors[0] || validation.warnings[0] || "Choose local play or create an online invite."}</small></div>
+        <div className="launch-validation-copy">
+          <span>Ready To Launch</span>
+          <strong>{validationSummary}</strong>
+          {validation.errors.length ? (
+            <div className="validation-inline-issues" aria-label="Configuration issues">
+              {validation.errors.map((issue, index) => (
+                <button type="button" key={`${issue}-${index}`} onClick={() => focusValidationIssue(issue)}>
+                  <b>{index + 1}</b>{issue}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <small>{validation.warnings[0] || "Choose local play or create an online invite."}</small>
+          )}
+          {validation.errors.length > 1 ? (
+            <div className="validation-issue-popover" aria-label="Choose an issue to fix">
+              <span>Choose an issue to fix</span>
+              {validation.errors.map((issue, index) => (
+                <button type="button" key={`${issue}-menu-${index}`} onClick={() => focusValidationIssue(issue)}>
+                  <b>{index + 1}</b><span>{issue}</span>
+                </button>
+              ))}
+            </div>
+          ) : null}
+        </div>
         <div className="launch-actions"><button type="button" disabled={!canLaunch} onClick={() => create("local")}>{creatingMode === "local" ? "Building..." : "Start Local Game"}</button><button type="button" className="secondary" disabled={!canLaunch} onClick={() => create("online")}>{creatingMode === "online" ? "Creating Invite..." : "Create Online Game"}</button></div>
       </section>
       {error ? <p className="studio-error">{error}</p> : null}
