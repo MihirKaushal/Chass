@@ -11,6 +11,7 @@ import {
   parameterMaximum,
   parameterValueLabel,
 } from "../variantTuning";
+import GameBriefing from "./GameBriefing";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
 
@@ -918,7 +919,21 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       <div className="studio-shell">
         <aside className="studio-preview-column">
           <ConfigurationBoard draft={draft} catalog={catalog} selectedTool={selectedTool} onSelectTool={setSelectedTool} onPlace={placeTool} onClearBoard={clearBoard} />
-          <div className="studio-summary-card"><span>Current Game</span><strong>{draft.boardRows}x{draft.boardCols} {draft.gambit.enabled && draft.gambit.draftEnabled ? "Draft Gambit" : draft.gambit.enabled ? "Gambit" : "Board"}</strong><p>{draft.enabledPieces.length} piece types, {title(draft.victory.mode)} victory</p>{draft.specialAbilities.enabled ? <p>{draft.specialAbilities.allowed.length} abilities enabled</p> : null}</div>
+          <GameBriefing
+            boardRows={draft.boardRows}
+            boardCols={draft.boardCols}
+            configuration={{
+              presetId: draft.presetId,
+              formationId: draft.formationId,
+              enabledPieces: draft.enabledPieces,
+              victory: draft.victory,
+              customRules: draft.customRules,
+              specialAbilities: draft.specialAbilities,
+              gambit: draft.gambit,
+            }}
+            catalog={catalog}
+            className="studio-summary-card"
+          />
         </aside>
 
         <div className="studio-controls">

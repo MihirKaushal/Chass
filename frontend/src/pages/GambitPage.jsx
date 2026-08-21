@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import BoardMarkerGuide from "../components/BoardMarkerGuide";
 import ChessBoard from "../components/ChessBoard";
+import GameBriefing from "../components/GameBriefing";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 import PieceGlyph from "../components/PieceGlyph";
 
@@ -576,6 +577,14 @@ function GambitPlay({
       </EffectsPanel>
 
       <section className="board-section gambit-battle-board">
+        <GameBriefing
+          boardRows={game.boardRows ?? game.boardSize}
+          boardCols={game.boardCols ?? game.boardSize}
+          configuration={game.configuration}
+          catalog={catalog}
+          label="Match Brief"
+          className="play-game-briefing"
+        />
         <ChessBoard
           board={game.board}
           boardRows={game.boardRows ?? game.boardSize}
