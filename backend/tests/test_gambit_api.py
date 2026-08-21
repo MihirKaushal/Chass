@@ -14,6 +14,7 @@ from backend.models.schemas import CreateGameRequest
 from backend.realtime import GameSocketManager, SocketIdentity
 from backend.rules import RuleEngine
 from backend.rules.gambit_rules import create_piece
+from backend.rules.variant_system import CENTER_START_RESTRICTION_MESSAGE
 from backend.services.game_service import build_default_piece_definitions
 
 STANDARD_DEPLOYMENT = [
@@ -608,6 +609,51 @@ def test_gambit_composition_rules_reject_invalid_armies(client):
     )
     assert incomplete.status_code == 400
     assert "exactly one King" in incomplete.json()["detail"]
+
+
+def test_affinity_gambit_rejects_center_square_deployment(client):
+    payload = {
+        "mode": "local",
+        "variant": "gambit",
+        "boardRows": 8,
+        "boardCols": 8,
+        "configuration": {
+            "schemaVersion": 2,
+            "presetId": "center-deployment-test",
+            "formationId": "classic",
+            "enabledPieces": ["rook", "king"],
+            "piecePoints": {"rook": 5, "king": 0},
+            "initialLayout": [],
+            "victory": {"mode": "checkmate"},
+            "customRules": {"affinityEnabled": True, "commandPointCap": 3},
+            "specialAbilities": {"enabled": False, "allowed": []},
+            "gambit": {
+                "enabled": True,
+                "budget": 5,
+                "maxPieces": 2,
+                "setupRows": 4,
+                "maxQueens": 0,
+                "pieceCaps": {"rook": 1, "king": 1},
+            },
+        },
+    }
+    created = client.post("/game/create", json=payload)
+    assert created.status_code == 200, created.text
+    game = created.json()["game"]
+
+    blocked = client.post(
+        f"/game/{game['id']}/gambit/deployment",
+        json={
+            "action": "place",
+            "row": 4,
+            "col": 4,
+            "pieceType": "rook",
+            "expectedVersion": game["version"],
+        },
+    )
+
+    assert blocked.status_code == 400
+    assert blocked.json()["detail"] == CENTER_START_RESTRICTION_MESSAGE
 
 
 def test_illegal_hidden_opening_returns_generic_handoff(client):

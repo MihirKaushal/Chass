@@ -1353,7 +1353,8 @@ VICTORY_MODES: list[dict[str, Any]] = [
         "icon": "◆",
         "summary": (
             "Hold both center squares assigned to your color through three consecutive "
-            "opponent turns. Checkmate also wins."
+            "opponent turns. The marked center starts empty except for Barricades. "
+            "Checkmate also wins."
         ),
     },
     {
@@ -1362,7 +1363,7 @@ VICTORY_MODES: list[dict[str, Any]] = [
         "icon": "♔",
         "summary": (
             "Move your King onto any of the four adaptive center squares. "
-            "Checkmate also wins."
+            "The marked center starts empty except for Barricades. Checkmate also wins."
         ),
     },
     {
@@ -1437,7 +1438,10 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "id": "center_dominion",
         "name": "Center Dominion",
         "icon": "◆",
-        "summary": "Hold both marked center squares for three consecutive rounds.",
+        "summary": (
+            "Begin with the marked center empty, then hold both assigned squares for three "
+            "consecutive rounds."
+        ),
         "boardRows": 8,
         "boardCols": 8,
         "formationId": "classic",
@@ -1448,7 +1452,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "id": "royal_center",
         "name": "Royal Center",
         "icon": "♔",
-        "summary": "Race your King to one of the four marked center squares.",
+        "summary": "Begin with the marked center empty, then race your King to it.",
         "boardRows": 8,
         "boardCols": 8,
         "formationId": "classic",

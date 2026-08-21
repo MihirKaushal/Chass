@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
-import { affinitySquares, barricadeSquares, objectiveCenterSquares } from "../boardGeometry";
+import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { locateConfigurationIssue } from "../configurationIssues";
 import { matchesRulebookSearch } from "../rulebookSearch";
 import {
@@ -378,13 +378,11 @@ function ConfigurationBoard({
       : []
     ).map((square) => [`${square.row}-${square.col}`, { ...square, type: "barricade", color: "neutral" }])
   );
-  const affinityMap = new Set(
-    ["center_dominion", "royal_center"].includes(draft.victory.mode) || draft.customRules.affinityEnabled
-      ? (draft.victory.mode === "royal_center"
-          ? objectiveCenterSquares(draft.boardRows, draft.boardCols)
-          : Object.values(affinitySquares(draft.boardRows, draft.boardCols)).flat())
-          .map((square) => `${square.row}-${square.col}`)
-      : []
+  const significantCenterMap = new Set(
+    significantCenterSquares(draft.boardRows, draft.boardCols, {
+      victoryMode: draft.victory.mode,
+      affinityEnabled: draft.customRules.affinityEnabled,
+    }).map((square) => `${square.row}-${square.col}`)
   );
 
   return (
@@ -401,7 +399,9 @@ function ConfigurationBoard({
         >
           {Array.from({ length: draft.boardRows }).map((_, row) =>
             Array.from({ length: draft.boardCols }).map((__, col) => {
-              const placement = barricadeMap.get(`${row}-${col}`) || placementMap.get(`${row}-${col}`);
+              const squareKey = `${row}-${col}`;
+              const configuredPlacement = placementMap.get(squareKey);
+              const placement = barricadeMap.get(squareKey) || configuredPlacement;
               const definition = placement ? definitionMap.get(placement.type) : null;
               const piece = previewPiece(
                 placement,
@@ -409,7 +409,13 @@ function ConfigurationBoard({
                 draft.pointValues[placement?.type],
                 draft.pieceParameters[placement?.type]
               );
-              const affinity = affinityMap.has(`${row}-${col}`);
+              const significantCenter = significantCenterMap.has(squareKey);
+              const centerStartConflict = Boolean(
+                !draft.gambit.enabled
+                && significantCenter
+                && configuredPlacement
+                && configuredPlacement.type !== "barricade"
+              );
               const tooltipPlacement = row < draft.boardRows / 2 ? "below" : "above";
               const tooltipEdge = col < draft.boardCols / 3 ? "left" : col >= (draft.boardCols * 2) / 3 ? "right" : "center";
               return (
@@ -421,13 +427,15 @@ function ConfigurationBoard({
                     (row + col) % 2 === 0 ? "light" : "dark",
                     draft.gambit.enabled && setupRows.has(row) ? "setup-zone" : "",
                     draft.gambit.enabled ? "readonly" : "",
-                    affinity ? "studio-affinity" : "",
+                    significantCenter ? "studio-affinity" : "",
+                    centerStartConflict ? "center-start-conflict" : "",
                   ].filter(Boolean).join(" ")}
                   onClick={() => onPlace(row, col)}
-                  aria-label={`${coordinate(row, col, draft.boardRows)}${piece ? `, ${piece.color} ${piece.name}` : ""}`}
+                  aria-label={`${coordinate(row, col, draft.boardRows)}${piece ? `, ${piece.color} ${piece.name}` : ""}${centerStartConflict ? ", invalid occupied center starting square" : ""}`}
                 >
                   {col === 0 ? <span className="studio-rank">{draft.boardRows - row}</span> : null}
                   {row === draft.boardRows - 1 ? <span className="studio-file">{String.fromCharCode(65 + col)}</span> : null}
+                  {centerStartConflict ? <span className="center-start-warning" aria-hidden="true">!</span> : null}
                   {piece ? (
                     <>
                       <span className={`studio-piece piece-${piece.color} ${piece.isCustom ? "custom" : ""}`}>
@@ -649,6 +657,7 @@ function Rulebook({ catalog, draft }) {
     "Spend one point for a Pawn, two to evolve a Pawn, or three for a Rook. A command uses the normal turn and must leave the King safe.",
     "Command Point Cap",
     `The cap controls how many unused command points a player may save. The current cap is ${draft.customRules.commandPointCap}.`,
+    "Marked center squares must begin empty; only Barricades may start there.",
   ];
   const showAffinity = (!enabledOnly || draft.customRules.affinityEnabled)
     && matchesRulebookSearch(query, affinityCopy);
@@ -764,6 +773,7 @@ function Rulebook({ catalog, draft }) {
             <h4>Affinity Squares</h4>
             <p>Each color receives two adaptive center squares. Hold both squares assigned to your color through the opponent&apos;s turn to earn one command point.</p>
             <p>Spend one point for a Pawn, two to evolve a Pawn, or three for a Rook. A command uses the normal turn and must leave the King safe.</p>
+            <p>Marked center squares must begin empty; only Barricades may start there.</p>
           </div>
           <div>
             <h4>Command Point Cap</h4>
@@ -1289,14 +1299,14 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             <div className="conditional-fields">
               {draft.victory.mode === "point_race" ? <label data-setting-key="target-points">Target Score<input type="number" min="1" value={draft.victory.targetPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, targetPoints: Math.max(1, Number(event.target.value)) } }))} /><small>Captured-piece points needed to win.</small></label> : null}
               {draft.victory.mode === "timed" ? <label>Minutes Per Player<input type="number" min="1" max="1440" value={Math.round(draft.victory.timeSeconds / 60)} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, timeSeconds: Math.max(60, Number(event.target.value) * 60) } }))} /><small>The server controls both clocks.</small></label> : null}
-              {draft.victory.mode === "center_dominion" ? <label>Rounds To Hold<input type="number" min="1" max="20" value={draft.victory.dominionRounds} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, dominionRounds: clamp(event.target.value, 1, 20) } }))} /><small>Both marked squares must stay occupied through this many opponent turns. Checkmate also wins.</small></label> : null}
+              {draft.victory.mode === "center_dominion" ? <label>Rounds To Hold<input type="number" min="1" max="20" value={draft.victory.dominionRounds} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, dominionRounds: clamp(event.target.value, 1, 20) } }))} /><small>Marked squares begin empty, then must stay occupied through this many opponent turns. Checkmate also wins.</small></label> : null}
               {draft.victory.mode === "check_race" ? <label>Checks To Win<input type="number" min="1" max="100" value={draft.victory.checkTarget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, checkTarget: clamp(event.target.value, 1, 100) } }))} /><small>The first player to give this many checks wins. Checkmate also wins immediately.</small></label> : null}
               {["point_race", "royal_score"].includes(draft.victory.mode) ? <label>King Point Value<input type="number" min="0" value={draft.victory.kingPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, kingPoints: Math.max(0, Number(event.target.value)) }, pointValues: { ...current.pointValues, king: Math.max(0, Number(event.target.value)) } }))} /><small>Zero is allowed in score-based victory modes.</small></label> : null}
             </div>
           </CollapsibleStudioSection>
 
           <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any game mode." className="ability-config-section">
-            <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Control both center squares of your color to earn command points." />
+            <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
             {draft.customRules.affinityEnabled ? <div className="conditional-fields">
               <label>Command Point Cap<input type="number" min="0" max="20" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clamp(event.target.value, 0, 20) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
             </div> : null}

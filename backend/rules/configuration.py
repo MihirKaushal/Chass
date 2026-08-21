@@ -13,7 +13,11 @@ from backend.catalog import (
 from backend.models import PieceDefinition
 from backend.models.schemas import CreateGameRequest
 from backend.rules.material import INSUFFICIENT_MATERIAL_MESSAGE, StartingMaterialRule
-from backend.rules.variant_system import barricade_start_squares, objective_center_squares
+from backend.rules.variant_system import (
+    CENTER_START_RESTRICTION_MESSAGE,
+    barricade_start_squares,
+    significant_center_start_squares,
+)
 
 
 @dataclass
@@ -258,15 +262,20 @@ class ConfigurationRuleEngine:
         material_issue = self.material.issue(mode, placements, pieces)
         if material_issue:
             result.errors.append(material_issue)
-        if mode == "royal_center":
-            targets = set(objective_center_squares(board_rows, board_cols))
-            if any(
-                piece["type"] == "king" and (piece["row"], piece["col"]) in targets
-                for piece in placements
-            ):
-                result.errors.append(
-                    "Kings must begin outside the Royal Center objective squares."
-                )
+        significant_centers = set(
+            significant_center_start_squares(
+                board_rows,
+                board_cols,
+                victory_mode=mode,
+                affinity_enabled=payload.customRules.affinityEnabled,
+            )
+        )
+        if any(
+            piece["type"] != "barricade"
+            and (piece["row"], piece["col"]) in significant_centers
+            for piece in placements
+        ):
+            result.errors.append(CENTER_START_RESTRICTION_MESSAGE)
         if mode == "point_race":
             totals = {"white": 0, "black": 0}
             for piece in placements:

@@ -32,4 +32,8 @@ test("configuration issues route to the setting that can fix them", () => {
     sectionId: "studio-gambit",
     settingKey: "gambit-settings",
   });
+  assert.deepEqual(locateConfigurationIssue("Marked center squares must begin empty when they affect the rules; only Barricades may start there."), {
+    sectionId: "studio-pieces",
+    settingKey: "board-editor",
+  });
 });

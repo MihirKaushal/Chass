@@ -17,9 +17,10 @@ from backend.rules.builtin_rules import opposing_color
 from backend.rules.material import StartingMaterialRule
 from backend.rules.terrain import is_scorched
 from backend.rules.variant_system import (
+    CENTER_START_RESTRICTION_MESSAGE,
     affinity_start_squares,
     barricade_start_squares,
-    objective_center_squares,
+    significant_center_start_squares,
 )
 
 
@@ -92,6 +93,14 @@ class DeploymentZoneRule:
             if "barricade" in state.configuration.enabled_piece_types
             else []
         )
+        significant_centers = set(
+            significant_center_start_squares(
+                state.board.rows,
+                state.board.cols,
+                victory_mode=state.configuration.victory.mode,
+                affinity_enabled=state.configuration.custom_rules.affinity_enabled,
+            )
+        )
         for piece in pieces:
             if piece.row not in rows:
                 return ["Pieces must stay inside your configured home ranks."]
@@ -100,6 +109,8 @@ class DeploymentZoneRule:
             square = (piece.row, piece.col)
             if square in reserved_barricades:
                 return ["Starting Barricade squares are reserved."]
+            if piece.type != "barricade" and square in significant_centers:
+                return [CENTER_START_RESTRICTION_MESSAGE]
             if square in occupied:
                 return ["Only one piece can occupy a deployment square."]
             occupied.add(square)
@@ -365,16 +376,22 @@ class OpeningSafetyRule:
         trial.game_status = "active"
         trial.winner = None
 
-        if trial.configuration.victory.mode == "royal_center":
-            targets = set(objective_center_squares(trial.board.rows, trial.board.cols))
-            if any(
-                piece is not None
-                and piece.type == "king"
-                and (row, col) in targets
-                for row, board_row in enumerate(trial.board.grid)
-                for col, piece in enumerate(board_row)
-            ):
-                return False
+        significant_centers = set(
+            significant_center_start_squares(
+                trial.board.rows,
+                trial.board.cols,
+                victory_mode=trial.configuration.victory.mode,
+                affinity_enabled=trial.configuration.custom_rules.affinity_enabled,
+            )
+        )
+        if significant_centers and any(
+            piece is not None
+            and piece.type != "barricade"
+            and (row, col) in significant_centers
+            for row, board_row in enumerate(trial.board.grid)
+            for col, piece in enumerate(board_row)
+        ):
+            return False
 
         if helper.is_king_in_check(trial, "white"):
             return False

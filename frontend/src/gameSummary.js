@@ -18,9 +18,9 @@ function victorySummary(victory = {}) {
     case "royal_score":
       return "Defeat a King; the player with the higher captured score wins.";
     case "center_dominion":
-      return `Hold both center squares for ${positiveInteger(victory.dominionRounds, 3)} consecutive rounds; checkmate also wins.`;
+      return `Begin with the center empty, then hold both squares for ${positiveInteger(victory.dominionRounds, 3)} consecutive rounds; checkmate also wins.`;
     case "royal_center":
-      return "Move your King onto an objective center square; checkmate also wins.";
+      return "Begin with the center empty, then move your King onto an objective square; checkmate also wins.";
     case "check_race":
       return `Give check ${positiveInteger(victory.checkTarget, 3)} times first; checkmate also wins.`;
     default:
@@ -67,7 +67,7 @@ export function buildGameBriefing({
         : `Private armies with a ${Math.max(0, Number(gambit.budget) || 0)}-point cap`
     );
   }
-  if (customRules.affinityEnabled) tags.push("Affinity squares enabled");
+  if (customRules.affinityEnabled) tags.push("Affinity squares start empty");
   if (abilities.enabled && abilities.allowed?.length) {
     const maximum = positiveInteger(abilities.maxPerPlayer, 1);
     tags.push(`${maximum} ${maximum === 1 ? "ability" : "abilities"} per player`);

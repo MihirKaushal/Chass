@@ -3,9 +3,11 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 
 from backend.rules.variant_system import (
+    CENTER_START_RESTRICTION_MESSAGE,
     affinity_start_squares,
     barricade_start_squares,
     objective_center_squares,
+    significant_center_start_squares,
 )
 
 
@@ -480,6 +482,16 @@ def test_center_geometry_adapts_to_even_and_odd_board_heights(client):
         "white": [(3, 1), (3, 4)],
         "black": [(3, 2), (3, 5)],
     }
+    assert significant_center_start_squares(
+        8,
+        8,
+        victory_mode="center_dominion",
+    ) == [(3, 3), (3, 4), (4, 3), (4, 4)]
+    assert significant_center_start_squares(
+        7,
+        7,
+        affinity_enabled=True,
+    ) == [(3, 1), (3, 2), (3, 4), (3, 5)]
 
     payload = configured_game(
         gambit={
@@ -501,6 +513,66 @@ def test_center_geometry_adapts_to_even_and_odd_board_heights(client):
         "white": [{"row": 3, "col": 1}, {"row": 3, "col": 4}],
         "black": [{"row": 3, "col": 2}, {"row": 3, "col": 5}],
     }
+
+
+def test_center_focused_rules_require_an_unoccupied_start(client):
+    layout = [
+        {"row": 7, "col": 7, "type": "king", "color": "white"},
+        {"row": 0, "col": 0, "type": "king", "color": "black"},
+        {"row": 3, "col": 3, "type": "rook", "color": "white"},
+        {"row": 1, "col": 2, "type": "rook", "color": "black"},
+    ]
+    configurations = (
+        {"victory": {"mode": "center_dominion", "dominionRounds": 3}},
+        {"victory": {"mode": "royal_center"}},
+        {"customRules": {"affinityEnabled": True, "commandPointCap": 3}},
+    )
+
+    for override in configurations:
+        payload = configured_game(initialLayout=layout, **override)
+        validation = client.post("/game/validate", json=payload)
+        assert validation.status_code == 200
+        assert CENTER_START_RESTRICTION_MESSAGE in validation.json()["errors"]
+
+        creation = client.post("/game/create", json=payload)
+        assert creation.status_code == 400
+        assert creation.json()["detail"] == CENTER_START_RESTRICTION_MESSAGE
+
+
+def test_barricades_may_start_on_significant_center_squares(client):
+    center_row, center_col = barricade_start_squares(8, 8, 1)[0]
+    payload = configured_game(
+        barricadeCount=1,
+        enabledPieces=[*classic_types(), "barricade"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "barricade": 0,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 0, "type": "king", "color": "black"},
+            {"row": 6, "col": 0, "type": "rook", "color": "white"},
+            {"row": 1, "col": 0, "type": "rook", "color": "black"},
+            {
+                "row": center_row,
+                "col": center_col,
+                "type": "barricade",
+                "color": "neutral",
+            },
+        ],
+        customRules={"affinityEnabled": True, "commandPointCap": 3},
+    )
+
+    validation = client.post("/game/validate", json=payload).json()
+    assert validation["valid"] is True
+    created = client.post("/game/create", json=payload)
+    assert created.status_code == 200, created.text
+    assert created.json()["game"]["board"][center_row][center_col]["type"] == "barricade"
 
 
 def test_custom_piece_points_reject_negative_values(client):
@@ -851,10 +923,9 @@ def test_center_dominion_wins_after_surviving_the_opponent_turn(client):
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 0, "type": "king", "color": "black"},
-            {"row": 3, "col": 3, "type": "knight", "color": "white"},
-            {"row": 4, "col": 4, "type": "knight", "color": "white"},
-            {"row": 3, "col": 4, "type": "knight", "color": "black"},
-            {"row": 4, "col": 3, "type": "knight", "color": "black"},
+            {"row": 3, "col": 2, "type": "rook", "color": "white"},
+            {"row": 4, "col": 5, "type": "rook", "color": "white"},
+            {"row": 1, "col": 1, "type": "rook", "color": "black"},
         ],
         victory={"mode": "center_dominion", "dominionRounds": 1},
     )
@@ -864,39 +935,66 @@ def test_center_dominion_wins_after_surviving_the_opponent_turn(client):
         "targetRounds": 1,
         "progress": {"white": 0, "black": 0},
         "primed": {"white": False, "black": False},
-        "controlled": {"white": True, "black": True},
+        "controlled": {"white": False, "black": False},
         "squares": {
             "white": [{"row": 3, "col": 3}, {"row": 4, "col": 4}],
             "black": [{"row": 3, "col": 4}, {"row": 4, "col": 3}],
         },
     }
 
-    white_move = client.post(
+    first_white = client.post(
         f"/game/{game['id']}/move",
         json={
-            "fromRow": 7,
-            "fromCol": 7,
-            "toRow": 7,
-            "toCol": 6,
+            "fromRow": 3,
+            "fromCol": 2,
+            "toRow": 3,
+            "toCol": 3,
             "expectedVersion": game["version"],
         },
     )
-    assert white_move.status_code == 200
-    after_white = white_move.json()
-    assert after_white["centerDominion"]["primed"]["white"] is True
+    assert first_white.status_code == 200, first_white.text
+    after_first_white = first_white.json()
+    assert after_first_white["centerDominion"]["primed"]["white"] is False
 
-    black_move = client.post(
+    first_black = client.post(
         f"/game/{game['id']}/move",
         json={
-            "fromRow": 0,
-            "fromCol": 0,
-            "toRow": 0,
-            "toCol": 1,
-            "expectedVersion": after_white["version"],
+            "fromRow": 1,
+            "fromCol": 1,
+            "toRow": 1,
+            "toCol": 2,
+            "expectedVersion": after_first_white["version"],
         },
     )
-    assert black_move.status_code == 200
-    finished = black_move.json()
+    assert first_black.status_code == 200, first_black.text
+    after_first_black = first_black.json()
+
+    second_white = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 4,
+            "fromCol": 5,
+            "toRow": 4,
+            "toCol": 4,
+            "expectedVersion": after_first_black["version"],
+        },
+    )
+    assert second_white.status_code == 200, second_white.text
+    after_second_white = second_white.json()
+    assert after_second_white["centerDominion"]["primed"]["white"] is True
+
+    second_black = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 1,
+            "fromCol": 2,
+            "toRow": 1,
+            "toCol": 3,
+            "expectedVersion": after_second_white["version"],
+        },
+    )
+    assert second_black.status_code == 200, second_black.text
+    finished = second_black.json()
     assert finished["gameStatus"] == "center_dominion"
     assert finished["winner"] == "white"
     assert finished["result"]["reasonCode"] == "center_dominion"
