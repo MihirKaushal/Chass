@@ -249,6 +249,33 @@ def test_configuration_rejects_a_two_king_start(client):
     assert creation.json()["detail"] == result["errors"][0]
 
 
+def test_pawn_promotion_rank_validation_follows_piece_direction(client):
+    kings = [
+        {"row": 7, "col": 7, "type": "king", "color": "white"},
+        {"row": 0, "col": 7, "type": "king", "color": "black"},
+    ]
+    home_rank_pawns = [
+        {"row": 7, "col": 0, "type": "pawn", "color": "white"},
+        {"row": 0, "col": 0, "type": "pawn", "color": "black"},
+    ]
+
+    valid_payload = configured_game(initialLayout=[*kings, *home_rank_pawns])
+    valid = client.post("/game/validate", json=valid_payload).json()
+    assert valid["valid"] is True
+
+    creation = client.post("/game/create", json=valid_payload)
+    assert creation.status_code == 200
+
+    for promotion_rank_pawn in (
+        {"row": 0, "col": 0, "type": "pawn", "color": "white"},
+        {"row": 7, "col": 0, "type": "pawn", "color": "black"},
+    ):
+        invalid_payload = configured_game(initialLayout=[*kings, promotion_rank_pawn])
+        invalid = client.post("/game/validate", json=invalid_payload).json()
+        assert invalid["valid"] is False
+        assert "Pawns cannot begin on a promotion rank." in invalid["errors"]
+
+
 def test_configuration_rejects_out_of_range_tunable_values(client):
     payload = configured_game(
         enabledPieces=[*classic_types(), "catapult"],
