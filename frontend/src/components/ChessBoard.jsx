@@ -26,6 +26,7 @@ function ChessBoard({
   pieceDetailsMode = "hover",
   availableActions = [],
   onAction = null,
+  onActionSelectionChange = null,
   countdowns = [],
   terrain = [],
   globalActions = [],
@@ -35,11 +36,13 @@ function ChessBoard({
   const pendingPieceTapRef = useRef(null);
   const onSquareClickRef = useRef(onSquareClick);
   const onActionRef = useRef(onAction);
+  const onActionSelectionChangeRef = useRef(onActionSelectionChange);
   const actionsBySourceRef = useRef(new Map());
   const selectedSourceActionsRef = useRef([]);
   const globalActionMapRef = useRef(new Map());
   onSquareClickRef.current = onSquareClick;
   onActionRef.current = onAction;
+  onActionSelectionChangeRef.current = onActionSelectionChange;
   const rows = boardRows ?? boardSize ?? board.length;
   const cols = boardCols ?? boardSize ?? (board[0] ? board[0].length : 0);
 
@@ -130,7 +133,16 @@ function ChessBoard({
     }
     setHoveredPiece(null);
     setSelectedActionSource(null);
+    onActionSelectionChangeRef.current?.(null);
   }, [board, boardFlipped]);
+
+  useEffect(() => {
+    if (!selectedActionSource) return;
+    const key = `${selectedActionSource.row}-${selectedActionSource.col}`;
+    if (actionsBySource.has(key)) return;
+    setSelectedActionSource(null);
+    onActionSelectionChangeRef.current?.(null);
+  }, [actionsBySource, selectedActionSource]);
 
   useEffect(() => () => {
     if (pendingPieceTapRef.current) {
@@ -143,6 +155,7 @@ function ChessBoard({
     const globalAction = globalActionMapRef.current.get(`${row}-${col}`);
     if (globalAction && onActionRef.current) {
       setSelectedActionSource(null);
+      onActionSelectionChangeRef.current?.(null);
       onActionRef.current(globalAction);
       return;
     }
@@ -151,6 +164,7 @@ function ChessBoard({
     );
     if (targetAction && onActionRef.current) {
       setSelectedActionSource(null);
+      onActionSelectionChangeRef.current?.(null);
       onActionRef.current(targetAction);
       return;
     }
@@ -158,11 +172,16 @@ function ChessBoard({
     const sourceKey = `${row}-${col}`;
     const sourceActions = actionsBySourceRef.current.get(sourceKey) || [];
     if (sourceActions.length) {
-      setSelectedActionSource((current) =>
-        current?.row === row && current?.col === col ? null : { row, col }
+      const nextSource = selectedActionSource?.row === row && selectedActionSource?.col === col
+        ? null
+        : { row, col };
+      setSelectedActionSource(nextSource);
+      onActionSelectionChangeRef.current?.(
+        nextSource ? { source: nextSource, actions: sourceActions } : null
       );
     } else {
       setSelectedActionSource(null);
+      onActionSelectionChangeRef.current?.(null);
     }
     onSquareClickRef.current(row, col);
   };

@@ -3265,6 +3265,113 @@ button.secondary {
   box-sizing: border-box;
 }
 
+.active-action-strip {
+  width: 100%;
+  max-width: var(--board-long-edge);
+  min-height: 4.35rem;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.25rem 0.72rem;
+  align-items: center;
+  box-sizing: border-box;
+  margin-bottom: 0.9rem;
+  padding: 0.68rem 0.8rem;
+  border: 1px solid rgba(43, 108, 176, 0.28);
+  border-radius: 12px;
+  color: var(--deep);
+  background: rgba(255, 255, 255, 0.48);
+  transition: border-color 150ms ease, background 150ms ease;
+}
+
+.active-action-strip.state-action,
+.active-action-strip.state-power {
+  border-color: rgba(184, 121, 24, 0.5);
+  background: linear-gradient(90deg, rgba(255, 236, 180, 0.5), rgba(255, 255, 255, 0.52));
+}
+
+.active-action-strip > div {
+  min-width: 0;
+}
+
+.active-action-strip strong,
+.active-action-strip p,
+.active-action-strip small {
+  display: block;
+}
+
+.active-action-strip p {
+  margin: 0.12rem 0 0;
+  color: rgba(26, 54, 93, 0.72);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
+.active-action-strip > small {
+  grid-column: 2;
+  color: rgba(26, 54, 93, 0.62);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
+  line-height: 1.35;
+}
+
+.active-action-marker {
+  position: relative;
+  grid-row: 1 / span 2;
+  width: 2.2rem;
+  height: 2.2rem;
+  display: grid;
+  place-items: center;
+  border: 2px solid rgba(43, 108, 176, 0.44);
+  border-radius: 50%;
+  color: white;
+  background: rgba(43, 108, 176, 0.68);
+  box-shadow: 0 0 0 4px rgba(43, 108, 176, 0.1);
+}
+
+.active-action-marker .move-dot {
+  position: static;
+  background: white;
+}
+
+.active-action-marker.marker-idle {
+  color: var(--deep);
+  background: rgba(99, 179, 237, 0.22);
+}
+
+.active-action-marker.marker-attack,
+.active-action-marker.marker-sacrifice {
+  border-color: #9f2f28;
+  background: rgba(197, 57, 48, 0.82);
+}
+
+.active-action-marker.marker-move {
+  border-color: #176b6b;
+  color: var(--deep);
+  background: rgba(91, 193, 184, 0.78);
+}
+
+.active-action-marker.marker-ability,
+.active-action-marker.marker-swap {
+  border-color: #8a5510;
+  color: var(--deep);
+  background: rgba(245, 208, 115, 0.88);
+}
+
+.active-action-marker.marker-summon {
+  border-color: #25674b;
+  background: rgba(47, 118, 88, 0.84);
+}
+
+.active-action-marker.marker-scorch {
+  border-color: #7f2f21;
+  background: rgba(205, 86, 39, 0.88);
+}
+
+.active-action-marker > i:not(.move-dot) {
+  font-style: normal;
+  font-weight: 800;
+}
+
 .studio-controls {
   min-width: 0;
   display: grid;
