@@ -159,7 +159,6 @@ def test_en_passant_expires_after_one_reply(client):
 
 def test_insufficient_material_draws_only_for_dead_positions(client):
     cases = [
-        [],
         [{"row": 6, "col": 2, "type": "bishop", "color": "white"}],
         [{"row": 6, "col": 2, "type": "knight", "color": "white"}],
         [

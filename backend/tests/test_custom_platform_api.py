@@ -228,6 +228,27 @@ def test_configuration_warns_when_getaway_players_have_no_queens(client):
     assert "Getaway requires a Queen for both players." in result["warnings"]
 
 
+def test_configuration_rejects_a_two_king_start(client):
+    payload = configured_game(
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 0, "type": "king", "color": "black"},
+        ]
+    )
+
+    validation = client.post("/game/validate", json=payload)
+    assert validation.status_code == 200
+    result = validation.json()
+    assert result["valid"] is False
+    assert result["errors"] == [
+        "A game cannot begin with only two Kings; add at least one non-King piece."
+    ]
+
+    creation = client.post("/game/create", json=payload)
+    assert creation.status_code == 400
+    assert creation.json()["detail"] == result["errors"][0]
+
+
 def test_configuration_rejects_out_of_range_tunable_values(client):
     payload = configured_game(
         enabledPieces=[*classic_types(), "catapult"],
