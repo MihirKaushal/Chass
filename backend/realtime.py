@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 from collections import defaultdict
 from dataclasses import dataclass
 from typing import Callable
@@ -45,13 +46,17 @@ class GameSocketManager:
         if not room:
             return
 
-        dead_sockets: list[WebSocket] = []
         message = {"type": event_type, **(payload or {})}
-        for websocket in list(room):
-            try:
-                await websocket.send_json(message)
-            except Exception:
-                dead_sockets.append(websocket)
+        sockets = list(room)
+        results = await asyncio.gather(
+            *(websocket.send_json(message) for websocket in sockets),
+            return_exceptions=True,
+        )
+        dead_sockets = [
+            websocket
+            for websocket, result in zip(sockets, results, strict=True)
+            if isinstance(result, Exception)
+        ]
 
         for websocket in dead_sockets:
             self.disconnect(game_id, websocket)
@@ -67,16 +72,30 @@ class GameSocketManager:
         if not room:
             return
 
+        deliveries = []
         dead_sockets: list[WebSocket] = []
         for websocket, identity in list(room.items()):
             if identity_filter is not None and not identity_filter(identity):
                 continue
             try:
-                await websocket.send_json(
-                    {"type": event_type, **payload_for_identity(identity)}
+                deliveries.append(
+                    (
+                        websocket,
+                        {"type": event_type, **payload_for_identity(identity)},
+                    )
                 )
             except Exception:
                 dead_sockets.append(websocket)
+
+        results = await asyncio.gather(
+            *(websocket.send_json(message) for websocket, message in deliveries),
+            return_exceptions=True,
+        )
+        dead_sockets.extend(
+            websocket
+            for (websocket, _), result in zip(deliveries, results, strict=True)
+            if isinstance(result, Exception)
+        )
 
         for websocket in dead_sockets:
             self.disconnect(game_id, websocket)

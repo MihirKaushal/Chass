@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import uuid
+from collections import OrderedDict
 from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+from threading import Lock
 
 from fastapi import HTTPException
 
@@ -37,6 +39,7 @@ from backend.models import (
     GameConfiguration,
     GameState,
     Move,
+    MoveOption,
     MovePattern,
     Piece,
     PieceDefinition,
@@ -134,6 +137,7 @@ DEFAULT_PIECE_POINTS: dict[str, int | None] = {
     "queen": 9,
     "king": None,
 }
+VALID_MOVE_CACHE_SIZE = 256
 
 
 @lru_cache(maxsize=1)
@@ -626,6 +630,10 @@ class GameService:
     def __init__(self, engine: RuleEngine, repository: GameRepository | None = None) -> None:
         self.engine = engine
         self.repository = repository or create_game_repository()
+        self._valid_moves_cache: OrderedDict[
+            tuple[str, int], tuple[MoveOption, ...]
+        ] = OrderedDict()
+        self._valid_moves_cache_lock = Lock()
 
     @staticmethod
     def _expiration_deadline(now: datetime | None = None) -> datetime:
@@ -1052,7 +1060,7 @@ class GameService:
         game_id: str,
         request: AbilitySelectionRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
         state = record.state
@@ -1097,14 +1105,17 @@ class GameService:
                 next_state.clock.turn_started_at = datetime.now(timezone.utc)
             if next_state.phase == "play":
                 self.engine.evaluate_state(next_state)
-        return self._save(record, next_state)
+        return (
+            self._save(record, next_state),
+            authorized.player.color if authorized.player else None,
+        )
 
     def complete_setup_handoff(
         self,
         game_id: str,
         request: SetupHandoffRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
         if record.mode != "local" or record.state.phase != "handoff":
@@ -1122,14 +1133,14 @@ class GameService:
             next_state.phase = "play"
         if next_state.phase == "play":
             self.engine.evaluate_state(next_state)
-        return self._save(record, next_state)
+        return self._save(record, next_state), None
 
     def use_custom_action(
         self,
         game_id: str,
         request: GameActionRequest,
         player_token: str | None = None,
-    ) -> tuple[GameRecord, str]:
+    ) -> tuple[GameRecord, str, str | None]:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
         color = record.state.current_player
@@ -1155,7 +1166,11 @@ class GameService:
             next_state,
             MoveAudit.from_record(action),
         )
-        return saved, explanation
+        return (
+            saved,
+            explanation,
+            authorized.player.color if authorized.player else None,
+        )
 
     @staticmethod
     def _deployment_color(authorized: AuthorizedGame) -> str:
@@ -1173,7 +1188,7 @@ class GameService:
         game_id: str,
         request: GambitDraftRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
         state = record.state
@@ -1205,14 +1220,17 @@ class GameService:
             )
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
-        return self._save(record, next_state)
+        return (
+            self._save(record, next_state),
+            authorized.player.color if authorized.player else None,
+        )
 
     def update_gambit_deployment(
         self,
         game_id: str,
         request: GambitDeploymentRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         for attempt in range(3):
             authorized = self.authorize(game_id, player_token)
             record = authorized.record
@@ -1233,7 +1251,10 @@ class GameService:
                 raise HTTPException(status_code=400, detail=str(error)) from error
 
             try:
-                return self._save(record, next_state)
+                return (
+                    self._save(record, next_state),
+                    authorized.player.color if authorized.player else None,
+                )
             except HTTPException as error:
                 if error.status_code != 409 or record.mode != "online" or attempt == 2:
                     raise
@@ -1244,7 +1265,7 @@ class GameService:
         game_id: str,
         request: GambitReadyRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         for attempt in range(3):
             authorized = self.authorize(game_id, player_token)
             record = authorized.record
@@ -1266,7 +1287,10 @@ class GameService:
 
             self.engine.evaluate_state(next_state)
             try:
-                return self._save(record, next_state)
+                return (
+                    self._save(record, next_state),
+                    authorized.player.color if authorized.player else None,
+                )
             except HTTPException as error:
                 if error.status_code != 409 or record.mode != "online" or attempt == 2:
                     raise
@@ -1277,7 +1301,7 @@ class GameService:
         game_id: str,
         request: GambitHandoffRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
         self._expected_version(record, request.expectedVersion)
@@ -1288,14 +1312,17 @@ class GameService:
             )
         except ValueError as error:
             raise HTTPException(status_code=400, detail=str(error)) from error
-        return self._save(record, next_state)
+        return (
+            self._save(record, next_state),
+            authorized.player.color if authorized.player else None,
+        )
 
     def use_command_power(
         self,
         game_id: str,
         request: GambitPowerRequest,
         player_token: str | None = None,
-    ) -> tuple[GameRecord, str]:
+    ) -> tuple[GameRecord, str, str | None]:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
         if not record.state.configuration.custom_rules.affinity_enabled:
@@ -1332,14 +1359,18 @@ class GameService:
             next_state,
             MoveAudit.from_record(action_record),
         )
-        return saved, explanation
+        return (
+            saved,
+            explanation,
+            authorized.player.color if authorized.player else None,
+        )
 
     def use_gambit_power(
         self,
         game_id: str,
         request: GambitPowerRequest,
         player_token: str | None = None,
-    ) -> tuple[GameRecord, str]:
+    ) -> tuple[GameRecord, str, str | None]:
         """Compatibility alias for the original Gambit-only endpoint."""
         return self.use_command_power(game_id, request, player_token)
 
@@ -1348,7 +1379,7 @@ class GameService:
         game_id: str,
         request: MoveRequest,
         player_token: str | None = None,
-    ) -> tuple[GameRecord, str]:
+    ) -> tuple[GameRecord, str, str | None]:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
         game_state = record.state
@@ -1388,14 +1419,18 @@ class GameService:
             next_state,
             MoveAudit.from_record(move_record),
         )
-        return saved, explanation
+        return (
+            saved,
+            explanation,
+            authorized.player.color if authorized.player else None,
+        )
 
     def update_rules(
         self,
         game_id: str,
         request: UpdateRulesRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
         game_state = record.state
@@ -1407,14 +1442,17 @@ class GameService:
         self._expected_version(record, request.expectedVersion)
         game_state.rules = _apply_rule_patches(game_state.rules, request.rules, self.engine)
         self.engine.evaluate_state(game_state)
-        return self._save(record, game_state)
+        return (
+            self._save(record, game_state),
+            authorized.player.color if authorized.player else None,
+        )
 
     def update_pieces(
         self,
         game_id: str,
         request: UpdatePiecesRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
         game_state = record.state
@@ -1430,7 +1468,10 @@ class GameService:
 
         _sync_piece_metadata(game_state)
         self.engine.evaluate_state(game_state)
-        return self._save(record, game_state)
+        return (
+            self._save(record, game_state),
+            authorized.player.color if authorized.player else None,
+        )
 
     def _reset_state(self, record: GameRecord, request: ResetGameRequest) -> GameState:
         game_state = record.state
@@ -1543,7 +1584,7 @@ class GameService:
         game_id: str,
         request: RematchRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token)
         record = authorized.record
         if not record.ready:
@@ -1595,14 +1636,17 @@ class GameService:
 
         if state.rematch.status == "pending" and all(state.rematch.approvals.values()):
             state = self._reset_state(replace(record, state=state), ResetGameRequest())
-        return self._save(record, state, preserve_rematch=True)
+        return (
+            self._save(record, state, preserve_rematch=True),
+            authorized.player.color if authorized.player else None,
+        )
 
     def update_board_layout(
         self,
         game_id: str,
         request: UpdateBoardLayoutRequest,
         player_token: str | None = None,
-    ) -> GameRecord:
+    ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
         game_state = record.state
@@ -1725,7 +1769,30 @@ class GameService:
             game_state.clock.turn_started_at = datetime.now(timezone.utc)
 
         self.engine.evaluate_state(game_state)
-        return self._save(record, game_state)
+        return (
+            self._save(record, game_state),
+            authorized.player.color if authorized.player else None,
+        )
+
+    def _valid_moves_for_record(self, record: GameRecord) -> tuple[MoveOption, ...]:
+        game_state = record.state
+        if not record.ready or game_state.phase != "play":
+            return ()
+
+        cache_key = (game_state.id, record.version)
+        with self._valid_moves_cache_lock:
+            if cache_key in self._valid_moves_cache:
+                cached = self._valid_moves_cache[cache_key]
+                self._valid_moves_cache.move_to_end(cache_key)
+                return cached
+
+        valid_moves = tuple(self.engine.get_valid_moves_for_current_player(game_state))
+        with self._valid_moves_cache_lock:
+            cached = self._valid_moves_cache.setdefault(cache_key, valid_moves)
+            self._valid_moves_cache.move_to_end(cache_key)
+            while len(self._valid_moves_cache) > VALID_MOVE_CACHE_SIZE:
+                self._valid_moves_cache.popitem(last=False)
+            return cached
 
     def serialize_game(
         self,
@@ -1903,11 +1970,7 @@ class GameService:
             for row in board_grid
         ]
 
-        valid_moves = (
-            self.engine.get_valid_moves_for_current_player(game_state)
-            if record.ready and game_state.phase == "play"
-            else []
-        )
+        valid_moves = self._valid_moves_for_record(record)
 
         can_view_actions = record.mode == "local" or viewer_color == game_state.current_player
         available_actions = (

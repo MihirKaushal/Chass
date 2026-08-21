@@ -252,3 +252,30 @@ def test_fifty_move_rule_and_pawn_reset(client):
     updated = game_service.repository.get_game(pawn_game["id"])
     assert updated is not None
     assert updated.state.classic.halfmove_clock == 0
+
+
+def test_serialization_reuses_legal_moves_for_the_same_game_version(client, monkeypatch):
+    game = client.post("/game/create", json={"mode": "local"}).json()["game"]
+    record = game_service.repository.get_game(game["id"])
+    assert record is not None
+
+    with game_service._valid_moves_cache_lock:
+        game_service._valid_moves_cache.clear()
+
+    calls = 0
+    original = game_service.engine.get_valid_moves_for_current_player
+
+    def counted(state):
+        nonlocal calls
+        calls += 1
+        return original(state)
+
+    monkeypatch.setattr(
+        game_service.engine,
+        "get_valid_moves_for_current_player",
+        counted,
+    )
+    game_service.serialize_game(record)
+    game_service.serialize_game(record)
+
+    assert calls == 1

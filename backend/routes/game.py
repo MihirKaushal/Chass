@@ -67,17 +67,27 @@ async def _broadcast_state(
     event_type: str = "game_state",
     last_explanation: str | None = None,
     target_color: str | None = None,
+    serialized_views: dict[str | None, GameResponse | dict] | None = None,
 ) -> None:
-    await socket_manager.broadcast_personalized(
-        record.state.id,
-        event_type,
-        lambda identity: {
-            "game": game_service.serialize_game(
+    views = serialized_views if serialized_views is not None else {}
+
+    def payload_for_identity(identity: SocketIdentity) -> dict:
+        if identity.color not in views:
+            views[identity.color] = game_service.serialize_game(
                 record,
                 last_explanation=last_explanation,
                 viewer_color=identity.color,
-            ).model_dump(by_alias=True)
-        },
+            )
+        view = views[identity.color]
+        if isinstance(view, GameResponse):
+            view = view.model_dump(by_alias=True)
+            views[identity.color] = view
+        return {"game": view}
+
+    await socket_manager.broadcast_personalized(
+        record.state.id,
+        event_type,
+        payload_for_identity,
         identity_filter=(
             (lambda identity: identity.color == target_color) if target_color is not None else None
         ),
@@ -119,7 +129,10 @@ async def join_game(payload: JoinGameRequest, request: Request) -> GameSessionRe
         "player_joined",
         {"color": response.playerColor},
     )
-    await _broadcast_state(authorized.record)
+    await _broadcast_state(
+        authorized.record,
+        serialized_views={response.playerColor: response.game},
+    )
     await socket_manager.broadcast_presence(response.game.id)
     return response
 
@@ -184,7 +197,7 @@ async def make_move(
         window_seconds=60,
         discriminator=game_id,
     )
-    record, explanation = await run_in_threadpool(
+    record, explanation, viewer_color = await run_in_threadpool(
         game_service.move_piece,
         game_id,
         payload,
@@ -193,14 +206,20 @@ async def make_move(
     response = game_service.serialize_game(
         record,
         last_explanation=explanation,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record, last_explanation=explanation)
+    serialized_views = {viewer_color: response}
+    await _broadcast_state(
+        record,
+        last_explanation=explanation,
+        serialized_views=serialized_views,
+    )
     if response.phase == "finished":
         await _broadcast_state(
             record,
             event_type="game_ended",
             last_explanation=explanation,
+            serialized_views=serialized_views,
         )
     return response
 
@@ -220,7 +239,7 @@ async def use_custom_action(
         window_seconds=60,
         discriminator=game_id,
     )
-    record, explanation = await run_in_threadpool(
+    record, explanation, viewer_color = await run_in_threadpool(
         game_service.use_custom_action,
         game_id,
         payload,
@@ -229,14 +248,20 @@ async def use_custom_action(
     response = game_service.serialize_game(
         record,
         last_explanation=explanation,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record, last_explanation=explanation)
+    serialized_views = {viewer_color: response}
+    await _broadcast_state(
+        record,
+        last_explanation=explanation,
+        serialized_views=serialized_views,
+    )
     if response.phase == "finished":
         await _broadcast_state(
             record,
             event_type="game_ended",
             last_explanation=explanation,
+            serialized_views=serialized_views,
         )
     return response
 
@@ -248,7 +273,7 @@ async def select_ability(
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
     token = _bearer_token(authorization)
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.select_ability,
         game_id,
         payload,
@@ -256,9 +281,9 @@ async def select_ability(
     )
     response = game_service.serialize_game(
         record,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record)
+    await _broadcast_state(record, serialized_views={viewer_color: response})
     return response
 
 
@@ -269,7 +294,7 @@ async def complete_setup_handoff(
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
     token = _bearer_token(authorization)
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.complete_setup_handoff,
         game_id,
         payload,
@@ -277,9 +302,9 @@ async def complete_setup_handoff(
     )
     response = game_service.serialize_game(
         record,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record)
+    await _broadcast_state(record, serialized_views={viewer_color: response})
     return response
 
 
@@ -290,7 +315,7 @@ async def update_rules(
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
     token = _bearer_token(authorization)
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.update_rules,
         game_id,
         request,
@@ -298,9 +323,9 @@ async def update_rules(
     )
     response = game_service.serialize_game(
         record,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record)
+    await _broadcast_state(record, serialized_views={viewer_color: response})
     return response
 
 
@@ -311,7 +336,7 @@ async def update_pieces(
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
     token = _bearer_token(authorization)
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.update_pieces,
         game_id,
         request,
@@ -319,9 +344,9 @@ async def update_pieces(
     )
     response = game_service.serialize_game(
         record,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record)
+    await _broadcast_state(record, serialized_views={viewer_color: response})
     return response
 
 
@@ -332,7 +357,7 @@ async def update_board_layout(
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
     token = _bearer_token(authorization)
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.update_board_layout,
         game_id,
         request,
@@ -340,9 +365,9 @@ async def update_board_layout(
     )
     response = game_service.serialize_game(
         record,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record)
+    await _broadcast_state(record, serialized_views={viewer_color: response})
     return response
 
 
@@ -374,7 +399,7 @@ async def rematch_game(
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
     token = _bearer_token(authorization)
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.rematch_game,
         game_id,
         request,
@@ -382,9 +407,13 @@ async def rematch_game(
     )
     response = game_service.serialize_game(
         record,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record, event_type="rematch_state")
+    await _broadcast_state(
+        record,
+        event_type="rematch_state",
+        serialized_views={viewer_color: response},
+    )
     return response
 
 
@@ -403,13 +432,12 @@ async def update_gambit_deployment(
         window_seconds=60,
         discriminator=game_id,
     )
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.update_gambit_deployment,
         game_id,
         payload,
         token,
     )
-    viewer_color = game_service.viewer_color(record, token)
     response = game_service.serialize_game(
         record,
         viewer_color=viewer_color,
@@ -417,6 +445,7 @@ async def update_gambit_deployment(
     await _broadcast_state(
         record,
         target_color=viewer_color if record.mode == "online" else None,
+        serialized_views={viewer_color: response},
     )
     return response
 
@@ -436,7 +465,7 @@ async def update_gambit_draft(
         window_seconds=60,
         discriminator=game_id,
     )
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.update_gambit_draft,
         game_id,
         payload,
@@ -444,9 +473,9 @@ async def update_gambit_draft(
     )
     response = game_service.serialize_game(
         record,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record)
+    await _broadcast_state(record, serialized_views={viewer_color: response})
     return response
 
 
@@ -457,7 +486,7 @@ async def ready_gambit_deployment(
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
     token = _bearer_token(authorization)
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.ready_gambit_deployment,
         game_id,
         payload,
@@ -465,9 +494,9 @@ async def ready_gambit_deployment(
     )
     response = game_service.serialize_game(
         record,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record)
+    await _broadcast_state(record, serialized_views={viewer_color: response})
     return response
 
 
@@ -478,7 +507,7 @@ async def complete_gambit_handoff(
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
     token = _bearer_token(authorization)
-    record = await run_in_threadpool(
+    record, viewer_color = await run_in_threadpool(
         game_service.complete_gambit_handoff,
         game_id,
         payload,
@@ -486,9 +515,9 @@ async def complete_gambit_handoff(
     )
     response = game_service.serialize_game(
         record,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record)
+    await _broadcast_state(record, serialized_views={viewer_color: response})
     return response
 
 
@@ -508,7 +537,7 @@ async def use_command_power(
         window_seconds=60,
         discriminator=game_id,
     )
-    record, explanation = await run_in_threadpool(
+    record, explanation, viewer_color = await run_in_threadpool(
         game_service.use_command_power,
         game_id,
         payload,
@@ -517,14 +546,20 @@ async def use_command_power(
     response = game_service.serialize_game(
         record,
         last_explanation=explanation,
-        viewer_color=game_service.viewer_color(record, token),
+        viewer_color=viewer_color,
     )
-    await _broadcast_state(record, last_explanation=explanation)
+    serialized_views = {viewer_color: response}
+    await _broadcast_state(
+        record,
+        last_explanation=explanation,
+        serialized_views=serialized_views,
+    )
     if response.phase == "finished":
         await _broadcast_state(
             record,
             event_type="game_ended",
             last_explanation=explanation,
+            serialized_views=serialized_views,
         )
     return response
 
