@@ -8,6 +8,7 @@ import {
   getCatalog,
   getGame,
   getGameHistory,
+  getMatchAnalysis,
   joinGame,
   makeMove,
   readyGambitDeployment,
@@ -33,6 +34,7 @@ import {
   updateGameSession,
 } from "./gameSession";
 import useGameSocket from "./hooks/useGameSocket";
+import { analysisMatchesGame } from "./matchPredictor";
 import CustomizePage from "./pages/CustomizePage";
 import GambitPage from "./pages/GambitPage";
 import HomePage from "./pages/HomePage";
@@ -197,6 +199,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   });
   const [error, setError] = useState("");
   const [socketMessage, setSocketMessage] = useState("");
+  const [matchAnalysis, setMatchAnalysis] = useState(null);
+  const [analysisRefreshing, setAnalysisRefreshing] = useState(false);
   const [presence, setPresence] = useState({ white: false, black: false });
   const [boardFlipped, setBoardFlipped] = useState(
     session?.mode === "online" && session?.color === "black"
@@ -305,10 +309,60 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     onEvent: (payload) => {
       if (payload.type === "player_joined") {
         setSocketMessage(`${colorLabel(payload.color)} joined the game.`);
+      } else if (
+        payload.type === "match_analysis"
+        && analysisMatchesGame(payload.analysis, gameRef.current)
+      ) {
+        setMatchAnalysis(payload.analysis);
+        setAnalysisRefreshing(false);
       }
     },
     onError: setSocketMessage,
   });
+
+  useEffect(() => {
+    if (!game?.configuration?.matchPredictorEnabled) {
+      setMatchAnalysis(null);
+      setAnalysisRefreshing(false);
+      return undefined;
+    }
+
+    let cancelled = false;
+    let pollTimer;
+    setAnalysisRefreshing(true);
+    setMatchAnalysis((current) => (current?.gameId === game.id ? current : null));
+    const loadAnalysis = () => {
+      getMatchAnalysis(game.id, session?.token)
+        .then((analysis) => {
+          if (cancelled || !analysisMatchesGame(analysis, gameRef.current)) return;
+          if (analysis.status === "analyzing") {
+            setMatchAnalysis((current) => current || analysis);
+            pollTimer = window.setTimeout(loadAnalysis, 300);
+            return;
+          }
+          setMatchAnalysis(analysis);
+          setAnalysisRefreshing(false);
+        })
+        .catch((requestError) => {
+          if (cancelled) return;
+          setMatchAnalysis({
+            gameId: game.id,
+            gameVersion: game.version,
+            enabled: true,
+            eligible: true,
+            status: "unavailable",
+            reason: requestError.message,
+          });
+          setAnalysisRefreshing(false);
+        });
+    };
+    loadAnalysis();
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(pollTimer);
+    };
+  }, [game?.configuration?.matchPredictorEnabled, game?.id, game?.version, session?.token]);
 
   const selectedMoves = useMemo(() => {
     if (!game || !selectedSquare) {
@@ -895,6 +949,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           catalog={catalog}
           onLoadEarlierHistory={handleLoadEarlierHistory}
           historyLoading={historyLoading}
+          matchAnalysis={matchAnalysis}
+          analysisRefreshing={analysisRefreshing}
         />
       )}
 

@@ -4,6 +4,7 @@ import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
 import { matchesRulebookSearch } from "../rulebookSearch";
+import { isExactClassicDraft } from "../matchPredictor";
 import {
   applyParameterChange,
   effectiveCatalogEntry,
@@ -126,6 +127,7 @@ function defaultDraft(catalog) {
     schemaVersion: 2,
     presetId: "classic",
     formationId: "classic",
+    matchPredictorEnabled: true,
     barricadeCount: 1,
     boardRows: 8,
     boardCols: 8,
@@ -196,6 +198,7 @@ function loadSavedDraft(catalog) {
       schemaVersion: 2,
       presetId: configuration.presetId || "custom",
       formationId: configuration.formationId || "custom",
+      matchPredictorEnabled: configuration.matchPredictorEnabled ?? base.matchPredictorEnabled,
       barricadeCount: configuration.barricadeCount ?? base.barricadeCount,
       boardRows,
       boardCols,
@@ -260,6 +263,7 @@ function applyModeToDraft(current, mode, catalog) {
     ...current,
     presetId: mode.id,
     formationId,
+    matchPredictorEnabled: mode.matchPredictorEnabled ?? (mode.id === "classic"),
     boardRows: rows,
     boardCols: cols,
     enabledPieces: [...STANDARD_TYPES],
@@ -290,6 +294,7 @@ function buildRequest(draft, mode = "local") {
       schemaVersion: 2,
       presetId: draft.presetId,
       formationId: draft.formationId,
+      matchPredictorEnabled: draft.matchPredictorEnabled && isExactClassicDraft(draft),
       barricadeCount: draft.barricadeCount,
       enabledPieces: draft.enabledPieces,
       piecePoints: Object.fromEntries(
@@ -834,6 +839,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const issueSquareTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
   const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, requestKey: null });
+  const predictorCompatible = useMemo(() => isExactClassicDraft(draft), [draft]);
   const validationRequest = useMemo(() => (draft ? buildRequest(draft) : null), [draft]);
   const validationRequestKey = useMemo(
     () => (validationRequest ? JSON.stringify(validationRequest) : null),
@@ -888,6 +894,11 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     setHighlightedIssueSquares([]);
     window.clearTimeout(issueSquareTimerRef.current);
   }, [validationRequestKey]);
+
+  useEffect(() => {
+    if (!draft || predictorCompatible || !draft.matchPredictorEnabled) return;
+    setDraft((current) => ({ ...current, matchPredictorEnabled: false }));
+  }, [draft, predictorCompatible]);
 
   useEffect(() => () => {
     window.clearTimeout(issueSquareTimerRef.current);
@@ -1263,7 +1274,35 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         <div className="studio-controls">
           <CollapsibleStudioSection sectionId="studio-popular-modes" title="Popular Modes" description="Load a complete starting configuration.">
             <div className="mode-preset-grid" data-setting-key="popular-modes">
-              {catalog.popularModes.map((mode) => <button type="button" key={mode.id} className={draft.presetId === mode.id ? "selected" : ""} onClick={() => applyPopularMode(mode)}><i>{mode.icon}</i><strong>{mode.name}</strong><small>{mode.summary}</small></button>)}
+              {catalog.popularModes.map((mode) => (
+                <article
+                  key={mode.id}
+                  className={`mode-preset-card ${draft.presetId === mode.id ? "selected" : ""}`}
+                >
+                  <button type="button" className="mode-preset-choice" onClick={() => applyPopularMode(mode)}>
+                    <i>{mode.icon}</i><strong>{mode.name}</strong><small>{mode.summary}</small>
+                  </button>
+                  {mode.id === "classic" ? (
+                    <label className={`classic-predictor-toggle ${predictorCompatible ? "" : "is-disabled"}`}>
+                      <input
+                        type="checkbox"
+                        checked={predictorCompatible && draft.matchPredictorEnabled}
+                        disabled={!predictorCompatible}
+                        onChange={(event) => setDraft((current) => ({
+                          ...current,
+                          matchPredictorEnabled: event.target.checked,
+                        }))}
+                      />
+                      <span>
+                        <strong>Enable Match Predictor</strong>
+                        <small>{predictorCompatible
+                          ? "Live Stockfish win, draw, and loss estimates after every move."
+                          : "Select untouched Classic Chass settings to enable analysis."}</small>
+                      </span>
+                    </label>
+                  ) : null}
+                </article>
+              ))}
             </div>
             <h3 className="formation-heading">Board Formations</h3>
             <div className="mode-preset-grid formation-grid">

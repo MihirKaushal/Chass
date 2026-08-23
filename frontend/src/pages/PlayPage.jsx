@@ -4,6 +4,7 @@ import ActiveActionStrip from "../components/ActiveActionStrip";
 import BoardMarkerGuide from "../components/BoardMarkerGuide";
 import ChessBoard from "../components/ChessBoard";
 import GameBriefing from "../components/GameBriefing";
+import MatchPredictor from "../components/MatchPredictor";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 import ResponsivePlayLayout from "../components/ResponsivePlayLayout";
 import { CommandPanel } from "./GambitPage";
@@ -20,6 +21,8 @@ function PlayPage({
   catalog,
   onLoadEarlierHistory,
   historyLoading,
+  matchAnalysis,
+  analysisRefreshing,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
   const [selectedGlobalActionType, setSelectedGlobalActionType] = useState(null);
@@ -92,23 +95,26 @@ function PlayPage({
 
   const effectsPanel = (
     <EffectsPanel
-        game={game}
-        catalog={catalog}
-        onAction={handleAction}
-        actionLoading={actionLoading}
-        selectedGlobalActionType={selectedGlobalActionType}
-        onSelectGlobalActionType={selectGlobalAction}
-      >
-        {game.affinity?.enabled ? (
-          <CommandPanel
-            game={game}
-            interactive={interactive && !actionLoading}
-            selectedPower={selectedPower}
-            onSelectPower={selectPower}
-            evolveTo={evolveTo}
-            setEvolveTo={setEvolveTo}
-          />
-        ) : null}
+      game={game}
+      catalog={catalog}
+      onAction={handleAction}
+      actionLoading={actionLoading}
+      selectedGlobalActionType={selectedGlobalActionType}
+      onSelectGlobalActionType={selectGlobalAction}
+    >
+      {game.configuration?.matchPredictorEnabled ? (
+        <MatchPredictor analysis={matchAnalysis} refreshing={analysisRefreshing} />
+      ) : null}
+      {game.affinity?.enabled ? (
+        <CommandPanel
+          game={game}
+          interactive={interactive && !actionLoading}
+          selectedPower={selectedPower}
+          onSelectPower={selectPower}
+          evolveTo={evolveTo}
+          setEvolveTo={setEvolveTo}
+        />
+      ) : null}
     </EffectsPanel>
   );
   const matchBriefing = (
@@ -170,7 +176,11 @@ function PlayPage({
       effects={effectsPanel}
       board={board}
       info={infoPanel}
-      effectCount={(game.countdowns?.length || 0) + (game.availableActions?.length ? 1 : 0)}
+      effectCount={
+        (game.countdowns?.length || 0)
+        + (game.availableActions?.length ? 1 : 0)
+        + (game.configuration?.matchPredictorEnabled ? 1 : 0)
+      }
       moveCount={game.historyPagination?.totalMoves ?? game.history.length}
     />
   );
