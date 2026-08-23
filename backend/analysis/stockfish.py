@@ -76,16 +76,21 @@ class StockfishUciProvider:
         movetime_ms: int = 180,
         hash_mb: int = 32,
         threads: int = 1,
+        startup_timeout_seconds: int = 15,
+        startup_attempts: int = 2,
     ) -> None:
         self.enabled = enabled
         self.configured_path = configured_path
         self.movetime_ms = max(25, movetime_ms)
         self.hash_mb = max(1, hash_mb)
         self.threads = max(1, threads)
+        self.startup_timeout_seconds = max(1, startup_timeout_seconds)
+        self.startup_attempts = max(1, startup_attempts)
         self._process: asyncio.subprocess.Process | None = None
         self._lock = asyncio.Lock()
         self._engine_name = "Stockfish"
         self._last_error: str | None = None
+        self._public_error: str | None = None
         self._resolved_path: str | None = None
 
     @property
@@ -95,6 +100,10 @@ class StockfishUciProvider:
     @property
     def last_error(self) -> str | None:
         return self._last_error
+
+    @property
+    def public_error(self) -> str | None:
+        return self._public_error
 
     @property
     def ready(self) -> bool:
@@ -135,8 +144,10 @@ class StockfishUciProvider:
     async def _start_locked(self) -> bool:
         if not self.enabled:
             self._last_error = "The Stockfish engine is disabled on this server."
+            self._public_error = "Live analysis is disabled on this server."
             return False
         if self.ready:
+            self._public_error = None
             return True
 
         path = self._resolve_path()
@@ -144,35 +155,57 @@ class StockfishUciProvider:
             self._last_error = (
                 "Stockfish is not installed on this server. The game remains fully playable."
             )
+            self._public_error = "The analysis engine is not installed on this server."
             return False
 
-        try:
-            self._process = await asyncio.create_subprocess_exec(
-                path,
-                stdin=asyncio.subprocess.PIPE,
-                stdout=asyncio.subprocess.PIPE,
-                stderr=asyncio.subprocess.DEVNULL,
-            )
-            self._resolved_path = path
-            await self._write("uci")
-            handshake = await asyncio.wait_for(self._read_until("uciok"), timeout=5)
-            for line in handshake:
-                if line.startswith("id name "):
-                    self._engine_name = line.removeprefix("id name ").strip()
-            await self._write(f"setoption name Threads value {self.threads}")
-            await self._write(f"setoption name Hash value {self.hash_mb}")
-            await self._write("setoption name MultiPV value 1")
-            await self._write("setoption name UCI_ShowWDL value true")
-            await self._write("isready")
-            await asyncio.wait_for(self._read_until("readyok"), timeout=5)
-            self._last_error = None
-            logger.info("Match Predictor ready with %s", self._engine_name)
-            return True
-        except Exception as error:
-            self._last_error = f"Stockfish could not start: {error}"
-            logger.warning(self._last_error)
-            await self._terminate_locked()
-            return False
+        for attempt in range(1, self.startup_attempts + 1):
+            try:
+                self._process = await asyncio.create_subprocess_exec(
+                    path,
+                    stdin=asyncio.subprocess.PIPE,
+                    stdout=asyncio.subprocess.PIPE,
+                    stderr=asyncio.subprocess.DEVNULL,
+                )
+                self._resolved_path = path
+                await self._write("uci")
+                handshake = await asyncio.wait_for(
+                    self._read_until("uciok"),
+                    timeout=self.startup_timeout_seconds,
+                )
+                for line in handshake:
+                    if line.startswith("id name "):
+                        self._engine_name = line.removeprefix("id name ").strip()
+                await self._write(f"setoption name Threads value {self.threads}")
+                await self._write(f"setoption name Hash value {self.hash_mb}")
+                await self._write("setoption name MultiPV value 1")
+                await self._write("setoption name UCI_ShowWDL value true")
+                await self._write("isready")
+                await asyncio.wait_for(
+                    self._read_until("readyok"),
+                    timeout=self.startup_timeout_seconds,
+                )
+                self._last_error = None
+                self._public_error = None
+                logger.info("Match Predictor ready with %s", self._engine_name)
+                return True
+            except asyncio.CancelledError:
+                await self._terminate_locked()
+                raise
+            except Exception as error:
+                detail = f"{type(error).__name__}: {error}".rstrip()
+                self._last_error = (
+                    f"Stockfish startup attempt {attempt}/{self.startup_attempts} "
+                    f"failed: {detail}"
+                )
+                self._public_error = (
+                    "The analysis engine is still warming up or could not start. "
+                    "Retry in a moment."
+                )
+                logger.warning(self._last_error)
+                await self._terminate_locked()
+                if attempt < self.startup_attempts:
+                    await asyncio.sleep(0.5 * attempt)
+        return False
 
     async def start(self) -> bool:
         async with self._lock:
@@ -242,12 +275,26 @@ class StockfishUciProvider:
                             return
 
                 await asyncio.wait_for(read_search(), timeout=timeout_seconds)
-            except BaseException:
+            except asyncio.CancelledError:
+                await self._terminate_locked()
+                raise
+            except Exception as error:
+                self._last_error = (
+                    f"Stockfish analysis failed: {type(error).__name__}: {error}"
+                ).rstrip()
+                self._public_error = (
+                    "The analysis engine stopped unexpectedly. Retry in a moment."
+                )
                 await self._terminate_locked()
                 raise
 
             elapsed_ms = round((perf_counter() - started) * 1000)
             if "centipawns" not in latest and "mate_in" not in latest:
+                self._last_error = "Stockfish returned no position evaluation"
+                self._public_error = (
+                    "The analysis engine did not return a position estimate. Retry in a moment."
+                )
+                await self._terminate_locked()
                 raise RuntimeError("Stockfish returned no position evaluation")
             return EngineAnalysis(
                 centipawns=latest.get("centipawns"),

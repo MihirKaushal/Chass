@@ -5,6 +5,7 @@ import logging
 from collections import OrderedDict
 from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
+from time import monotonic
 
 from backend.analysis.classic import (
     classic_analysis_eligibility,
@@ -33,12 +34,17 @@ class MatchAnalysisService:
         rule_engine: RuleEngine,
         *,
         cache_size: int = 512,
+        failure_retry_seconds: float = 3.0,
     ) -> None:
         self.provider = provider
         self.rule_engine = rule_engine
         self.cache_size = max(1, cache_size)
+        self.failure_retry_seconds = max(0.1, failure_retry_seconds)
         self._cache: OrderedDict[str, MatchAnalysisView] = OrderedDict()
-        self._failures: OrderedDict[tuple[str, str], MatchAnalysisView] = OrderedDict()
+        self._failures: OrderedDict[
+            tuple[str, str],
+            tuple[float, MatchAnalysisView],
+        ] = OrderedDict()
         self._tasks: dict[str, asyncio.Task[None]] = {}
         self._task_positions: dict[str, tuple[int, str]] = {}
         self._latest_positions: dict[str, tuple[int, str | None]] = {}
@@ -78,6 +84,11 @@ class MatchAnalysisService:
         if self.provider.last_error:
             return "unavailable"
         return "starting"
+
+    def health_reason(self) -> str | None:
+        if self.provider.ready:
+            return None
+        return getattr(self.provider, "public_error", None)
 
     @staticmethod
     def _disabled_view(
@@ -155,7 +166,10 @@ class MatchAnalysisService:
         result: MatchAnalysisView,
     ) -> None:
         key = (game_id, position_hash)
-        self._failures[key] = result.model_copy(deep=True)
+        self._failures[key] = (
+            monotonic() + self.failure_retry_seconds,
+            result.model_copy(deep=True),
+        )
         self._failures.move_to_end(key)
         while len(self._failures) > self.cache_size:
             self._failures.popitem(last=False)
@@ -234,12 +248,16 @@ class MatchAnalysisService:
             raise
         except Exception as error:
             logger.warning("Match Predictor analysis failed: %s", error)
+            public_error = getattr(self.provider, "public_error", None)
             unavailable = MatchAnalysisView(
                 gameId=state.id,
                 enabled=True,
                 eligible=True,
                 status="unavailable",
-                reason="Live analysis is temporarily unavailable. Gameplay is unaffected.",
+                reason=(
+                    public_error
+                    or "Live analysis is temporarily unavailable. Retry in a moment."
+                ),
                 gameVersion=version,
                 positionHash=position_hash,
                 engineVersion=self.provider.engine_name,
@@ -255,7 +273,13 @@ class MatchAnalysisService:
             if self._latest_positions.get(state.id) == (version, position_hash):
                 self._latest_positions.pop(state.id, None)
 
-    async def request(self, state: GameState, version: int) -> MatchAnalysisView:
+    async def request(
+        self,
+        state: GameState,
+        version: int,
+        *,
+        retry_failed: bool = False,
+    ) -> MatchAnalysisView:
         eligibility = classic_analysis_eligibility(state)
         if not eligibility.eligible:
             self.invalidate(state.id)
@@ -276,9 +300,15 @@ class MatchAnalysisService:
             )
 
         failure_key = (state.id, position_hash)
-        failed = self._failures.get(failure_key)
-        if failed is not None:
+        if retry_failed:
+            self._failures.pop(failure_key, None)
+        failed_entry = self._failures.get(failure_key)
+        if failed_entry is not None and failed_entry[0] <= monotonic():
+            self._failures.pop(failure_key, None)
+            failed_entry = None
+        if failed_entry is not None:
             self._failures.move_to_end(failure_key)
+            failed = failed_entry[1]
             return failed.model_copy(deep=True, update={"gameVersion": version})
 
         if not self.provider.enabled:
@@ -287,7 +317,10 @@ class MatchAnalysisService:
                 enabled=True,
                 eligible=True,
                 status="unavailable",
-                reason="Live analysis is disabled on this server. Gameplay is unaffected.",
+                reason=(
+                    getattr(self.provider, "public_error", None)
+                    or "Live analysis is disabled on this server."
+                ),
                 gameVersion=version,
                 positionHash=position_hash,
             )

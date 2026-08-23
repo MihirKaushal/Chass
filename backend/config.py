@@ -56,6 +56,8 @@ class Settings:
     stockfish_movetime_ms: int
     stockfish_hash_mb: int
     stockfish_threads: int
+    stockfish_startup_timeout_seconds: int
+    stockfish_startup_attempts: int
 
     @property
     def is_production(self) -> bool:
@@ -125,4 +127,8 @@ def get_settings() -> Settings:
         stockfish_movetime_ms=_positive_int("STOCKFISH_MOVETIME_MS", 180),
         stockfish_hash_mb=_positive_int("STOCKFISH_HASH_MB", 32),
         stockfish_threads=_positive_int("STOCKFISH_THREADS", 1),
+        stockfish_startup_timeout_seconds=_positive_int(
+            "STOCKFISH_STARTUP_TIMEOUT_SECONDS", 15
+        ),
+        stockfish_startup_attempts=_positive_int("STOCKFISH_STARTUP_ATTEMPTS", 2),
     )

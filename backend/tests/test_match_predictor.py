@@ -21,6 +21,7 @@ class FakeStockfishProvider:
     enabled = True
     ready = True
     last_error = None
+    public_error = None
     engine_name = "Stockfish Test"
 
     def __init__(self) -> None:
@@ -51,9 +52,21 @@ class FakeStockfishProvider:
 
 
 class FailingStockfishProvider(FakeStockfishProvider):
+    public_error = "The analysis engine is warming up. Retry in a moment."
+
     async def analyze(self, fen: str) -> EngineAnalysis:
         self.calls += 1
         raise RuntimeError("engine test failure")
+
+
+class RecoveringStockfishProvider(FakeStockfishProvider):
+    async def analyze(self, fen: str) -> EngineAnalysis:
+        if self.calls == 0:
+            self.calls += 1
+            self.public_error = "The analysis engine is warming up. Retry in a moment."
+            raise RuntimeError("temporary engine startup failure")
+        self.public_error = None
+        return await super().analyze(fen)
 
 
 def create_default_game(client) -> dict:
@@ -273,11 +286,15 @@ def test_analysis_service_caches_engine_results_and_publishes(client):
     asyncio.run(scenario())
 
 
-def test_analysis_failure_stops_rest_polling_retry_loop(client):
+def test_analysis_failure_is_cached_briefly_then_retried(client):
     game = create_default_game(client)
     state = game_service.repository.get_game(game["id"]).state
-    provider = FailingStockfishProvider()
-    service = MatchAnalysisService(provider, RuleEngine())
+    provider = RecoveringStockfishProvider()
+    service = MatchAnalysisService(
+        provider,
+        RuleEngine(),
+        failure_retry_seconds=0.1,
+    )
 
     async def scenario():
         pending = await service.request(state, game["version"])
@@ -286,9 +303,53 @@ def test_analysis_failure_stops_rest_polling_retry_loop(client):
 
         unavailable = await service.request(state, game["version"])
         assert unavailable.status == "unavailable"
+        assert unavailable.reason == (
+            "The analysis engine is warming up. Retry in a moment."
+        )
         repeated = await service.request(state, game["version"])
         assert repeated.status == "unavailable"
         assert provider.calls == 1
+
+        await asyncio.sleep(0.11)
+        retrying = await service.request(state, game["version"])
+        assert retrying.status == "analyzing"
+        await service.wait_for_game(state.id)
+
+        ready = await service.request(state, game["version"])
+        assert ready.status == "ready"
+        assert provider.calls == 2
+        await service.shutdown()
+
+    asyncio.run(scenario())
+
+
+def test_analysis_failure_can_be_retried_immediately(client):
+    game = create_default_game(client)
+    state = game_service.repository.get_game(game["id"]).state
+    provider = FailingStockfishProvider()
+    service = MatchAnalysisService(
+        provider,
+        RuleEngine(),
+        failure_retry_seconds=60,
+    )
+
+    async def scenario():
+        pending = await service.request(state, game["version"])
+        assert pending.status == "analyzing"
+        await service.wait_for_game(state.id)
+
+        cached_failure = await service.request(state, game["version"])
+        assert cached_failure.status == "unavailable"
+        assert provider.calls == 1
+
+        retrying = await service.request(
+            state,
+            game["version"],
+            retry_failed=True,
+        )
+        assert retrying.status == "analyzing"
+        await service.wait_for_game(state.id)
+        assert provider.calls == 2
         await service.shutdown()
 
     asyncio.run(scenario())

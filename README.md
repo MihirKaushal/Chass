@@ -200,6 +200,8 @@ Use `.env.example` as the local template.
 | `STOCKFISH_MOVETIME_MS` | Engine search time per position; default `180` |
 | `STOCKFISH_HASH_MB` | Memory assigned to the engine hash; default `32` |
 | `STOCKFISH_THREADS` | Engine worker threads; default `1` |
+| `STOCKFISH_STARTUP_TIMEOUT_SECONDS` | Seconds allowed for each cold-start attempt; default `15` |
+| `STOCKFISH_STARTUP_ATTEMPTS` | Engine startup attempts before reporting unavailable; default `2` |
 | `VITE_API_URL` | Public backend address used by React |
 
 Do not commit `.env`, database passwords, or production secrets.

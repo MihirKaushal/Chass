@@ -72,8 +72,9 @@ export function getGame(gameId, token) {
   return request(`/game/${gameId}`, { token });
 }
 
-export function getMatchAnalysis(gameId, token) {
-  return request(`/game/${gameId}/analysis`, { token });
+export function getMatchAnalysis(gameId, token, { retry = false } = {}) {
+  const query = retry ? "?retry=true" : "";
+  return request(`/game/${gameId}/analysis${query}`, { token });
 }
 
 export function getGameHistory(gameId, { before, limit = 50 } = {}, token) {

@@ -76,6 +76,8 @@ STOCKFISH_PATH=.stockfish/stockfish
 STOCKFISH_MOVETIME_MS=180
 STOCKFISH_HASH_MB=32
 STOCKFISH_THREADS=1
+STOCKFISH_STARTUP_TIMEOUT_SECONDS=15
+STOCKFISH_STARTUP_ATTEMPTS=2
 ```
 
 The defaults favor a responsive free-tier deployment. Raise search time or threads only
@@ -101,6 +103,10 @@ Health values:
 - `starting`: the service is still initializing.
 - `unavailable`: the path or executable failed; gameplay still works.
 - `disabled`: `MATCH_PREDICTOR_ENGINE_ENABLED` is off.
+
+Free-tier cold starts receive two longer engine startup attempts. If one position still
+fails, Chass! retries it automatically after a short delay and also displays a manual
+`Retry Analysis` button instead of caching the failure for the rest of the game.
 
 ## Upstream
 

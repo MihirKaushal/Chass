@@ -201,6 +201,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [socketMessage, setSocketMessage] = useState("");
   const [matchAnalysis, setMatchAnalysis] = useState(null);
   const [analysisRefreshing, setAnalysisRefreshing] = useState(false);
+  const [analysisRetryKey, setAnalysisRetryKey] = useState(0);
   const [presence, setPresence] = useState({ white: false, black: false });
   const [boardFlipped, setBoardFlipped] = useState(
     session?.mode === "online" && session?.color === "black"
@@ -213,6 +214,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [showLocalRestartChooser, setShowLocalRestartChooser] = useState(false);
   const lastEndgameSignatureRef = useRef("");
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
+  const handledAnalysisRetryRef = useRef(0);
 
   useEffect(() => {
     getCatalog().then(setCatalog).catch(() => {});
@@ -329,19 +331,35 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
 
     let cancelled = false;
     let pollTimer;
+    let automaticRetries = 0;
+    const forceInitialRetry = analysisRetryKey !== handledAnalysisRetryRef.current;
+    if (forceInitialRetry) {
+      handledAnalysisRetryRef.current = analysisRetryKey;
+    }
     setAnalysisRefreshing(true);
     setMatchAnalysis((current) => (current?.gameId === game.id ? current : null));
-    const loadAnalysis = () => {
-      getMatchAnalysis(game.id, session?.token)
+    const queueTransientRetry = () => {
+      if (automaticRetries >= 2) return;
+      automaticRetries += 1;
+      pollTimer = window.setTimeout(() => {
+        if (cancelled) return;
+        setMatchAnalysis(null);
+        setAnalysisRefreshing(true);
+        loadAnalysis();
+      }, 4000);
+    };
+    const loadAnalysis = (forceRetry = false) => {
+      getMatchAnalysis(game.id, session?.token, { retry: forceRetry })
         .then((analysis) => {
           if (cancelled || !analysisMatchesGame(analysis, gameRef.current)) return;
           if (analysis.status === "analyzing") {
             setMatchAnalysis((current) => current || analysis);
-            pollTimer = window.setTimeout(loadAnalysis, 300);
+            pollTimer = window.setTimeout(loadAnalysis, 500);
             return;
           }
           setMatchAnalysis(analysis);
           setAnalysisRefreshing(false);
+          if (analysis.status === "unavailable") queueTransientRetry();
         })
         .catch((requestError) => {
           if (cancelled) return;
@@ -354,15 +372,28 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
             reason: requestError.message,
           });
           setAnalysisRefreshing(false);
+          queueTransientRetry();
         });
     };
-    loadAnalysis();
+    loadAnalysis(forceInitialRetry);
 
     return () => {
       cancelled = true;
       window.clearTimeout(pollTimer);
     };
-  }, [game?.configuration?.matchPredictorEnabled, game?.id, game?.version, session?.token]);
+  }, [
+    analysisRetryKey,
+    game?.configuration?.matchPredictorEnabled,
+    game?.id,
+    game?.version,
+    session?.token,
+  ]);
+
+  const retryMatchAnalysis = useCallback(() => {
+    setMatchAnalysis(null);
+    setAnalysisRefreshing(true);
+    setAnalysisRetryKey((current) => current + 1);
+  }, []);
 
   const selectedMoves = useMemo(() => {
     if (!game || !selectedSquare) {
@@ -951,6 +982,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           historyLoading={historyLoading}
           matchAnalysis={matchAnalysis}
           analysisRefreshing={analysisRefreshing}
+          onRetryAnalysis={retryMatchAnalysis}
         />
       )}
 

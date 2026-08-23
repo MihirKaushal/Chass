@@ -38,3 +38,7 @@ services:
         value: "32"
       - key: STOCKFISH_THREADS
         value: "1"
+      - key: STOCKFISH_STARTUP_TIMEOUT_SECONDS
+        value: "15"
+      - key: STOCKFISH_STARTUP_ATTEMPTS
+        value: "2"
