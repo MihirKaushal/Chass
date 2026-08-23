@@ -72,6 +72,10 @@ export function getGame(gameId, token) {
   return request(`/game/${gameId}`, { token });
 }
 
+export function getMatchAnalysis(gameId, token) {
+  return request(`/game/${gameId}/analysis`, { token });
+}
+
 export function getGameHistory(gameId, { before, limit = 50 } = {}, token) {
   const query = new URLSearchParams({ limit: String(limit) });
   if (before) {
