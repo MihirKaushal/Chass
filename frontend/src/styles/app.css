@@ -2091,6 +2091,40 @@ button.secondary {
   line-height: 1.4;
 }
 
+.match-predictor-unavailable {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.match-predictor-unavailable .match-predictor-message {
+  margin-top: 0;
+}
+
+.match-predictor-unavailable button {
+  width: 100%;
+  padding: 0.48rem 0.6rem;
+  border: 1px solid rgba(43, 108, 176, 0.32);
+  border-radius: 8px;
+  color: white;
+  background: var(--accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.match-predictor-unavailable button:hover:not(:disabled),
+.match-predictor-unavailable button:focus-visible {
+  background: var(--primary);
+  outline: 2px solid var(--accent-soft);
+  outline-offset: 2px;
+}
+
+.match-predictor-unavailable button:disabled {
+  cursor: wait;
+  opacity: 0.62;
+}
+
 .predictor-factors {
   margin-top: 0.7rem;
   border-top: 1px solid rgba(26, 54, 93, 0.14);

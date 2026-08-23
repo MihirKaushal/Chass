@@ -78,12 +78,16 @@ app.add_middleware(
 
 @app.get("/health")
 def health() -> dict[str, str]:
-    return {
+    response = {
         "status": "ok",
         "environment": settings.environment,
         "persistence": settings.persistence_backend,
         "matchPredictor": match_analysis_service.health_status(),
     }
+    predictor_reason = match_analysis_service.health_reason()
+    if predictor_reason:
+        response["matchPredictorReason"] = predictor_reason
+    return response
 
 
 app.include_router(game_router)

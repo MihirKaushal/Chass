@@ -26,7 +26,7 @@ function readableMove(move) {
   return `${match[1]}-${match[2]}${match[3] ? `=${match[3].toUpperCase()}` : ""}`;
 }
 
-function MatchPredictor({ analysis, refreshing = false }) {
+function MatchPredictor({ analysis, refreshing = false, onRetry }) {
   const unavailable = analysis?.status === "unavailable";
   const ready = analysis?.status === "ready";
   const percentages = outcomePercentages(analysis?.outcome);
@@ -49,7 +49,12 @@ function MatchPredictor({ analysis, refreshing = false }) {
       </header>
 
       {unavailable ? (
-        <p className="match-predictor-message">{analysis.reason}</p>
+        <div className="match-predictor-unavailable">
+          <p className="match-predictor-message">{analysis.reason}</p>
+          <button type="button" onClick={onRetry} disabled={refreshing}>
+            {refreshing ? "Retrying..." : "Retry Analysis"}
+          </button>
+        </div>
       ) : percentages ? (
         <>
           <div

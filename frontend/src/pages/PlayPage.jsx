@@ -23,6 +23,7 @@ function PlayPage({
   historyLoading,
   matchAnalysis,
   analysisRefreshing,
+  onRetryAnalysis,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
   const [selectedGlobalActionType, setSelectedGlobalActionType] = useState(null);
@@ -103,7 +104,11 @@ function PlayPage({
       onSelectGlobalActionType={selectGlobalAction}
     >
       {game.configuration?.matchPredictorEnabled ? (
-        <MatchPredictor analysis={matchAnalysis} refreshing={analysisRefreshing} />
+        <MatchPredictor
+          analysis={matchAnalysis}
+          refreshing={analysisRefreshing}
+          onRetry={onRetryAnalysis}
+        />
       ) : null}
       {game.affinity?.enabled ? (
         <CommandPanel

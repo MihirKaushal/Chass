@@ -61,6 +61,10 @@ match_analysis_service = MatchAnalysisService(
         movetime_ms=analysis_settings.stockfish_movetime_ms,
         hash_mb=analysis_settings.stockfish_hash_mb,
         threads=analysis_settings.stockfish_threads,
+        startup_timeout_seconds=(
+            analysis_settings.stockfish_startup_timeout_seconds
+        ),
+        startup_attempts=analysis_settings.stockfish_startup_attempts,
     ),
     rule_engine,
 )
@@ -184,6 +188,7 @@ async def get_game(
 async def get_match_analysis(
     game_id: str,
     request: Request,
+    retry: bool = False,
     authorization: Annotated[str | None, Header()] = None,
 ) -> MatchAnalysisView:
     token = _bearer_token(authorization)
@@ -202,6 +207,7 @@ async def get_match_analysis(
     return await match_analysis_service.request(
         authorized.record.state,
         authorized.record.version,
+        retry_failed=retry,
     )
 
 
