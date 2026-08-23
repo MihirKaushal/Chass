@@ -260,6 +260,47 @@ class RematchView(BaseModel):
     canRespondAs: str | None = None
 
 
+class MatchEvaluationView(BaseModel):
+    centipawns: int | None = None
+    mateIn: int | None = None
+    perspective: Literal["white"] = "white"
+
+
+class MatchOutcomeView(BaseModel):
+    whiteWin: float = Field(ge=0, le=1)
+    draw: float = Field(ge=0, le=1)
+    blackWin: float = Field(ge=0, le=1)
+
+
+class PositionFactorView(BaseModel):
+    id: str
+    label: str
+    whiteValue: float
+    blackValue: float
+    advantage: Literal["white", "black", "balanced"]
+    summary: str
+
+
+class MatchAnalysisView(BaseModel):
+    gameId: str
+    enabled: bool
+    eligible: bool
+    status: Literal["disabled", "analyzing", "ready", "unavailable"]
+    reason: str | None = None
+    gameVersion: int
+    positionHash: str | None = None
+    evaluation: MatchEvaluationView | None = None
+    outcome: MatchOutcomeView | None = None
+    factors: list[PositionFactorView] = Field(default_factory=list)
+    depth: int | None = None
+    nodes: int | None = None
+    principalVariation: list[str] = Field(default_factory=list)
+    elapsedMs: int | None = None
+    engineVersion: str | None = None
+    modelVersion: str = "classic-factors-v1"
+    updatedAt: datetime | None = None
+
+
 class GameResponse(BaseModel):
     id: str
     mode: Literal["local", "online"]
@@ -412,6 +453,7 @@ class GameConfigurationPayload(BaseModel):
     schemaVersion: int = 2
     presetId: str = "custom"
     formationId: str = "custom"
+    matchPredictorEnabled: bool = True
     barricadeCount: int = Field(default=1, ge=0, le=8)
     enabledPieces: list[str] = Field(
         default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"],

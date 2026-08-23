@@ -1387,6 +1387,7 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "boardRows": 8,
         "boardCols": 8,
         "formationId": "classic",
+        "matchPredictorEnabled": True,
         "victory": {"mode": "checkmate"},
         "gambit": {"enabled": False},
     },

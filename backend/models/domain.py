@@ -216,6 +216,7 @@ class GameConfiguration(BaseModel):
     schema_version: int = 2
     preset_id: str = "classic"
     formation_id: str = "classic"
+    match_predictor_enabled: bool = True
     barricade_count: int = Field(default=1, ge=0)
     enabled_piece_types: list[str] = Field(
         default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"]
