@@ -46,6 +46,25 @@ bootstrap_frontend() {
   fi
 }
 
+bootstrap_stockfish() {
+  local engine_setting="${MATCH_PREDICTOR_ENGINE_ENABLED:-true}"
+  case "$engine_setting" in
+    0|false|False|FALSE|no|No|NO|off|Off|OFF)
+      return
+      ;;
+  esac
+
+  local engine_path="${STOCKFISH_PATH:-$ROOT_DIR/.stockfish/stockfish}"
+  if [[ -x "$engine_path" ]] || command -v stockfish >/dev/null 2>&1; then
+    return
+  fi
+
+  echo "Installing the optional Classic Match Predictor engine..."
+  if ! STOCKFISH_INSTALL_PATH="$engine_path" "$ROOT_DIR/scripts/install_stockfish.sh"; then
+    echo "Warning: Stockfish was not installed. Chass! will run without live Match Predictor results."
+  fi
+}
+
 cleanup() {
   if [[ "${CLEANUP_COMPLETE:-0}" == "1" ]]; then
     return
@@ -89,6 +108,7 @@ require_command npm
 
 bootstrap_backend
 bootstrap_frontend
+bootstrap_stockfish
 
 trap cleanup INT TERM EXIT
 
