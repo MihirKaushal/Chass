@@ -14,6 +14,8 @@ from fastapi import (
 )
 from starlette.concurrency import run_in_threadpool
 
+from backend.analysis import MatchAnalysisService, StockfishUciProvider
+from backend.config import get_settings
 from backend.models.schemas import (
     AbilitySelectionRequest,
     ConfigurationValidationResponse,
@@ -29,6 +31,7 @@ from backend.models.schemas import (
     HistoryPageResponse,
     InviteResponse,
     JoinGameRequest,
+    MatchAnalysisView,
     MoveRequest,
     RematchRequest,
     ResetGameRequest,
@@ -50,6 +53,17 @@ from backend.services.game_service import GameService
 router = APIRouter(prefix="/game", tags=["game"])
 rule_engine = RuleEngine()
 game_service = GameService(rule_engine)
+analysis_settings = get_settings()
+match_analysis_service = MatchAnalysisService(
+    StockfishUciProvider(
+        configured_path=analysis_settings.stockfish_path,
+        enabled=analysis_settings.match_predictor_engine_enabled,
+        movetime_ms=analysis_settings.stockfish_movetime_ms,
+        hash_mb=analysis_settings.stockfish_hash_mb,
+        threads=analysis_settings.stockfish_threads,
+    ),
+    rule_engine,
+)
 
 
 def _bearer_token(authorization: str | None) -> str | None:
@@ -69,6 +83,7 @@ async def _broadcast_state(
     target_color: str | None = None,
     serialized_views: dict[str | None, GameResponse | dict] | None = None,
 ) -> None:
+    match_analysis_service.invalidate(record.state.id)
     views = serialized_views if serialized_views is not None else {}
 
     def payload_for_identity(identity: SocketIdentity) -> dict:
@@ -92,6 +107,17 @@ async def _broadcast_state(
             (lambda identity: identity.color == target_color) if target_color is not None else None
         ),
     )
+
+
+async def _broadcast_match_analysis(analysis: MatchAnalysisView) -> None:
+    await socket_manager.broadcast(
+        analysis.gameId,
+        "match_analysis",
+        {"analysis": analysis.model_dump(mode="json")},
+    )
+
+
+match_analysis_service.set_listener(_broadcast_match_analysis)
 
 
 @router.post("/create", response_model=GameSessionResponse)
@@ -151,6 +177,31 @@ async def get_game(
     return game_service.serialize_game(
         authorized.record,
         viewer_color=authorized.player.color if authorized.player else None,
+    )
+
+
+@router.get("/{game_id}/analysis", response_model=MatchAnalysisView)
+async def get_match_analysis(
+    game_id: str,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> MatchAnalysisView:
+    token = _bearer_token(authorization)
+    rate_limiter.check(
+        request,
+        "match-analysis",
+        limit=120,
+        window_seconds=60,
+        discriminator=game_id,
+    )
+    authorized = await run_in_threadpool(
+        game_service.authorize,
+        game_id,
+        token,
+    )
+    return await match_analysis_service.request(
+        authorized.record.state,
+        authorized.record.version,
     )
 
 
@@ -221,6 +272,7 @@ async def make_move(
             last_explanation=explanation,
             serialized_views=serialized_views,
         )
+    await match_analysis_service.request(record.state, record.version)
     return response
 
 

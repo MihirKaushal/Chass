@@ -6,6 +6,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 os.environ["PERSISTENCE_BACKEND"] = "sql"
+os.environ["MATCH_PREDICTOR_ENGINE_ENABLED"] = "false"
 
 from backend.db import reset_database_engine
 from backend.main import app

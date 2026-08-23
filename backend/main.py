@@ -10,7 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from backend.config import get_settings
 from backend.db import init_db
 from backend.firebase_client import get_firestore_client
-from backend.routes import game_router, game_service
+from backend.routes import game_router, game_service, match_analysis_service
 
 logger = logging.getLogger(__name__)
 
@@ -50,11 +50,13 @@ async def lifespan(_: FastAPI):
             current_settings.game_cleanup_interval_minutes * 60,
         )
     )
+    await match_analysis_service.start()
     try:
         yield
     finally:
         stop_event.set()
         await cleanup_task
+        await match_analysis_service.shutdown()
 
 
 settings = get_settings()
@@ -80,6 +82,7 @@ def health() -> dict[str, str]:
         "status": "ok",
         "environment": settings.environment,
         "persistence": settings.persistence_backend,
+        "matchPredictor": match_analysis_service.health_status(),
     }
 
 

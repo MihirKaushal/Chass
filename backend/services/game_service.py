@@ -10,12 +10,14 @@ from threading import Lock
 
 from fastapi import HTTPException
 
+from backend.analysis import synchronize_match_predictor_setting
 from backend.catalog import (
     VICTORY_MODES,
     adaptive_back_rank,
     build_catalog_piece_definitions,
     build_default_draft_pool,
     catalog_payload,
+    classic_layout,
     configure_piece_definition,
     default_scorch_uses,
     normalize_ability_parameters,
@@ -366,6 +368,9 @@ def _configuration_from_request(
             definitions[custom_piece.type] = catalog[custom_piece.type].model_copy(deep=True)
         configuration = GameConfiguration(
             preset_id="gambit" if request.variant == "gambit" else "classic",
+            formation_id="classic",
+            match_predictor_enabled=request.variant != "gambit",
+            initial_layout=classic_layout(request.boardRows, request.boardCols),
             custom_rules=CustomRulesConfig(
                 affinity_enabled=request.variant == "gambit",
                 command_point_cap=3,
@@ -449,6 +454,7 @@ def _configuration_from_request(
         schema_version=payload.schemaVersion,
         preset_id=payload.presetId,
         formation_id=payload.formationId,
+        match_predictor_enabled=payload.matchPredictorEnabled,
         barricade_count=(payload.barricadeCount if "barricade" in enabled_types else 0),
         enabled_piece_types=list(payload.enabledPieces),
         piece_parameters={
@@ -869,6 +875,7 @@ class GameService:
         )
 
         self.engine.evaluate_state(game_state)
+        synchronize_match_predictor_setting(game_state)
 
         settings = get_settings()
         now = datetime.now(timezone.utc)
@@ -1442,6 +1449,7 @@ class GameService:
         self._expected_version(record, request.expectedVersion)
         game_state.rules = _apply_rule_patches(game_state.rules, request.rules, self.engine)
         self.engine.evaluate_state(game_state)
+        synchronize_match_predictor_setting(game_state)
         return (
             self._save(record, game_state),
             authorized.player.color if authorized.player else None,
@@ -1468,6 +1476,7 @@ class GameService:
 
         _sync_piece_metadata(game_state)
         self.engine.evaluate_state(game_state)
+        synchronize_match_predictor_setting(game_state)
         return (
             self._save(record, game_state),
             authorized.player.color if authorized.player else None,
@@ -1565,6 +1574,7 @@ class GameService:
             game_state.clock.turn_started_at = datetime.now(timezone.utc)
 
         self.engine.evaluate_state(game_state)
+        synchronize_match_predictor_setting(game_state)
         return game_state
 
     def reset_game(
@@ -1681,6 +1691,7 @@ class GameService:
                     "schemaVersion": game_state.configuration.schema_version,
                     "presetId": "custom",
                     "formationId": "custom",
+                    "matchPredictorEnabled": False,
                     "barricadeCount": game_state.configuration.barricade_count,
                     "enabledPieces": game_state.configuration.enabled_piece_types,
                     "piecePoints": {
@@ -1769,6 +1780,7 @@ class GameService:
             game_state.clock.turn_started_at = datetime.now(timezone.utc)
 
         self.engine.evaluate_state(game_state)
+        synchronize_match_predictor_setting(game_state)
         return (
             self._save(record, game_state),
             authorized.player.color if authorized.player else None,
@@ -1806,6 +1818,9 @@ class GameService:
             "schemaVersion": game_state.configuration.schema_version,
             "presetId": game_state.configuration.preset_id,
             "formationId": game_state.configuration.formation_id,
+            "matchPredictorEnabled": (
+                game_state.configuration.match_predictor_enabled
+            ),
             "barricadeCount": game_state.configuration.barricade_count,
             "enabledPieces": game_state.configuration.enabled_piece_types,
             "pieceParameters": game_state.configuration.piece_parameters,

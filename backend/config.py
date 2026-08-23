@@ -18,6 +18,13 @@ def _positive_int(name: str, default: int) -> int:
         return default
 
 
+def _enabled(name: str, default: bool = True) -> bool:
+    value = os.getenv(name)
+    if value is None:
+        return default
+    return value.strip().lower() not in {"0", "false", "no", "off"}
+
+
 def _origins(frontend_url: str, include_development: bool) -> tuple[str, ...]:
     configured = os.getenv("ALLOWED_ORIGINS", "")
     values = [
@@ -44,6 +51,11 @@ class Settings:
     invite_ttl_hours: int
     game_idle_ttl_hours: int
     game_cleanup_interval_minutes: int
+    match_predictor_engine_enabled: bool
+    stockfish_path: str
+    stockfish_movetime_ms: int
+    stockfish_hash_mb: int
+    stockfish_threads: int
 
     @property
     def is_production(self) -> bool:
@@ -105,4 +117,12 @@ def get_settings() -> Settings:
         game_cleanup_interval_minutes=_positive_int(
             "GAME_CLEANUP_INTERVAL_MINUTES", 15
         ),
+        match_predictor_engine_enabled=_enabled("MATCH_PREDICTOR_ENGINE_ENABLED"),
+        stockfish_path=os.getenv(
+            "STOCKFISH_PATH",
+            str(PROJECT_ROOT / ".stockfish" / "stockfish"),
+        ).strip(),
+        stockfish_movetime_ms=_positive_int("STOCKFISH_MOVETIME_MS", 180),
+        stockfish_hash_mb=_positive_int("STOCKFISH_HASH_MB", 32),
+        stockfish_threads=_positive_int("STOCKFISH_THREADS", 1),
     )
