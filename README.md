@@ -9,6 +9,7 @@ boards and pieces, modular rules, and real-time synchronization.
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
+- Live Classic Match Predictor with Stockfish NNUE W/D/L estimates and position factors
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
 - Chass Gambit with maximum-budget hidden deployment, center affinity, and command powers
@@ -33,6 +34,7 @@ boards and pieces, modular rules, and real-time synchronization.
 | Languages | Python, JavaScript/JSX, CSS, SQL, Bash |
 | Frontend | React 18, React Hooks, Vite 5, native WebSocket API |
 | Backend | FastAPI, Uvicorn, Pydantic 2 |
+| Analysis | Stockfish 18, UCI, NNUE evaluation, W/D/L statistics |
 | Database | Cloud Firestore, Firebase Admin SDK, SQLAlchemy 2, SQLite |
 | Testing and quality | Pytest, HTTPX, Ruff, Vite production builds |
 | Hosting | Vercel, Render, Firebase |
@@ -46,6 +48,7 @@ boards and pieces, modular rules, and real-time synchronization.
 - **Firebase Admin:** Secure server-side Firestore access and transactions.
 - **SQLAlchemy:** Local SQLite persistence and an optional SQL fallback.
 - **Uvicorn:** ASGI server for FastAPI HTTP and WebSocket traffic.
+- **Stockfish:** Local UCI engine for asynchronous Classic position analysis; no paid API key.
 - **Pytest and HTTPX:** Backend API and multiplayer integration testing.
 - **Ruff:** Python linting and code-quality checks.
 
@@ -59,6 +62,7 @@ React + Vite
 FastAPI
   |-- Game service
   |-- Modular rule engine
+  |-- Async Classic analysis service --> Stockfish 18
   v
 Repository adapters
   |-- SQLAlchemy / SQLite locally
@@ -76,10 +80,17 @@ count, edit, or timing data before the atomic reveal.
 Game activity uses a renewable expiration lease, and both repository adapters cascade
 inactive-game cleanup to player seats, invitation records, and move audits.
 
+The Match Predictor is available only for an untouched 8x8 Classic Chass game. Its
+preference is enabled by default and automatically switches off when the board, formation,
+piece values or behavior, victory condition, rules, abilities, or terrain changes. Analysis
+runs after the move response, is cached by position, and is version-checked before a
+WebSocket result can update the UI.
+
 ## Project Structure
 
 ```text
 backend/
+  analysis/        Classic eligibility, FEN, factors, and Stockfish UCI service
   models/          Domain models and API schemas
   repositories/    Firestore and SQL persistence adapters
   routes/          REST and WebSocket endpoints
@@ -108,6 +119,7 @@ Requirements:
 - Python 3.11+
 - Node.js 20+
 - npm
+- `curl` and `tar` for the one-time Stockfish download
 
 Start the frontend and backend together:
 
@@ -123,7 +135,8 @@ Local addresses:
 - Health check: `http://localhost:8000/health`
 
 Local development uses SQLite and does not require Firebase. Press `Ctrl+C` to stop both
-services.
+services. The first run installs a checksum-verified Stockfish 18 binary into the ignored
+`.stockfish/` directory; later starts reuse it.
 
 ## Test and Build
 
@@ -149,6 +162,7 @@ npm run build
 | `POST` | `/game/join` | Join through an invitation |
 | `GET` | `/game/{id}` | Load game state |
 | `GET` | `/game/{id}/history` | Load an earlier page of move history |
+| `GET` | `/game/{id}/analysis` | Load or schedule the current Classic position estimate |
 | `POST` | `/game/{id}/move` | Submit a move |
 | `POST` | `/game/{id}/action` | Use a custom piece or special-ability action |
 | `POST` | `/game/{id}/ability` | Lock a private player ability |
@@ -181,6 +195,11 @@ Use `.env.example` as the local template.
 | `INVITE_TTL_HOURS` | Invitation expiration time |
 | `GAME_IDLE_TTL_HOURS` | Hours after the last game change before deletion |
 | `GAME_CLEANUP_INTERVAL_MINUTES` | Cleanup frequency while FastAPI is awake |
+| `MATCH_PREDICTOR_ENGINE_ENABLED` | Enables or disables server-side Stockfish analysis |
+| `STOCKFISH_PATH` | Optional path to a Stockfish executable |
+| `STOCKFISH_MOVETIME_MS` | Engine search time per position; default `180` |
+| `STOCKFISH_HASH_MB` | Memory assigned to the engine hash; default `32` |
+| `STOCKFISH_THREADS` | Engine worker threads; default `1` |
 | `VITE_API_URL` | Public backend address used by React |
 
 Do not commit `.env`, database passwords, or production secrets.
@@ -192,11 +211,14 @@ The repository includes configuration for a free personal-project deployment:
 - **Frontend:** Import the repository into Vercel, set the Root Directory to `frontend`,
   and set `VITE_API_URL` to the Render backend URL.
 - **Backend:** Create a Render Blueprint from `render.yaml`, add the Firebase server
-  credentials, and set `PERSISTENCE_BACKEND=firestore`.
+  credentials, and set `PERSISTENCE_BACKEND=firestore`. The Blueprint installs the pinned
+  Stockfish engine during the build.
 - **Database:** Create a free Firebase project and its default Cloud Firestore database.
 
 See [Firebase Setup](docs/FIREBASE_SETUP.md) for the exact credential, migration, Render,
 security-rule, rollback, and verification steps.
+See [Match Predictor](docs/MATCH_PREDICTOR.md) for eligibility, architecture, tuning,
+deployment, and troubleshooting details.
 
 After Vercel deploys, set both Render values to the production frontend URL:
 
