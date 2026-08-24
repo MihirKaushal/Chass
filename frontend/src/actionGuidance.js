@@ -139,8 +139,8 @@ export function buildActionGuidance({
 
   return {
     state: "idle",
-    marker: "idle",
-    icon: "i",
+    marker: null,
+    icon: null,
     title: `${game.currentPlayer === "black" ? "Black" : "White"} to move`,
     description: "Select a piece or choose an available special action.",
     instruction: "Board guidance will update before you commit an action.",

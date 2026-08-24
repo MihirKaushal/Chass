@@ -9,7 +9,7 @@ boards and pieces, modular rules, and real-time synchronization.
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
-- Live Classic Match Predictor with Stockfish NNUE W/D/L estimates and position factors
+- Live Classic Match Predictor with calibrated White/Black estimates and position factors
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
 - Chass Gambit with maximum-budget hidden deployment, center affinity, and command powers

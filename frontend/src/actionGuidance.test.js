@@ -61,3 +61,10 @@ test("guidance covers global abilities and command powers", () => {
   assert.equal(evolve.title, "Evolve command ready");
   assert.match(evolve.description, /1 legal target/);
 });
+
+test("idle turn guidance does not request an information marker", () => {
+  const idle = buildActionGuidance({ game });
+  assert.equal(idle.title, "White to move");
+  assert.equal(idle.marker, null);
+  assert.equal(idle.icon, null);
+});

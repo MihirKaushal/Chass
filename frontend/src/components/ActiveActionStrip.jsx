@@ -13,13 +13,14 @@ function Marker({ guidance }) {
 
 function ActiveActionStrip(props) {
   const guidance = buildActionGuidance(props);
+  const hasMarker = Boolean(guidance.marker);
   return (
     <section
-      className={`active-action-strip state-${guidance.state}`}
+      className={`active-action-strip state-${guidance.state} ${hasMarker ? "" : "no-marker"}`}
       aria-live="polite"
       aria-atomic="true"
     >
-      <Marker guidance={guidance} />
+      {hasMarker ? <Marker guidance={guidance} /> : null}
       <div>
         <strong>{guidance.title}</strong>
         <p>{guidance.description}</p>

@@ -214,7 +214,6 @@ class MatchAnalysisService:
                     positionHash=position_hash,
                     outcome=terminal_outcome,
                     factors=factors,
-                    elapsedMs=0,
                     engineVersion=self.provider.engine_name,
                     updatedAt=datetime.now(timezone.utc),
                 )
@@ -234,10 +233,6 @@ class MatchAnalysisService:
                     evaluation=evaluation,
                     outcome=outcome,
                     factors=factors,
-                    depth=engine_result.depth,
-                    nodes=engine_result.nodes,
-                    principalVariation=engine_result.principal_variation[:8],
-                    elapsedMs=engine_result.elapsed_ms,
                     engineVersion=engine_result.engine_version,
                     updatedAt=datetime.now(timezone.utc),
                 )

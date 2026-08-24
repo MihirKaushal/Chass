@@ -1296,7 +1296,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                       <span>
                         <strong>Enable Match Predictor</strong>
                         <small>{predictorCompatible
-                          ? "Live Stockfish win, draw, and loss estimates after every move."
+                          ? "Live Stockfish White and Black outcome estimates after every move."
                           : "Select untouched Classic Chass settings to enable analysis."}</small>
                       </span>
                     </label>

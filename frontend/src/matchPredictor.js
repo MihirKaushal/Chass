@@ -1,6 +1,7 @@
 const CLASSIC_TYPES = ["pawn", "knight", "bishop", "rook", "queen", "king"];
 const CLASSIC_POINTS = { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9, king: 0 };
 const BACK_RANK = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
+const OPENING_CALIBRATION_PLIES = 6;
 
 function placementSignature(placements) {
   return (placements || [])
@@ -40,26 +41,25 @@ export function isExactClassicDraft(draft) {
   return placementSignature(draft.placements) === CLASSIC_PLACEMENT_SIGNATURE;
 }
 
-export function outcomePercentages(outcome) {
+export function outcomePercentages(outcome, moveCount = 0) {
   if (!outcome) return null;
-  const rawValues = [outcome.whiteWin, outcome.draw, outcome.blackWin].map((value) => (
+  const [whiteWin, draw, blackWin] = [outcome.whiteWin, outcome.draw, outcome.blackWin].map((value) => (
     Math.max(0, Number(value) || 0)
   ));
-  const total = rawValues.reduce((sum, value) => sum + value, 0);
+  const total = whiteWin + draw + blackWin;
   if (!total) return null;
-  const values = rawValues.map((value) => (value / total) * 100);
-  const floors = values.map(Math.floor);
-  let remainder = 100 - floors.reduce((total, value) => total + value, 0);
-  values
-    .map((value, index) => ({ index, fraction: value - floors[index] }))
-    .sort((left, right) => right.fraction - left.fraction)
-    .forEach(({ index }) => {
-      if (remainder > 0) {
-        floors[index] += 1;
-        remainder -= 1;
-      }
-    });
-  return { white: floors[0], draw: floors[1], black: floors[2] };
+
+  // Split draw likelihood evenly, then phase in Stockfish's opening estimate so
+  // the untouched initial position starts from a neutral 50/50 prior.
+  const rawWhite = ((whiteWin + (draw / 2)) / total) * 100;
+  const completedPlies = Math.max(0, Math.floor(Number(moveCount) || 0));
+  const decisive = draw === 0 && (whiteWin === 0 || blackWin === 0);
+  const engineWeight = decisive
+    ? 1
+    : Math.min(1, completedPlies / OPENING_CALIBRATION_PLIES);
+  const calibratedWhite = 50 + ((rawWhite - 50) * engineWeight);
+  const white = Math.max(0, Math.min(100, Math.round(calibratedWhite)));
+  return { white, black: 100 - white };
 }
 
 export function analysisMatchesGame(analysis, game) {
