@@ -647,11 +647,6 @@ function CustomizeNavigator({ query, sections, onQueryChange, onNavigate }) {
     <aside className="customize-section-navigator" aria-label="Customize page navigation">
       <div className="customize-navigator-heading">
         <strong>Jump To A Section</strong>
-        <small>
-          {sections.length} {query
-            ? `match${sections.length === 1 ? "" : "es"}`
-            : `section${sections.length === 1 ? "" : "s"}`}
-        </small>
       </div>
       <label className="customize-section-search">
         <span className="visually-hidden">Search customize sections and settings</span>
@@ -694,7 +689,11 @@ function CustomizeNavigator({ query, sections, onQueryChange, onNavigate }) {
           onClick={() => setMenuOpen((open) => !open)}
         >
           <span>Jump to...</span>
-          <small>{sections.length} {sections.length === 1 ? "section" : "sections"}</small>
+          <small>
+            {sections.length} {query.trim()
+              ? `match${sections.length === 1 ? "" : "es"}`
+              : `section${sections.length === 1 ? "" : "s"}`}
+          </small>
           <i aria-hidden="true" />
         </button>
         <div className="customize-jump-options" id="customize-jump-options">
