@@ -5,7 +5,10 @@ import json
 
 import pytest
 
-from backend.firebase_client import _decode_service_account
+from backend.firebase_client import (
+    _decode_service_account,
+    _project_id_for_service_account,
+)
 
 SERVICE_ACCOUNT = {
     "type": "service_account",
@@ -50,3 +53,14 @@ def test_decode_service_account_accepts_safe_render_formats(credential_value):
 def test_decode_service_account_rejects_invalid_credentials(credential_value):
     with pytest.raises(RuntimeError):
         _decode_service_account(credential_value)
+
+
+def test_service_account_project_id_is_authoritative():
+    assert (
+        _project_id_for_service_account("incorrect-render-value", SERVICE_ACCOUNT)
+        == "chass-test"
+    )
+
+
+def test_configured_project_id_supports_application_default_credentials():
+    assert _project_id_for_service_account("chass-default", None) == "chass-default"

@@ -6,10 +6,14 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from google.api_core.exceptions import GoogleAPICallError
+from google.auth.exceptions import GoogleAuthError
+from starlette.requests import Request
+from starlette.responses import JSONResponse
 
 from backend.config import get_settings
 from backend.db import init_db
-from backend.firebase_client import get_firestore_client
+from backend.firebase_client import get_firestore_client, reset_firestore_client
 from backend.routes import game_router, game_service, match_analysis_service
 
 logger = logging.getLogger(__name__)
@@ -74,6 +78,33 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+
+async def _persistence_unavailable(
+    request: Request,
+    error: Exception,
+) -> JSONResponse:
+    logger.exception(
+        "Firebase persistence failed for %s %s",
+        request.method,
+        request.url.path,
+        exc_info=error,
+    )
+    reset_firestore_client()
+    return JSONResponse(
+        status_code=503,
+        content={
+            "detail": (
+                "Game storage is temporarily unavailable. "
+                "Please wait a moment and try again."
+            )
+        },
+        headers={"Retry-After": "5"},
+    )
+
+
+app.add_exception_handler(GoogleAPICallError, _persistence_unavailable)
+app.add_exception_handler(GoogleAuthError, _persistence_unavailable)
 
 
 @app.get("/health")

@@ -3,6 +3,7 @@ from __future__ import annotations
 import re
 from datetime import datetime, timedelta, timezone
 
+from google.api_core.exceptions import ServiceUnavailable
 from sqlalchemy import func, select
 
 from backend.db import GameInviteRow, GamePlayerRow, GameRow, MoveRow, session_scope
@@ -65,6 +66,30 @@ def test_game_creation_does_not_wait_for_retention_cleanup(client, monkeypatch):
     monkeypatch.setattr(game_service, "cleanup_inactive_games", unexpected_cleanup)
     created = client.post("/game/create", json={"mode": "local"})
     assert created.status_code == 200
+
+
+def test_firestore_failures_return_a_retryable_cors_response(client, monkeypatch):
+    from backend.routes.game import game_service
+
+    def unavailable(*_args, **_kwargs):
+        raise ServiceUnavailable("test Firestore outage")
+
+    monkeypatch.setattr(game_service.repository, "create_game", unavailable)
+    response = client.post(
+        "/game/create",
+        json={"mode": "local"},
+        headers={"Origin": "http://localhost:5173"},
+    )
+
+    assert response.status_code == 503
+    assert response.headers["retry-after"] == "5"
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert response.json() == {
+        "detail": (
+            "Game storage is temporarily unavailable. "
+            "Please wait a moment and try again."
+        )
+    }
 
 
 def test_same_device_restart_requires_both_colors(client):
