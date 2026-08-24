@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 
 import {
   analysisMatchesGame,
+  evaluationLabel,
   isExactClassicDraft,
   outcomePercentages,
 } from "./matchPredictor.js";
@@ -65,6 +66,16 @@ test("opening calibration starts at 50/50 and fades over six plies", () => {
     outcomePercentages({ whiteWin: 1, draw: 0, blackWin: 0 }, 0),
     { white: 100, black: 0 }
   );
+});
+
+test("opening evaluation stays neutral until the first move", () => {
+  const analysis = {
+    status: "ready",
+    outcome: { whiteWin: 0.1, draw: 0.89, blackWin: 0.01 },
+    evaluation: { centipawns: 62, mateIn: null },
+  };
+  assert.equal(evaluationLabel(analysis, 0), "-");
+  assert.equal(evaluationLabel(analysis, 1), "+0.62 White");
 });
 
 test("analysis is accepted only for the current game version", () => {
