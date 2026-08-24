@@ -62,6 +62,22 @@ export function outcomePercentages(outcome, moveCount = 0) {
   return { white, black: 100 - white };
 }
 
+export function evaluationLabel(analysis, moveCount = 0) {
+  if (Math.max(0, Number(moveCount) || 0) === 0) return "-";
+  const evaluation = analysis?.evaluation;
+  if (!evaluation) return analysis?.status === "ready" && analysis?.outcome
+    ? "Final result"
+    : "Position pending";
+  if (evaluation.mateIn != null) {
+    const winner = evaluation.mateIn > 0 ? "White" : "Black";
+    return `${winner} mates in ${Math.abs(evaluation.mateIn)}`;
+  }
+  if (evaluation.centipawns == null) return "Balanced position";
+  const pawns = evaluation.centipawns / 100;
+  if (Math.abs(pawns) < 0.005) return "Even";
+  return `${pawns > 0 ? "+" : ""}${pawns.toFixed(2)} ${pawns > 0 ? "White" : "Black"}`;
+}
+
 export function analysisMatchesGame(analysis, game) {
   return Boolean(
     analysis

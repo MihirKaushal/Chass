@@ -1,19 +1,4 @@
-import { outcomePercentages } from "../matchPredictor";
-
-function evaluationLabel(analysis) {
-  const evaluation = analysis?.evaluation;
-  if (!evaluation) return analysis?.status === "ready" && analysis?.outcome
-    ? "Final result"
-    : "Position pending";
-  if (evaluation.mateIn != null) {
-    const winner = evaluation.mateIn > 0 ? "White" : "Black";
-    return `${winner} mates in ${Math.abs(evaluation.mateIn)}`;
-  }
-  if (evaluation.centipawns == null) return "Balanced position";
-  const pawns = evaluation.centipawns / 100;
-  if (Math.abs(pawns) < 0.005) return "Even";
-  return `${pawns > 0 ? "+" : ""}${pawns.toFixed(2)} ${pawns > 0 ? "White" : "Black"}`;
-}
+import { evaluationLabel, outcomePercentages } from "../matchPredictor";
 
 function factorValue(value) {
   const numeric = Number(value);
@@ -38,7 +23,7 @@ function MatchPredictor({ analysis, moveCount = 0, refreshing = false, onRetry }
         </span>
         <b className={unavailable ? "is-unavailable" : ""}>
           {loading ? <i aria-hidden="true" /> : null}
-          {unavailable ? "Unavailable" : loading ? "Updating" : evaluationLabel(analysis)}
+          {unavailable ? "Unavailable" : loading ? "Updating" : evaluationLabel(analysis, moveCount)}
         </b>
       </header>
 
