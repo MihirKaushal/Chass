@@ -78,6 +78,13 @@ test("opening evaluation stays neutral until the first move", () => {
   assert.equal(evaluationLabel(analysis, 1), "+0.62 White");
 });
 
+test("mate evaluation identifies the winning side and distance", () => {
+  assert.equal(
+    evaluationLabel({ evaluation: { mateIn: -1 } }, 12),
+    "Black mates in 1"
+  );
+});
+
 test("analysis is accepted only for the current game version", () => {
   const game = { id: "classic-1", version: 7 };
   assert.equal(analysisMatchesGame({ gameId: "classic-1", gameVersion: 7 }, game), true);
