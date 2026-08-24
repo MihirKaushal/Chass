@@ -7,6 +7,7 @@ import {
 } from "./customizeNavigation.js";
 
 test("an empty customize search preserves every section in page order", () => {
+  assert.equal(CUSTOMIZE_SECTION_LINKS.length, 8);
   assert.deepEqual(
     matchingCustomizeSections("").map(({ id }) => id),
     CUSTOMIZE_SECTION_LINKS.map(({ id }) => id)
