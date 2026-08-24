@@ -1,9 +1,8 @@
 # Classic Match Predictor
 
-Chass! analyzes untouched Classic games with a local Stockfish 18 process. It displays
-White-win, draw, and Black-win estimates, a White-perspective evaluation, a short engine
-line, and transparent comparisons for material, King safety, legal mobility, pawn
-structure, and center control.
+Chass! analyzes untouched Classic games with a local Stockfish 18 process. It displays a
+calibrated White/Black outcome estimate, a White-perspective evaluation, and transparent
+comparisons for material, King safety, legal mobility, pawn structure, and center control.
 
 No hosted chess service, API key, or paid dependency is required.
 
@@ -34,12 +33,14 @@ the strict gate prevents plausible-looking but invalid variant estimates.
 2. The analysis service snapshots the matching game version.
 3. Chass! serializes the position as FEN and calculates explainable board factors off the
    event loop.
-4. A persistent UCI process searches for the configured amount of time and returns score,
-   principal variation, and W/D/L values.
+4. A persistent UCI process searches for the configured amount of time and returns score
+   and W/D/L values. Suggested engine lines and search diagnostics stay server-side.
 5. Results are normalized to White's perspective, cached by a SHA-256 position key, and
    broadcast over the existing game WebSocket.
 6. The React client accepts only a result whose game ID and version match the current board.
-   A short REST polling fallback covers missed WebSocket messages.
+   It splits draw likelihood evenly between the players and gradually phases in the engine
+   estimate over the first six plies so the initial position displays as 50/50. A short REST
+   polling fallback covers missed WebSocket messages.
 
 Older work is cancelled when a newer position arrives. Engine failure never blocks a move
 or ends a game; the card reports that analysis is unavailable while play continues.

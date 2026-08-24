@@ -46,11 +46,25 @@ test("only the exact untouched Classic draft is predictor-compatible", () => {
   customizations.forEach((draft) => assert.equal(isExactClassicDraft(draft), false));
 });
 
-test("outcome percentages are normalized and always total 100", () => {
-  const percentages = outcomePercentages({ whiteWin: 41, draw: 40, blackWin: 19 });
-  assert.deepEqual(percentages, { white: 41, draw: 40, black: 19 });
+test("outcome percentages split draws between White and Black", () => {
+  const percentages = outcomePercentages(
+    { whiteWin: 41, draw: 40, blackWin: 19 },
+    6
+  );
+  assert.deepEqual(percentages, { white: 61, black: 39 });
   assert.equal(Object.values(percentages).reduce((sum, value) => sum + value, 0), 100);
   assert.equal(outcomePercentages({ whiteWin: 0, draw: 0, blackWin: 0 }), null);
+});
+
+test("opening calibration starts at 50/50 and fades over six plies", () => {
+  const whiteBiasedOpening = { whiteWin: 9, draw: 91, blackWin: 0 };
+  assert.deepEqual(outcomePercentages(whiteBiasedOpening, 0), { white: 50, black: 50 });
+  assert.deepEqual(outcomePercentages(whiteBiasedOpening, 3), { white: 52, black: 48 });
+  assert.deepEqual(outcomePercentages(whiteBiasedOpening, 6), { white: 55, black: 45 });
+  assert.deepEqual(
+    outcomePercentages({ whiteWin: 1, draw: 0, blackWin: 0 }, 0),
+    { white: 100, black: 0 }
+  );
 });
 
 test("analysis is accepted only for the current game version", () => {

@@ -292,10 +292,6 @@ class MatchAnalysisView(BaseModel):
     evaluation: MatchEvaluationView | None = None
     outcome: MatchOutcomeView | None = None
     factors: list[PositionFactorView] = Field(default_factory=list)
-    depth: int | None = None
-    nodes: int | None = None
-    principalVariation: list[str] = Field(default_factory=list)
-    elapsedMs: int | None = None
     engineVersion: str | None = None
     modelVersion: str = "classic-factors-v1"
     updatedAt: datetime | None = None

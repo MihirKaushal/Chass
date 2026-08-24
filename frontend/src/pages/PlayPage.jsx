@@ -30,6 +30,7 @@ function PlayPage({
   const [selectedBoardAction, setSelectedBoardAction] = useState(null);
   const [evolveTo, setEvolveTo] = useState("knight");
   const lastMove = game.history.length ? game.history[game.history.length - 1] : null;
+  const moveCount = game.historyPagination?.totalMoves ?? game.history.length;
   const powerTargets = selectedPower
     ? game.affinity?.legalPowerTargets?.[selectedPower] || []
     : [];
@@ -106,6 +107,7 @@ function PlayPage({
       {game.configuration?.matchPredictorEnabled ? (
         <MatchPredictor
           analysis={matchAnalysis}
+          moveCount={moveCount}
           refreshing={analysisRefreshing}
           onRetry={onRetryAnalysis}
         />
@@ -186,7 +188,7 @@ function PlayPage({
         + (game.availableActions?.length ? 1 : 0)
         + (game.configuration?.matchPredictorEnabled ? 1 : 0)
       }
-      moveCount={game.historyPagination?.totalMoves ?? game.history.length}
+      moveCount={moveCount}
     />
   );
 }

@@ -275,7 +275,11 @@ def test_analysis_service_caches_engine_results_and_publishes(client):
         assert ready.outcome.whiteWin == pytest.approx(0.41)
         assert ready.outcome.draw == pytest.approx(0.40)
         assert ready.outcome.blackWin == pytest.approx(0.19)
-        assert ready.principalVariation == ["e2e4", "e7e5"]
+        public_result = ready.model_dump()
+        assert "principalVariation" not in public_result
+        assert "depth" not in public_result
+        assert "nodes" not in public_result
+        assert "elapsedMs" not in public_result
 
         cached = await service.request(state, game["version"])
         assert cached.status == "ready"
