@@ -3,6 +3,11 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
+import {
+  savedKingPointValue,
+  synchronizeKingPointValue,
+  updatePiecePointValue,
+} from "../customizationState";
 import { matchesRulebookSearch } from "../rulebookSearch";
 import { isExactClassicDraft } from "../matchPredictor";
 import {
@@ -193,7 +198,7 @@ function loadSavedDraft(catalog) {
           }
         });
     });
-    return {
+    const loadedDraft = {
       ...base,
       schemaVersion: 2,
       presetId: configuration.presetId || "custom",
@@ -236,6 +241,15 @@ function loadSavedDraft(catalog) {
         draftPool: { ...base.gambit.draftPool, ...(gambit.draftPool || {}) },
       },
     };
+    const loadedKingPoints = savedKingPointValue(
+      configuration.victory,
+      pointValues
+    );
+    return synchronizeKingPointValue(
+      loadedDraft,
+      loadedKingPoints,
+      catalog.limits.pointMax
+    );
   } catch {
     return base;
   }
@@ -259,7 +273,8 @@ function applyModeToDraft(current, mode, catalog) {
     ...defaults.specialAbilities,
     parameters: parameterDefaults(catalog.specialAbilities, { rows, cols }),
   };
-  return {
+  const modeKingPoints = mode.victory?.kingPoints ?? defaults.pointValues.king;
+  return synchronizeKingPointValue({
     ...current,
     presetId: mode.id,
     formationId,
@@ -268,12 +283,7 @@ function applyModeToDraft(current, mode, catalog) {
     boardCols: cols,
     enabledPieces: [...STANDARD_TYPES],
     pieceParameters: defaults.pieceParameters,
-    pointValues: {
-      ...defaults.pointValues,
-      ...(mode.victory?.kingPoints !== undefined
-        ? { king: mode.victory.kingPoints }
-        : {}),
-    },
+    pointValues: defaults.pointValues,
     pieceCaps: defaults.pieceCaps,
     barricadeCount: defaults.barricadeCount,
     placements: layout,
@@ -281,7 +291,7 @@ function applyModeToDraft(current, mode, catalog) {
     customRules: { ...defaults.customRules, ...(mode.customRules || {}) },
     specialAbilities,
     gambit: { ...defaults.gambit, enabled: false, draftEnabled: false, ...mode.gambit },
-  };
+  }, modeKingPoints, catalog.limits.pointMax);
 }
 
 function buildRequest(draft, mode = "local") {
@@ -308,7 +318,10 @@ function buildRequest(draft, mode = "local") {
       initialLayout: draft.gambit.enabled
         ? []
         : draft.placements.filter((piece) => piece.type !== "barricade"),
-      victory: draft.victory,
+      victory: {
+        ...draft.victory,
+        kingPoints: Number(draft.pointValues.king ?? 0),
+      },
       customRules: draft.customRules,
       specialAbilities: draft.specialAbilities,
       gambit: {
@@ -1347,7 +1360,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                       }))}
                     />
                     <div className="piece-config-fields">
-                      <label>Point Value<input type="number" min="0" max={catalog.limits.pointMax} step="1" disabled={!enabled} value={draft.pointValues[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pointValues: { ...current.pointValues, [piece.type]: clamp(event.target.value, 0, catalog.limits.pointMax) } }))} /></label>
+                      <label>Point Value<input type="number" min="0" max={catalog.limits.pointMax} step="1" disabled={!enabled} value={draft.pointValues[piece.type]} onChange={(event) => setDraft((current) => updatePiecePointValue(current, piece.type, event.target.value, catalog.limits.pointMax))} /></label>
                       {draft.gambit.enabled && piece.type !== "barricade" ? <label>Army Limit<input type="number" min={piece.type === "king" ? 1 : 0} max={draft.gambit.maxPieces} disabled={!enabled || piece.type === "king"} value={draft.pieceCaps[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pieceCaps: { ...current.pieceCaps, [piece.type]: Math.max(0, Number(event.target.value)) } }))} /></label> : null}
                       {draft.gambit.enabled && draft.gambit.draftEnabled && piece.type !== "barricade" ? <label>{piece.type === "king" ? "Starting Kings" : "Shared Draft Pool"}<input type="number" min={piece.type === "king" ? 2 : 0} max="256" disabled={!enabled || piece.type === "king"} value={draft.gambit.draftPool[piece.type] ?? 0} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, draftPool: { ...current.gambit.draftPool, [piece.type]: Math.max(0, Number(event.target.value)) } } }))} /><small>{piece.type === "king" ? "One King is automatically assigned to each army." : "Total copies available to both players."}</small></label> : null}
                       {enabled && piece.type === "barricade" ? <label>Starting Walls<input type="number" min="1" max={Math.max(1, Math.floor(draft.boardCols / 2))} value={draft.barricadeCount} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", barricadeCount: clamp(event.target.value, 1, Math.max(1, Math.floor(current.boardCols / 2))) }))} /></label> : null}
@@ -1371,7 +1384,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
               {draft.victory.mode === "timed" ? <label>Minutes Per Player<input type="number" min="1" max="1440" value={Math.round(draft.victory.timeSeconds / 60)} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, timeSeconds: Math.max(60, Number(event.target.value) * 60) } }))} /><small>The server controls both clocks.</small></label> : null}
               {draft.victory.mode === "center_dominion" ? <label>Rounds To Hold<input type="number" min="1" max="20" value={draft.victory.dominionRounds} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, dominionRounds: clamp(event.target.value, 1, 20) } }))} /><small>Marked squares begin empty, then must stay occupied through this many opponent turns. Checkmate also wins.</small></label> : null}
               {draft.victory.mode === "check_race" ? <label>Checks To Win<input type="number" min="1" max="100" value={draft.victory.checkTarget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, checkTarget: clamp(event.target.value, 1, 100) } }))} /><small>The first player to give this many checks wins. Checkmate also wins immediately.</small></label> : null}
-              {["point_race", "royal_score"].includes(draft.victory.mode) ? <label>King Point Value<input type="number" min="0" value={draft.victory.kingPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, kingPoints: Math.max(0, Number(event.target.value)) }, pointValues: { ...current.pointValues, king: Math.max(0, Number(event.target.value)) } }))} /><small>Zero is allowed in score-based victory modes.</small></label> : null}
+              {["point_race", "royal_score"].includes(draft.victory.mode) ? <label>King Point Value<input type="number" min="0" max={catalog.limits.pointMax} value={draft.pointValues.king} onChange={(event) => setDraft((current) => ({ ...synchronizeKingPointValue(current, event.target.value, catalog.limits.pointMax), presetId: "custom" }))} /><small>Shared with the King Point Value in Pieces. Zero is allowed.</small></label> : null}
             </div>
           </CollapsibleStudioSection>
 
