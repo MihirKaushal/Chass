@@ -630,6 +630,18 @@ function CollapsibleStudioSection({
 
 function CustomizeNavigator({ query, sections, onQueryChange, onNavigate }) {
   const firstResult = sections[0];
+  const [menuOpen, setMenuOpen] = useState(false);
+  const menuRef = useRef(null);
+
+  useEffect(() => {
+    if (!menuOpen) return undefined;
+
+    const closeOutsideMenu = (event) => {
+      if (!menuRef.current?.contains(event.target)) setMenuOpen(false);
+    };
+    document.addEventListener("pointerdown", closeOutsideMenu);
+    return () => document.removeEventListener("pointerdown", closeOutsideMenu);
+  }, [menuOpen]);
 
   return (
     <aside className="customize-section-navigator" aria-label="Customize page navigation">
@@ -660,22 +672,51 @@ function CustomizeNavigator({ query, sections, onQueryChange, onNavigate }) {
           </button>
         ) : null}
       </label>
-      {sections.length ? (
-        <nav aria-label="Customize sections">
-          {sections.map((section) => (
-            <a
-              href={`#${section.id}`}
-              key={section.id}
-              onClick={(event) => {
-                event.preventDefault();
-                onNavigate(section.id);
-              }}
-            >
-              {section.label}
-            </a>
-          ))}
-        </nav>
-      ) : <p>No matching section.</p>}
+      <div
+        className={`customize-jump-menu ${menuOpen ? "is-open" : ""}`}
+        ref={menuRef}
+        onMouseEnter={() => setMenuOpen(true)}
+        onMouseLeave={() => setMenuOpen(false)}
+        onBlur={(event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) setMenuOpen(false);
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== "Escape") return;
+          setMenuOpen(false);
+          menuRef.current?.querySelector("button")?.focus();
+        }}
+      >
+        <button
+          type="button"
+          className="customize-jump-trigger"
+          aria-expanded={menuOpen}
+          aria-controls="customize-jump-options"
+          onClick={() => setMenuOpen((open) => !open)}
+        >
+          <span>Jump to...</span>
+          <small>{sections.length} {sections.length === 1 ? "section" : "sections"}</small>
+          <i aria-hidden="true" />
+        </button>
+        <div className="customize-jump-options" id="customize-jump-options">
+          {sections.length ? (
+            <nav aria-label="Customize sections">
+              {sections.map((section) => (
+                <a
+                  href={`#${section.id}`}
+                  key={section.id}
+                  onClick={(event) => {
+                    event.preventDefault();
+                    setMenuOpen(false);
+                    onNavigate(section.id);
+                  }}
+                >
+                  {section.label}
+                </a>
+              ))}
+            </nav>
+          ) : <p>No matching section.</p>}
+        </div>
+      </div>
     </aside>
   );
 }
