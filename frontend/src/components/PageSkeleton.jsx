@@ -49,7 +49,6 @@ function CustomizeSkeleton() {
       <div className="skeleton-customize-grid">
         <div className="skeleton-preview-column">
           <div className="skeleton-panel"><div className="skeleton-block skeleton-preview-board" /></div>
-          <SkeletonPanel rows={2} />
         </div>
         <div className="skeleton-control-column">
           <SkeletonPanel rows={3} />
@@ -59,7 +58,11 @@ function CustomizeSkeleton() {
           <SkeletonPanel rows={2} />
         </div>
       </div>
-      <div className="skeleton-launch-bar"><SkeletonLine size="medium" /><span className="skeleton-block" /></div>
+      <div className="skeleton-launch-bar">
+        <SkeletonLine size="medium" />
+        <span className="skeleton-block skeleton-launch-summary" />
+        <span className="skeleton-block skeleton-launch-actions" />
+      </div>
     </section>
   );
 }
