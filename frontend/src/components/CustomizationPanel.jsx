@@ -1209,6 +1209,15 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       : validation.valid
         ? "Configuration valid"
         : `${validation.errors.length} setting issue${validation.errors.length === 1 ? "" : "s"}`;
+  const briefingConfiguration = {
+    presetId: draft.presetId,
+    formationId: draft.formationId,
+    enabledPieces: draft.enabledPieces,
+    victory: draft.victory,
+    customRules: draft.customRules,
+    specialAbilities: draft.specialAbilities,
+    gambit: draft.gambit,
+  };
 
   const focusValidationIssue = (message) => {
     const { sectionId, settingKey } = locateConfigurationIssue(message);
@@ -1266,21 +1275,6 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             canUndo={Boolean(boardHistory.length)}
             onRestore={restoreFormation}
             highlightedIssueSquares={highlightedIssueSquares}
-          />
-          <GameBriefing
-            boardRows={draft.boardRows}
-            boardCols={draft.boardCols}
-            configuration={{
-              presetId: draft.presetId,
-              formationId: draft.formationId,
-              enabledPieces: draft.enabledPieces,
-              victory: draft.victory,
-              customRules: draft.customRules,
-              specialAbilities: draft.specialAbilities,
-              gambit: draft.gambit,
-            }}
-            catalog={catalog}
-            className="studio-summary-card"
           />
         </aside>
 
@@ -1478,9 +1472,16 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
               ))}
             </div>
           ) : (
-            <small>{validation.warnings[0] || "Choose local play or create an online invite."}</small>
+            validation.warnings[0] ? <small>{validation.warnings[0]}</small> : null
           )}
         </div>
+        <GameBriefing
+          boardRows={draft.boardRows}
+          boardCols={draft.boardCols}
+          configuration={briefingConfiguration}
+          catalog={catalog}
+          className="studio-launch-summary"
+        />
         <div className="launch-actions"><button type="button" disabled={!canLaunch} onClick={() => create("local")}>{creatingMode === "local" ? "Building..." : "Start Local Game"}</button><button type="button" className="secondary" disabled={!canLaunch} onClick={() => create("online")}>{creatingMode === "online" ? "Creating Invite..." : "Create Online Game"}</button></div>
       </section>
       {error ? <p className="studio-error">{error}</p> : null}
