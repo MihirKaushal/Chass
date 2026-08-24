@@ -127,14 +127,14 @@ def test_catalog_describes_custom_content(client):
     assert "Rook" not in getaway["summary"]
     assert any("Only a Queen" in detail for detail in getaway["details"])
     assert getaway["usageLimit"] == 1
-    assert "center_dominion" in {mode["id"] for mode in catalog["victoryModes"]}
-    assert "center_dominion" in {mode["id"] for mode in catalog["popularModes"]}
-    assert {"royal_center", "check_race"} <= {
+    assert {"center_dominion", "royal_center", "check_race"} <= {
         mode["id"] for mode in catalog["victoryModes"]
     }
-    assert {"royal_center", "check_race"} <= {
-        mode["id"] for mode in catalog["popularModes"]
-    }
+    assert [mode["id"] for mode in catalog["popularModes"]] == [
+        "classic",
+        "gambit",
+        "draft_gambit",
+    ]
     draft_mode = next(mode for mode in catalog["popularModes"] if mode["id"] == "draft_gambit")
     assert draft_mode["gambit"] == {"enabled": True, "draftEnabled": True}
     assert catalog["gambit"]["draftDetails"]

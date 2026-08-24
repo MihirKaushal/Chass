@@ -1285,7 +1285,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         </aside>
 
         <div className="studio-controls">
-          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Popular Modes" description="Load a complete starting configuration.">
+          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Popular Modes" description="Choose a complete starting system. Victory-only variants are configured under End Game Logic.">
             <div className="mode-preset-grid" data-setting-key="popular-modes">
               {catalog.popularModes.map((mode) => (
                 <article

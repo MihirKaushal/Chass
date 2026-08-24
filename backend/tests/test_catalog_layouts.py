@@ -35,11 +35,12 @@ def test_adaptive_back_rank_keeps_one_king(cols: int, expected: list[str]):
     assert adaptive_back_rank(cols) == expected
 
 
-def test_king_hunt_copy_matches_capture_rules():
-    king_hunt = next(mode for mode in POPULAR_PRESETS if mode["id"] == "king_hunt")
-    assert king_hunt["summary"] == (
-        "Check restrictions are disabled; capture the opposing King to win."
-    )
+def test_popular_presets_do_not_duplicate_victory_modes():
+    assert [mode["id"] for mode in POPULAR_PRESETS] == [
+        "classic",
+        "gambit",
+        "draft_gambit",
+    ]
 
 
 def test_configured_catalog_copy_pluralizes_descriptive_counts():
