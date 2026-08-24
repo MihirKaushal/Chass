@@ -43,7 +43,11 @@ class FirestoreGameRepository:
     """Firestore persistence adapter; chess behavior remains in RuleEngine."""
 
     def __init__(self, client=None) -> None:
-        self.client = client or get_firestore_client()
+        self._client_override = client
+
+    @property
+    def client(self):
+        return self._client_override or get_firestore_client()
 
     @staticmethod
     def _record_from_data(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import base64
 import binascii
 import json
+import logging
 import os
 from threading import Lock
 
@@ -12,6 +13,8 @@ from google.auth.credentials import AnonymousCredentials
 from google.cloud.firestore_v1.client import Client
 
 from backend.config import get_settings
+
+logger = logging.getLogger(__name__)
 
 _client: Client | None = None
 _client_lock = Lock()
@@ -72,9 +75,37 @@ def _decode_service_account(encoded_credentials: str) -> dict:
     return service_account
 
 
-def _service_account_credential(encoded_credentials: str):
-    service_account = _decode_service_account(encoded_credentials)
+def _service_account_credential(service_account: dict):
     return credentials.Certificate(service_account)
+
+
+def _project_id_for_service_account(
+    configured_project_id: str | None,
+    service_account: dict | None,
+) -> str:
+    credential_project_id = (
+        str(service_account.get("project_id", "")).strip()
+        if service_account is not None
+        else ""
+    )
+    if credential_project_id:
+        if configured_project_id and configured_project_id != credential_project_id:
+            logger.warning(
+                "FIREBASE_PROJECT_ID does not match the service-account project_id; "
+                "using the credential project"
+            )
+        return credential_project_id
+    if configured_project_id:
+        return configured_project_id
+    raise RuntimeError("A Firebase project ID is required to connect to Firestore")
+
+
+def reset_firestore_client() -> None:
+    """Discard a failed transport so the next request creates a fresh client."""
+    global _client
+
+    with _client_lock:
+        _client = None
 
 
 def get_firestore_client() -> Client:
@@ -96,14 +127,23 @@ def get_firestore_client() -> Client:
             )
             return _client
 
-        options = {"projectId": settings.firebase_project_id}
+        service_account = (
+            _decode_service_account(settings.firebase_credentials_base64)
+            if settings.firebase_credentials_base64
+            else None
+        )
+        project_id = _project_id_for_service_account(
+            settings.firebase_project_id,
+            service_account,
+        )
+        options = {"projectId": project_id}
 
         try:
             app = firebase_admin.get_app()
         except ValueError:
             credential = (
-                _service_account_credential(settings.firebase_credentials_base64)
-                if settings.firebase_credentials_base64
+                _service_account_credential(service_account)
+                if service_account is not None
                 else None
             )
             app = firebase_admin.initialize_app(credential, options)

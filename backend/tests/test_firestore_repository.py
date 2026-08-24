@@ -266,6 +266,20 @@ def firestore_service(monkeypatch):
     return GameService(RuleEngine(), repository), repository, client
 
 
+def test_firestore_repository_resolves_the_shared_client_lazily(monkeypatch):
+    clients = [FakeFirestoreClient(), FakeFirestoreClient()]
+    active_client = [clients[0]]
+    monkeypatch.setattr(
+        "backend.repositories.firestore_repository.get_firestore_client",
+        lambda: active_client[0],
+    )
+    repository = FirestoreGameRepository()
+
+    assert repository.client is clients[0]
+    active_client[0] = clients[1]
+    assert repository.client is clients[1]
+
+
 def test_firestore_invites_are_transactional_and_replaceable(firestore_service):
     service, _, client = firestore_service
     created = service.create_game(CreateGameRequest(mode="online"))

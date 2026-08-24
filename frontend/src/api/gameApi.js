@@ -10,14 +10,22 @@ export class ApiError extends Error {
 }
 
 async function request(path, { token, headers, ...options } = {}) {
-  const response = await fetch(`${API_BASE}${path}`, {
-    headers: {
-      "Content-Type": "application/json",
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      ...headers,
-    },
-    ...options,
-  });
+  let response;
+  try {
+    response = await fetch(`${API_BASE}${path}`, {
+      headers: {
+        "Content-Type": "application/json",
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        ...headers,
+      },
+      ...options,
+    });
+  } catch {
+    throw new ApiError(
+      "Unable to reach the game server. Please wait a moment and try again.",
+      0
+    );
+  }
 
   if (!response.ok) {
     const payload = await response.json().catch(() => ({}));
