@@ -44,7 +44,7 @@ function CustomizeSkeleton() {
     <section className="skeleton-customize-body" aria-hidden="true">
       <div className="skeleton-customize-hero">
         <div><SkeletonLine size="short" /><SkeletonLine size="long" /><SkeletonLine size="medium" /></div>
-        <span className="skeleton-block skeleton-hero-button" />
+        <div className="skeleton-block skeleton-hero-button" />
       </div>
       <div className="skeleton-customize-grid">
         <div className="skeleton-preview-column">

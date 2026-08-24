@@ -3,6 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
+import { matchingCustomizeSections } from "../customizeNavigation";
 import {
   savedKingPointValue,
   synchronizeKingPointValue,
@@ -627,6 +628,58 @@ function CollapsibleStudioSection({
   );
 }
 
+function CustomizeNavigator({ query, sections, onQueryChange, onNavigate }) {
+  const firstResult = sections[0];
+
+  return (
+    <aside className="customize-section-navigator" aria-label="Customize page navigation">
+      <div className="customize-navigator-heading">
+        <strong>Jump To A Section</strong>
+        <small>
+          {sections.length} {query
+            ? `match${sections.length === 1 ? "" : "es"}`
+            : `section${sections.length === 1 ? "" : "s"}`}
+        </small>
+      </div>
+      <label className="customize-section-search">
+        <span className="visually-hidden">Search customize sections and settings</span>
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => onQueryChange(event.target.value)}
+          onKeyDown={(event) => {
+            if (event.key !== "Enter" || !firstResult) return;
+            event.preventDefault();
+            onNavigate(firstResult.id);
+          }}
+          placeholder="Find a setting or section"
+        />
+        {query ? (
+          <button type="button" onClick={() => onQueryChange("")} aria-label="Clear customize search">
+            Clear
+          </button>
+        ) : null}
+      </label>
+      {sections.length ? (
+        <nav aria-label="Customize sections">
+          {sections.map((section) => (
+            <a
+              href={`#${section.id}`}
+              key={section.id}
+              onClick={(event) => {
+                event.preventDefault();
+                onNavigate(section.id);
+              }}
+            >
+              {section.label}
+            </a>
+          ))}
+        </nav>
+      ) : <p>No matching section.</p>}
+    </aside>
+  );
+}
+
 function RulebookSection({
   id,
   title: heading,
@@ -848,6 +901,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const [restoreFormationId, setRestoreFormationId] = useState("classic");
   const [creatingMode, setCreatingMode] = useState("");
   const [error, setError] = useState("");
+  const [sectionQuery, setSectionQuery] = useState("");
   const [highlightedIssueSquares, setHighlightedIssueSquares] = useState([]);
   const issueSquareTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
@@ -857,6 +911,10 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const validationRequestKey = useMemo(
     () => (validationRequest ? JSON.stringify(validationRequest) : null),
     [validationRequest]
+  );
+  const matchingSections = useMemo(
+    () => matchingCustomizeSections(sectionQuery),
+    [sectionQuery]
   );
 
   useEffect(() => {
@@ -1253,11 +1311,29 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     });
   };
 
+  const jumpToCustomizeSection = (sectionId) => {
+    const section = document.getElementById(sectionId);
+    if (!section) return;
+    if (section instanceof HTMLDetailsElement) section.open = true;
+    window.requestAnimationFrame(() => {
+      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      window.setTimeout(
+        () => section.querySelector("summary")?.focus({ preventScroll: true }),
+        350
+      );
+    });
+  };
+
   return (
     <section className="customization-panel configuration-studio">
       <header className="studio-hero">
-        <div><span className="eyebrow">Configuration Studio</span><h1>Build Your Version Of Chass</h1><p>Choose a starting mode, then adjust the board, pieces, victory rule, abilities, or Gambit setup.</p></div>
-        <a className="rulebook-jump" href="#rulebook">Read The Rulebook</a>
+        <div className="studio-hero-copy"><span className="eyebrow">Configuration Studio</span><h1>Build Your Version Of Chass</h1><p>Choose a starting system, then adjust the board, pieces, victory rule, abilities, or Gambit setup.</p></div>
+        <CustomizeNavigator
+          query={sectionQuery}
+          sections={matchingSections}
+          onQueryChange={setSectionQuery}
+          onNavigate={jumpToCustomizeSection}
+        />
       </header>
 
       <div className="studio-shell">
