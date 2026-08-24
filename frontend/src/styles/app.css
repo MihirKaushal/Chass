@@ -266,9 +266,10 @@ textarea {
 }
 
 .skeleton-hero-button {
-  flex: 0 0 150px;
-  height: 42px;
-  border-radius: 10px;
+  flex: 0 1 480px !important;
+  width: min(480px, 46vw);
+  min-height: 116px;
+  border-radius: 15px;
 }
 
 .skeleton-customize-grid {
@@ -396,8 +397,14 @@ textarea {
     min-height: 145px;
   }
 
+  .skeleton-customize-hero {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
   .skeleton-hero-button {
-    display: none;
+    width: 100%;
+    min-height: 96px;
   }
 
   .skeleton-launch-bar > .skeleton-block:last-child {
@@ -3702,11 +3709,16 @@ button.secondary {
 
 .studio-hero {
   display: flex;
-  align-items: end;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 2rem;
   padding: 0.4rem 0.4rem 1.5rem;
   border-bottom: 1px solid rgba(26, 54, 93, 0.16);
+}
+
+.studio-hero-copy {
+  flex: 1 1 560px;
+  min-width: 0;
 }
 
 .studio-hero h1 {
@@ -3724,21 +3736,103 @@ button.secondary {
   line-height: 1.55;
 }
 
-.rulebook-jump {
-  flex: 0 0 auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.75rem 1rem;
+.customize-section-navigator {
+  width: min(520px, 47vw);
+  flex: 0 1 520px;
+  padding: 0.78rem;
   color: white;
-  border-radius: 12px;
-  background: var(--deep);
-  text-decoration: none;
-  font-weight: 700;
+  border: 1px solid rgba(99, 179, 237, 0.3);
+  border-radius: 16px;
+  background:
+    linear-gradient(125deg, rgba(43, 108, 176, 0.36), rgba(26, 54, 93, 0.12)),
+    var(--deep);
+  box-shadow: 0 12px 25px rgba(26, 54, 93, 0.18);
 }
 
-.rulebook-jump span {
-  font-size: 1.25rem;
+.customize-navigator-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  margin-bottom: 0.5rem;
+}
+
+.customize-navigator-heading strong {
+  font-size: 0.8rem;
+  letter-spacing: 0.02em;
+}
+
+.customize-navigator-heading small,
+.customize-section-navigator > p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.66);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.62rem;
+}
+
+.customize-section-search {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.28);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.customize-section-search:focus-within {
+  border-color: var(--accent-soft);
+  box-shadow: 0 0 0 3px rgba(99, 179, 237, 0.2);
+}
+
+.customize-section-search input {
+  min-width: 0;
+  padding: 0.6rem 0.7rem;
+  color: white;
+  border: 0;
+  outline: 0;
+  background: transparent;
+}
+
+.customize-section-search input::placeholder {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.customize-section-search button {
+  padding: 0 0.68rem;
+  color: white;
+  border: 0;
+  border-left: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.08);
+  cursor: pointer;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.customize-section-navigator nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+  margin-top: 0.58rem;
+}
+
+.customize-section-navigator nav a {
+  padding: 0.3rem 0.5rem;
+  color: white;
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  text-decoration: none;
+  font-size: 0.67rem;
+  font-weight: 700;
+  transition: border-color 140ms ease, background 140ms ease, transform 140ms ease;
+}
+
+.customize-section-navigator nav a:hover,
+.customize-section-navigator nav a:focus-visible {
+  border-color: var(--accent-soft);
+  background: rgba(99, 179, 237, 0.18);
+  transform: translateY(-1px);
 }
 
 .studio-shell {
@@ -4180,6 +4274,7 @@ button.secondary {
   border: 1px solid rgba(26, 54, 93, 0.18);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.48);
+  scroll-margin-top: 1rem;
 }
 
 .studio-disclosure > summary,
@@ -5789,6 +5884,12 @@ details[open] > summary > .disclosure-arrow {
     align-items: stretch;
   }
 
+  .studio-hero-copy,
+  .customize-section-navigator {
+    width: 100%;
+    flex-basis: auto;
+  }
+
   .rulebook-hero nav {
     justify-content: flex-start;
   }
@@ -5807,6 +5908,17 @@ details[open] > summary > .disclosure-arrow {
 
   .studio-hero h1 {
     font-size: 2.2rem;
+  }
+
+  .customize-section-navigator nav {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .customize-section-navigator nav a {
+    display: grid;
+    place-items: center;
+    text-align: center;
   }
 
   .landing-intro span:first-child {
