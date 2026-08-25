@@ -4,7 +4,10 @@ import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { boardPlacementRestriction } from "../customizeBoardPlacement";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
-import { matchingCustomizeResults } from "../customizeNavigation";
+import {
+  matchingCustomizeResults,
+  nextCustomizeResultIndex,
+} from "../customizeNavigation";
 import { PIECE_FILTERS, visibleCustomizePieces } from "../customizePieces";
 import {
   CONFIGURATION_SECTION_IDS,
@@ -742,7 +745,13 @@ function CustomizeNavigator({
 }) {
   const firstResult = results[0];
   const [menuOpen, setMenuOpen] = useState(false);
+  const [activeResultIndex, setActiveResultIndex] = useState(-1);
   const menuRef = useRef(null);
+  const resultRefs = useRef([]);
+
+  useEffect(() => {
+    setActiveResultIndex(-1);
+  }, [results]);
 
   useEffect(() => {
     if (query.trim()) setMenuOpen(true);
@@ -758,6 +767,18 @@ function CustomizeNavigator({
     return () => document.removeEventListener("pointerdown", closeOutsideMenu);
   }, [menuOpen]);
 
+  useEffect(() => {
+    if (!menuOpen || activeResultIndex < 0) return;
+    resultRefs.current[activeResultIndex]?.scrollIntoView({ block: "nearest" });
+  }, [activeResultIndex, menuOpen]);
+
+  const selectActiveResult = () => {
+    const result = results[activeResultIndex] || firstResult;
+    if (!result) return;
+    setMenuOpen(false);
+    onNavigate(result);
+  };
+
   return (
     <aside className="customize-section-navigator" aria-label="Customize page navigation">
       <div className="customize-navigator-heading">
@@ -767,15 +788,35 @@ function CustomizeNavigator({
         <span className="visually-hidden">Search customize sections and settings</span>
         <input
           type="search"
+          role="combobox"
           value={query}
+          aria-autocomplete="list"
+          aria-controls="customize-jump-options"
+          aria-expanded={menuOpen}
+          aria-activedescendant={activeResultIndex >= 0
+            ? `customize-jump-result-${results[activeResultIndex]?.id}`
+            : undefined}
           onChange={(event) => onQueryChange(event.target.value)}
           onFocus={() => {
             if (query.trim()) setMenuOpen(true);
           }}
           onKeyDown={(event) => {
-            if (event.key !== "Enter" || !firstResult) return;
-            event.preventDefault();
-            onNavigate(firstResult);
+            if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+              event.preventDefault();
+              setMenuOpen(true);
+              setActiveResultIndex((current) => nextCustomizeResultIndex(
+                current,
+                results.length,
+                event.key === "ArrowDown" ? 1 : -1
+              ));
+            } else if (event.key === "Enter" && firstResult) {
+              event.preventDefault();
+              selectActiveResult();
+            } else if (event.key === "Escape" && menuOpen) {
+              event.preventDefault();
+              setMenuOpen(false);
+              setActiveResultIndex(-1);
+            }
           }}
           placeholder="Find a setting or section"
         />
@@ -816,11 +857,17 @@ function CustomizeNavigator({
         </button>
         <div className="customize-jump-options" id="customize-jump-options">
           {results.length ? (
-            <nav aria-label="Customize sections">
-              {results.map((result) => (
+            <nav aria-label="Customize sections" role="listbox">
+              {results.map((result, index) => (
                 <a
+                  id={`customize-jump-result-${result.id}`}
                   href={`#${result.targetId || result.sectionId}`}
                   key={result.id}
+                  role="option"
+                  aria-selected={activeResultIndex === index}
+                  className={activeResultIndex === index ? "keyboard-active" : ""}
+                  ref={(element) => { resultRefs.current[index] = element; }}
+                  onMouseEnter={() => setActiveResultIndex(index)}
                   onClick={(event) => {
                     event.preventDefault();
                     setMenuOpen(false);
