@@ -1,3 +1,5 @@
+import { actionsForGlobalSelection } from "./specialActionSelection.js";
+
 const ACTION_COPY = {
   catapult_projectile: {
     title: "Catapult projectile ready",
@@ -70,14 +72,22 @@ function actionGuidance(actions, game, source) {
     instruction: "Choose one of the marked board targets.",
   };
   const piece = pieceAt(game, source);
+  const capturedPiece = action.actionType === "necromancy"
+    ? game.capturedPieces?.[action.owner]?.find(
+        (candidate) => candidate.pieceId === action.params?.capturedPieceId
+      )
+    : null;
+  const description = capturedPiece
+    ? `${capturedPiece.name} costs ${capturedPiece.points ?? 0} point${capturedPiece.points === 1 ? "" : "s"} and has ${actions.length} legal home square${actions.length === 1 ? "" : "s"}.`
+    : piece
+      ? `${piece.name} has ${actions.length} legal special target${actions.length === 1 ? "" : "s"}.`
+      : action.description;
   return {
     state: "action",
     marker: action.boardMarker || "ability",
     icon: action.icon || "✦",
     title: copy.title,
-    description: piece
-      ? `${piece.name} has ${actions.length} legal special target${actions.length === 1 ? "" : "s"}.`
-      : action.description,
+    description,
     instruction: copy.instruction,
   };
 }
@@ -87,12 +97,13 @@ export function buildActionGuidance({
   selectedSquare,
   selectedBoardAction,
   selectedPower,
-  selectedGlobalActionType,
+  selectedGlobalActionKey,
   powerTargets = [],
 }) {
-  if (selectedGlobalActionType) {
-    const actions = (game.availableActions || []).filter(
-      (action) => !action.source && action.actionType === selectedGlobalActionType
+  if (selectedGlobalActionKey) {
+    const actions = actionsForGlobalSelection(
+      game.availableActions || [],
+      selectedGlobalActionKey
     );
     if (actions.length) return actionGuidance(actions, game, null);
   }
