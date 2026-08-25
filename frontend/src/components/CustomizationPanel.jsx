@@ -10,6 +10,11 @@ import {
 } from "../customizeNavigation";
 import { PIECE_FILTERS, visibleCustomizePieces } from "../customizePieces";
 import {
+  resetEnabledCustomRules,
+  resetEnabledGambit,
+  resetEnabledSpecialAbilities,
+} from "../customizeResetDefaults";
+import {
   CONFIGURATION_SECTION_IDS,
   configurationSectionStatuses,
   hasConfigurationModifications,
@@ -1622,34 +1627,39 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       } else if (sectionId === "studio-custom-rules") {
         next = {
           ...current,
-          customRules: cloneDraft(configurationBaseline.customRules),
+          customRules: resetEnabledCustomRules(configurationBaseline.customRules),
         };
       } else if (sectionId === "studio-abilities") {
         const baselineAbilities = cloneDraft(configurationBaseline.specialAbilities);
+        const resetParameters = resizeDynamicParameterDefaults(
+          baselineAbilities.parameters,
+          catalog.specialAbilities,
+          {
+            rows: configurationBaseline.boardRows,
+            cols: configurationBaseline.boardCols,
+          },
+          { rows: current.boardRows, cols: current.boardCols }
+        );
         next = {
           ...current,
-          specialAbilities: {
-            ...baselineAbilities,
-            parameters: resizeDynamicParameterDefaults(
-              baselineAbilities.parameters,
-              catalog.specialAbilities,
-              {
-                rows: configurationBaseline.boardRows,
-                cols: configurationBaseline.boardCols,
-              },
-              { rows: current.boardRows, cols: current.boardCols }
-            ),
-          },
+          specialAbilities: resetEnabledSpecialAbilities({
+            defaults: baselineAbilities,
+            abilities: catalog.specialAbilities,
+            disabledAbilities,
+            parameters: resetParameters,
+          }),
         };
       } else if (sectionId === "studio-gambit") {
+        const resetGambit = resetEnabledGambit(
+          cloneDraft(configurationBaseline.gambit),
+          current.boardRows
+        );
         next = {
           ...current,
-          gambit: {
-            ...cloneDraft(configurationBaseline.gambit),
-            setupRows: Math.min(
-              configurationBaseline.gambit.setupRows,
-              Math.max(1, Math.floor(current.boardRows / 2))
-            ),
+          gambit: resetGambit,
+          pieceCaps: {
+            ...current.pieceCaps,
+            queen: resetGambit.maxQueens,
           },
         };
       }
