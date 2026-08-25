@@ -5,6 +5,12 @@ import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
 import { matchingCustomizeResults } from "../customizeNavigation";
 import {
+  CONFIGURATION_SECTION_IDS,
+  configurationSectionStatuses,
+  reconcileDraftIdentity,
+  sectionIsModified,
+} from "../customizeSectionState";
+import {
   savedKingPointValue,
   synchronizeKingPointValue,
   updatePiecePointValue,
@@ -30,6 +36,7 @@ const MAX_DIMENSION = 16;
 const STANDARD_TYPES = ["pawn", "knight", "bishop", "rook", "queen", "king"];
 const BACK_RANK = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
 const DEFAULT_DRAFT_POOL = { pawn: 16, knight: 4, bishop: 4, rook: 4, queen: 2, king: 2 };
+const SECTION_VISIBILITY_STORAGE_KEY = "chass-customize-section-visibility";
 
 function title(value) {
   return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
@@ -39,6 +46,27 @@ function clamp(value, minimum, maximum) {
   const number = Number(value);
   if (!Number.isFinite(number)) return minimum;
   return Math.max(minimum, Math.min(maximum, Math.trunc(number)));
+}
+
+function cloneDraft(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function initialSectionVisibility() {
+  const defaults = Object.fromEntries(
+    CONFIGURATION_SECTION_IDS.map((sectionId) => [sectionId, true])
+  );
+  try {
+    const saved = JSON.parse(window.sessionStorage.getItem(SECTION_VISIBILITY_STORAGE_KEY));
+    return Object.fromEntries(
+      CONFIGURATION_SECTION_IDS.map((sectionId) => [
+        sectionId,
+        typeof saved?.[sectionId] === "boolean" ? saved[sectionId] : defaults[sectionId],
+      ])
+    );
+  } catch {
+    return defaults;
+  }
 }
 
 function resizeDynamicParameterDefaults(
@@ -293,6 +321,31 @@ function applyModeToDraft(current, mode, catalog) {
     specialAbilities,
     gambit: { ...defaults.gambit, enabled: false, draftEnabled: false, ...mode.gambit },
   }, modeKingPoints, catalog.limits.pointMax);
+}
+
+function applyFormationToDraft(current, formation, catalog) {
+  const disabled = formation.disabledAbilities || {};
+  return {
+    ...current,
+    presetId: formation.id,
+    formationId: formation.id,
+    boardRows: formation.boardRows,
+    boardCols: formation.boardCols,
+    enabledPieces: [...STANDARD_TYPES],
+    placements: formation.initialLayout,
+    victory: { ...current.victory, mode: formation.defaultVictory },
+    specialAbilities: {
+      ...current.specialAbilities,
+      allowed: current.specialAbilities.allowed.filter((ability) => !disabled[ability]),
+      parameters: resizeDynamicParameterDefaults(
+        current.specialAbilities.parameters,
+        catalog.specialAbilities,
+        { rows: current.boardRows, cols: current.boardCols },
+        { rows: formation.boardRows, cols: formation.boardCols }
+      ),
+    },
+    gambit: { ...current.gambit, enabled: false, draftEnabled: false },
+  };
 }
 
 function buildRequest(draft, mode = "local") {
@@ -595,8 +648,32 @@ function ConfiguredParameterList({ parameters }) {
   );
 }
 
-function SectionHeading({ title: heading, description }) {
-  return <div className="section-heading"><div><h2>{heading}</h2><p>{description}</p></div></div>;
+function SectionStatusBadges({ status }) {
+  if (!status?.modified && !status?.issueCount) return null;
+  return (
+    <span className="section-status-badges">
+      {status.issueCount ? (
+        <b className="section-status issue">
+          {status.issueCount === 1 ? "Issue" : `${status.issueCount} Issues`}
+        </b>
+      ) : null}
+      {status.modified ? <b className="section-status modified">Modified</b> : null}
+    </span>
+  );
+}
+
+function SectionHeading({ title: heading, description, status }) {
+  return (
+    <div className="section-heading">
+      <div>
+        <span className="section-title-line">
+          <h2>{heading}</h2>
+          <SectionStatusBadges status={status} />
+        </span>
+        <p>{description}</p>
+      </div>
+    </div>
+  );
 }
 
 function DisclosureArrow() {
@@ -608,27 +685,49 @@ function CollapsibleStudioSection({
   description,
   className = "",
   sectionId,
+  open,
+  onOpenChange,
+  onReset,
+  status,
   children,
 }) {
-  const [open, setOpen] = useState(true);
-
   return (
     <details
       className={`studio-section studio-disclosure ${className}`.trim()}
       id={sectionId}
       open={open}
-      onToggle={(event) => setOpen(event.currentTarget.open)}
+      onToggle={(event) => onOpenChange(event.currentTarget.open)}
     >
       <summary>
-        <SectionHeading title={heading} description={description} />
+        <SectionHeading title={heading} description={description} status={status} />
         <DisclosureArrow />
       </summary>
-      <div className="studio-disclosure-body">{children}</div>
+      <div className="studio-disclosure-body">
+        <div className="studio-section-actions">
+          <button
+            type="button"
+            className="section-reset-button"
+            disabled={!status?.modified}
+            onClick={onReset}
+          >
+            Reset Section
+          </button>
+        </div>
+        {children}
+      </div>
     </details>
   );
 }
 
-function CustomizeNavigator({ query, results, onQueryChange, onNavigate }) {
+function CustomizeNavigator({
+  query,
+  results,
+  sectionStatuses,
+  onQueryChange,
+  onNavigate,
+  onExpandAll,
+  onCollapseAll,
+}) {
   const firstResult = results[0];
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
@@ -709,13 +808,20 @@ function CustomizeNavigator({ query, results, onQueryChange, onNavigate }) {
                     onNavigate(result);
                   }}
                 >
-                  <span>{result.label}</span>
+                  <span className="customize-jump-result-heading">
+                    <span>{result.label}</span>
+                    <SectionStatusBadges status={sectionStatuses[result.sectionId]} />
+                  </span>
                   {query.trim() && result.category ? <small>{result.category}</small> : null}
                 </a>
               ))}
             </nav>
           ) : <p>No matching section.</p>}
         </div>
+      </div>
+      <div className="customize-disclosure-actions" aria-label="Section display controls">
+        <button type="button" onClick={onExpandAll}>Expand All</button>
+        <button type="button" onClick={onCollapseAll}>Collapse All</button>
       </div>
     </aside>
   );
@@ -937,12 +1043,14 @@ function Rulebook({ catalog, draft }) {
 function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const [catalog, setCatalog] = useState(null);
   const [draft, setDraft] = useState(null);
+  const [configurationBaseline, setConfigurationBaseline] = useState(null);
   const [selectedTool, setSelectedTool] = useState(null);
   const [boardHistory, setBoardHistory] = useState([]);
   const [restoreFormationId, setRestoreFormationId] = useState("classic");
   const [creatingMode, setCreatingMode] = useState("");
   const [error, setError] = useState("");
   const [sectionQuery, setSectionQuery] = useState("");
+  const [openSections, setOpenSections] = useState(initialSectionVisibility);
   const [highlightedIssueSquares, setHighlightedIssueSquares] = useState([]);
   const issueSquareTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
@@ -956,6 +1064,18 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const customizeSearchResults = useMemo(
     () => matchingCustomizeResults(sectionQuery, catalog || {}),
     [catalog, sectionQuery]
+  );
+  const currentValidationErrors = (
+    validation.status === "invalid"
+    && validation.requestKey === validationRequestKey
+  ) ? validation.errors : [];
+  const sectionStatuses = useMemo(
+    () => configurationSectionStatuses(
+      draft,
+      configurationBaseline,
+      currentValidationErrors
+    ),
+    [configurationBaseline, currentValidationErrors, draft]
   );
 
   useEffect(() => {
@@ -971,12 +1091,24 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             ? initial.formationId
             : "classic"
         );
+        setConfigurationBaseline(cloneDraft(initial));
         setCatalog(payload);
         setDraft(initial);
       })
       .catch((requestError) => setError(requestError.message));
     return () => { cancelled = true; };
   }, [initialPreset]);
+
+  useEffect(() => {
+    try {
+      window.sessionStorage.setItem(
+        SECTION_VISIBILITY_STORAGE_KEY,
+        JSON.stringify(openSections)
+      );
+    } catch {
+      // Section controls still work when browser storage is unavailable.
+    }
+  }, [openSections]);
 
   useEffect(() => {
     if (!validationRequest || !validationRequestKey) return undefined;
@@ -1040,40 +1172,21 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   };
 
   const applyPopularMode = (mode) => {
+    const nextDraft = applyModeToDraft(draft, mode, catalog);
     setSelectedTool(null);
     setBoardHistory([]);
     setRestoreFormationId(mode.formationId || "classic");
-    setDraft((current) => applyModeToDraft(current, mode, catalog));
+    setConfigurationBaseline(cloneDraft(nextDraft));
+    setDraft(nextDraft);
   };
 
   const applyFormation = (formation) => {
-    const disabled = formation.disabledAbilities || {};
+    const nextDraft = applyFormationToDraft(draft, formation, catalog);
     setSelectedTool(null);
     setBoardHistory([]);
     setRestoreFormationId(formation.id);
-    setDraft((current) => {
-      return {
-        ...current,
-        presetId: formation.id,
-        formationId: formation.id,
-        boardRows: formation.boardRows,
-        boardCols: formation.boardCols,
-        enabledPieces: [...STANDARD_TYPES],
-        placements: formation.initialLayout,
-        victory: { ...current.victory, mode: formation.defaultVictory },
-        specialAbilities: {
-          ...current.specialAbilities,
-          allowed: current.specialAbilities.allowed.filter((ability) => !disabled[ability]),
-          parameters: resizeDynamicParameterDefaults(
-            current.specialAbilities.parameters,
-            catalog.specialAbilities,
-            { rows: current.boardRows, cols: current.boardCols },
-            { rows: formation.boardRows, cols: formation.boardCols }
-          ),
-        },
-        gambit: { ...current.gambit, enabled: false, draftEnabled: false },
-      };
-    });
+    setConfigurationBaseline(cloneDraft(nextDraft));
+    setDraft(nextDraft);
   };
 
   const changeDimensions = (nextRows, nextCols) => {
@@ -1276,6 +1389,137 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     }));
   };
 
+  const setSectionOpen = (sectionId, open) => {
+    if (!CONFIGURATION_SECTION_IDS.includes(sectionId)) return;
+    setOpenSections((current) => (
+      current[sectionId] === open ? current : { ...current, [sectionId]: open }
+    ));
+  };
+
+  const setAllSectionsOpen = (open) => {
+    setOpenSections(Object.fromEntries(
+      CONFIGURATION_SECTION_IDS.map((sectionId) => [sectionId, open])
+    ));
+  };
+
+  const resetStudioSection = (sectionId) => {
+    if (!configurationBaseline) return;
+    if (["studio-board-size", "studio-pieces"].includes(sectionId)) {
+      setSelectedTool(null);
+      setBoardHistory([]);
+    }
+    setDraft((current) => {
+      let next = current;
+      if (sectionId === "studio-popular-modes") {
+        next = {
+          ...current,
+          matchPredictorEnabled: configurationBaseline.matchPredictorEnabled,
+        };
+      } else if (sectionId === "studio-board-size") {
+        const rows = configurationBaseline.boardRows;
+        const cols = configurationBaseline.boardCols;
+        next = {
+          ...current,
+          boardRows: rows,
+          boardCols: cols,
+          barricadeCount: Math.min(
+            current.barricadeCount,
+            Math.max(1, Math.floor(cols / 2))
+          ),
+          placements: centeredResize(
+            current.placements,
+            current.boardRows,
+            current.boardCols,
+            rows,
+            cols
+          ),
+          specialAbilities: {
+            ...current.specialAbilities,
+            parameters: resizeDynamicParameterDefaults(
+              current.specialAbilities.parameters,
+              catalog.specialAbilities,
+              { rows: current.boardRows, cols: current.boardCols },
+              { rows, cols }
+            ),
+          },
+          gambit: {
+            ...current.gambit,
+            setupRows: Math.min(
+              current.gambit.setupRows,
+              Math.max(1, Math.floor(rows / 2))
+            ),
+          },
+        };
+      } else if (sectionId === "studio-pieces") {
+        next = {
+          ...current,
+          enabledPieces: cloneDraft(configurationBaseline.enabledPieces),
+          pieceParameters: cloneDraft(configurationBaseline.pieceParameters),
+          pointValues: cloneDraft(configurationBaseline.pointValues),
+          pieceCaps: cloneDraft(configurationBaseline.pieceCaps),
+          barricadeCount: Math.min(
+            configurationBaseline.barricadeCount,
+            Math.max(1, Math.floor(current.boardCols / 2))
+          ),
+          placements: centeredResize(
+            configurationBaseline.placements,
+            configurationBaseline.boardRows,
+            configurationBaseline.boardCols,
+            current.boardRows,
+            current.boardCols
+          ),
+          victory: {
+            ...current.victory,
+            kingPoints: configurationBaseline.pointValues.king,
+          },
+        };
+      } else if (sectionId === "studio-victory") {
+        next = synchronizeKingPointValue(
+          {
+            ...current,
+            victory: cloneDraft(configurationBaseline.victory),
+          },
+          configurationBaseline.pointValues.king,
+          catalog.limits.pointMax
+        );
+      } else if (sectionId === "studio-custom-rules") {
+        next = {
+          ...current,
+          customRules: cloneDraft(configurationBaseline.customRules),
+        };
+      } else if (sectionId === "studio-abilities") {
+        const baselineAbilities = cloneDraft(configurationBaseline.specialAbilities);
+        next = {
+          ...current,
+          specialAbilities: {
+            ...baselineAbilities,
+            parameters: resizeDynamicParameterDefaults(
+              baselineAbilities.parameters,
+              catalog.specialAbilities,
+              {
+                rows: configurationBaseline.boardRows,
+                cols: configurationBaseline.boardCols,
+              },
+              { rows: current.boardRows, cols: current.boardCols }
+            ),
+          },
+        };
+      } else if (sectionId === "studio-gambit") {
+        next = {
+          ...current,
+          gambit: {
+            ...cloneDraft(configurationBaseline.gambit),
+            setupRows: Math.min(
+              configurationBaseline.gambit.setupRows,
+              Math.max(1, Math.floor(current.boardRows / 2))
+            ),
+          },
+        };
+      }
+      return reconcileDraftIdentity(next, configurationBaseline);
+    });
+  };
+
   const create = async (mode) => {
     setCreatingMode(mode);
     setError("");
@@ -1330,6 +1574,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       );
     }
     const section = document.getElementById(sectionId);
+    setSectionOpen(sectionId, true);
     if (section instanceof HTMLDetailsElement) section.open = true;
 
     window.requestAnimationFrame(() => {
@@ -1356,6 +1601,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     const sectionId = result.sectionId || result.id;
     const section = document.getElementById(sectionId);
     if (!section) return;
+    setSectionOpen(sectionId, true);
     if (section instanceof HTMLDetailsElement) section.open = true;
     window.requestAnimationFrame(() => {
       const target = document.getElementById(result.targetId) || section;
@@ -1387,6 +1633,13 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     });
   };
 
+  const studioSectionProps = (sectionId) => ({
+    open: openSections[sectionId],
+    onOpenChange: (open) => setSectionOpen(sectionId, open),
+    onReset: () => resetStudioSection(sectionId),
+    status: sectionStatuses[sectionId],
+  });
+
   return (
     <section className="customization-panel configuration-studio">
       <header className="studio-hero">
@@ -1394,8 +1647,11 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         <CustomizeNavigator
           query={sectionQuery}
           results={customizeSearchResults}
+          sectionStatuses={sectionStatuses}
           onQueryChange={setSectionQuery}
           onNavigate={jumpToCustomizeResult}
+          onExpandAll={() => setAllSectionsOpen(true)}
+          onCollapseAll={() => setAllSectionsOpen(false)}
         />
       </header>
 
@@ -1418,13 +1674,13 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         </aside>
 
         <div className="studio-controls">
-          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Starting Systems" description="Choose the overall game setup. You can then change its board, pieces, victory rule, and other settings.">
+          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Starting Systems" description="Choose the overall game setup. You can then change its board, pieces, victory rule, and other settings." {...studioSectionProps("studio-popular-modes")}>
             <div className="mode-preset-grid" data-setting-key="popular-modes">
               {catalog.popularModes.map((mode) => (
                 <article
                   key={mode.id}
                   id={`customize-mode-${mode.id}`}
-                  className={`mode-preset-card ${draft.presetId === mode.id ? "selected" : ""}`}
+                  className={`mode-preset-card ${configurationBaseline?.presetId === mode.id ? "selected" : ""}`}
                 >
                   <button type="button" className="mode-preset-choice" onClick={() => applyPopularMode(mode)}>
                     <i>{mode.icon}</i><strong>{mode.name}</strong><small>{mode.summary}</small>
@@ -1455,12 +1711,12 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
               <h3 className="formation-heading">Popular Board Formations</h3>
               <p className="formation-description">Change the starting piece arrangement without selecting a different overall game system.</p>
               <div className="mode-preset-grid formation-grid">
-                {catalog.formations.map((formation) => <button type="button" id={`customize-formation-${formation.id}`} key={formation.id} className={draft.formationId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}><i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small></button>)}
+                {catalog.formations.map((formation) => <button type="button" id={`customize-formation-${formation.id}`} key={formation.id} className={configurationBaseline?.formationId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}><i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small></button>)}
               </div>
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-board-size" title="Board Size" description="Choose a preset or set dimensions from 4 to 16.">
+          <CollapsibleStudioSection sectionId="studio-board-size" title="Board Size" description="Choose a preset or set dimensions from 4 to 16." {...studioSectionProps("studio-board-size")}>
             <div className="dimension-presets" data-setting-key="board-dimensions" id="customize-board-dimensions">
               {[8, 10, 16].map((size) => <button type="button" key={size} className={draft.boardRows === size && draft.boardCols === size ? "active" : "secondary"} onClick={() => changeDimensions(size, size)}>{size}x{size}</button>)}
               <span>Custom</span>
@@ -1469,7 +1725,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-pieces" title="Pieces" description="Enable pieces, set values of zero or more, and edit the starting board.">
+          <CollapsibleStudioSection sectionId="studio-pieces" title="Pieces" description="Enable pieces, set values of zero or more, and edit the starting board." {...studioSectionProps("studio-pieces")}>
             <div className="piece-catalog-grid">
               {catalog.pieces.map((piece) => {
                 const enabled = draft.enabledPieces.includes(piece.type);
@@ -1509,7 +1765,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-victory" title="End Game Logic" description="Choose the condition that decides the result.">
+          <CollapsibleStudioSection sectionId="studio-victory" title="End Game Logic" description="Choose the condition that decides the result." {...studioSectionProps("studio-victory")}>
             <div className="victory-grid" data-setting-key="victory-mode">
               {catalog.victoryModes.map((mode) => {
                 const reason = disabledVictoryModes[mode.id];
@@ -1525,7 +1781,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any game mode." className="ability-config-section">
+          <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any game mode." className="ability-config-section" {...studioSectionProps("studio-custom-rules")}>
             <div id="customize-affinity-squares">
               <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
               {draft.customRules.affinityEnabled ? <div className="conditional-fields">
@@ -1534,7 +1790,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-abilities" title="Special Abilities" description="Each player privately chooses the configured number of allowed abilities before play." className="ability-config-section">
+          <CollapsibleStudioSection sectionId="studio-abilities" title="Special Abilities" description="Each player privately chooses the configured number of allowed abilities before play." className="ability-config-section" {...studioSectionProps("studio-abilities")}>
             <Toggle settingKey="ability-options" checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
             {draft.specialAbilities.enabled ? <>
               <div className="conditional-fields" id="customize-ability-count"><label>Abilities Per Player<input type="number" min="1" max={Math.max(1, draft.specialAbilities.allowed.length)} value={draft.specialAbilities.maxPerPlayer} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, maxPerPlayer: clamp(event.target.value, 1, Math.max(1, current.specialAbilities.allowed.length)) } }))} /><small>How many abilities each player selects. The default is 1.</small></label></div>
@@ -1591,7 +1847,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </> : null}
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-gambit" title="Chass Gambit Settings" description="Configure private army construction for the current board and ruleset." className="gambit-config-section">
+          <CollapsibleStudioSection sectionId="studio-gambit" title="Chass Gambit Settings" description="Configure private army construction for the current board and ruleset." className="gambit-config-section" {...studioSectionProps("studio-gambit")}>
             <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled, draftEnabled: enabled ? current.gambit.draftEnabled : false } }))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
             {draft.gambit.enabled ? <div className="gambit-settings-grid" data-setting-key="gambit-settings" id="customize-gambit-settings">
               <label>Maximum Points<input type="number" min="0" value={draft.gambit.budget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, budget: Math.max(0, Number(event.target.value)) } }))} /><small>Players may spend less, but cannot exceed this limit.</small></label>

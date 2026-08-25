@@ -3933,6 +3933,19 @@ button.secondary {
   white-space: nowrap;
 }
 
+.customize-jump-result-heading {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.38rem;
+}
+
+.customize-jump-result-heading > span:first-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
 .customize-jump-options nav a > small {
   overflow: hidden;
   color: rgba(255, 255, 255, 0.6);
@@ -3950,6 +3963,32 @@ button.secondary {
   outline: 4px solid rgba(43, 108, 176, 0.72);
   outline-offset: 4px;
   animation: customize-search-pulse 700ms ease-in-out 2;
+}
+
+.customize-disclosure-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  margin-top: 0.55rem;
+}
+
+.customize-disclosure-actions button {
+  min-width: 0;
+  padding: 0.42rem 0.48rem;
+  color: rgba(255, 255, 255, 0.86);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  box-shadow: none;
+  font-size: 0.62rem;
+  font-weight: 750;
+}
+
+.customize-disclosure-actions button:hover,
+.customize-disclosure-actions button:focus-visible {
+  border-color: var(--accent-soft);
+  background: rgba(99, 179, 237, 0.16);
+  transform: none;
 }
 
 @keyframes customize-search-pulse {
@@ -4428,6 +4467,35 @@ button.secondary {
   padding-top: 1rem;
 }
 
+.studio-section-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin: -0.2rem 0 0.7rem;
+}
+
+.section-reset-button {
+  padding: 0.38rem 0.58rem;
+  color: var(--accent);
+  border: 1px solid rgba(43, 108, 176, 0.24);
+  border-radius: 8px;
+  background: rgba(99, 179, 237, 0.1);
+  box-shadow: none;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+.section-reset-button:hover:not(:disabled),
+.section-reset-button:focus-visible:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(99, 179, 237, 0.2);
+  transform: none;
+}
+
+.section-reset-button:disabled {
+  opacity: 0.42;
+  cursor: default;
+}
+
 .disclosure-arrow {
   width: 0.62rem;
   height: 0.62rem;
@@ -4466,6 +4534,55 @@ details[open] > summary > .disclosure-arrow {
 .rulebook-section-heading h3 {
   margin: 0;
   font-size: 1.25rem;
+}
+
+.section-title-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.section-status-badges {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  gap: 0.25rem;
+}
+
+.section-status {
+  padding: 0.18rem 0.34rem;
+  border: 1px solid currentColor;
+  border-radius: 999px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.52rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.section-status.modified {
+  color: #245f9e;
+  background: rgba(99, 179, 237, 0.16);
+}
+
+.section-status.issue {
+  color: #922b25;
+  background: rgba(214, 88, 68, 0.12);
+}
+
+.customize-jump-options .section-status {
+  padding: 0.15rem 0.28rem;
+  font-size: 0.48rem;
+}
+
+.customize-jump-options .section-status.modified {
+  color: #a9d9ff;
+  background: rgba(99, 179, 237, 0.14);
+}
+
+.customize-jump-options .section-status.issue {
+  color: #ffc1b8;
+  background: rgba(214, 88, 68, 0.14);
 }
 
 .section-heading p,
