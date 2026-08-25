@@ -745,6 +745,10 @@ function CustomizeNavigator({
   const menuRef = useRef(null);
 
   useEffect(() => {
+    if (query.trim()) setMenuOpen(true);
+  }, [query]);
+
+  useEffect(() => {
     if (!menuOpen) return undefined;
 
     const closeOutsideMenu = (event) => {
@@ -765,6 +769,9 @@ function CustomizeNavigator({
           type="search"
           value={query}
           onChange={(event) => onQueryChange(event.target.value)}
+          onFocus={() => {
+            if (query.trim()) setMenuOpen(true);
+          }}
           onKeyDown={(event) => {
             if (event.key !== "Enter" || !firstResult) return;
             event.preventDefault();
@@ -1745,7 +1752,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </div>
             <div id="customize-popular-formations">
               <h3 className="formation-heading">Popular Board Formations</h3>
-              <p className="formation-description">Change the starting piece arrangement without selecting a different overall game system.</p>
+              <p className="formation-description">Apply a familiar starting arrangement and its compatible board defaults. Victory rules and other systems remain editable below.</p>
               <div className="mode-preset-grid formation-grid">
                 {catalog.formations.map((formation) => <button type="button" id={`customize-formation-${formation.id}`} key={formation.id} className={configurationBaseline?.formationId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}><i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small></button>)}
               </div>
