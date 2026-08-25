@@ -1181,7 +1181,8 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "detailTemplates": [
             "The Pawn is sacrificed and enemies up to {blastRadius} horizontal square(s) "
             "away are removed.",
-            "A Barricade stops the blast from continuing past it.",
+            "A Barricade in range is destroyed, absorbs the blast in that direction, and "
+            "protects every square beyond it.",
             "An enemy King in range causes an immediate ability victory.",
         ],
         "details": [],
