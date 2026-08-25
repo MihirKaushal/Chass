@@ -3921,7 +3921,8 @@ button.secondary {
 }
 
 .customize-jump-options nav a:hover,
-.customize-jump-options nav a:focus-visible {
+.customize-jump-options nav a:focus-visible,
+.customize-jump-options nav a.keyboard-active {
   border-color: var(--accent-soft);
   background: rgba(99, 179, 237, 0.18);
   transform: none;

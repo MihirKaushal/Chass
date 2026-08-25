@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   CUSTOMIZE_SECTION_LINKS,
   matchingCustomizeResults,
+  nextCustomizeResultIndex,
 } from "./customizeNavigation.js";
 
 const catalog = {
@@ -75,4 +76,12 @@ test("broad reference searches still navigate to the Rulebook section", () => {
     matchingCustomizeResults("reference", catalog).map(({ label }) => label),
     ["Rulebook"]
   );
+});
+
+test("keyboard result selection starts predictably and wraps in both directions", () => {
+  assert.equal(nextCustomizeResultIndex(-1, 4, 1), 0);
+  assert.equal(nextCustomizeResultIndex(-1, 4, -1), 3);
+  assert.equal(nextCustomizeResultIndex(3, 4, 1), 0);
+  assert.equal(nextCustomizeResultIndex(0, 4, -1), 3);
+  assert.equal(nextCustomizeResultIndex(0, 0, 1), -1);
 });

@@ -254,3 +254,11 @@ export function matchingCustomizeResults(query, catalog = {}) {
       || left.label.localeCompare(right.label)
     ));
 }
+
+export function nextCustomizeResultIndex(currentIndex, resultCount, direction) {
+  if (resultCount <= 0) return -1;
+  if (currentIndex < 0 || currentIndex >= resultCount) {
+    return direction < 0 ? resultCount - 1 : 0;
+  }
+  return (currentIndex + direction + resultCount) % resultCount;
+}
