@@ -1573,8 +1573,11 @@ def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
     )
     assert shifted.status_code == 200
     updated = shifted.json()
-    countdown = next(item for item in updated["countdowns"] if item["kind"] == "episcopal")
+    countdowns = [item for item in updated["countdowns"] if item["kind"] == "episcopal"]
+    assert len(countdowns) == 1
+    countdown = countdowns[0]
     assert countdown["remainingTurns"] == 6
+    assert countdown["description"] == "The Bishop color-shift is recharging."
     assert updated["board"][5][2]["runtime"]["episcopal_ready_turn_remaining"] == 6
 
 

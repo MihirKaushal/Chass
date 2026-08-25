@@ -19,6 +19,9 @@ ABILITY_COOLDOWN_PARAMETERS = {
     for ability in SPECIAL_ABILITIES
     if ability.get("cooldownTurnsParameter")
 }
+ABILITY_COOLDOWN_DESCRIPTIONS = {
+    "episcopal": "The Bishop color-shift is recharging.",
+}
 FINISHED_STATUSES = {
     "checkmate",
     "stalemate",
@@ -1225,21 +1228,6 @@ def public_countdowns(state: GameState) -> list[dict]:
                     )
 
     for color in ("white", "black"):
-        if has_ability(state, color, "episcopal"):
-            ready = int(state.abilities.runtime[color].get("episcopal_ready_turn", 0))
-            remaining = ready - state.turn_counts[color]
-            if remaining > 0:
-                countdowns.append(
-                    {
-                        "id": f"episcopal:{color}",
-                        "owner": color,
-                        "kind": "episcopal",
-                        "icon": "✝",
-                        "label": "Episcopal Recharge",
-                        "description": "The Bishop color-shift is recharging.",
-                        "remainingTurns": remaining,
-                    }
-                )
         for selected in state.abilities.selected.get(color, []):
             if selected not in ABILITY_COOLDOWN_PARAMETERS:
                 continue
@@ -1252,7 +1240,10 @@ def public_countdowns(state: GameState) -> list[dict]:
                         "kind": selected,
                         "icon": ABILITY_ICONS[selected],
                         "label": f"{selected.replace('_', ' ').title()} Recharge",
-                        "description": "This player ability is recharging.",
+                        "description": ABILITY_COOLDOWN_DESCRIPTIONS.get(
+                            selected,
+                            "This player ability is recharging.",
+                        ),
                         "remainingTurns": remaining,
                     }
                 )
