@@ -8,7 +8,7 @@
 .customize-page-shell > .landing-mode-nav {
   width: fit-content;
   margin: 0 auto 1rem;
-  border: 1px solid rgba(26, 54, 93, 0.18);
+  border: 1px solid var(--border-subtle);
   box-shadow: 0 8px 18px rgba(26, 54, 93, 0.1);
 }
 
@@ -25,7 +25,6 @@
 .configuration-studio input,
 .configuration-studio select,
 .ability-selection-shell button,
-.promotion-modal button,
 .action-panel button {
   font: inherit;
 }
@@ -55,7 +54,7 @@
 .studio-hero p {
   max-width: 760px;
   margin: 0;
-  color: rgba(26, 54, 93, 0.72);
+  color: var(--ink-muted);
   line-height: 1.55;
 }
 
@@ -65,11 +64,11 @@
   padding: 0.78rem;
   color: white;
   border: 1px solid rgba(99, 179, 237, 0.3);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   background:
     linear-gradient(125deg, rgba(43, 108, 176, 0.36), rgba(26, 54, 93, 0.12)),
     var(--deep);
-  box-shadow: 0 12px 25px rgba(26, 54, 93, 0.18);
+  box-shadow: 0 12px 25px var(--border-subtle);
 }
 
 .customize-navigator-heading {
@@ -88,7 +87,7 @@
 .customize-jump-options > p {
   margin: 0;
   color: rgba(255, 255, 255, 0.66);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.62rem;
 }
 
@@ -98,7 +97,7 @@
   align-items: stretch;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: rgba(255, 255, 255, 0.1);
 }
 
@@ -158,7 +157,7 @@
   padding: 0.55rem 0.7rem;
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: rgba(255, 255, 255, 0.1);
   box-shadow: none;
   text-align: left;
@@ -179,7 +178,7 @@
 
 .customize-jump-trigger > small {
   color: rgba(255, 255, 255, 0.64);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.58rem;
 }
 
@@ -210,7 +209,7 @@
   visibility: hidden;
   opacity: 0;
   border: 1px solid rgba(99, 179, 237, 0.35);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: #17345a;
   box-shadow: 0 16px 32px rgba(8, 28, 54, 0.28);
   transform: translateY(-0.3rem);
@@ -245,7 +244,7 @@
   padding: 0.48rem 0.55rem;
   color: white;
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.04);
   text-decoration: none;
   font-size: 0.67rem;
@@ -283,7 +282,7 @@
 .customize-jump-options nav a > small {
   overflow: hidden;
   color: rgba(255, 255, 255, 0.6);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.56rem;
   font-weight: 500;
   text-overflow: ellipsis;
@@ -293,7 +292,7 @@
 .customize-search-highlight {
   position: relative;
   z-index: 3;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   outline: 4px solid rgba(43, 108, 176, 0.72);
   outline-offset: 4px;
   animation: customize-search-pulse 700ms ease-in-out 2;
@@ -311,7 +310,7 @@
   padding: 0.42rem 0.48rem;
   color: rgba(255, 255, 255, 0.86);
   border: 1px solid rgba(255, 255, 255, 0.2);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.06);
   box-shadow: none;
   font-size: 0.62rem;
@@ -323,64 +322,6 @@
   border-color: var(--accent-soft);
   background: rgba(99, 179, 237, 0.16);
   transform: none;
-}
-
-.starting-system-dialog-backdrop {
-  position: fixed;
-  z-index: 90;
-  inset: 0;
-  display: grid;
-  place-items: center;
-  padding: 1rem;
-  background: rgba(13, 37, 68, 0.56);
-  backdrop-filter: blur(5px);
-}
-
-.starting-system-dialog {
-  width: min(460px, 100%);
-  padding: clamp(1rem, 4vw, 1.4rem);
-  border: 2px solid rgba(43, 108, 176, 0.34);
-  border-radius: 18px;
-  color: var(--deep);
-  background:
-    linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(234, 216, 181, 0.78)),
-    var(--panel);
-  box-shadow: 0 24px 60px rgba(8, 28, 54, 0.34);
-}
-
-.starting-system-dialog h2 {
-  margin: 0.25rem 0 0;
-  font-size: clamp(1.45rem, 4vw, 2rem);
-  letter-spacing: -0.035em;
-}
-
-.starting-system-dialog p {
-  margin: 0.65rem 0 1.15rem;
-  color: rgba(26, 54, 93, 0.76);
-  line-height: 1.5;
-}
-
-.starting-system-dialog-actions {
-  display: flex;
-  justify-content: flex-end;
-  flex-wrap: wrap;
-  gap: 0.55rem;
-}
-
-.starting-system-dialog-actions button {
-  border: 1px solid transparent;
-  border-radius: 10px;
-  padding: 0.58rem 0.85rem;
-  color: white;
-  background: var(--accent);
-  cursor: pointer;
-  font-weight: 800;
-}
-
-.starting-system-dialog-actions button.secondary {
-  color: var(--deep);
-  border-color: rgba(26, 54, 93, 0.22);
-  background: rgba(255, 255, 255, 0.54);
 }
 
 @keyframes customize-search-pulse {
@@ -425,7 +366,7 @@
   max-height: 64vh;
   display: grid;
   border: 4px solid var(--deep);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   overflow: visible;
 }
 
@@ -476,7 +417,7 @@
 }
 
 .studio-square.setup-zone {
-  box-shadow: inset 0 0 0 2px rgba(43, 108, 176, 0.3);
+  box-shadow: inset 0 0 0 2px var(--border-accent);
 }
 
 .studio-square.studio-affinity::after {
@@ -520,7 +461,7 @@
   border: 2px solid rgba(255, 255, 255, 0.86);
   border-radius: 50%;
   background: #9f2f28;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.66rem;
   font-weight: 900;
   line-height: 1;
@@ -566,7 +507,7 @@
 .studio-file {
   position: absolute;
   z-index: 3;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: clamp(0.38rem, 1vw, 0.56rem);
   line-height: 1;
 }
@@ -590,7 +531,7 @@
 
 .board-tool-readout > span {
   color: rgba(26, 54, 93, 0.65);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.66rem;
   text-transform: uppercase;
   letter-spacing: 0.08em;
@@ -606,7 +547,7 @@
   padding: 0.48rem 0.56rem;
   color: #7b1f1f;
   border: 1px solid rgba(159, 47, 40, 0.24);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: rgba(248, 217, 210, 0.7);
   font-size: 0.68rem;
   font-weight: 700;
@@ -688,7 +629,7 @@
 .game-briefing {
   padding: 0.9rem 1rem;
   border-left: 4px solid var(--accent);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: var(--deep);
   color: white;
 }
@@ -717,10 +658,10 @@
 .game-briefing-tags small {
   padding: 0.25rem 0.45rem;
   border: 1px solid rgba(99, 179, 237, 0.28);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   color: rgba(255, 255, 255, 0.82);
   background: rgba(99, 179, 237, 0.12);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.6rem;
 }
 
@@ -742,7 +683,7 @@
   margin-bottom: 0.9rem;
   padding: 0.68rem 0.8rem;
   border: 1px solid rgba(43, 108, 176, 0.28);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   color: var(--deep);
   background: rgba(255, 255, 255, 0.48);
   transition: border-color 150ms ease, background 150ms ease;
@@ -774,7 +715,7 @@
 
 .active-action-strip p {
   margin: 0.12rem 0 0;
-  color: rgba(26, 54, 93, 0.72);
+  color: var(--ink-muted);
   font-size: 0.72rem;
   line-height: 1.35;
 }
@@ -782,7 +723,7 @@
 .active-action-strip > small {
   grid-column: 2;
   color: rgba(26, 54, 93, 0.62);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.62rem;
   line-height: 1.35;
 }
@@ -848,7 +789,7 @@
 
 .studio-section {
   padding: clamp(1rem, 2vw, 1.35rem);
-  border: 1px solid rgba(26, 54, 93, 0.18);
+  border: 1px solid var(--border-subtle);
   border-radius: 18px;
   background: rgba(255, 255, 255, 0.48);
   scroll-margin-top: 1rem;
@@ -891,7 +832,7 @@
   padding: 0.38rem 0.58rem;
   color: var(--accent);
   border: 1px solid rgba(43, 108, 176, 0.24);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: rgba(99, 179, 237, 0.1);
   box-shadow: none;
   font-size: 0.64rem;
@@ -918,7 +859,7 @@
   border-right: 2px solid var(--accent);
   border-bottom: 2px solid var(--accent);
   transform: rotate(45deg);
-  transition: transform 160ms ease;
+  transition: transform var(--motion-fast);
 }
 
 details[open] > summary > .disclosure-arrow {
@@ -940,7 +881,7 @@ details[open] > summary > .disclosure-arrow {
   color: white;
   border-radius: 6px;
   background: var(--accent);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.66rem;
 }
 
@@ -967,20 +908,20 @@ details[open] > summary > .disclosure-arrow {
 .section-status {
   padding: 0.18rem 0.34rem;
   border: 1px solid currentColor;
-  border-radius: 999px;
-  font-family: "IBM Plex Mono", monospace;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
   font-size: 0.52rem;
   line-height: 1;
   letter-spacing: 0.02em;
 }
 
 .section-status.modified {
-  color: #245f9e;
+  color: var(--accent);
   background: rgba(99, 179, 237, 0.16);
 }
 
 .section-status.issue {
-  color: #922b25;
+  color: var(--danger);
   background: rgba(214, 88, 68, 0.12);
 }
 
@@ -1022,7 +963,7 @@ details[open] > summary > .disclosure-arrow {
   color: var(--deep);
   text-align: left;
   border: 1px solid rgba(26, 54, 93, 0.19);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: rgba(245, 230, 202, 0.52);
   cursor: pointer;
 }
@@ -1039,7 +980,7 @@ details[open] > summary > .disclosure-arrow {
   align-content: start;
   overflow: hidden;
   border: 1px solid rgba(26, 54, 93, 0.19);
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: rgba(245, 230, 202, 0.52);
   transition: border-color 160ms ease, background 160ms ease, box-shadow 160ms ease;
 }
@@ -1156,7 +1097,7 @@ details[open] > summary > .disclosure-arrow {
   align-self: center;
   margin-left: 0.35rem;
   color: rgba(26, 54, 93, 0.62);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.68rem;
   text-transform: uppercase;
 }
@@ -1181,7 +1122,7 @@ details[open] > summary > .disclosure-arrow {
   padding: 0.52rem 0.58rem;
   color: var(--deep);
   border: 1px solid rgba(26, 54, 93, 0.28);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.78);
 }
 
@@ -1197,7 +1138,7 @@ details[open] > summary > .disclosure-arrow {
   margin-bottom: 0.7rem;
   padding: 0.38rem;
   border: 1px solid rgba(26, 54, 93, 0.14);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: rgba(234, 216, 181, 0.24);
 }
 
@@ -1205,7 +1146,7 @@ details[open] > summary > .disclosure-arrow {
   padding: 0.4rem 0.68rem;
   color: rgba(26, 54, 93, 0.74);
   border: 1px solid transparent;
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: transparent;
   box-shadow: none;
   font-size: 0.68rem;
@@ -1258,8 +1199,8 @@ details[open] > summary > .disclosure-arrow {
   height: 42px;
   display: grid;
   place-items: center;
-  border: 1px solid rgba(26, 54, 93, 0.18);
-  border-radius: 10px;
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
   background: rgba(99, 179, 237, 0.12);
   font-size: 1.5rem;
 }
@@ -1306,7 +1247,7 @@ details[open] > summary > .disclosure-arrow {
   margin: 0.75rem 0 0;
   padding: 0.65rem;
   border: 1px solid rgba(43, 108, 176, 0.22);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: rgba(99, 179, 237, 0.075);
 }
 
@@ -1317,7 +1258,7 @@ details[open] > summary > .disclosure-arrow {
 .tuning-fieldset legend {
   padding: 0 0.3rem;
   color: var(--accent);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.64rem;
   font-weight: 700;
   letter-spacing: 0.05em;
@@ -1346,7 +1287,7 @@ details[open] > summary > .disclosure-arrow {
   padding: 0.48rem 0.55rem;
   color: var(--deep);
   border: 1px solid rgba(26, 54, 93, 0.24);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.82);
 }
 
@@ -1368,7 +1309,7 @@ details[open] > summary > .disclosure-arrow {
   flex: 1;
   padding: 0.4rem;
   color: var(--deep);
-  border: 1px solid rgba(26, 54, 93, 0.18);
+  border: 1px solid var(--border-subtle);
   background: rgba(43, 108, 176, 0.11);
   font-size: 0.72rem;
 }
@@ -1384,7 +1325,7 @@ details[open] > summary > .disclosure-arrow {
   margin: 0;
   padding: 0.45rem 0.55rem;
   border: 1px solid rgba(184, 121, 24, 0.3);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   color: #75500f;
   background: rgba(255, 193, 59, 0.12);
   font-size: 0.72rem;
@@ -1407,7 +1348,7 @@ details[open] > summary > .disclosure-arrow {
   padding: 0.72rem;
   color: var(--deep);
   text-align: left;
-  border: 1px solid rgba(26, 54, 93, 0.18);
+  border: 1px solid var(--border-subtle);
   border-radius: 11px;
   background: rgba(245, 230, 202, 0.46);
   cursor: pointer;
@@ -1449,14 +1390,14 @@ details[open] > summary > .disclosure-arrow {
 
 .ability-option-toggle > b {
   color: var(--accent);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.62rem;
 }
 
 .ability-config-card {
   min-width: 0;
   overflow: hidden;
-  border: 1px solid rgba(26, 54, 93, 0.18);
+  border: 1px solid var(--border-subtle);
   border-radius: 11px;
   background: rgba(245, 230, 202, 0.46);
 }
@@ -1489,7 +1430,7 @@ details[open] > summary > .disclosure-arrow {
 .conditional-fields label,
 .gambit-settings-grid > label {
   padding: 0.65rem;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: rgba(26, 54, 93, 0.055);
 }
 
@@ -1519,7 +1460,7 @@ details[open] > summary > .disclosure-arrow {
   height: 24px;
   padding: 3px;
   display: block;
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   background: rgba(26, 54, 93, 0.24);
   transition: background 160ms ease;
 }
@@ -1563,7 +1504,7 @@ details[open] > summary > .disclosure-arrow {
 
 .gambit-settings-grid > .studio-toggle {
   padding: 0.65rem;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: rgba(184, 121, 24, 0.08);
 }
 
@@ -1588,8 +1529,16 @@ details[open] > summary > .disclosure-arrow {
 .launch-validation-copy {
   position: relative;
   min-width: 0;
+  min-height: 3.25rem;
   display: grid;
+  align-content: center;
   gap: 0.08rem;
+}
+
+.launch-validation-copy > span,
+.launch-validation-copy > strong,
+.launch-validation-copy > small {
+  overflow-wrap: anywhere;
 }
 
 .studio-launch-bar span,
@@ -1658,14 +1607,14 @@ details[open] > summary > .disclosure-arrow {
   border-radius: 50%;
   color: #7b1f1f;
   background: #f8d9d2;
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.56rem;
 }
 
 .configuration-issue-highlight {
   position: relative;
   z-index: 3;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   outline: 4px solid rgba(214, 88, 68, 0.78);
   outline-offset: 4px;
   animation: configuration-issue-pulse 700ms ease-in-out 2;
@@ -1691,7 +1640,7 @@ details[open] > summary > .disclosure-arrow {
 
 .studio-error {
   margin: 0.65rem 0 0;
-  color: #7b1f1f;
+  color: var(--danger);
   font-weight: 700;
   text-align: center;
 }

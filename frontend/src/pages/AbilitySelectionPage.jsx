@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 
 import { effectiveCatalogEntry } from "../variantTuning";
+import Button from "../components/ui/Button";
 
 function title(value) {
   return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
@@ -65,14 +66,15 @@ function AbilitySelectionPage({ game, catalog, onSelect, actionLoading }) {
         {game.abilities.viewerSelection?.length ? (
           <p className="ability-locked">Your loadout is locked. Waiting for the other player.</p>
         ) : (
-          <button
-            type="button"
+          <Button
             className="ability-lock-button"
-            disabled={actionLoading || !game.ready || !game.abilities.editableColor || choices.length !== maxChoices}
+            disabled={!game.ready || !game.abilities.editableColor || choices.length !== maxChoices}
+            loading={actionLoading}
+            loadingLabel="Locking Loadout..."
             onClick={() => onSelect(choices)}
           >
-            {actionLoading ? "Locking Loadout..." : `Lock ${choices.length} / ${maxChoices}`}
-          </button>
+            Lock {choices.length} / {maxChoices}
+          </Button>
         )}
       </section>
     </main>
@@ -88,9 +90,13 @@ function AbilityHandoffPage({ game, onContinue, actionLoading }) {
         <span className="eyebrow">Private Ability Handoff</span>
         <h1>Pass The Screen To {title(nextColor)}</h1>
         <p>The previous choice is locked and hidden. Continue only after the next player has the device.</p>
-        <button type="button" disabled={actionLoading} onClick={onContinue}>
-          {actionLoading ? "Securing Choice..." : `I Am ${title(nextColor)} - Continue`}
-        </button>
+        <Button
+          loading={actionLoading}
+          loadingLabel="Securing Choice..."
+          onClick={onContinue}
+        >
+          I Am {title(nextColor)} - Continue
+        </Button>
       </section>
     </main>
   );

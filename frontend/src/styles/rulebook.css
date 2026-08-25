@@ -2,7 +2,7 @@
 .rulebook {
   margin-top: 3rem;
   border: 2px solid rgba(26, 54, 93, 0.22);
-  border-radius: 22px;
+  border-radius: var(--radius-xl);
   background: #f7ecd7;
   overflow: hidden;
   scroll-margin-top: 1rem;
@@ -63,7 +63,7 @@
   align-items: center;
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.3);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: rgba(255, 255, 255, 0.12);
 }
 
@@ -105,7 +105,7 @@
   padding: 0.55rem 0.7rem;
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.28);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: rgba(255, 255, 255, 0.1);
   cursor: pointer;
   font-size: 0.72rem;
@@ -121,7 +121,7 @@
 
 .rulebook-search-tools > small {
   color: rgba(255, 255, 255, 0.7);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.65rem;
 }
 
@@ -141,7 +141,7 @@
   padding: 0.35rem 0.55rem;
   color: white;
   border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   text-decoration: none;
   font-size: 0.7rem;
 }
@@ -165,7 +165,7 @@
 
 .rulebook-entry {
   align-self: start;
-  border: 1px solid rgba(26, 54, 93, 0.18);
+  border: 1px solid var(--border-subtle);
   border-radius: 11px;
   background: rgba(255, 255, 255, 0.54);
 }
@@ -199,7 +199,7 @@
   border-right: 2px solid var(--accent);
   border-bottom: 2px solid var(--accent);
   transform: translateY(-65%) rotate(45deg);
-  transition: transform 160ms ease;
+  transition: transform var(--motion-fast);
 }
 
 .rulebook-entry[open] summary::after {
@@ -217,7 +217,7 @@
 
 .rulebook-entry summary b {
   color: var(--accent);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.68rem;
 }
 
@@ -280,7 +280,7 @@
 .configured-parameter-list dd {
   margin: 0.1rem 0 0;
   color: var(--deep);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.67rem;
   font-weight: 700;
 }
@@ -298,7 +298,7 @@
   gap: 0.25rem;
   padding: 0.75rem;
   border-left: 3px solid var(--accent);
-  border-radius: 8px;
+  border-radius: var(--radius-sm);
   background: rgba(255, 255, 255, 0.52);
 }
 
@@ -311,7 +311,7 @@
 .rulebook-gambit-copy p,
 .countdown-reference p {
   margin: 0;
-  color: rgba(26, 54, 93, 0.72);
+  color: var(--ink-muted);
   font-size: 0.78rem;
   line-height: 1.5;
 }
@@ -325,7 +325,7 @@
 .rulebook-gambit-copy > * {
   margin: 0;
   padding: 1rem 1rem 1rem 2rem;
-  border-radius: 12px;
+  border-radius: var(--radius-md);
   background: rgba(184, 121, 24, 0.08);
 }
 
@@ -338,7 +338,7 @@
   padding: 0.85rem 1rem;
   color: rgba(26, 54, 93, 0.68);
   border: 1px dashed rgba(26, 54, 93, 0.22);
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   background: rgba(255, 255, 255, 0.32);
   font-size: 0.78rem;
 }

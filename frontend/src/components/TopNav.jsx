@@ -1,3 +1,6 @@
+import Button from "./ui/Button";
+import StatusBadge from "./ui/StatusBadge";
+
 function title(value) {
   return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
 }
@@ -55,32 +58,32 @@ function TopNav({
           {phase === "play" && !winner ? `${title(currentPlayer)} to move` : statusLabel}
         </span>
         {phase === "play" && !winner ? (
-          <span className="status-chip">
+          <StatusBadge tone="info" className="status-chip">
             {gameStatus === "active" ? "In Play" : title(gameStatus)}
-          </span>
+          </StatusBadge>
         ) : null}
-        <span className="mode-chip">
+        <StatusBadge className="mode-chip">
           {mode === "online"
             ? `${title(playerColor || "Online")} / ${connectionStatus}`
             : "Local Room"}
-        </span>
+        </StatusBadge>
       </div>
 
       <div className="board-actions">
-        <button type="button" className="secondary" onClick={onFlipBoard}>
+        <Button variant="secondary" className="flip-board-button" onClick={onFlipBoard}>
           {boardFlipped ? "White Side" : "Flip Board"}
-        </button>
-        <button
-          type="button"
-          className={autoBoardFlipEnabled ? "" : "secondary"}
+        </Button>
+        <Button
+          variant={autoBoardFlipEnabled ? "primary" : "secondary"}
+          className="auto-flip-button"
           onClick={onToggleAutoBoardFlip}
         >
           Auto Flip: {autoBoardFlipEnabled ? "On" : "Off"}
-        </button>
+        </Button>
         {canReset ? (
-          <button type="button" onClick={onReset}>
+          <Button onClick={onReset}>
             {variant === "gambit" ? "Request New Setup" : "Request Restart"}
-          </button>
+          </Button>
         ) : null}
       </div>
     </header>

@@ -47,6 +47,12 @@ import GameBriefing from "./GameBriefing";
 import PageSkeleton from "./PageSkeleton";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
+import Button from "./ui/Button";
+import Dialog from "./ui/Dialog";
+import Disclosure from "./ui/Disclosure";
+import EmptyState from "./ui/EmptyState";
+import FormField from "./ui/FormField";
+import StatusBadge from "./ui/StatusBadge";
 
 const STANDARD_TYPES = ["pawn", "knight", "bishop", "rook", "queen", "king"];
 const BACK_RANK = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
@@ -638,8 +644,11 @@ function TunableParameterFields({
           });
           const maximum = parameterMaximum(parameter, resolvedValues);
           return (
-          <label key={parameter.id}>
-            <span>{parameter.label}</span>
+          <FormField
+            key={parameter.id}
+            label={parameter.label}
+            description={`${parameter.description} Default: ${parameterValueLabel(parameter, defaultValue)}.`}
+          >
             <input
               type="number"
               min={parameter.min}
@@ -656,10 +665,7 @@ function TunableParameterFields({
                 ));
               }}
             />
-            <small>
-              {parameter.description} Default: {parameterValueLabel(parameter, defaultValue)}.
-            </small>
-          </label>
+          </FormField>
           );
         })}
       </div>
@@ -686,11 +692,13 @@ function SectionStatusBadges({ status }) {
   return (
     <span className="section-status-badges">
       {status.issueCount ? (
-        <b className="section-status issue">
+        <StatusBadge tone="danger" className="section-status issue">
           {status.issueCount === 1 ? "Issue" : `${status.issueCount} Issues`}
-        </b>
+        </StatusBadge>
       ) : null}
-      {status.modified ? <b className="section-status modified">Modified</b> : null}
+      {status.modified ? (
+        <StatusBadge tone="info" className="section-status modified">Modified</StatusBadge>
+      ) : null}
     </span>
   );
 }
@@ -709,10 +717,6 @@ function SectionHeading({ title: heading, description, status }) {
   );
 }
 
-function DisclosureArrow() {
-  return <span className="disclosure-arrow" aria-hidden="true" />;
-}
-
 function CollapsibleStudioSection({
   title: heading,
   description,
@@ -725,30 +729,27 @@ function CollapsibleStudioSection({
   children,
 }) {
   return (
-    <details
+    <Disclosure
       className={`studio-section studio-disclosure ${className}`.trim()}
       id={sectionId}
       open={open}
       onToggle={(event) => onOpenChange(event.currentTarget.open)}
+      summary={<SectionHeading title={heading} description={description} status={status} />}
+      bodyClassName="studio-disclosure-body"
     >
-      <summary>
-        <SectionHeading title={heading} description={description} status={status} />
-        <DisclosureArrow />
-      </summary>
-      <div className="studio-disclosure-body">
-        <div className="studio-section-actions">
-          <button
-            type="button"
-            className="section-reset-button"
-            disabled={!status?.modified}
-            onClick={onReset}
-          >
-            Reset Section
-          </button>
-        </div>
-        {children}
+      <div className="studio-section-actions">
+        <Button
+          variant="secondary"
+          size="small"
+          className="section-reset-button"
+          disabled={!status?.modified}
+          onClick={onReset}
+        >
+          Reset Section
+        </Button>
       </div>
-    </details>
+      {children}
+    </Disclosure>
   );
 }
 
@@ -900,7 +901,7 @@ function CustomizeNavigator({
                 </a>
               ))}
             </nav>
-          ) : <p>No matching section.</p>}
+          ) : <EmptyState>No matching section.</EmptyState>}
         </div>
       </div>
       <div className="customize-disclosure-actions" aria-label="Section display controls">
@@ -912,46 +913,23 @@ function CustomizeNavigator({
 }
 
 function StartingSystemConfirmation({ mode, onCancel, onConfirm }) {
-  const cancelRef = useRef(null);
-
-  useEffect(() => {
-    if (!mode) return undefined;
-    cancelRef.current?.focus();
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [mode, onCancel]);
-
-  if (!mode) return null;
   return (
-    <div
-      className="starting-system-dialog-backdrop"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onCancel();
-      }}
-    >
-      <section
-        className="starting-system-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="starting-system-dialog-title"
-        aria-describedby="starting-system-dialog-description"
-      >
-        <span className="eyebrow">Replace Current Setup</span>
-        <h2 id="starting-system-dialog-title">Apply {mode.name}?</h2>
-        <p id="starting-system-dialog-description">
-          This Starting System will replace your modified settings. This action cannot be undone.
-        </p>
-        <div className="starting-system-dialog-actions">
-          <button type="button" className="secondary" ref={cancelRef} onClick={onCancel}>
+    <Dialog
+      open={Boolean(mode)}
+      onClose={onCancel}
+      closeLabel="Close Starting System confirmation"
+      eyebrow="Replace Current Setup"
+      title={mode ? `Apply ${mode.name}?` : "Apply Starting System?"}
+      description="This Starting System will replace your modified settings. This action cannot be undone."
+      actions={mode ? (
+        <>
+          <Button variant="secondary" onClick={onCancel}>
             Keep My Changes
-          </button>
-          <button type="button" onClick={onConfirm}>Apply {mode.name}</button>
-        </div>
-      </section>
-    </div>
+          </Button>
+          <Button onClick={onConfirm}>Apply {mode.name}</Button>
+        </>
+      ) : null}
+    />
   );
 }
 
@@ -970,18 +948,17 @@ function RulebookSection({
   }, [revealKey]);
 
   return (
-    <details
+    <Disclosure
       className={`rulebook-section rulebook-disclosure ${className}`.trim()}
       id={id}
       open={open}
       onToggle={(event) => setOpen(event.currentTarget.open)}
+      summary={<div><h3>{heading}</h3><p>{description}</p></div>}
+      summaryClassName="rulebook-section-heading"
+      bodyClassName="rulebook-disclosure-body"
     >
-      <summary className="rulebook-section-heading">
-        <div><h3>{heading}</h3><p>{description}</p></div>
-        <DisclosureArrow />
-      </summary>
-      <div className="rulebook-disclosure-body">{children}</div>
-    </details>
+      {children}
+    </Disclosure>
   );
 }
 
@@ -1061,7 +1038,7 @@ function Rulebook({ catalog, draft }) {
         <div className="rulebook-hero-copy">
           <span className="eyebrow">Complete Reference</span>
           <h2>The Chass Rulebook</h2>
-          <p>Detailed behavior for every built-in piece, victory rule, ability, and Gambit system.</p>
+          <p>Detailed behavior for every built-in piece, win condition, ability, and Gambit system.</p>
           <div className="rulebook-search-tools">
             <label className="rulebook-search">
               <span className="visually-hidden">Search the rulebook</span>
@@ -1086,7 +1063,7 @@ function Rulebook({ catalog, draft }) {
         </div>
         <nav aria-label="Rulebook sections">
           <a href="#rulebook-pieces">Pieces</a>
-          <a href="#rulebook-victory">Victory</a>
+          <a href="#rulebook-victory">Win Conditions</a>
           <a href="#rulebook-custom-rules">Custom Rules</a>
           <a href="#rulebook-abilities">Abilities</a>
           <a href="#rulebook-gambit">Gambit</a>
@@ -1099,7 +1076,7 @@ function Rulebook({ catalog, draft }) {
             <details className="rulebook-entry" key={effectivePiece.type}>
               <summary>
                 <span className="entry-icon"><PieceGlyph type={effectivePiece.type} color="black" symbol={effectivePiece.symbols.black || effectivePiece.icon} /></span>
-                <span><strong>{effectivePiece.name}</strong><small>{effectivePiece.isCustom ? "Custom piece" : "Classic piece"}</small></span>
+                <span><strong>{effectivePiece.name}</strong><small>{effectivePiece.isCustom ? "Custom Piece" : "Classic Piece"}</small></span>
                 <b>{draft.pointValues[effectivePiece.type] ?? 0} pts</b>
               </summary>
               <p>{effectivePiece.description}</p>
@@ -1110,17 +1087,17 @@ function Rulebook({ catalog, draft }) {
             </details>
           ))}
         </div>
-        {!visiblePieces.length ? <p className="rulebook-empty">No matching pieces in this configuration.</p> : null}
+        {!visiblePieces.length ? <EmptyState className="rulebook-empty">No matching pieces in this configuration.</EmptyState> : null}
       </RulebookSection>
 
-      <RulebookSection id="rulebook-victory" title="Victory Rules" description="What ends a match and decides its result." revealKey={revealKey}>
+      <RulebookSection id="rulebook-victory" title="Win Conditions" description="What ends a match and decides its result." revealKey={revealKey}>
         <div className="rulebook-strip">
           {visibleVictoryModes.map((mode) => <div key={mode.id}><i>{mode.icon}</i><strong>{mode.name}</strong><p>{mode.summary}</p></div>)}
         </div>
-        {!visibleVictoryModes.length ? <p className="rulebook-empty">No matching victory rules in this configuration.</p> : null}
+        {!visibleVictoryModes.length ? <EmptyState className="rulebook-empty">No matching win conditions in this configuration.</EmptyState> : null}
       </RulebookSection>
 
-      <RulebookSection id="rulebook-custom-rules" title="Custom Rules" description="Optional board-wide systems that work with any compatible game mode." revealKey={revealKey}>
+      <RulebookSection id="rulebook-custom-rules" title="Custom Rules" description="Optional board-wide systems that work with any compatible match." revealKey={revealKey}>
         {showAffinity ? <div className="rulebook-gambit-copy">
           <div>
             <h4>Affinity Squares</h4>
@@ -1132,7 +1109,7 @@ function Rulebook({ catalog, draft }) {
             <h4>Command Point Cap</h4>
             <p>The cap controls how many unused command points a player may save. It defaults to three and can be changed without enabling Chass Gambit.</p>
           </div>
-        </div> : <p className="rulebook-empty">No matching custom rules in this configuration.</p>}
+        </div> : <EmptyState className="rulebook-empty">No matching custom rules in this configuration.</EmptyState>}
       </RulebookSection>
 
       <RulebookSection id="rulebook-abilities" title="Special Ability Codex" description="Each player privately chooses the configured number of enabled abilities." revealKey={revealKey}>
@@ -1146,7 +1123,7 @@ function Rulebook({ catalog, draft }) {
             </details>
           ))}
         </div>
-        {!visibleAbilities.length ? <p className="rulebook-empty">No matching abilities in this configuration.</p> : null}
+        {!visibleAbilities.length ? <EmptyState className="rulebook-empty">No matching abilities in this configuration.</EmptyState> : null}
       </RulebookSection>
 
       <RulebookSection id="rulebook-gambit" title={`${catalog.gambit.icon} ${catalog.gambit.name}`} description={catalog.gambit.summary} revealKey={revealKey}>
@@ -1156,13 +1133,13 @@ function Rulebook({ catalog, draft }) {
             <h4>Draft Gambit</h4>
             <ol>{catalog.gambit.draftDetails.map((detail) => <li key={detail}>{detail}</li>)}</ol>
           </div>
-        </div> : <p className="rulebook-empty">No matching Gambit rules in this configuration.</p>}
+        </div> : <EmptyState className="rulebook-empty">No matching Gambit rules in this configuration.</EmptyState>}
       </RulebookSection>
 
       <RulebookSection title="Turns And Countdowns" description="How timed effects are counted." className="countdown-reference" revealKey={revealKey}>
         {showCountdowns
           ? <p>{countdownCopy}</p>
-          : <p className="rulebook-empty">No matching countdown rules in this configuration.</p>}
+          : <EmptyState className="rulebook-empty">No matching countdown rules in this configuration.</EmptyState>}
       </RulebookSection>
     </section>
   );
@@ -1858,7 +1835,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
         </aside>
 
         <div className="studio-controls">
-          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Starting Systems" description="Choose the overall game setup. You can then change its board, pieces, victory rule, and other settings." {...studioSectionProps("studio-popular-modes")}>
+          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Starting Systems" description="Choose the overall setup, then adjust its board, pieces, win condition, and other settings." {...studioSectionProps("studio-popular-modes")}>
             <div className="mode-preset-grid" data-setting-key="popular-modes">
               {catalog.popularModes.map((mode) => (
                 <article
@@ -1893,7 +1870,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             </div>
             <div id="customize-popular-formations">
               <h3 className="formation-heading">Starting Layout Presets</h3>
-              <p className="formation-description">Apply a familiar starting arrangement and its compatible board defaults. Victory rules and other systems remain editable below.</p>
+              <p className="formation-description">Apply a familiar starting arrangement and its compatible board defaults. Win conditions and other systems remain editable below.</p>
               <div className="mode-preset-grid formation-grid">
                 {catalog.formations.map((formation) => <button type="button" id={`customize-formation-${formation.id}`} key={formation.id} className={configurationBaseline?.formationId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}><i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small></button>)}
               </div>
@@ -1978,7 +1955,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any game mode." className="ability-config-section" {...studioSectionProps("studio-custom-rules")}>
+          <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any compatible match." className="ability-config-section" {...studioSectionProps("studio-custom-rules")}>
             <div id="customize-affinity-squares">
               <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
               {draft.customRules.affinityEnabled ? <div className="conditional-fields">
@@ -2080,7 +2057,25 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
           catalog={catalog}
           className="studio-launch-summary"
         />
-        <div className="launch-actions"><button type="button" disabled={!canLaunch} onClick={() => create("local")}>{creatingMode === "local" ? "Building..." : "Start Local Game"}</button><button type="button" className="secondary" disabled={!canLaunch} onClick={() => create("online")}>{creatingMode === "online" ? "Creating Invite..." : "Create Online Game"}</button></div>
+        <div className="launch-actions">
+          <Button
+            disabled={!canLaunch}
+            loading={creatingMode === "local"}
+            loadingLabel="Building Game..."
+            onClick={() => create("local")}
+          >
+            Start Local Game
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={!canLaunch}
+            loading={creatingMode === "online"}
+            loadingLabel="Creating Invite..."
+            onClick={() => create("online")}
+          >
+            Create Online Game
+          </Button>
+        </div>
       </section>
       {error ? <p className="studio-error">{error}</p> : null}
       <Rulebook catalog={catalog} draft={draft} />

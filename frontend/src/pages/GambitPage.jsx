@@ -7,6 +7,7 @@ import GameBriefing from "../components/GameBriefing";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 import PieceGlyph from "../components/PieceGlyph";
 import ResponsivePlayLayout from "../components/ResponsivePlayLayout";
+import Button from "../components/ui/Button";
 import { actionsForGlobalSelection } from "../specialActionSelection";
 
 
@@ -133,9 +134,14 @@ function DraftGambit({ game, actionLoading, onDraft }) {
         </div>
         <div className="draft-lock-row">
           <p>Locking ends your draft permanently. Your King is already secured, and you may spend less than the maximum.</p>
-          <button type="button" disabled={!gambit.draftCanPass || actionLoading} onClick={() => onDraft({ action: "pass" })}>
-            {actionLoading ? "Updating Draft..." : `Lock ${title(activeColor)} Army`}
-          </button>
+          <Button
+            disabled={!gambit.draftCanPass}
+            loading={actionLoading}
+            loadingLabel="Updating Draft..."
+            onClick={() => onDraft({ action: "pass" })}
+          >
+            Lock {title(activeColor)} Army
+          </Button>
         </div>
       </section>
     </main>
@@ -152,8 +158,8 @@ function GambitHandoff({ game, onHandoff, actionLoading }) {
         <div className="handoff-seal" aria-hidden="true">
           {nextColor === "white" ? "W" : "B"}
         </div>
-        <span className="eyebrow">Private handoff</span>
-        <h1>Pass the screen to {title(nextColor)}</h1>
+        <span className="eyebrow">Private Handoff</span>
+        <h1>Pass The Screen To {title(nextColor)}</h1>
         <p>
           {title(ready.white && !ready.black ? "white" : "black")}'s army is locked and
           hidden. The next player should take the device before continuing.
@@ -161,9 +167,13 @@ function GambitHandoff({ game, onHandoff, actionLoading }) {
         {game.gambit.setupMessage ? (
           <p className="gambit-opening-warning">{game.gambit.setupMessage}</p>
         ) : null}
-        <button type="button" disabled={actionLoading} onClick={onHandoff}>
-          {actionLoading ? "Securing board..." : `I am ${title(nextColor)} - Begin Setup`}
-        </button>
+        <Button
+          loading={actionLoading}
+          loadingLabel="Securing Board..."
+          onClick={onHandoff}
+        >
+          I Am {title(nextColor)} - Begin Setup
+        </Button>
       </section>
     </main>
   );
@@ -368,30 +378,29 @@ function GambitDeployment({
         ) : null}
 
         <div className="deployment-actions">
-          <button
-            type="button"
-            className="secondary"
+          <Button
+            variant="secondary"
             disabled={!editable || actionLoading}
             onClick={() => onDeploymentChange({ action: "undo" })}
           >
             Undo
-          </button>
-          <button
-            type="button"
-            className="secondary"
+          </Button>
+          <Button
+            variant="secondary"
             disabled={!editable || actionLoading || !summary?.pieceCount}
             onClick={() => onDeploymentChange({ action: "clear" })}
           >
             Clear
-          </button>
-          <button
-            type="button"
+          </Button>
+          <Button
             className="lock-army-button"
-            disabled={!editable || actionLoading || !summary?.canReady}
+            disabled={!editable || !summary?.canReady}
+            loading={actionLoading}
+            loadingLabel="Locking Army..."
             onClick={onReady}
           >
-            {actionLoading ? "Locking..." : "Lock In Army"}
-          </button>
+            Lock In Army
+          </Button>
         </div>
       </aside>
     </main>

@@ -5,6 +5,8 @@ import { necromancyPurchaseOptions } from "../specialActionSelection";
 import { effectiveCatalogEntry } from "../variantTuning";
 import { victoryDisplayMetadata } from "../victoryDisplay";
 import PieceGlyph from "./PieceGlyph";
+import Button from "./ui/Button";
+import EmptyState from "./ui/EmptyState";
 
 function title(value) {
   return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
@@ -270,7 +272,9 @@ function EffectDisclosure({ title: heading, itemKeys, children, emptyDescription
         <span>{heading}</span>
         <small>{hasItems ? `${itemKeys.length} Enabled` : "None Enabled"}</small>
       </summary>
-      {hasItems ? children : <p className="effect-empty-state">{emptyDescription}</p>}
+      {hasItems ? children : (
+        <EmptyState className="effect-empty-state">{emptyDescription}</EmptyState>
+      )}
     </details>
   );
 }
@@ -470,14 +474,14 @@ export function GameInfoPanel({
         <h3>Move History</h3>
         {game.lastMoveExplanation ? <p className="move-explanation">{game.lastMoveExplanation}</p> : null}
         {game.historyPagination?.hasMore ? (
-          <button
-            type="button"
+          <Button
             className="history-load-button"
             onClick={onLoadEarlierHistory}
-            disabled={historyLoading}
+            loading={historyLoading}
+            loadingLabel="Loading Earlier Moves..."
           >
-            {historyLoading ? "Loading..." : "Load Earlier Moves"}
-          </button>
+            Load Earlier Moves
+          </Button>
         ) : null}
         <ol>{[...(game.history || [])].reverse().map((move) => <li key={move.moveNumber}><span className="history-move-heading"><strong>{move.moveNumber}. {move.actionType === "move" ? title(move.piece) : title(move.actionType)} ({title(move.player)})</strong><em>{moveSquares(move)}</em></span><small>{move.explanation}</small></li>)}</ol>
       </section>
