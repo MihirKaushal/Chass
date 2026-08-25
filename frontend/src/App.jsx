@@ -34,6 +34,7 @@ import {
   updateGameSession,
 } from "./gameSession";
 import useGameSocket from "./hooks/useGameSocket";
+import { shouldConfirmCustomizeNavigation } from "./leaveGameGuard";
 import { analysisMatchesGame } from "./matchPredictor";
 import CustomizePage from "./pages/CustomizePage";
 import GambitPage from "./pages/GambitPage";
@@ -212,6 +213,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [endgameMessage, setEndgameMessage] = useState("");
   const [showEndgameModal, setShowEndgameModal] = useState(false);
   const [showLocalRestartChooser, setShowLocalRestartChooser] = useState(false);
+  const [showCustomizeConfirmation, setShowCustomizeConfirmation] = useState(false);
   const lastEndgameSignatureRef = useRef("");
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
   const handledAnalysisRetryRef = useRef(0);
@@ -817,6 +819,23 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     handleRematch("request");
   };
 
+  const handleCustomizeNavigation = () => {
+    if (shouldConfirmCustomizeNavigation(game)) {
+      setShowCustomizeConfirmation(true);
+      return;
+    }
+    navigate("/customize");
+  };
+
+  useEffect(() => {
+    if (!showCustomizeConfirmation) return undefined;
+    const handleKeyDown = (event) => {
+      if (event.key === "Escape") setShowCustomizeConfirmation(false);
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [showCustomizeConfirmation]);
+
   const customizeCurrentGame = () => {
     const configuration = {
       ...game.configuration,
@@ -878,7 +897,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       <TopNav
         onReset={handleRestartRequest}
         onHome={() => navigate("/")}
-        onCustomize={() => navigate("/customize")}
+        onCustomize={handleCustomizeNavigation}
         currentPlayer={game.currentPlayer}
         gameStatus={game.gameStatus}
         winner={game.winner}
@@ -1025,6 +1044,44 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
             <button type="button" className="text-button" onClick={() => setPendingPromotion(null)}>
               Cancel
             </button>
+          </div>
+        </div>
+      ) : null}
+
+      {showCustomizeConfirmation ? (
+        <div className="endgame-modal-backdrop" role="presentation">
+          <div
+            className="endgame-modal leave-game-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="leave-game-title"
+            aria-describedby="leave-game-description"
+          >
+            <span className="eyebrow">Game In Progress</span>
+            <h2 id="leave-game-title">Leave This Game?</h2>
+            <p id="leave-game-description">
+              Are you sure you want to leave this game and go to Customize? Your current game
+              may be lost.
+            </p>
+            <div className="button-row">
+              <button
+                type="button"
+                autoFocus
+                onClick={() => setShowCustomizeConfirmation(false)}
+              >
+                Stay In Game
+              </button>
+              <button
+                type="button"
+                className="secondary"
+                onClick={() => {
+                  setShowCustomizeConfirmation(false);
+                  navigate("/customize");
+                }}
+              >
+                Leave And Customize
+              </button>
+            </div>
           </div>
         </div>
       ) : null}
