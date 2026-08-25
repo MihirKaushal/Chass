@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
+import { boardPlacementRestriction } from "../customizeBoardPlacement";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
 import { matchingCustomizeResults } from "../customizeNavigation";
 import { PIECE_FILTERS, visibleCustomizePieces } from "../customizePieces";
@@ -430,6 +431,7 @@ function ConfigurationBoard({
   canUndo,
   onRestore,
   highlightedIssueSquares = [],
+  placementNotice = "",
 }) {
   const definitionMap = useMemo(
     () => new Map(catalog.pieces.map((piece) => [piece.type, piece])),
@@ -489,6 +491,12 @@ function ConfigurationBoard({
               );
               const significantCenter = significantCenterMap.has(squareKey);
               const issueSquare = issueSquareMap.has(squareKey);
+              const placementRestriction = boardPlacementRestriction(
+                draft,
+                selectedTool,
+                row,
+                col
+              );
               const centerStartConflict = Boolean(
                 !draft.gambit.enabled
                 && significantCenter
@@ -509,9 +517,11 @@ function ConfigurationBoard({
                     significantCenter ? "studio-affinity" : "",
                     centerStartConflict ? "center-start-conflict" : "",
                     issueSquare ? "issue-square-highlight" : "",
+                    placementRestriction ? "placement-blocked" : "",
                   ].filter(Boolean).join(" ")}
                   onClick={() => onPlace(row, col)}
-                  aria-label={`${coordinate(row, col, draft.boardRows)}${piece ? `, ${piece.color} ${piece.name}` : ""}${centerStartConflict ? ", invalid occupied center starting square" : ""}${issueSquare ? ", highlighted configuration issue" : ""}`}
+                  title={placementRestriction || undefined}
+                  aria-label={`${coordinate(row, col, draft.boardRows)}${piece ? `, ${piece.color} ${piece.name}` : ""}${centerStartConflict ? ", invalid occupied center starting square" : ""}${issueSquare ? ", highlighted configuration issue" : ""}${placementRestriction ? `, unavailable: ${placementRestriction}` : ""}`}
                 >
                   {col === 0 ? <span className="studio-rank">{draft.boardRows - row}</span> : null}
                   {row === draft.boardRows - 1 ? <span className="studio-file">{String.fromCharCode(65 + col)}</span> : null}
@@ -552,6 +562,7 @@ function ConfigurationBoard({
             </button>
           </div>
         ) : null}
+        {placementNotice ? <small className="board-placement-notice" role="status">{placementNotice}</small> : null}
       </div>
       {!draft.gambit.enabled ? (
         <div className="board-editor-toolbar" aria-label="Board editor shortcuts">
@@ -1054,7 +1065,9 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const [pieceFilter, setPieceFilter] = useState("all");
   const [openSections, setOpenSections] = useState(initialSectionVisibility);
   const [highlightedIssueSquares, setHighlightedIssueSquares] = useState([]);
+  const [placementNotice, setPlacementNotice] = useState("");
   const issueSquareTimerRef = useRef(null);
+  const placementNoticeTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
   const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, requestKey: null });
   const predictorCompatible = useMemo(() => isExactClassicDraft(draft), [draft]);
@@ -1156,6 +1169,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
   useEffect(() => () => {
     window.clearTimeout(issueSquareTimerRef.current);
+    window.clearTimeout(placementNoticeTimerRef.current);
     window.clearTimeout(settingHighlightTimerRef.current);
   }, []);
 
@@ -1249,12 +1263,17 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
   const placeTool = (row, col) => {
     if (draft.gambit.enabled || !selectedTool) return;
-    const reserved = draft.enabledPieces.includes("barricade") && barricadeSquares(
-      draft.boardRows,
-      draft.boardCols,
-      draft.barricadeCount
-    ).some((square) => square.row === row && square.col === col);
-    if (reserved) return;
+    const restriction = boardPlacementRestriction(draft, selectedTool, row, col);
+    window.clearTimeout(placementNoticeTimerRef.current);
+    if (restriction) {
+      setPlacementNotice(restriction);
+      placementNoticeTimerRef.current = window.setTimeout(
+        () => setPlacementNotice(""),
+        3600
+      );
+      return;
+    }
+    setPlacementNotice("");
     setBoardHistory((history) => [
       ...history,
       { placements: draft.placements },
@@ -1674,7 +1693,10 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             draft={draft}
             catalog={catalog}
             selectedTool={selectedTool}
-            onSelectTool={setSelectedTool}
+            onSelectTool={(tool) => {
+              setPlacementNotice("");
+              setSelectedTool(tool);
+            }}
             onPlace={placeTool}
             onClearBoard={clearBoard}
             onClearColor={clearColor}
@@ -1683,6 +1705,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             canUndo={Boolean(boardHistory.length)}
             onRestore={restoreFormation}
             highlightedIssueSquares={highlightedIssueSquares}
+            placementNotice={placementNotice}
           />
         </aside>
 
