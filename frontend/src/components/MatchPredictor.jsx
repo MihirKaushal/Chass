@@ -1,4 +1,5 @@
 import { evaluationLabel, outcomePercentages } from "../matchPredictor";
+import Button from "./ui/Button";
 
 function factorValue(value) {
   const numeric = Number(value);
@@ -21,7 +22,7 @@ function MatchPredictor({ analysis, moveCount = 0, refreshing = false, onRetry }
           <small>Classic Analysis</small>
           <h3>Match Predictor</h3>
         </span>
-        <b className={unavailable ? "is-unavailable" : ""}>
+        <b className={`predictor-evaluation${unavailable ? " is-unavailable" : ""}`}>
           {loading ? <i aria-hidden="true" /> : null}
           {unavailable ? "Unavailable" : loading ? "Updating" : evaluationLabel(analysis, moveCount)}
         </b>
@@ -30,9 +31,13 @@ function MatchPredictor({ analysis, moveCount = 0, refreshing = false, onRetry }
       {unavailable ? (
         <div className="match-predictor-unavailable">
           <p className="match-predictor-message">{analysis.reason}</p>
-          <button type="button" onClick={onRetry} disabled={refreshing}>
-            {refreshing ? "Retrying..." : "Retry Analysis"}
-          </button>
+          <Button
+            onClick={onRetry}
+            loading={refreshing}
+            loadingLabel="Retrying Analysis..."
+          >
+            Retry Analysis
+          </Button>
         </div>
       ) : percentages ? (
         <>

@@ -4,6 +4,7 @@ import { getCatalog } from "../api/gameApi";
 import LandingNav from "../components/LandingNav";
 import PageSkeleton from "../components/PageSkeleton";
 import SiteFooter from "../components/SiteFooter";
+import Button from "../components/ui/Button";
 
 
 function HomePage({ onCreate, onCustomize, onJoinCode }) {
@@ -61,39 +62,41 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
             <article className="mode-choice-card">
               <h2>Same Device</h2>
               <p>Pass one screen between players. No account or invite required.</p>
-              <button
-                type="button"
+              <Button
                 disabled={Boolean(creatingMode)}
+                loading={creatingMode === "local"}
+                loadingLabel="Preparing Board..."
                 onClick={() => start("local")}
               >
-                {creatingMode === "local" ? "Preparing board..." : "Start Local Game"}
-              </button>
+                Start Local Game
+              </Button>
             </article>
 
             <article className="mode-choice-card featured">
               <h2>Invite a Friend</h2>
               <p>Create a private link and play from two browsers, anywhere.</p>
-              <button
-                type="button"
+              <Button
                 disabled={Boolean(creatingMode)}
+                loading={creatingMode === "online"}
+                loadingLabel="Opening Room..."
                 onClick={() => start("online")}
               >
-                {creatingMode === "online" ? "Opening room..." : "Create Online Game"}
-              </button>
+                Create Online Game
+              </Button>
             </article>
           </div>
 
           <div className="join-code-entry">
-            <button
-              type="button"
-              className="secondary join-code-toggle"
+            <Button
+              variant="secondary"
+              className="join-code-toggle"
               onClick={() => {
                 setShowCodeEntry((current) => !current);
                 setError("");
               }}
             >
               Enter Invite Code
-            </button>
+            </Button>
             {showCodeEntry ? (
               <form onSubmit={joinWithCode}>
                 <label htmlFor="invite-code">Invite Code</label>
@@ -111,7 +114,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
                       event.target.value.replace(/[^a-z0-9-]/gi, "").toUpperCase()
                     )}
                   />
-                  <button type="submit">Join Game</button>
+                  <Button type="submit">Join Game</Button>
                 </div>
               </form>
             ) : null}

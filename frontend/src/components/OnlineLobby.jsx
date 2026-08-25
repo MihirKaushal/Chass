@@ -1,5 +1,9 @@
 import { useState } from "react";
 
+import Button from "./ui/Button";
+import FormField from "./ui/FormField";
+import StableStatus from "./ui/StableStatus";
+import StatusBadge from "./ui/StatusBadge";
 
 function OnlineLobby({
   game,
@@ -29,8 +33,8 @@ function OnlineLobby({
   return (
     <section className={`online-room ${game.ready ? "online-room--ready" : ""}`}>
       <div>
-        <span className="eyebrow">Online room</span>
-        <h2>{game.ready ? "Both players are in" : "Waiting for Black"}</h2>
+        <span className="eyebrow">Online Room</span>
+        <h2>{game.ready ? "Both Players Are In" : "Waiting For Black"}</h2>
         <p>
           You are playing as <strong>{session?.color || "spectator"}</strong>. The server is{" "}
           <strong>{connectionStatus}</strong>.
@@ -38,39 +42,42 @@ function OnlineLobby({
       </div>
 
       <div className="seat-status" aria-label="Player connection status">
-        <span className={presence.white ? "seat connected" : "seat"}>
-          White {presence.white ? "connected" : "offline"}
-        </span>
-        <span className={presence.black ? "seat connected" : "seat"}>
-          Black {game.players.black === "open" ? "open" : presence.black ? "connected" : "offline"}
-        </span>
+        <StatusBadge tone={presence.white ? "success" : "neutral"} className={presence.white ? "seat connected" : "seat"}>
+          White {presence.white ? "Connected" : "Offline"}
+        </StatusBadge>
+        <StatusBadge tone={presence.black ? "success" : "neutral"} className={presence.black ? "seat connected" : "seat"}>
+          Black {game.players.black === "open" ? "Open" : presence.black ? "Connected" : "Offline"}
+        </StatusBadge>
       </div>
 
       {!game.ready && isHost ? (
         <div className="invite-controls">
           {inviteUrl ? (
             <>
-              <label>
-                Share this private link
+              <FormField label="Share This Private Link">
                 <input type="text" value={inviteUrl} readOnly onFocus={(event) => event.target.select()} />
-              </label>
-              <button type="button" onClick={() => copyInvite(inviteUrl, "Invite link copied")}>
+              </FormField>
+              <Button onClick={() => copyInvite(inviteUrl, "Invite link copied")}>
                 Copy Invite Link
-              </button>
-              <label className="invite-code-field">
-                Invite code
+              </Button>
+              <FormField className="invite-code-field" label="Invite Code">
                 <input type="text" value={inviteCode || ""} readOnly onFocus={(event) => event.target.select()} />
-              </label>
-              <button type="button" onClick={() => copyInvite(inviteCode, "Invite code copied")}>
+              </FormField>
+              <Button onClick={() => copyInvite(inviteCode, "Invite code copied")}>
                 Copy Invite Code
-              </button>
+              </Button>
             </>
           ) : (
-            <button type="button" onClick={onReplaceInvite}>
+            <Button onClick={onReplaceInvite}>
               Create New Invite
-            </button>
+            </Button>
           )}
-          {copyState ? <small aria-live="polite">{copyState}</small> : null}
+          <StableStatus
+            className="invite-copy-status"
+            visible={Boolean(copyState)}
+            message={copyState}
+            lines={2}
+          />
         </div>
       ) : null}
     </section>

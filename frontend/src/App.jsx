@@ -24,6 +24,9 @@ import OnlineLobby from "./components/OnlineLobby";
 import PageSkeleton from "./components/PageSkeleton";
 import SiteFooter from "./components/SiteFooter";
 import TopNav from "./components/TopNav";
+import Button from "./components/ui/Button";
+import Dialog from "./components/ui/Dialog";
+import StableStatus from "./components/ui/StableStatus";
 import {
   createInviteUrl,
   loadGameSession,
@@ -131,28 +134,28 @@ function RestartRequestPanel({ game, playerColor, onRespond, actionLoading }) {
       <div className="restart-actions">
         {game.mode === "online" && !onlineApproved ? (
           <>
-            <button type="button" disabled={actionLoading} onClick={() => onRespond("accept")}>
+            <Button disabled={actionLoading} onClick={() => onRespond("accept")}>
               Approve Restart
-            </button>
-            <button type="button" className="secondary" disabled={actionLoading} onClick={() => onRespond("decline")}>
+            </Button>
+            <Button variant="secondary" disabled={actionLoading} onClick={() => onRespond("decline")}>
               Decline
-            </button>
+            </Button>
           </>
         ) : null}
         {game.mode === "online" && onlineApproved && requestedBy === playerColor ? (
-          <button type="button" className="secondary" disabled={actionLoading} onClick={() => onRespond("cancel")}>
+          <Button variant="secondary" disabled={actionLoading} onClick={() => onRespond("cancel")}>
             Cancel Request
-          </button>
+          </Button>
         ) : null}
         {game.mode === "local" ? localUnapproved.map((color) => (
-          <button type="button" key={color} disabled={actionLoading} onClick={() => onRespond("accept", color)}>
+          <Button key={color} disabled={actionLoading} onClick={() => onRespond("accept", color)}>
             {colorLabel(color)} Approves
-          </button>
+          </Button>
         )) : null}
         {game.mode === "local" && requestedBy ? (
-          <button type="button" className="secondary" disabled={actionLoading} onClick={() => onRespond("cancel", requestedBy)}>
+          <Button variant="secondary" disabled={actionLoading} onClick={() => onRespond("cancel", requestedBy)}>
             Cancel Request
-          </button>
+          </Button>
         ) : null}
       </div>
     </section>
@@ -827,15 +830,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     navigate("/customize");
   };
 
-  useEffect(() => {
-    if (!showCustomizeConfirmation) return undefined;
-    const handleKeyDown = (event) => {
-      if (event.key === "Escape") setShowCustomizeConfirmation(false);
-    };
-    window.addEventListener("keydown", handleKeyDown);
-    return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [showCustomizeConfirmation]);
-
   const customizeCurrentGame = () => {
     const configuration = {
       ...game.configuration,
@@ -925,17 +919,15 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
 
       {error ? <p className="global-error">{error}</p> : null}
       {socketMessage ? <p className="sync-message">{socketMessage}</p> : null}
-      <p
-        className={`global-loading${actionLoading ? " is-visible" : ""}`}
-        aria-live="polite"
-        aria-atomic="true"
-      >
-        {actionLoading
+      <StableStatus
+        className="global-loading"
+        visible={actionLoading}
+        message={actionLoading
           ? pendingMove
             ? "Confirming move..."
             : "Syncing authoritative game state..."
           : ""}
-      </p>
+      />
       <RestartRequestPanel
         game={game}
         playerColor={session?.color}
@@ -1008,15 +1000,22 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       <SiteFooter />
 
       {pendingPromotion ? (
-        <div className="endgame-modal-backdrop" role="presentation">
-          <div className="promotion-modal" role="dialog" aria-modal="true">
-            <span className="eyebrow">Final Rank Reached</span>
-            <h2>Choose A Pawn Action</h2>
-            <p>Promote normally, or use Kamikaze if that is your selected ability.</p>
-            <div className="promotion-options">
+        <Dialog
+          open
+          onClose={() => setPendingPromotion(null)}
+          closeLabel="Close Pawn action dialog"
+          eyebrow="Final Rank Reached"
+          title="Choose A Pawn Action"
+          description="Promote normally, or use Kamikaze if that is your selected ability."
+          actions={(
+            <Button variant="secondary" onClick={() => setPendingPromotion(null)}>
+              Cancel
+            </Button>
+          )}
+        >
+          <div className="promotion-options">
               {["queen", "rook", "bishop", "knight"].map((pieceType) => (
-                <button
-                  type="button"
+                <Button
                   key={pieceType}
                   onClick={() => {
                     const pending = pendingPromotion;
@@ -1025,11 +1024,10 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
                   }}
                 >
                   {colorLabel(pieceType)}
-                </button>
+                </Button>
               ))}
               {playerHasAbility(game, game.currentPlayer, "kamikaze") ? (
-                <button
-                  type="button"
+                <Button
                   className="kamikaze-choice"
                   onClick={() => {
                     const pending = pendingPromotion;
@@ -1038,102 +1036,91 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
                   }}
                 >
                   ✹ Kamikaze
-                </button>
+                </Button>
               ) : null}
-            </div>
-            <button type="button" className="text-button" onClick={() => setPendingPromotion(null)}>
-              Cancel
-            </button>
           </div>
-        </div>
+        </Dialog>
       ) : null}
 
       {showCustomizeConfirmation ? (
-        <div className="endgame-modal-backdrop" role="presentation">
-          <div
-            className="endgame-modal leave-game-dialog"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="leave-game-title"
-            aria-describedby="leave-game-description"
-          >
-            <span className="eyebrow">Game In Progress</span>
-            <h2 id="leave-game-title">Leave This Game?</h2>
-            <p id="leave-game-description">
-              Are you sure you want to leave this game and go to Customize? Your current game
-              may be lost.
-            </p>
-            <div className="button-row">
-              <button
-                type="button"
-                autoFocus
-                onClick={() => setShowCustomizeConfirmation(false)}
-              >
+        <Dialog
+          open
+          onClose={() => setShowCustomizeConfirmation(false)}
+          closeLabel="Close leave game confirmation"
+          eyebrow="Game In Progress"
+          title="Leave This Game?"
+          description="Are you sure you want to leave this game and go to Customize? Your current game may be lost."
+          className="leave-game-dialog"
+          actions={(
+            <>
+              <Button variant="secondary" onClick={() => setShowCustomizeConfirmation(false)}>
                 Stay In Game
-              </button>
-              <button
-                type="button"
-                className="secondary"
+              </Button>
+              <Button
+                variant="danger"
                 onClick={() => {
                   setShowCustomizeConfirmation(false);
                   navigate("/customize");
                 }}
               >
                 Leave And Customize
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </>
+          )}
+        />
       ) : null}
 
       {showLocalRestartChooser ? (
-        <div className="endgame-modal-backdrop" role="presentation">
-          <div className="endgame-modal" role="dialog" aria-modal="true" aria-labelledby="restart-seat-title">
-            <span className="eyebrow">Same-Device Approval</span>
-            <h2 id="restart-seat-title">Who Is Requesting?</h2>
-            <p>The other player must approve before the board resets.</p>
-            <div className="button-row">
+        <Dialog
+          open
+          onClose={() => setShowLocalRestartChooser(false)}
+          closeLabel="Close restart request dialog"
+          eyebrow="Same-Device Approval"
+          title="Who Is Requesting?"
+          description="The other player must approve before the board resets."
+          actions={(
+            <>
               {["white", "black"].map((color) => (
-                <button type="button" key={color} disabled={actionLoading} onClick={() => handleRematch("request", color)}>
+                <Button key={color} disabled={actionLoading} onClick={() => handleRematch("request", color)}>
                   {colorLabel(color)} Requests Restart
-                </button>
+                </Button>
               ))}
-              <button type="button" className="secondary" onClick={() => setShowLocalRestartChooser(false)}>
+              <Button variant="secondary" onClick={() => setShowLocalRestartChooser(false)}>
                 Cancel
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </>
+          )}
+        />
       ) : null}
 
       {showEndgameModal ? (
-        <div className="endgame-modal-backdrop" role="presentation">
-          <div className="endgame-modal" role="dialog" aria-modal="true" aria-live="polite">
-            <span className="eyebrow">Final position</span>
-            <h2>Match Finished</h2>
-            <p>{endgameMessage}</p>
-            <div className="button-row">
+        <Dialog
+          open
+          onClose={() => setShowEndgameModal(false)}
+          closeLabel="Close match result"
+          eyebrow="Final Position"
+          title="Match Finished"
+          description={endgameMessage}
+          ariaLive="polite"
+          actions={(
+            <>
               {canRequestRestart ? (
-                <button type="button" onClick={handleRestartRequest}>
+                <Button onClick={handleRestartRequest}>
                   Play Again
-                </button>
+                </Button>
               ) : null}
-              <button type="button" className="secondary" onClick={customizeCurrentGame}>
+              <Button variant="secondary" onClick={customizeCurrentGame}>
                 Customize This Game
-              </button>
-              <button type="button" className="secondary" onClick={() => navigate("/")}>
+              </Button>
+              <Button variant="secondary" onClick={() => navigate("/")}>
                 Home
-              </button>
-              <button
-                type="button"
-                className="secondary"
-                onClick={() => setShowEndgameModal(false)}
-              >
+              </Button>
+              <Button variant="secondary" onClick={() => setShowEndgameModal(false)}>
                 Review Board
-              </button>
-            </div>
-          </div>
-        </div>
+              </Button>
+            </>
+          )}
+        />
       ) : null}
     </div>
   );

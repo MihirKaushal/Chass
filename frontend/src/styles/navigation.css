@@ -8,7 +8,7 @@
   padding: 1rem 1.25rem;
   background: var(--panel);
   border: 2px solid rgba(26, 54, 93, 0.2);
-  border-radius: 16px;
+  border-radius: var(--radius-lg);
   box-shadow: var(--shadow);
 }
 
@@ -39,14 +39,14 @@
   gap: 0.5rem;
   padding: 0.35rem;
   background: rgba(255, 255, 255, 0.44);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
 }
 
 .tab {
   border: none;
   background: transparent;
   color: var(--deep);
-  border-radius: 999px;
+  border-radius: var(--radius-pill);
   padding: 0.45rem 1rem;
   font-weight: 600;
   cursor: pointer;
@@ -65,12 +65,18 @@
   justify-content: flex-end;
 }
 
+.turn-banner {
+  min-inline-size: 8.4rem;
+  justify-content: center;
+  white-space: nowrap;
+}
+
 .turn-banner,
 .status-chip,
 .mode-chip {
   padding: 0.3rem 0.8rem;
-  border-radius: 999px;
-  font-family: "IBM Plex Mono", monospace;
+  border-radius: var(--radius-pill);
+  font-family: var(--font-mono);
   font-size: 0.78rem;
 }
 
@@ -94,13 +100,17 @@
 }
 
 .status-chip {
+  min-inline-size: 5.4rem;
+  justify-content: center;
   background: rgba(99, 179, 237, 0.22);
   border: 1px solid rgba(43, 108, 176, 0.33);
 }
 
 .mode-chip {
+  min-inline-size: 10.5rem;
+  justify-content: center;
   background: rgba(255, 255, 255, 0.48);
-  border: 1px solid rgba(26, 54, 93, 0.18);
+  border: 1px solid var(--border-subtle);
 }
 
 .board-actions {
@@ -111,6 +121,14 @@
   gap: 0.5rem;
 }
 
+.flip-board-button {
+  min-inline-size: 7rem;
+}
+
+.auto-flip-button {
+  min-inline-size: 8.2rem;
+}
+
 .reset-button,
 .button-row button,
 .board-actions button,
@@ -119,7 +137,7 @@
 .join-card button,
 .loading-card button {
   border: none;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: 0.55rem 0.9rem;
   cursor: pointer;
   font-weight: 600;
@@ -140,9 +158,13 @@
 }
 
 button:disabled {
-  cursor: wait;
+  cursor: not-allowed;
   opacity: 0.58;
   transform: none;
+}
+
+button[aria-busy="true"]:disabled {
+  cursor: wait;
 }
 
 button.secondary {
@@ -152,13 +174,13 @@ button.secondary {
 
 .global-error,
 .error {
-  color: #7b1f1f;
+  color: var(--danger);
   font-weight: 600;
   margin: 0.5rem 0;
 }
 
 .global-loading {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.9rem;
   line-height: 1.35;
   color: var(--accent);
@@ -177,7 +199,7 @@ button.secondary {
 .sync-message,
 .turn-notice {
   margin: -0.5rem 0 0.8rem;
-  border-radius: 10px;
+  border-radius: var(--radius-control);
   padding: 0.55rem 0.75rem;
   background: rgba(99, 179, 237, 0.16);
   border: 1px solid rgba(43, 108, 176, 0.22);
@@ -185,13 +207,13 @@ button.secondary {
 }
 
 .turn-notice {
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
 }
 
 .eyebrow {
   display: inline-block;
   color: var(--accent);
-  font-family: "IBM Plex Mono", monospace;
+  font-family: var(--font-mono);
   font-size: 0.72rem;
   font-weight: 600;
   letter-spacing: 0.12em;

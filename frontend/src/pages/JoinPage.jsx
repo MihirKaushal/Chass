@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import PageSkeleton from "../components/PageSkeleton";
+import Button from "../components/ui/Button";
 
 function JoinPage({ inviteToken, onJoin, onHome }) {
   const startedRef = useRef(false);
@@ -31,18 +32,18 @@ function JoinPage({ inviteToken, onJoin, onHome }) {
   return (
     <main className="landing-shell">
       <section className="join-card">
-        <span className="eyebrow">Private game invitation</span>
-        <h1>Unable to join</h1>
+        <span className="eyebrow">Private Game Invitation</span>
+        <h1>Unable To Join</h1>
         {status ? <p className="join-status">{status}</p> : null}
         {error ? <p className="landing-error">{error}</p> : null}
         {error ? (
           <div className="button-row">
-            <button type="button" onClick={join}>
+            <Button onClick={join}>
               Try Again
-            </button>
-            <button type="button" className="secondary" onClick={onHome}>
+            </Button>
+            <Button variant="secondary" onClick={onHome}>
               Back Home
-            </button>
+            </Button>
           </div>
         ) : null}
       </section>

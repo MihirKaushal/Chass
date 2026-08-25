@@ -1,51 +1,30 @@
-import { useEffect, useRef, useState } from "react";
+import { useState } from "react";
 
 import LandingNav from "../components/LandingNav";
 import CustomizationPanel from "../components/CustomizationPanel";
 import SiteFooter from "../components/SiteFooter";
+import Button from "../components/ui/Button";
+import Dialog from "../components/ui/Dialog";
 import { shouldConfirmDiscardingCustomization } from "../leaveGameGuard";
 
 function LeaveCustomizeConfirmation({ open, onCancel, onConfirm }) {
-  const cancelRef = useRef(null);
-
-  useEffect(() => {
-    if (!open) return undefined;
-    cancelRef.current?.focus();
-    const closeOnEscape = (event) => {
-      if (event.key === "Escape") onCancel();
-    };
-    document.addEventListener("keydown", closeOnEscape);
-    return () => document.removeEventListener("keydown", closeOnEscape);
-  }, [onCancel, open]);
-
-  if (!open) return null;
   return (
-    <div
-      className="starting-system-dialog-backdrop"
-      onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onCancel();
-      }}
-    >
-      <section
-        className="starting-system-dialog leave-customize-dialog"
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="leave-customize-dialog-title"
-        aria-describedby="leave-customize-dialog-description"
-      >
-        <span className="eyebrow">Unsaved Configuration</span>
-        <h2 id="leave-customize-dialog-title">Leave Customize?</h2>
-        <p id="leave-customize-dialog-description">
-          Your custom game settings will be lost if you return home before starting a game.
-        </p>
-        <div className="starting-system-dialog-actions">
-          <button type="button" className="secondary" ref={cancelRef} onClick={onCancel}>
+    <Dialog
+      open={open}
+      onClose={onCancel}
+      closeLabel="Close leave Customize confirmation"
+      eyebrow="Unsaved Configuration"
+      title="Leave Customize?"
+      description="Your custom game settings will be lost if you return home before starting a game."
+      actions={(
+        <>
+          <Button variant="secondary" onClick={onCancel}>
             Keep Editing
-          </button>
-          <button type="button" onClick={onConfirm}>Leave And Go Home</button>
-        </div>
-      </section>
-    </div>
+          </Button>
+          <Button variant="danger" onClick={onConfirm}>Leave And Go Home</Button>
+        </>
+      )}
+    />
   );
 }
 
