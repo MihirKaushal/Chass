@@ -31,7 +31,7 @@ export const CUSTOMIZE_SECTION_LINKS = [
   },
   {
     id: "studio-gambit",
-    label: "Chass Gambit",
+    label: "Chass Gambit Settings",
     keywords: "private army shared draft maximum points pieces queens setup rows",
   },
   {

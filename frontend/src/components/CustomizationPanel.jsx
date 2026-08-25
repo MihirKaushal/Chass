@@ -1395,7 +1395,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         </aside>
 
         <div className="studio-controls">
-          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Starting Systems" description="Choose a complete starting setup. Victory-only variants are configured under End Game Logic.">
+          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Starting Systems" description="Choose the overall game setup. You can then change its board, pieces, victory rule, and other settings.">
             <div className="mode-preset-grid" data-setting-key="popular-modes">
               {catalog.popularModes.map((mode) => (
                 <article
@@ -1427,7 +1427,8 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                 </article>
               ))}
             </div>
-            <h3 className="formation-heading">Board Formations</h3>
+            <h3 className="formation-heading">Popular Board Formations</h3>
+            <p className="formation-description">Change the starting piece arrangement without selecting a different overall game system.</p>
             <div className="mode-preset-grid formation-grid">
               {catalog.formations.map((formation) => <button type="button" key={formation.id} className={draft.formationId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}><i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small></button>)}
             </div>
@@ -1562,7 +1563,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             </> : null}
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-gambit" title="Chass Gambit" description="Add private army construction to this board and ruleset." className="gambit-config-section">
+          <CollapsibleStudioSection sectionId="studio-gambit" title="Chass Gambit Settings" description="Configure private army construction for the current board and ruleset." className="gambit-config-section">
             <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled, draftEnabled: enabled ? current.gambit.draftEnabled : false } }))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
             {draft.gambit.enabled ? <div className="gambit-settings-grid" data-setting-key="gambit-settings">
               <label>Maximum Points<input type="number" min="0" value={draft.gambit.budget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, budget: Math.max(0, Number(event.target.value)) } }))} /><small>Players may spend less, but cannot exceed this limit.</small></label>

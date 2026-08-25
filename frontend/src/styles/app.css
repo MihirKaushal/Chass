@@ -3739,8 +3739,8 @@ button.secondary {
 }
 
 .customize-section-navigator {
-  width: min(520px, 47vw);
-  flex: 0 1 520px;
+  width: min(300px, 32vw);
+  flex: 0 1 300px;
   padding: 0.78rem;
   color: white;
   border: 1px solid rgba(99, 179, 237, 0.3);
@@ -4550,8 +4550,15 @@ details[open] > summary > .disclosure-arrow {
 }
 
 .formation-heading {
-  margin: 1.15rem 0 0.6rem;
+  margin: 1.15rem 0 0.18rem;
   font-size: 0.95rem;
+}
+
+.formation-description {
+  margin: 0 0 0.65rem;
+  color: rgba(26, 54, 93, 0.66);
+  font-size: 0.72rem;
+  line-height: 1.4;
 }
 
 .formation-grid button {
