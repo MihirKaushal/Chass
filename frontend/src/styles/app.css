@@ -4061,6 +4061,15 @@ button.secondary {
   cursor: default;
 }
 
+.studio-square.placement-blocked {
+  cursor: not-allowed;
+}
+
+.studio-square.placement-blocked:hover,
+.studio-square.placement-blocked:focus-visible {
+  box-shadow: inset 0 0 0 3px rgba(159, 47, 40, 0.8);
+}
+
 .studio-square:disabled {
   cursor: default;
   opacity: 1;
@@ -4197,6 +4206,19 @@ button.secondary {
 
 .board-tool-readout strong {
   grid-column: 1;
+}
+
+.board-placement-notice {
+  grid-column: 1 / -1;
+  margin-top: 0.38rem;
+  padding: 0.48rem 0.56rem;
+  color: #7b1f1f;
+  border: 1px solid rgba(159, 47, 40, 0.24);
+  border-radius: 8px;
+  background: rgba(248, 217, 210, 0.7);
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1.35;
 }
 
 .board-editor-actions {
