@@ -1,0 +1,676 @@
+/* Ability setup, runtime effects, and richer tooltips */
+.ability-selection-shell {
+  min-height: min(660px, 76vh);
+  display: grid;
+  place-items: center;
+}
+
+.ability-selection-card {
+  width: min(980px, 100%);
+  padding: clamp(1rem, 3vw, 2rem);
+  border: 2px solid rgba(26, 54, 93, 0.2);
+  border-radius: 22px;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.64), rgba(234, 216, 181, 0.86));
+  box-shadow: var(--shadow);
+}
+
+.ability-selection-card header {
+  max-width: 700px;
+}
+
+.ability-selection-card h1 {
+  margin: 0.2rem 0 0.35rem;
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  letter-spacing: -0.04em;
+}
+
+.ability-selection-card header p {
+  color: rgba(26, 54, 93, 0.72);
+}
+
+.ability-selection-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.ability-selection-grid button {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  color: var(--deep);
+  text-align: left;
+  border: 1px solid rgba(26, 54, 93, 0.2);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.56);
+  cursor: pointer;
+}
+
+.ability-selection-grid button:hover:not(:disabled) {
+  border-color: var(--accent);
+  background: rgba(99, 179, 237, 0.15);
+}
+
+.ability-selection-grid button.selected {
+  border-color: var(--accent);
+  background: rgba(99, 179, 237, 0.22);
+  box-shadow: inset 4px 0 0 var(--accent);
+}
+
+.ability-selection-grid i {
+  font-style: normal;
+  font-size: 1.55rem;
+}
+
+.ability-selection-grid span {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.ability-selection-grid small {
+  color: rgba(26, 54, 93, 0.66);
+}
+
+.ability-selection-grid b {
+  color: var(--accent);
+  font-size: 0.72rem;
+}
+
+.ability-waiting,
+.ability-locked {
+  padding: 0.7rem;
+  border-radius: 10px;
+  background: rgba(99, 179, 237, 0.13);
+  font-weight: 600;
+}
+
+.ability-lock-button {
+  display: block;
+  min-width: 190px;
+  margin: 1rem 0 0 auto;
+  border: 1px solid var(--accent);
+  border-radius: 10px;
+  padding: 0.72rem 1rem;
+  color: white;
+  background: var(--accent);
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.ability-lock-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.panel-heading-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.panel-heading-row span {
+  min-width: 24px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  color: white;
+  border-radius: 50%;
+  background: var(--accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+}
+
+.panel-helper,
+.empty-panel-copy {
+  margin: -0.2rem 0 0.55rem;
+  color: rgba(26, 54, 93, 0.62);
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.empty-panel-copy {
+  padding: 0.5rem;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.36);
+}
+
+.countdown-groups {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.countdown-groups h4 {
+  margin: 0 0 0.3rem;
+  color: rgba(26, 54, 93, 0.62);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.65rem;
+  text-transform: uppercase;
+}
+
+.countdown-groups article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  margin-top: 0.3rem;
+  padding: 0.5rem;
+  border: 1px solid rgba(43, 108, 176, 0.18);
+  border-radius: 9px;
+  background: rgba(99, 179, 237, 0.09);
+}
+
+.countdown-groups article > i {
+  font-style: normal;
+  font-size: 1.15rem;
+}
+
+.countdown-groups article > span,
+.countdown-groups article > b {
+  display: grid;
+}
+
+.countdown-groups article strong {
+  font-size: 0.72rem;
+}
+
+.countdown-groups article small {
+  color: rgba(26, 54, 93, 0.62);
+  font-size: 0.62rem;
+  font-weight: 400;
+}
+
+.countdown-groups article > b {
+  color: var(--accent);
+  text-align: center;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1rem;
+}
+
+.action-panel details {
+  margin-top: 0.35rem;
+  border: 1px solid rgba(26, 54, 93, 0.16);
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.action-panel summary {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem;
+  cursor: pointer;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.action-option-list {
+  max-height: 260px;
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.4rem;
+  overflow: auto;
+}
+
+.action-option-list button {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 0.08rem 0.5rem;
+  padding: 0.5rem;
+  color: var(--deep);
+  text-align: left;
+  border: 1px solid rgba(26, 54, 93, 0.16);
+  border-radius: 7px;
+  background: rgba(245, 230, 202, 0.58);
+  cursor: pointer;
+}
+
+.action-option-list button > span {
+  grid-column: 1 / -1;
+  color: rgba(26, 54, 93, 0.65);
+  font-size: 0.62rem;
+}
+
+.action-option-list button small {
+  color: var(--accent);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.6rem;
+}
+
+.necromancy-action-hint {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.5rem;
+  margin: 0;
+  padding: 0.25rem 0.1rem;
+  color: rgba(26, 54, 93, 0.7);
+  font-size: 0.64rem;
+  line-height: 1.4;
+}
+
+.necromancy-action-hint strong {
+  color: #25674b;
+  font-family: "IBM Plex Mono", monospace;
+  white-space: nowrap;
+}
+
+.action-option-list .necromancy-purchase-option {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.necromancy-piece-choice {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.necromancy-piece-choice .piece-glyph {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.8rem;
+}
+
+.necromancy-piece-choice > span {
+  min-width: 0;
+  display: grid;
+  gap: 0.06rem;
+}
+
+.necromancy-piece-choice strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.necromancy-piece-cost {
+  color: #25674b;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.action-option-list .necromancy-purchase-option.selected {
+  color: #f5fff9;
+  border-color: #25674b;
+  background: linear-gradient(135deg, #245f48, #3a8967);
+  box-shadow: 0 0 0 3px rgba(37, 103, 75, 0.12);
+}
+
+.action-option-list .necromancy-purchase-option.selected small,
+.action-option-list .necromancy-purchase-option.selected > span,
+.action-option-list .necromancy-purchase-option.selected .necromancy-piece-cost {
+  color: rgba(245, 255, 249, 0.82);
+}
+
+.action-option-list .board-target-action.selected {
+  color: #fff8eb;
+  border-color: #7f2f21;
+  background: linear-gradient(135deg, #9b3f28, #c85d32);
+}
+
+.action-option-list .board-target-action.selected small,
+.action-option-list .board-target-action.selected > span {
+  color: rgba(255, 248, 235, 0.82);
+}
+
+.clock-panel > div {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+}
+
+.clock-panel span {
+  display: grid;
+  gap: 0.1rem;
+  padding: 0.5rem;
+  border: 1px solid rgba(26, 54, 93, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.38);
+}
+
+.clock-panel span.active {
+  color: white;
+  border-color: var(--accent);
+  background: var(--accent);
+}
+
+.clock-panel b {
+  font-size: 0.62rem;
+}
+
+.clock-panel strong {
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 1rem;
+}
+
+.piece-tooltip {
+  min-width: 190px;
+  max-width: 270px;
+  padding: 0.55rem;
+  line-height: 1.35;
+}
+
+.tooltip-title {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 0.2rem;
+}
+
+.tooltip-title i {
+  font-style: normal;
+  font-size: 0.95rem;
+}
+
+.piece-tooltip p {
+  margin: 0.35rem 0 0;
+  padding-top: 0.3rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.18);
+}
+
+.piece-tooltip p b,
+.tooltip-runtime > b {
+  display: block;
+  color: var(--accent-soft);
+  font-size: 0.62rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.tooltip-runtime {
+  display: grid;
+  gap: 0.15rem;
+  margin-top: 0.35rem;
+  padding: 0.35rem;
+  border-radius: 6px;
+  background: rgba(99, 179, 237, 0.14);
+}
+
+.promotion-modal {
+  width: min(520px, calc(100% - 2rem));
+  padding: 1.4rem;
+  border: 2px solid rgba(26, 54, 93, 0.22);
+  border-radius: 18px;
+  background: var(--panel);
+  box-shadow: 0 24px 70px rgba(26, 54, 93, 0.35);
+}
+
+.promotion-modal h2 {
+  margin: 0.2rem 0;
+}
+
+.promotion-options {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: 0.8rem;
+}
+
+.promotion-options .kamikaze-choice {
+  grid-column: 1 / -1;
+  color: var(--deep);
+  border: 1px solid rgba(184, 121, 24, 0.45);
+  background: rgba(255, 193, 59, 0.32);
+}
+
+@media (max-width: 1180px) {
+  .studio-shell {
+    grid-template-columns: minmax(300px, 390px) minmax(0, 1fr);
+  }
+
+  .mode-preset-grid,
+  .rulebook-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1300px) {
+  .play-layout-three-column {
+    grid-template-columns: 1fr;
+    justify-items: stretch;
+  }
+
+  .play-layout-three-column .board-section {
+    order: 1;
+  }
+
+  .responsive-play-panel {
+    position: fixed;
+    z-index: 200;
+    right: 50%;
+    bottom: 0;
+    width: min(680px, calc(100% - 1.2rem));
+    max-height: min(78vh, 760px);
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid rgba(26, 54, 93, 0.28);
+    border-radius: 20px 20px 0 0;
+    background: var(--panel);
+    box-shadow: 0 -18px 50px rgba(26, 54, 93, 0.26);
+    transform: translate(50%, calc(100% + 1.5rem));
+    visibility: hidden;
+    transition: transform 240ms ease, visibility 240ms step-end;
+  }
+
+  .responsive-play-panel.is-open {
+    transform: translate(50%, 0);
+    visibility: visible;
+    transition: transform 240ms ease, visibility 0ms;
+  }
+
+  .play-panel-drawer-header {
+    min-height: 3rem;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 2.5rem;
+    align-items: center;
+    padding: 0.28rem 0.5rem 0.4rem;
+    border-bottom: 1px solid rgba(26, 54, 93, 0.14);
+    background: rgba(255, 255, 255, 0.4);
+    text-align: left;
+  }
+
+  .play-panel-drawer-header > strong {
+    min-width: 0;
+    padding-left: 0.35rem;
+  }
+
+  .play-panel-close {
+    width: 2.25rem;
+    height: 2.25rem;
+    justify-self: end;
+    font-size: 1.35rem;
+  }
+
+  .responsive-play-panel > .effects-panel,
+  .responsive-play-panel > .history-panel {
+    width: 100%;
+    max-height: none;
+    overflow: auto;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .play-panel-backdrop {
+    position: fixed;
+    z-index: 199;
+    inset: 0;
+    display: block;
+    border: 0;
+    padding: 0;
+    background: rgba(26, 54, 93, 0.35);
+    cursor: default;
+  }
+
+  .play-panel-dock {
+    position: sticky;
+    z-index: 35;
+    bottom: max(0.55rem, env(safe-area-inset-bottom));
+    order: 2;
+    width: min(520px, calc(100% - 1rem));
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.4rem;
+    justify-self: center;
+    margin: 0.75rem auto 0;
+    padding: 0.4rem;
+    border: 1px solid rgba(26, 54, 93, 0.22);
+    border-radius: 15px;
+    background: rgba(234, 216, 181, 0.94);
+    box-shadow: 0 12px 28px rgba(26, 54, 93, 0.2);
+    backdrop-filter: blur(10px);
+  }
+
+  .play-panel-dock button {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.62rem 0.72rem;
+    border: 0;
+    border-radius: 10px;
+    color: var(--deep);
+    background: rgba(255, 255, 255, 0.48);
+    cursor: pointer;
+    font-weight: 800;
+  }
+
+  .play-panel-dock button.active {
+    color: white;
+    background: var(--accent);
+  }
+
+  .play-panel-dock button > i {
+    font-style: normal;
+    font-size: 1rem;
+  }
+
+  .play-panel-dock button > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .play-panel-dock button > b {
+    min-width: 1.35rem;
+    padding: 0.16rem 0.35rem;
+    border-radius: 999px;
+    color: var(--deep);
+    background: rgba(99, 179, 237, 0.26);
+    font-family: "IBM Plex Mono", monospace;
+    font-size: 0.62rem;
+  }
+}
+
+@media (max-width: 900px) {
+  .studio-shell {
+    grid-template-columns: 1fr;
+  }
+
+  .studio-preview-column {
+    position: static;
+  }
+
+  .studio-board-frame {
+    width: min(560px, 100%);
+    margin: 0 auto;
+  }
+
+  .studio-hero,
+  .rulebook-hero {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .studio-launch-bar {
+    position: static;
+    grid-template-columns: 1fr;
+    align-items: stretch;
+  }
+
+  .studio-hero-copy,
+  .customize-section-navigator {
+    width: 100%;
+    flex-basis: auto;
+  }
+
+  .rulebook-hero nav {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 640px) {
+  .customize-page-shell {
+    width: min(100% - 0.8rem, 1580px);
+    padding-top: 0.5rem;
+  }
+
+  .configuration-studio {
+    padding: 0.7rem;
+    border-radius: 18px;
+  }
+
+  .studio-hero h1 {
+    font-size: 2.2rem;
+  }
+
+  .landing-intro span:first-child {
+    white-space: normal;
+  }
+
+  .mode-preset-grid,
+  .piece-catalog-grid,
+  .victory-grid,
+  .ability-option-grid,
+  .conditional-fields,
+  .gambit-settings-grid,
+  .rulebook-entry-grid,
+  .rulebook-strip,
+  .rulebook-gambit-copy,
+  .ability-selection-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .piece-config-fields {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .tuning-field-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .launch-actions {
+    width: 100%;
+    flex-direction: column;
+  }
+
+  .launch-actions button {
+    width: 100%;
+  }
+
+  .rulebook-hero nav {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    width: 100%;
+  }
+
+  .rulebook-hero nav a {
+    text-align: center;
+  }
+
+  .ability-selection-grid button {
+    grid-template-columns: auto minmax(0, 1fr);
+  }
+
+  .ability-selection-grid b {
+    grid-column: 2;
+  }
+}

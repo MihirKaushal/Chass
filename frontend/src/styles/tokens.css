@@ -1,0 +1,58 @@
+:root {
+  /* Brand and semantic color roles */
+  --bg: #f5e6ca;
+  --panel: #ead8b5;
+  --accent: #2b6cb0;
+  --accent-soft: #63b3ed;
+  --deep: #1a365d;
+  --light-square: #f4ecd9;
+  --dark-square: #d4b98b;
+  --gambit-gold: #b87918;
+  --gambit-ink: #102a4c;
+  --success: #2f7658;
+  --danger: #9f2f28;
+  --warning: #9a5d0b;
+  --surface: rgba(255, 255, 255, 0.56);
+  --surface-strong: rgba(255, 255, 255, 0.78);
+  --ink-muted: rgba(26, 54, 93, 0.72);
+  --border-subtle: rgba(26, 54, 93, 0.18);
+  --border-accent: rgba(43, 108, 176, 0.3);
+
+  /* Typography */
+  --font-display: "Space Grotesk", "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", monospace;
+  --text-xs: 0.68rem;
+  --text-sm: 0.78rem;
+  --text-md: 0.9rem;
+  --text-lg: 1rem;
+
+  /* Spacing and shape */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --radius-sm: 8px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+  --radius-xl: 22px;
+  --radius-pill: 999px;
+
+  /* Elevation, motion, and layer order */
+  --shadow-sm: 0 8px 18px rgba(26, 54, 93, 0.1);
+  --shadow: 0 12px 26px rgba(26, 54, 93, 0.18);
+  --shadow-lg: 0 24px 70px rgba(26, 54, 93, 0.28);
+  --motion-fast: 140ms ease;
+  --motion-standard: 220ms ease;
+  --z-board-overlay: 8;
+  --z-popover: 30;
+  --z-sticky: 65;
+  --z-overlay: 90;
+  --z-dialog: 100;
+
+  --board-long-edge: min(68vh, 680px);
+}
