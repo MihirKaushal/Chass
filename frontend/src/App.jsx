@@ -37,7 +37,7 @@ import {
   updateGameSession,
 } from "./gameSession";
 import useGameSocket from "./hooks/useGameSocket";
-import { shouldConfirmCustomizeNavigation } from "./leaveGameGuard";
+import { shouldConfirmGameNavigation } from "./leaveGameGuard";
 import { analysisMatchesGame } from "./matchPredictor";
 import CustomizePage from "./pages/CustomizePage";
 import GambitPage from "./pages/GambitPage";
@@ -216,7 +216,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [endgameMessage, setEndgameMessage] = useState("");
   const [showEndgameModal, setShowEndgameModal] = useState(false);
   const [showLocalRestartChooser, setShowLocalRestartChooser] = useState(false);
-  const [showCustomizeConfirmation, setShowCustomizeConfirmation] = useState(false);
+  const [pendingLeaveDestination, setPendingLeaveDestination] = useState(null);
   const lastEndgameSignatureRef = useRef("");
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
   const handledAnalysisRetryRef = useRef(0);
@@ -822,12 +822,12 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     handleRematch("request");
   };
 
-  const handleCustomizeNavigation = () => {
-    if (shouldConfirmCustomizeNavigation(game)) {
-      setShowCustomizeConfirmation(true);
+  const handleGameNavigation = (destination) => {
+    if (shouldConfirmGameNavigation(game)) {
+      setPendingLeaveDestination(destination);
       return;
     }
-    navigate("/customize");
+    navigate(destination);
   };
 
   const customizeCurrentGame = () => {
@@ -890,8 +890,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     <div className="app-shell page-frame">
       <TopNav
         onReset={handleRestartRequest}
-        onHome={() => navigate("/")}
-        onCustomize={handleCustomizeNavigation}
+        onHome={() => handleGameNavigation("/")}
+        onCustomize={() => handleGameNavigation("/customize")}
         currentPlayer={game.currentPlayer}
         gameStatus={game.gameStatus}
         winner={game.winner}
@@ -1042,28 +1042,29 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         </Dialog>
       ) : null}
 
-      {showCustomizeConfirmation ? (
+      {pendingLeaveDestination ? (
         <Dialog
           open
-          onClose={() => setShowCustomizeConfirmation(false)}
+          onClose={() => setPendingLeaveDestination(null)}
           closeLabel="Close leave game confirmation"
-          eyebrow="Game In Progress"
+          eyebrow="Current Game"
           title="Leave This Game?"
-          description="Are you sure you want to leave this game and go to Customize? Your current game may be lost."
+          description={`Are you sure you want to leave this game and go to ${pendingLeaveDestination === "/" ? "Home" : "Customize"}? Your current game may be lost.`}
           className="leave-game-dialog"
           actions={(
             <>
-              <Button variant="secondary" onClick={() => setShowCustomizeConfirmation(false)}>
+              <Button variant="secondary" onClick={() => setPendingLeaveDestination(null)}>
                 Stay In Game
               </Button>
               <Button
                 variant="danger"
                 onClick={() => {
-                  setShowCustomizeConfirmation(false);
-                  navigate("/customize");
+                  const destination = pendingLeaveDestination;
+                  setPendingLeaveDestination(null);
+                  navigate(destination);
                 }}
               >
-                Leave And Customize
+                {pendingLeaveDestination === "/" ? "Leave And Go Home" : "Leave And Customize"}
               </Button>
             </>
           )}

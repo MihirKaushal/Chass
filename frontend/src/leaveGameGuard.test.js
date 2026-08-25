@@ -2,12 +2,11 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  recordedTurnCount,
-  shouldConfirmCustomizeNavigation,
+  shouldConfirmGameNavigation,
   shouldConfirmDiscardingCustomization,
 } from "./leaveGameGuard.js";
 
-test("Customize navigation is immediate before the first turn", () => {
+test("game navigation requires confirmation before the first turn", () => {
   const game = {
     phase: "play",
     winner: null,
@@ -15,11 +14,10 @@ test("Customize navigation is immediate before the first turn", () => {
     historyPagination: { totalMoves: 0 },
   };
 
-  assert.equal(recordedTurnCount(game), 0);
-  assert.equal(shouldConfirmCustomizeNavigation(game), false);
+  assert.equal(shouldConfirmGameNavigation(game), true);
 });
 
-test("Customize navigation requires confirmation after play begins", () => {
+test("game navigation requires confirmation after play begins", () => {
   const game = {
     phase: "play",
     winner: null,
@@ -27,13 +25,12 @@ test("Customize navigation requires confirmation after play begins", () => {
     historyPagination: { totalMoves: 4 },
   };
 
-  assert.equal(recordedTurnCount(game), 4);
-  assert.equal(shouldConfirmCustomizeNavigation(game), true);
+  assert.equal(shouldConfirmGameNavigation(game), true);
 });
 
-test("Finished and setup games do not show the leave-game warning", () => {
+test("setup phases are protected while finished and missing games are not", () => {
   assert.equal(
-    shouldConfirmCustomizeNavigation({
+    shouldConfirmGameNavigation({
       phase: "finished",
       winner: "white",
       history: [{ moveNumber: 1 }],
@@ -41,13 +38,14 @@ test("Finished and setup games do not show the leave-game warning", () => {
     false
   );
   assert.equal(
-    shouldConfirmCustomizeNavigation({
+    shouldConfirmGameNavigation({
       phase: "ability_selection",
       winner: null,
-      history: [{ moveNumber: 1 }],
+      history: [],
     }),
-    false
+    true
   );
+  assert.equal(shouldConfirmGameNavigation(null), false);
 });
 
 test("Home navigation warns only when the Customize configuration changed", () => {
