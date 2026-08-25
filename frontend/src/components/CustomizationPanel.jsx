@@ -1952,7 +1952,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             <div id="customize-affinity-squares">
               <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
               {draft.customRules.affinityEnabled ? <div className="conditional-fields">
-                <label>Command Point Cap<input type="number" min="0" max="20" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clamp(event.target.value, 0, 20) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
+                <label>Command Point Cap<input type="number" min="1" max="20" step="1" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clamp(event.target.value, 1, 20) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
               </div> : null}
             </div>
           </CollapsibleStudioSection>

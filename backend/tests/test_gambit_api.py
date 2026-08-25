@@ -59,7 +59,7 @@ def draft_gambit_payload(mode: str = "local") -> dict:
                 "setupRows": 2,
                 "maxQueens": 1,
                 "affinityEnabled": False,
-                "commandPointCap": 0,
+                "commandPointCap": 1,
                 "pieceCaps": {"rook": 1, "queen": 1, "king": 1},
                 "draftEnabled": True,
                 "draftPool": {"rook": 2, "queen": 1, "king": 2},

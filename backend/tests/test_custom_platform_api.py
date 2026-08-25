@@ -176,6 +176,21 @@ def test_affinity_custom_rule_is_available_in_classic_games(client):
     assert "requires 1 command point" in command.json()["detail"]
 
 
+def test_affinity_command_point_cap_must_be_positive(client):
+    response = client.post(
+        "/game/validate",
+        json=configured_game(
+            customRules={"affinityEnabled": True, "commandPointCap": 0},
+        ),
+    )
+
+    assert response.status_code == 422
+    assert any(
+        error["loc"][-1] == "commandPointCap"
+        for error in response.json()["detail"]
+    )
+
+
 def test_catalog_formations_have_complete_horde_and_castle_armies(client):
     catalog = client.get("/game/catalog").json()
     formations = {formation["id"]: formation for formation in catalog["formations"]}

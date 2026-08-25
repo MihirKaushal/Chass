@@ -418,7 +418,7 @@ class SpecialAbilityConfigPayload(BaseModel):
 
 class CustomRulesConfigPayload(BaseModel):
     affinityEnabled: bool = False
-    commandPointCap: int = Field(default=3, ge=0, le=20)
+    commandPointCap: int = Field(default=3, ge=1, le=20)
 
 
 class GambitConfigPayload(BaseModel):
@@ -429,7 +429,7 @@ class GambitConfigPayload(BaseModel):
     maxQueens: int = Field(default=2, ge=0, le=32)
     # Legacy aliases retained so saved configurations continue to load.
     affinityEnabled: bool | None = None
-    commandPointCap: int | None = Field(default=None, ge=0, le=20)
+    commandPointCap: int | None = Field(default=None, ge=1, le=20)
     pieceCaps: dict[str, int] = Field(default_factory=dict)
     draftEnabled: bool = False
     draftPool: dict[str, int] = Field(default_factory=dict)
