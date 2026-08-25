@@ -336,6 +336,13 @@ class PromotionRule(Rule):
                         break
                     target = state.board.grid[move.to_row][target_col]
                     if target is not None and target.type == "barricade":
+                        state.board.grid[move.to_row][target_col] = None
+                        context.add_capture(
+                            row=move.to_row,
+                            col=target_col,
+                            piece=target,
+                            reason="Kamikaze blast absorbed by Barricade",
+                        )
                         break
                     if (
                         target is None

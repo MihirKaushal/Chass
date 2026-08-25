@@ -127,6 +127,14 @@ def test_catalog_describes_custom_content(client):
     assert "Rook" not in getaway["summary"]
     assert any("Only a Queen" in detail for detail in getaway["details"])
     assert getaway["usageLimit"] == 1
+    kamikaze = next(
+        ability for ability in catalog["specialAbilities"] if ability["id"] == "kamikaze"
+    )
+    assert any(
+        "Barricade in range is destroyed" in detail
+        and "protects every square beyond it" in detail
+        for detail in kamikaze["details"]
+    )
     assert {"center_dominion", "royal_center", "check_race"} <= {
         mode["id"] for mode in catalog["victoryModes"]
     }
@@ -1730,6 +1738,74 @@ def test_kamikaze_final_rank_blast_ends_game_when_king_is_in_range(client):
     assert updated["gameStatus"] == "checkmate"
     assert updated["winner"] == "white"
     assert updated["result"]["reasonCode"] == "kamikaze"
+
+
+def test_kamikaze_destroys_barricade_without_reaching_pieces_behind_it(client):
+    from backend.routes.game import game_service
+
+    game = start_local_ability_game(
+        client,
+        "kamikaze",
+        ability_parameters={"blastRadius": 3},
+        enabledPieces=[*classic_types(), "barricade"],
+        piecePoints={
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+            "barricade": 0,
+        },
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 6, "type": "king", "color": "black"},
+            {"row": 1, "col": 3, "type": "pawn", "color": "white"},
+            {"row": 0, "col": 1, "type": "bishop", "color": "black"},
+            {"row": 0, "col": 5, "type": "rook", "color": "black"},
+            {"row": 3, "col": 3, "type": "barricade", "color": "neutral"},
+        ],
+    )
+
+    # Reposition the Barricade to represent a legal midgame board state.
+    record = game_service.repository.get_game(game["id"])
+    assert record is not None
+    state = record.state.clone()
+    barricade = state.board.grid[3][3]
+    assert barricade is not None and barricade.type == "barricade"
+    state.board.grid[3][3] = None
+    state.board.grid[0][4] = barricade
+    prepared = game_service.repository.save_game(
+        state,
+        record.version,
+        expires_at=record.expires_at,
+    )
+
+    detonated = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 1,
+            "fromCol": 3,
+            "toRow": 0,
+            "toCol": 3,
+            "promotion": "kamikaze",
+            "expectedVersion": prepared.version,
+        },
+    )
+
+    assert detonated.status_code == 200
+    updated = detonated.json()
+    assert updated["board"][0][1] is None
+    assert updated["board"][0][3] is None
+    assert updated["board"][0][4] is None
+    assert updated["board"][0][5]["type"] == "rook"
+    assert updated["board"][0][6]["type"] == "king"
+    assert updated["winner"] is None
+    captures = {
+        (capture["row"], capture["col"], capture["piece"]["type"])
+        for capture in updated["history"][-1]["captures"]
+    }
+    assert captures == {(0, 1, "bishop"), (0, 4, "barricade")}
 
 
 def test_getaway_swaps_the_king_with_a_queen_to_escape_checkmate(client):
