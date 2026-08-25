@@ -19,12 +19,17 @@ test("launch status reports a validated configuration as ready", () => {
 });
 
 test("launch status uses an exact singular or plural issue count", () => {
+  const singleIssueState = customizeLaunchState(
+    { status: "invalid", valid: false, errors: ["One problem"], requestKey: "one" },
+    "one"
+  );
   assert.equal(
-    customizeLaunchState(
-      { status: "invalid", valid: false, errors: ["One problem"], requestKey: "one" },
-      "one"
-    ).heading,
+    singleIssueState.heading,
     "Fix 1 Issue"
+  );
+  assert.equal(
+    singleIssueState.detail,
+    "Click an issue below to review and fix the affected setting."
   );
   assert.equal(
     customizeLaunchState(
