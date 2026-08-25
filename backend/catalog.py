@@ -5,6 +5,7 @@ from copy import deepcopy
 from math import floor, sqrt
 from typing import Any
 
+from backend.configuration_limits import customization_limits
 from backend.models import MovePattern, PieceDefinition
 
 STANDARD_PIECE_TYPES = ("pawn", "knight", "bishop", "rook", "queen", "king")
@@ -1527,14 +1528,7 @@ def catalog_payload() -> dict[str, Any]:
         "victoryModes": deepcopy(VICTORY_MODES),
         "popularModes": deepcopy(POPULAR_PRESETS),
         "formations": deepcopy(FORMATION_PRESETS),
-        "limits": {
-            "boardMin": 4,
-            "boardMax": 16,
-            "pointMin": 0,
-            "pointMax": 100000,
-            "timeSecondsMin": 60,
-            "timeSecondsMax": 86400,
-        },
+        "limits": customization_limits(),
         "gambit": {
             "name": "Chass Gambit",
             "icon": "⚑",

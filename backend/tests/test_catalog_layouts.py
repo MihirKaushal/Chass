@@ -3,6 +3,7 @@ from __future__ import annotations
 import pytest
 
 from backend.catalog import POPULAR_PRESETS, adaptive_back_rank, catalog_payload, classic_layout
+from backend.configuration_limits import customization_limits
 
 
 @pytest.mark.parametrize("cols", range(4, 17))
@@ -50,3 +51,31 @@ def test_configured_catalog_copy_pluralizes_descriptive_counts():
     assert "1 occupied square" in pieces["maharani"]["movement"]
     assert "square(s)" not in pieces["catapult"]["movement"]
     assert "blocker(s)" not in " ".join(pieces["maharani"]["rules"])
+
+
+def test_catalog_exposes_the_customize_numeric_limits():
+    limits = catalog_payload()["limits"]
+
+    assert limits == customization_limits()
+    assert limits["commandPointCapMin"] == 1
+    assert limits["timeSecondsMin"] == 60
+    assert limits["gambitMaxPiecesMax"] == 128
+    assert limits["gambitMaxQueensMax"] == 32
+    assert limits["draftPoolCountMax"] == 256
+
+
+def test_every_tunable_parameter_has_a_valid_integer_range():
+    catalog = catalog_payload()
+    entries = [*catalog["pieces"], *catalog["specialAbilities"]]
+
+    for entry in entries:
+        parameters = entry.get("tunableParameters", [])
+        parameter_ids = {parameter["id"] for parameter in parameters}
+        for parameter in parameters:
+            assert all(
+                isinstance(parameter[key], int)
+                for key in ("default", "min", "max")
+            )
+            assert parameter["min"] <= parameter["default"] <= parameter["max"]
+            if maximum_parameter := parameter.get("maxParameter"):
+                assert maximum_parameter in parameter_ids

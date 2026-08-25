@@ -8,6 +8,11 @@ import {
   matchingCustomizeResults,
   nextCustomizeResultIndex,
 } from "../customizeNavigation";
+import {
+  clampWholeNumber,
+  customizeNumericBounds,
+  normalizeCustomizeNumbers,
+} from "../customizeNumericLimits";
 import { PIECE_FILTERS, visibleCustomizePieces } from "../customizePieces";
 import {
   resetEnabledCustomRules,
@@ -42,8 +47,6 @@ import PageSkeleton from "./PageSkeleton";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
 
-const MIN_DIMENSION = 4;
-const MAX_DIMENSION = 16;
 const STANDARD_TYPES = ["pawn", "knight", "bishop", "rook", "queen", "king"];
 const BACK_RANK = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
 const DEFAULT_DRAFT_POOL = { pawn: 16, knight: 4, bishop: 4, rook: 4, queen: 2, king: 2 };
@@ -210,8 +213,16 @@ function loadSavedDraft(catalog) {
     const saved = JSON.parse(serialized);
     const configuration = saved.configuration || {};
     const gambit = configuration.gambit || {};
-    const boardRows = clamp(saved.boardRows ?? base.boardRows, MIN_DIMENSION, MAX_DIMENSION);
-    const boardCols = clamp(saved.boardCols ?? base.boardCols, MIN_DIMENSION, MAX_DIMENSION);
+    const boardRows = clamp(
+      saved.boardRows ?? base.boardRows,
+      catalog.limits.boardMin,
+      catalog.limits.boardMax
+    );
+    const boardCols = clamp(
+      saved.boardCols ?? base.boardCols,
+      catalog.limits.boardMin,
+      catalog.limits.boardMax
+    );
     const savedPoints = configuration.piecePoints || {};
     const pointValues = Object.fromEntries(
       catalog.pieces.map((piece) => [
@@ -1214,6 +1225,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         let initial = loadSavedDraft(payload);
         const preset = payload.popularModes.find((mode) => mode.id === initialPreset);
         if (preset) initial = applyModeToDraft(initial, preset, payload);
+        initial = normalizeCustomizeNumbers(initial, payload.limits);
         setRestoreFormationId(
           initial.formationId && initial.formationId !== "custom"
             ? initial.formationId
@@ -1299,9 +1311,13 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     ...(currentFormation?.disabledAbilities || {}),
     ...(validation.disabledOptions?.abilities || {}),
   };
+  const numericBounds = customizeNumericBounds(draft, catalog.limits);
 
   const applyPopularMode = (mode) => {
-    const nextDraft = applyModeToDraft(draft, mode, catalog);
+    const nextDraft = normalizeCustomizeNumbers(
+      applyModeToDraft(draft, mode, catalog),
+      catalog.limits
+    );
     setSelectedTool(null);
     setBoardHistory([]);
     setRestoreFormationId(mode.formationId || "classic");
@@ -1318,7 +1334,10 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   };
 
   const applyFormation = (formation) => {
-    const nextDraft = applyFormationToDraft(draft, formation, catalog);
+    const nextDraft = normalizeCustomizeNumbers(
+      applyFormationToDraft(draft, formation, catalog),
+      catalog.limits
+    );
     setSelectedTool(null);
     setBoardHistory([]);
     setRestoreFormationId(formation.id);
@@ -1327,12 +1346,12 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   };
 
   const changeDimensions = (nextRows, nextCols) => {
-    const rows = clamp(nextRows, MIN_DIMENSION, MAX_DIMENSION);
-    const cols = clamp(nextCols, MIN_DIMENSION, MAX_DIMENSION);
+    const rows = clamp(nextRows, numericBounds.boardMin, numericBounds.boardMax);
+    const cols = clamp(nextCols, numericBounds.boardMin, numericBounds.boardMax);
     setBoardHistory([]);
     setRestoreFormationId("classic");
     setDraft((current) => {
-      return {
+      return normalizeCustomizeNumbers({
         ...current,
         presetId: "custom",
         formationId: "custom",
@@ -1353,14 +1372,14 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
           ...current.gambit,
           setupRows: Math.min(current.gambit.setupRows, Math.max(1, Math.floor(rows / 2))),
         },
-      };
+      }, catalog.limits);
     });
   };
 
   const togglePiece = (pieceType, enabled) => {
     if (pieceType === "king" && !enabled) return;
     setBoardHistory([]);
-    setDraft((current) => ({
+    setDraft((current) => normalizeCustomizeNumbers({
       ...current,
       presetId: "custom",
       formationId: "custom",
@@ -1370,7 +1389,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       placements: enabled
         ? current.placements
         : current.placements.filter((piece) => piece.type !== pieceType),
-    }));
+    }, catalog.limits));
     if (!enabled && selectedTool?.type === pieceType) setSelectedTool(null);
   };
 
@@ -1663,7 +1682,10 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
           },
         };
       }
-      return reconcileDraftIdentity(next, configurationBaseline);
+      return reconcileDraftIdentity(
+        normalizeCustomizeNumbers(next, catalog.limits),
+        configurationBaseline
+      );
     });
   };
 
@@ -1874,8 +1896,8 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             <div className="dimension-presets" data-setting-key="board-dimensions" id="customize-board-dimensions">
               {[8, 10, 16].map((size) => <button type="button" key={size} className={draft.boardRows === size && draft.boardCols === size ? "active" : "secondary"} onClick={() => changeDimensions(size, size)}>{size}x{size}</button>)}
               <span>Custom</span>
-              <label>Rows<input type="number" min={MIN_DIMENSION} max={MAX_DIMENSION} value={draft.boardRows} onChange={(event) => changeDimensions(event.target.value, draft.boardCols)} /></label>
-              <label>Columns<input type="number" min={MIN_DIMENSION} max={MAX_DIMENSION} value={draft.boardCols} onChange={(event) => changeDimensions(draft.boardRows, event.target.value)} /></label>
+              <label>Rows<input type="number" min={numericBounds.boardMin} max={numericBounds.boardMax} step="1" value={draft.boardRows} onChange={(event) => changeDimensions(event.target.value, draft.boardCols)} /></label>
+              <label>Columns<input type="number" min={numericBounds.boardMin} max={numericBounds.boardMax} step="1" value={draft.boardCols} onChange={(event) => changeDimensions(draft.boardRows, event.target.value)} /></label>
             </div>
           </CollapsibleStudioSection>
 
@@ -1920,10 +1942,10 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                       }))}
                     />
                     <div className="piece-config-fields">
-                      <label>Point Value<input type="number" min="0" max={catalog.limits.pointMax} step="1" disabled={!enabled} value={draft.pointValues[piece.type]} onChange={(event) => setDraft((current) => updatePiecePointValue(current, piece.type, event.target.value, catalog.limits.pointMax))} /></label>
-                      {draft.gambit.enabled && piece.type !== "barricade" ? <label>Army Limit<input type="number" min={piece.type === "king" ? 1 : 0} max={draft.gambit.maxPieces} disabled={!enabled || piece.type === "king"} value={draft.pieceCaps[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pieceCaps: { ...current.pieceCaps, [piece.type]: Math.max(0, Number(event.target.value)) } }))} /></label> : null}
-                      {draft.gambit.enabled && draft.gambit.draftEnabled && piece.type !== "barricade" ? <label>{piece.type === "king" ? "Starting Kings" : "Shared Draft Pool"}<input type="number" min={piece.type === "king" ? 2 : 0} max="256" disabled={!enabled || piece.type === "king"} value={draft.gambit.draftPool[piece.type] ?? 0} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, draftPool: { ...current.gambit.draftPool, [piece.type]: Math.max(0, Number(event.target.value)) } } }))} /><small>{piece.type === "king" ? "One King is automatically assigned to each army." : "Total copies available to both players."}</small></label> : null}
-                      {enabled && piece.type === "barricade" ? <label>Starting Walls<input type="number" min="1" max={Math.max(1, Math.floor(draft.boardCols / 2))} value={draft.barricadeCount} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", barricadeCount: clamp(event.target.value, 1, Math.max(1, Math.floor(current.boardCols / 2))) }))} /></label> : null}
+                      <label>Point Value<input type="number" min={numericBounds.pointMin} max={numericBounds.pointMax} step="1" disabled={!enabled} value={draft.pointValues[piece.type]} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers(updatePiecePointValue(current, piece.type, event.target.value, numericBounds.pointMax), catalog.limits))} /></label>
+                      {draft.gambit.enabled && piece.type !== "barricade" ? <label>Army Limit<input type="number" min={piece.type === "king" ? 1 : numericBounds.pieceCapMin} max={numericBounds.pieceCapMaximum} step="1" disabled={!enabled || piece.type === "king"} value={draft.pieceCaps[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pieceCaps: { ...current.pieceCaps, [piece.type]: clampWholeNumber(event.target.value, numericBounds.pieceCapMin, numericBounds.pieceCapMaximum) } }))} /></label> : null}
+                      {draft.gambit.enabled && draft.gambit.draftEnabled && piece.type !== "barricade" ? <label>{piece.type === "king" ? "Starting Kings" : "Shared Draft Pool"}<input type="number" min={piece.type === "king" ? 2 : numericBounds.draftPoolCountMin} max={numericBounds.draftPoolCountMaximum} step="1" disabled={!enabled || piece.type === "king"} value={draft.gambit.draftPool[piece.type] ?? 0} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, draftPool: { ...current.gambit.draftPool, [piece.type]: clampWholeNumber(event.target.value, numericBounds.draftPoolCountMin, numericBounds.draftPoolCountMaximum) } } }))} /><small>{piece.type === "king" ? "One King is automatically assigned to each army." : "Total copies available to both players."}</small></label> : null}
+                      {enabled && piece.type === "barricade" ? <label>Starting Walls<input type="number" min={numericBounds.barricadeCountMinimum} max={numericBounds.barricadeCountMaximum} step="1" value={draft.barricadeCount} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", barricadeCount: clampWholeNumber(event.target.value, numericBounds.barricadeCountMinimum, numericBounds.barricadeCountMaximum) }))} /></label> : null}
                     </div>
                     {enabled && !draft.gambit.enabled ? <div className="piece-color-tools">{piece.type === "barricade" ? <p className="fixed-piece-note"><PieceGlyph type="barricade" color="neutral" symbol={piece.symbols.neutral} /> Starting walls occupy reserved central squares.</p> : ["white", "black"].map((color) => <button type="button" key={color} className={selectedTool?.type === piece.type && selectedTool?.color === color ? "active" : "secondary"} onClick={() => setSelectedTool({ kind: "piece", type: piece.type, color })}><PieceGlyph type={piece.type} color={color} symbol={piece.symbols[color] || piece.icon} /> {title(color)}</button>)}</div> : null}
                   </article>
@@ -1940,11 +1962,11 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
               })}
             </div>
             <div className="conditional-fields">
-              {draft.victory.mode === "point_race" ? <label data-setting-key="target-points">Target Score<input type="number" min="1" value={draft.victory.targetPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, targetPoints: Math.max(1, Number(event.target.value)) } }))} /><small>Captured-piece points needed to win.</small></label> : null}
-              {draft.victory.mode === "timed" ? <label>Minutes Per Player<input type="number" min="1" max="1440" value={Math.round(draft.victory.timeSeconds / 60)} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, timeSeconds: Math.max(60, Number(event.target.value) * 60) } }))} /><small>The server controls both clocks.</small></label> : null}
-              {draft.victory.mode === "center_dominion" ? <label>Rounds To Hold<input type="number" min="1" max="20" value={draft.victory.dominionRounds} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, dominionRounds: clamp(event.target.value, 1, 20) } }))} /><small>Marked squares begin empty, then must stay occupied through this many opponent turns. Checkmate also wins.</small></label> : null}
-              {draft.victory.mode === "check_race" ? <label>Checks To Win<input type="number" min="1" max="100" value={draft.victory.checkTarget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, checkTarget: clamp(event.target.value, 1, 100) } }))} /><small>The first player to give this many checks wins. Checkmate also wins immediately.</small></label> : null}
-              {["point_race", "royal_score"].includes(draft.victory.mode) ? <label>King Point Value<input type="number" min="0" max={catalog.limits.pointMax} value={draft.pointValues.king} onChange={(event) => setDraft((current) => ({ ...synchronizeKingPointValue(current, event.target.value, catalog.limits.pointMax), presetId: "custom" }))} /><small>Shared with the King Point Value in Pieces. Zero is allowed.</small></label> : null}
+              {draft.victory.mode === "point_race" ? <label data-setting-key="target-points">Target Score<input type="number" min={numericBounds.targetPointsMin} max={numericBounds.targetPointsMax} step="1" value={draft.victory.targetPoints} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, targetPoints: clampWholeNumber(event.target.value, numericBounds.targetPointsMin, numericBounds.targetPointsMax) } }))} /><small>Captured-piece points needed to win.</small></label> : null}
+              {draft.victory.mode === "timed" ? <label>Minutes Per Player<input type="number" min={numericBounds.timeMinutesMin} max={numericBounds.timeMinutesMax} step="1" value={Math.round(draft.victory.timeSeconds / 60)} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, timeSeconds: clampWholeNumber(event.target.value, numericBounds.timeMinutesMin, numericBounds.timeMinutesMax) * 60 } }))} /><small>The server controls both clocks.</small></label> : null}
+              {draft.victory.mode === "center_dominion" ? <label>Rounds To Hold<input type="number" min={numericBounds.dominionRoundsMin} max={numericBounds.dominionRoundsMax} step="1" value={draft.victory.dominionRounds} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, dominionRounds: clampWholeNumber(event.target.value, numericBounds.dominionRoundsMin, numericBounds.dominionRoundsMax) } }))} /><small>Marked squares begin empty, then must stay occupied through this many opponent turns. Checkmate also wins.</small></label> : null}
+              {draft.victory.mode === "check_race" ? <label>Checks To Win<input type="number" min={numericBounds.checkTargetMin} max={numericBounds.checkTargetMax} step="1" value={draft.victory.checkTarget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, checkTarget: clampWholeNumber(event.target.value, numericBounds.checkTargetMin, numericBounds.checkTargetMax) } }))} /><small>The first player to give this many checks wins. Checkmate also wins immediately.</small></label> : null}
+              {["point_race", "royal_score"].includes(draft.victory.mode) ? <label>King Point Value<input type="number" min={numericBounds.pointMin} max={numericBounds.pointMax} step="1" value={draft.pointValues.king} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...synchronizeKingPointValue(current, event.target.value, numericBounds.pointMax), presetId: "custom" }, catalog.limits))} /><small>Shared with the King Point Value in Pieces. Zero is allowed.</small></label> : null}
             </div>
           </CollapsibleStudioSection>
 
@@ -1952,7 +1974,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             <div id="customize-affinity-squares">
               <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
               {draft.customRules.affinityEnabled ? <div className="conditional-fields">
-                <label>Command Point Cap<input type="number" min="1" max="20" step="1" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clamp(event.target.value, 1, 20) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
+                <label>Command Point Cap<input type="number" min={numericBounds.commandPointCapMin} max={numericBounds.commandPointCapMax} step="1" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clampWholeNumber(event.target.value, numericBounds.commandPointCapMin, numericBounds.commandPointCapMax) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
               </div> : null}
             </div>
           </CollapsibleStudioSection>
@@ -1960,7 +1982,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
           <CollapsibleStudioSection sectionId="studio-abilities" title="Special Abilities" description="Each player privately chooses the configured number of allowed abilities before play." className="ability-config-section" {...studioSectionProps("studio-abilities")}>
             <Toggle settingKey="ability-options" checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
             {draft.specialAbilities.enabled ? <>
-              <div className="conditional-fields" id="customize-ability-count"><label>Abilities Per Player<input type="number" min="1" max={Math.max(1, draft.specialAbilities.allowed.length)} value={draft.specialAbilities.maxPerPlayer} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, maxPerPlayer: clamp(event.target.value, 1, Math.max(1, current.specialAbilities.allowed.length)) } }))} /><small>How many abilities each player selects. The default is 1.</small></label></div>
+              <div className="conditional-fields" id="customize-ability-count"><label>Abilities Per Player<input type="number" min={numericBounds.abilitySelectionMin} max={numericBounds.abilityCountMaximum} step="1" value={draft.specialAbilities.maxPerPlayer} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, maxPerPlayer: clampWholeNumber(event.target.value, numericBounds.abilitySelectionMin, numericBounds.abilityCountMaximum) } }))} /><small>Cannot exceed the number of enabled abilities. The default is 1.</small></label></div>
               <div className="ability-option-grid" data-setting-key="ability-options">{catalog.specialAbilities.map((ability) => {
                 const enabled = draft.specialAbilities.allowed.includes(ability.id);
                 const reason = disabledAbilities[ability.id];
@@ -2015,13 +2037,13 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
           </CollapsibleStudioSection>
 
           <CollapsibleStudioSection sectionId="studio-gambit" title="Chass Gambit Settings" description="Configure private army construction for the current board and ruleset." className="gambit-config-section" {...studioSectionProps("studio-gambit")}>
-            <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled, draftEnabled: enabled ? current.gambit.draftEnabled : false } }))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
+            <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled, draftEnabled: enabled ? current.gambit.draftEnabled : false } }, catalog.limits))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
             {draft.gambit.enabled ? <div className="gambit-settings-grid" data-setting-key="gambit-settings" id="customize-gambit-settings">
-              <label>Maximum Points<input type="number" min="0" value={draft.gambit.budget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, budget: Math.max(0, Number(event.target.value)) } }))} /><small>Players may spend less, but cannot exceed this limit.</small></label>
-              <label>Maximum Pieces<input type="number" min="1" max="128" value={draft.gambit.maxPieces} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, maxPieces: Math.max(1, Number(event.target.value)) } }))} /><small>Includes the required King.</small></label>
-              <label>Private Setup Rows<input type="number" min="1" max={Math.floor(draft.boardRows / 2)} value={draft.gambit.setupRows} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, setupRows: clamp(event.target.value, 1, Math.max(1, Math.floor(current.boardRows / 2))) } }))} /><small>Rows nearest each player that they may edit.</small></label>
-              <label>Maximum Queens<input type="number" min="0" max={Math.max(0, draft.gambit.maxPieces - 1)} value={draft.gambit.maxQueens} onChange={(event) => { const value = Math.max(0, Number(event.target.value)); setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, maxQueens: value }, pieceCaps: { ...current.pieceCaps, queen: value } })); }} /><small>At least one army slot remains for the King.</small></label>
-              <Toggle checked={draft.gambit.draftEnabled} onChange={(draftEnabled) => setDraft((current) => ({ ...current, presetId: draftEnabled ? "draft_gambit" : "custom", gambit: { ...current.gambit, draftEnabled, draftPool: { ...current.gambit.draftPool, king: 2 } } }))} label="Enable Shared Draft" description="Alternate public picks from one shared pool before each player privately arranges their drafted army." />
+              <label>Maximum Points<input type="number" min={numericBounds.gambitBudgetMinimum} max={numericBounds.gambitBudgetMax} step="1" value={draft.gambit.budget} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: "custom", gambit: { ...current.gambit, budget: event.target.value } }, catalog.limits))} /><small>Players may spend less. The limit must cover the required King.</small></label>
+              <label>Maximum Pieces<input type="number" min={numericBounds.gambitMaxPiecesMin} max={numericBounds.gambitMaxPiecesMaximum} step="1" value={draft.gambit.maxPieces} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: "custom", gambit: { ...current.gambit, maxPieces: event.target.value } }, catalog.limits))} /><small>Includes the required King. Current setup space supports up to {numericBounds.gambitMaxPiecesMaximum}.</small></label>
+              <label>Private Setup Rows<input type="number" min={numericBounds.gambitSetupRowsMin} max={numericBounds.gambitSetupRowsMaximum} step="1" value={draft.gambit.setupRows} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: "custom", gambit: { ...current.gambit, setupRows: event.target.value } }, catalog.limits))} /><small>Rows nearest each player that they may edit.</small></label>
+              <label>Maximum Queens<input type="number" min={numericBounds.gambitMaxQueensMin} max={numericBounds.gambitMaxQueensMaximum} step="1" value={draft.gambit.maxQueens} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: "custom", gambit: { ...current.gambit, maxQueens: event.target.value } }, catalog.limits))} /><small>Reserves one army slot for the King. The current maximum is {numericBounds.gambitMaxQueensMaximum}.</small></label>
+              <Toggle checked={draft.gambit.draftEnabled} onChange={(draftEnabled) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: draftEnabled ? "draft_gambit" : "custom", gambit: { ...current.gambit, draftEnabled, draftPool: { ...current.gambit.draftPool, king: 2 } } }, catalog.limits))} label="Enable Shared Draft" description="Alternate public picks from one shared pool before each player privately arranges their drafted army." />
             </div> : null}
           </CollapsibleStudioSection>
         </div>

@@ -5,6 +5,38 @@ from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from backend.configuration_limits import (
+    ABILITY_SELECTION_MAX,
+    ABILITY_SELECTION_MIN,
+    BARRICADE_COUNT_MAX,
+    BARRICADE_COUNT_MIN,
+    BOARD_DIMENSION_MAX,
+    BOARD_DIMENSION_MIN,
+    CHECK_TARGET_MAX,
+    CHECK_TARGET_MIN,
+    COMMAND_POINT_CAP_MAX,
+    COMMAND_POINT_CAP_MIN,
+    DOMINION_ROUNDS_MAX,
+    DOMINION_ROUNDS_MIN,
+    DRAFT_POOL_COUNT_MAX,
+    DRAFT_POOL_COUNT_MIN,
+    GAMBIT_BUDGET_MAX,
+    GAMBIT_BUDGET_MIN,
+    GAMBIT_MAX_PIECES_MAX,
+    GAMBIT_MAX_PIECES_MIN,
+    GAMBIT_MAX_QUEENS_MAX,
+    GAMBIT_MAX_QUEENS_MIN,
+    GAMBIT_PIECE_CAP_MIN,
+    GAMBIT_SETUP_ROWS_MAX,
+    GAMBIT_SETUP_ROWS_MIN,
+    POINT_VALUE_MAX,
+    POINT_VALUE_MIN,
+    TARGET_POINTS_MAX,
+    TARGET_POINTS_MIN,
+    TIME_SECONDS_MAX,
+    TIME_SECONDS_MIN,
+)
+
 
 class Position(BaseModel):
     row: int
@@ -367,7 +399,7 @@ class PieceDefinitionPayload(BaseModel):
     displayName: str = Field(min_length=1, max_length=80)
     symbols: dict[str, str]
     patterns: list[MovePatternPayload]
-    points: int | None = Field(default=None, ge=0)
+    points: int | None = Field(default=None, ge=POINT_VALUE_MIN, le=POINT_VALUE_MAX)
     isCustom: bool = True
     customAttributes: dict[str, Any] = Field(default_factory=dict)
     metadata: dict[str, Any] = Field(default_factory=dict)
@@ -392,16 +424,24 @@ class VictoryConfigPayload(BaseModel):
         "royal_center",
         "check_race",
     ] = "checkmate"
-    targetPoints: int = Field(default=21, ge=1, le=100000)
-    timeSeconds: int = Field(default=600, ge=30, le=86400)
-    kingPoints: int = Field(default=0, ge=0, le=100000)
-    dominionRounds: int = Field(default=3, ge=1, le=20)
-    checkTarget: int = Field(default=3, ge=1, le=100)
+    targetPoints: int = Field(default=21, ge=TARGET_POINTS_MIN, le=TARGET_POINTS_MAX)
+    timeSeconds: int = Field(default=600, ge=TIME_SECONDS_MIN, le=TIME_SECONDS_MAX)
+    kingPoints: int = Field(default=0, ge=POINT_VALUE_MIN, le=POINT_VALUE_MAX)
+    dominionRounds: int = Field(
+        default=3,
+        ge=DOMINION_ROUNDS_MIN,
+        le=DOMINION_ROUNDS_MAX,
+    )
+    checkTarget: int = Field(default=3, ge=CHECK_TARGET_MIN, le=CHECK_TARGET_MAX)
 
 
 class SpecialAbilityConfigPayload(BaseModel):
     enabled: bool = False
-    maxPerPlayer: int = Field(default=1, ge=1, le=16)
+    maxPerPlayer: int = Field(
+        default=1,
+        ge=ABILITY_SELECTION_MIN,
+        le=ABILITY_SELECTION_MAX,
+    )
     parameters: dict[str, dict[str, int]] = Field(default_factory=dict)
     allowed: list[
         Literal[
@@ -418,30 +458,50 @@ class SpecialAbilityConfigPayload(BaseModel):
 
 class CustomRulesConfigPayload(BaseModel):
     affinityEnabled: bool = False
-    commandPointCap: int = Field(default=3, ge=1, le=20)
+    commandPointCap: int = Field(
+        default=3,
+        ge=COMMAND_POINT_CAP_MIN,
+        le=COMMAND_POINT_CAP_MAX,
+    )
 
 
 class GambitConfigPayload(BaseModel):
     enabled: bool = False
-    budget: int = Field(default=39, ge=0, le=100000)
-    maxPieces: int = Field(default=16, ge=1, le=128)
-    setupRows: int = Field(default=2, ge=1, le=8)
-    maxQueens: int = Field(default=2, ge=0, le=32)
+    budget: int = Field(default=39, ge=GAMBIT_BUDGET_MIN, le=GAMBIT_BUDGET_MAX)
+    maxPieces: int = Field(
+        default=16,
+        ge=GAMBIT_MAX_PIECES_MIN,
+        le=GAMBIT_MAX_PIECES_MAX,
+    )
+    setupRows: int = Field(
+        default=2,
+        ge=GAMBIT_SETUP_ROWS_MIN,
+        le=GAMBIT_SETUP_ROWS_MAX,
+    )
+    maxQueens: int = Field(
+        default=2,
+        ge=GAMBIT_MAX_QUEENS_MIN,
+        le=GAMBIT_MAX_QUEENS_MAX,
+    )
     # Legacy aliases retained so saved configurations continue to load.
     affinityEnabled: bool | None = None
-    commandPointCap: int | None = Field(default=None, ge=1, le=20)
+    commandPointCap: int | None = Field(
+        default=None,
+        ge=COMMAND_POINT_CAP_MIN,
+        le=COMMAND_POINT_CAP_MAX,
+    )
     pieceCaps: dict[str, int] = Field(default_factory=dict)
     draftEnabled: bool = False
     draftPool: dict[str, int] = Field(default_factory=dict)
 
     @model_validator(mode="after")
     def validate_piece_caps(self) -> "GambitConfigPayload":
-        if any(value < 0 for value in self.pieceCaps.values()):
+        if any(value < GAMBIT_PIECE_CAP_MIN for value in self.pieceCaps.values()):
             raise ValueError("Piece limits cannot be negative")
-        if any(value < 0 for value in self.draftPool.values()):
+        if any(value < DRAFT_POOL_COUNT_MIN for value in self.draftPool.values()):
             raise ValueError("Draft pool counts cannot be negative")
-        if any(value > 256 for value in self.draftPool.values()):
-            raise ValueError("Draft pool counts cannot exceed 256")
+        if any(value > DRAFT_POOL_COUNT_MAX for value in self.draftPool.values()):
+            raise ValueError(f"Draft pool counts cannot exceed {DRAFT_POOL_COUNT_MAX}")
         return self
 
 
@@ -450,7 +510,11 @@ class GameConfigurationPayload(BaseModel):
     presetId: str = "custom"
     formationId: str = "custom"
     matchPredictorEnabled: bool = True
-    barricadeCount: int = Field(default=1, ge=0, le=8)
+    barricadeCount: int = Field(
+        default=1,
+        ge=BARRICADE_COUNT_MIN,
+        le=BARRICADE_COUNT_MAX,
+    )
     enabledPieces: list[str] = Field(
         default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"],
         min_length=1,
@@ -468,19 +532,37 @@ class GameConfigurationPayload(BaseModel):
 
     @model_validator(mode="after")
     def validate_points(self) -> "GameConfigurationPayload":
-        if any(value is not None and value < 0 for value in self.piecePoints.values()):
+        if any(
+            value is not None and value < POINT_VALUE_MIN
+            for value in self.piecePoints.values()
+        ):
             raise ValueError("Piece points cannot be negative")
-        if any(value is not None and value > 100000 for value in self.piecePoints.values()):
-            raise ValueError("Piece points cannot exceed 100000")
+        if any(
+            value is not None and value > POINT_VALUE_MAX
+            for value in self.piecePoints.values()
+        ):
+            raise ValueError(f"Piece points cannot exceed {POINT_VALUE_MAX}")
         return self
 
 
 class CreateGameRequest(BaseModel):
     mode: Literal["local", "online"] = "local"
     variant: Literal["classic", "gambit"] = "classic"
-    boardSize: int | None = Field(default=None, ge=4, le=16)
-    boardRows: int = Field(default=8, ge=4, le=16)
-    boardCols: int = Field(default=8, ge=4, le=16)
+    boardSize: int | None = Field(
+        default=None,
+        ge=BOARD_DIMENSION_MIN,
+        le=BOARD_DIMENSION_MAX,
+    )
+    boardRows: int = Field(
+        default=8,
+        ge=BOARD_DIMENSION_MIN,
+        le=BOARD_DIMENSION_MAX,
+    )
+    boardCols: int = Field(
+        default=8,
+        ge=BOARD_DIMENSION_MIN,
+        le=BOARD_DIMENSION_MAX,
+    )
     rules: list[RulePatch] = Field(default_factory=list, max_length=128)
     customPieces: list[PieceDefinitionPayload] = Field(default_factory=list, max_length=64)
     configuration: GameConfigurationPayload | None = None
@@ -605,7 +687,7 @@ class PieceDefinitionPatch(BaseModel):
     displayName: str | None = None
     symbols: dict[str, str] | None = None
     patterns: list[MovePatternPayload] | None = None
-    points: int | None = Field(default=None, ge=0)
+    points: int | None = Field(default=None, ge=POINT_VALUE_MIN, le=POINT_VALUE_MAX)
     isCustom: bool | None = None
     customAttributes: dict[str, Any] | None = None
     metadata: dict[str, Any] | None = None
@@ -617,9 +699,21 @@ class UpdatePiecesRequest(BaseModel):
 
 
 class ResetGameRequest(BaseModel):
-    boardSize: int | None = Field(default=None, ge=4, le=16)
-    boardRows: int | None = Field(default=None, ge=4, le=16)
-    boardCols: int | None = Field(default=None, ge=4, le=16)
+    boardSize: int | None = Field(
+        default=None,
+        ge=BOARD_DIMENSION_MIN,
+        le=BOARD_DIMENSION_MAX,
+    )
+    boardRows: int | None = Field(
+        default=None,
+        ge=BOARD_DIMENSION_MIN,
+        le=BOARD_DIMENSION_MAX,
+    )
+    boardCols: int | None = Field(
+        default=None,
+        ge=BOARD_DIMENSION_MIN,
+        le=BOARD_DIMENSION_MAX,
+    )
     expectedVersion: int | None = Field(default=None, ge=1)
 
     @model_validator(mode="after")
@@ -651,8 +745,16 @@ class BoardPlacement(BaseModel):
 
 
 class UpdateBoardLayoutRequest(BaseModel):
-    boardRows: int | None = Field(default=None, ge=4, le=16)
-    boardCols: int | None = Field(default=None, ge=4, le=16)
+    boardRows: int | None = Field(
+        default=None,
+        ge=BOARD_DIMENSION_MIN,
+        le=BOARD_DIMENSION_MAX,
+    )
+    boardCols: int | None = Field(
+        default=None,
+        ge=BOARD_DIMENSION_MIN,
+        le=BOARD_DIMENSION_MAX,
+    )
     placements: list[BoardPlacement] = Field(default_factory=list, max_length=256)
     expectedVersion: int | None = Field(default=None, ge=1)
 
