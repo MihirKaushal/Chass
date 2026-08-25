@@ -32,7 +32,7 @@ export function customizeLaunchState(validation, currentRequestKey) {
       ? `Fix ${issueCount} Issue${issueCount === 1 ? "" : "s"}`
       : "Setup Needs Attention",
     detail: issueCount
-      ? "Choose an issue below to review the affected setting."
+      ? "Click an issue below to review and fix the affected setting."
       : "Review the configuration before starting.",
     errors,
     warning: "",
