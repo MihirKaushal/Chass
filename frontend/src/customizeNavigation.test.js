@@ -51,8 +51,13 @@ test("an empty customize search preserves all eight sections in page order", () 
 test("customize search returns direct setting and catalog destinations", () => {
   const timed = matchingCustomizeResults("timer", catalog)[0];
   assert.equal(timed.label, "Timed Match");
-  assert.equal(timed.category, "End Game Logic");
+  assert.equal(timed.category, "Win Condition");
   assert.equal(timed.targetId, "customize-victory-timed");
+
+  const formation = matchingCustomizeResults("castle siege", catalog)[0];
+  assert.equal(formation.label, "Castle Siege");
+  assert.equal(formation.category, "Starting Layout Presets");
+  assert.equal(formation.targetId, "customize-formation-castle_siege");
 
   const catapult = matchingCustomizeResults("catapult", catalog)[0];
   assert.equal(catapult.label, "Catapult");
