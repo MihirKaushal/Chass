@@ -214,10 +214,33 @@ def test_scorch_can_legally_block_check_and_reset_removes_terrain(client):
             [
                 {"row": 7, "col": 4, "type": "king", "color": "white"},
                 {"row": 0, "col": 7, "type": "king", "color": "black"},
-                {"row": 0, "col": 4, "type": "rook", "color": "black"},
+                {"row": 6, "col": 0, "type": "knight", "color": "white"},
+                {"row": 0, "col": 3, "type": "rook", "color": "black"},
             ]
         ),
     )
+    white_wait = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 6,
+            "fromCol": 0,
+            "toRow": 4,
+            "toCol": 1,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    checked = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 0,
+            "fromCol": 3,
+            "toRow": 0,
+            "toCol": 4,
+            "expectedVersion": white_wait["version"],
+        },
+    )
+    assert checked.status_code == 200, checked.text
+    game = checked.json()
     assert game["gameStatus"] == "check"
     targets = scorch_targets(game)
     assert (3, 4) in targets

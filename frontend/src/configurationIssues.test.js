@@ -31,6 +31,10 @@ test("configuration issues route to the setting that can fix them", () => {
     sectionId: "studio-pieces",
     settingKey: "board-editor",
   });
+  assert.deepEqual(
+    locateConfigurationIssue("White King cannot begin in check or checkmate."),
+    { sectionId: "studio-pieces", settingKey: "board-editor" }
+  );
   assert.deepEqual(locateConfigurationIssue("Barricades are neutral and cannot enter the army draft."), {
     sectionId: "studio-gambit",
     settingKey: "gambit-settings",
@@ -61,6 +65,10 @@ test("configuration issues identify promotion-rank and touching-King squares", (
   assert.deepEqual(
     configurationIssueSquares("The two Kings cannot begin on touching squares.", draft),
     [{ row: 4, col: 4 }, { row: 5, col: 5 }]
+  );
+  assert.deepEqual(
+    configurationIssueSquares("White King cannot begin in check or checkmate.", draft),
+    [{ row: 4, col: 4 }]
   );
 });
 
