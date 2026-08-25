@@ -49,7 +49,7 @@ test("guidance covers normal custom movement and explicit special actions", () =
 });
 
 test("guidance covers global abilities and command powers", () => {
-  const scorch = buildActionGuidance({ game, selectedGlobalActionType: "scorch" });
+  const scorch = buildActionGuidance({ game, selectedGlobalActionKey: "scorch" });
   assert.equal(scorch.title, "Scorch ready");
   assert.equal(scorch.marker, "scorch");
 
@@ -60,6 +60,44 @@ test("guidance covers global abilities and command powers", () => {
   });
   assert.equal(evolve.title, "Evolve command ready");
   assert.match(evolve.description, /1 legal target/);
+});
+
+test("Necromancy guidance follows the selected purchase", () => {
+  const necromancyGame = {
+    ...game,
+    capturedPieces: {
+      white: [{ pieceId: "knight-1", name: "Knight", points: 3 }],
+    },
+    availableActions: [
+      {
+        actionType: "necromancy",
+        owner: "white",
+        boardMarker: "summon",
+        icon: "N",
+        description: "Deploy the Knight.",
+        target: { row: 2, col: 0 },
+        params: { capturedPieceId: "knight-1" },
+      },
+      {
+        actionType: "necromancy",
+        owner: "white",
+        boardMarker: "summon",
+        icon: "N",
+        description: "Deploy the Knight.",
+        target: { row: 2, col: 1 },
+        params: { capturedPieceId: "knight-1" },
+      },
+    ],
+  };
+
+  const guidance = buildActionGuidance({
+    game: necromancyGame,
+    selectedGlobalActionKey: "necromancy:knight-1",
+  });
+
+  assert.equal(guidance.title, "Necromancy ready");
+  assert.equal(guidance.marker, "summon");
+  assert.equal(guidance.description, "Knight costs 3 points and has 2 legal home squares.");
 });
 
 test("idle turn guidance does not request an information marker", () => {

@@ -7,6 +7,7 @@ import GameBriefing from "../components/GameBriefing";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 import PieceGlyph from "../components/PieceGlyph";
 import ResponsivePlayLayout from "../components/ResponsivePlayLayout";
+import { actionsForGlobalSelection } from "../specialActionSelection";
 
 
 const PIECE_ORDER = ["king", "queen", "rook", "bishop", "knight", "pawn"];
@@ -499,7 +500,7 @@ function GambitPlay({
   historyLoading,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
-  const [selectedGlobalActionType, setSelectedGlobalActionType] = useState(null);
+  const [selectedGlobalActionKey, setSelectedGlobalActionKey] = useState(null);
   const [selectedBoardAction, setSelectedBoardAction] = useState(null);
   const [evolveTo, setEvolveTo] = useState("knight");
   const lastMove = game.history.length ? game.history[game.history.length - 1] : null;
@@ -511,42 +512,43 @@ function GambitPlay({
     [powerTargets]
   );
   const globalActions = useMemo(
-    () => game.availableActions.filter(
-      (action) => !action.source && action.actionType === selectedGlobalActionType
-    ),
-    [game.availableActions, selectedGlobalActionType]
+    () => actionsForGlobalSelection(game.availableActions, selectedGlobalActionKey),
+    [game.availableActions, selectedGlobalActionKey]
   );
 
   useEffect(() => {
     setSelectedPower(null);
-    setSelectedGlobalActionType(null);
+    setSelectedGlobalActionKey(null);
     setSelectedBoardAction(null);
   }, [game.currentPlayer, game.phase]);
 
   useEffect(() => {
-    if (selectedGlobalActionType && !globalActions.length) {
-      setSelectedGlobalActionType(null);
+    if (selectedGlobalActionKey && !globalActions.length) {
+      setSelectedGlobalActionKey(null);
     }
-  }, [globalActions.length, selectedGlobalActionType]);
+  }, [globalActions.length, selectedGlobalActionKey]);
 
   const selectPower = (power) => {
     setSelectedPower(power);
     if (power) {
-      setSelectedGlobalActionType(null);
+      setSelectedGlobalActionKey(null);
       setSelectedBoardAction(null);
     }
   };
 
-  const selectGlobalAction = (actionType) => {
-    setSelectedGlobalActionType(actionType);
-    if (actionType) {
+  const selectGlobalAction = (selectionKey) => {
+    if (selectionKey && selectedSquare) {
+      onSquareClick(selectedSquare.row, selectedSquare.col);
+    }
+    setSelectedGlobalActionKey(selectionKey);
+    if (selectionKey) {
       setSelectedPower(null);
       setSelectedBoardAction(null);
     }
   };
 
   const handleAction = (action) => {
-    setSelectedGlobalActionType(null);
+    setSelectedGlobalActionKey(null);
     setSelectedBoardAction(null);
     onAction(action);
   };
@@ -573,8 +575,8 @@ function GambitPlay({
         catalog={catalog}
         onAction={handleAction}
         actionLoading={actionLoading}
-        selectedGlobalActionType={selectedGlobalActionType}
-        onSelectGlobalActionType={selectGlobalAction}
+        selectedGlobalActionKey={selectedGlobalActionKey}
+        onSelectGlobalActionKey={selectGlobalAction}
       >
         <CommandPanel
           game={game}
@@ -603,7 +605,7 @@ function GambitPlay({
           selectedSquare={selectedSquare}
           selectedBoardAction={selectedBoardAction}
           selectedPower={selectedPower}
-          selectedGlobalActionType={selectedGlobalActionType}
+          selectedGlobalActionKey={selectedGlobalActionKey}
           powerTargets={powerTargets}
         />
         <ChessBoard
@@ -624,7 +626,7 @@ function GambitPlay({
           countdowns={game.countdowns}
           terrain={game.terrain}
           globalActions={globalActions}
-          availableActions={selectedPower || selectedGlobalActionType ? [] : game.availableActions}
+          availableActions={selectedPower || selectedGlobalActionKey ? [] : game.availableActions}
           onAction={handleAction}
           onActionSelectionChange={setSelectedBoardAction}
         />

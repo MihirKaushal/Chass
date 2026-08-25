@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { boardSquareLabel } from "../boardGeometry";
+import { necromancyPurchaseOptions } from "../specialActionSelection";
 import { effectiveCatalogEntry } from "../variantTuning";
 import { victoryDisplayMetadata } from "../victoryDisplay";
 import PieceGlyph from "./PieceGlyph";
@@ -153,11 +154,12 @@ function CountdownPanel({ countdowns = [] }) {
 
 function ActionPanel({
   actions = [],
+  game,
   onAction,
   actionLoading,
   boardRows,
-  selectedGlobalActionType,
-  onSelectGlobalActionType,
+  selectedGlobalActionKey,
+  onSelectGlobalActionKey,
 }) {
   const groups = useMemo(() => {
     const result = new Map();
@@ -170,22 +172,71 @@ function ActionPanel({
       <h3>Special Actions</h3>
       {groups.map(([type, options]) => {
         const boardTargeted = type === "scorch";
-        const selected = selectedGlobalActionType === type;
+        const owner = options[0]?.owner || game.currentPlayer;
+        const purchases = type === "necromancy"
+          ? necromancyPurchaseOptions(options, game.capturedPieces?.[owner] || [])
+          : [];
+        const selected = boardTargeted
+          ? selectedGlobalActionKey === type
+          : purchases.some((option) => option.selectionKey === selectedGlobalActionKey);
+        const optionCount = type === "necromancy" ? purchases.length : options.length;
         return (
         <details key={type} open={groups.length === 1 || selected}>
-          <summary><span>{options[0].icon} {title(type)}</span><b>{options.length}</b></summary>
+          <summary><span>{options[0].icon} {title(type)}</span><b>{optionCount}</b></summary>
           <div className="action-option-list">
             {boardTargeted ? (
               <button
                 type="button"
                 className={selected ? "board-target-action selected" : "board-target-action"}
                 disabled={actionLoading}
-                onClick={() => onSelectGlobalActionType?.(selected ? null : type)}
+                onClick={() => onSelectGlobalActionKey?.(selected ? null : type)}
               >
                 <strong>{selected ? "Cancel Board Selection" : "Choose A Square"}</strong>
                 <small>{options.length} legal target{options.length === 1 ? "" : "s"}</small>
                 <span>{selected ? "Legal squares are marked on the board." : options[0].description}</span>
               </button>
+            ) : type === "necromancy" ? (
+              <>
+                <p className="necromancy-action-hint">
+                  Buy one captured piece with score, then place it on a highlighted home square.
+                  <strong>{game.score?.[owner] ?? 0} available</strong>
+                </p>
+                {purchases.map((purchase) => {
+                  const isSelected = purchase.selectionKey === selectedGlobalActionKey;
+                  return (
+                    <button
+                      type="button"
+                      className={`necromancy-purchase-option ${isSelected ? "selected" : ""}`}
+                      key={purchase.capturedPieceId}
+                      disabled={actionLoading}
+                      onClick={() => onSelectGlobalActionKey?.(
+                        isSelected ? null : purchase.selectionKey
+                      )}
+                    >
+                      <div className="necromancy-piece-choice">
+                        <PieceGlyph piece={purchase.piece} />
+                        <span>
+                          <strong>{purchase.piece.name}</strong>
+                          <small>
+                            {purchase.targetCount} placement square
+                            {purchase.targetCount === 1 ? "" : "s"}
+                          </small>
+                        </span>
+                      </div>
+                      <b className="necromancy-piece-cost">
+                        {purchase.cost === 0
+                          ? "Free"
+                          : `${purchase.cost} pt${purchase.cost === 1 ? "" : "s"}`}
+                      </b>
+                      <span>
+                        {isSelected
+                          ? "Selected. Choose a green square on the board."
+                          : `Returns as ${title(owner)} and uses your turn.`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </>
             ) : options.map((action) => (
               <button type="button" key={action.id} disabled={actionLoading} onClick={() => onAction(action)}>
                 <strong>{action.label}</strong>
@@ -375,8 +426,8 @@ export function EffectsPanel({
   catalog,
   onAction,
   actionLoading,
-  selectedGlobalActionType,
-  onSelectGlobalActionType,
+  selectedGlobalActionKey,
+  onSelectGlobalActionKey,
   children,
 }) {
   return (
@@ -385,11 +436,12 @@ export function EffectsPanel({
       <CountdownPanel countdowns={game.countdowns} />
       <ActionPanel
         actions={game.availableActions}
+        game={game}
         onAction={onAction}
         actionLoading={actionLoading}
         boardRows={game.boardRows ?? game.boardSize}
-        selectedGlobalActionType={selectedGlobalActionType}
-        onSelectGlobalActionType={onSelectGlobalActionType}
+        selectedGlobalActionKey={selectedGlobalActionKey}
+        onSelectGlobalActionKey={onSelectGlobalActionKey}
       />
       <EnabledEffects game={game} catalog={catalog} />
     </aside>

@@ -1439,6 +1439,11 @@ button.secondary {
   box-shadow: 0 0 0 4px rgba(37, 103, 75, 0.17);
 }
 
+.square.action-summon {
+  outline-color: #25674b;
+  box-shadow: inset 0 0 0 4px rgba(47, 118, 88, 0.2);
+}
+
 .board-effect-stack {
   position: absolute;
   right: 3px;
@@ -5966,6 +5971,75 @@ details[open] > summary > .disclosure-arrow {
   color: var(--accent);
   font-family: "IBM Plex Mono", monospace;
   font-size: 0.6rem;
+}
+
+.necromancy-action-hint {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.25rem 0.5rem;
+  margin: 0;
+  padding: 0.25rem 0.1rem;
+  color: rgba(26, 54, 93, 0.7);
+  font-size: 0.64rem;
+  line-height: 1.4;
+}
+
+.necromancy-action-hint strong {
+  color: #25674b;
+  font-family: "IBM Plex Mono", monospace;
+  white-space: nowrap;
+}
+
+.action-option-list .necromancy-purchase-option {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+}
+
+.necromancy-piece-choice {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.necromancy-piece-choice .piece-glyph {
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.8rem;
+}
+
+.necromancy-piece-choice > span {
+  min-width: 0;
+  display: grid;
+  gap: 0.06rem;
+}
+
+.necromancy-piece-choice strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.necromancy-piece-cost {
+  color: #25674b;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
+.action-option-list .necromancy-purchase-option.selected {
+  color: #f5fff9;
+  border-color: #25674b;
+  background: linear-gradient(135deg, #245f48, #3a8967);
+  box-shadow: 0 0 0 3px rgba(37, 103, 75, 0.12);
+}
+
+.action-option-list .necromancy-purchase-option.selected small,
+.action-option-list .necromancy-purchase-option.selected > span,
+.action-option-list .necromancy-purchase-option.selected .necromancy-piece-cost {
+  color: rgba(245, 255, 249, 0.82);
 }
 
 .action-option-list .board-target-action.selected {
