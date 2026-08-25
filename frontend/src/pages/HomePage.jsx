@@ -53,7 +53,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
             <h1>Chass!</h1>
             <p className="landing-intro">
               <span>Classic chess when you want it. A flexible rule laboratory when you do not.</span>
-              <span>Choose how your opponent is joining.</span>
+              <span>Choose how your opponent is joining:</span>
             </p>
           </div>
 
