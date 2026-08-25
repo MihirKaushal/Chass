@@ -118,10 +118,6 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
           </div>
 
           {error ? <p className="landing-error">{error}</p> : null}
-          <p className="landing-footnote">
-            Online games are anonymous. This browser stores your private player seat so you can
-            reconnect.
-          </p>
         </section>
       </main>
       <SiteFooter />
