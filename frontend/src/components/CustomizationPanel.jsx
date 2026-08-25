@@ -4,6 +4,7 @@ import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
 import { matchingCustomizeResults } from "../customizeNavigation";
+import { PIECE_FILTERS, visibleCustomizePieces } from "../customizePieces";
 import {
   CONFIGURATION_SECTION_IDS,
   configurationSectionStatuses,
@@ -1050,6 +1051,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const [creatingMode, setCreatingMode] = useState("");
   const [error, setError] = useState("");
   const [sectionQuery, setSectionQuery] = useState("");
+  const [pieceFilter, setPieceFilter] = useState("all");
   const [openSections, setOpenSections] = useState(initialSectionVisibility);
   const [highlightedIssueSquares, setHighlightedIssueSquares] = useState([]);
   const issueSquareTimerRef = useRef(null);
@@ -1064,6 +1066,14 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const customizeSearchResults = useMemo(
     () => matchingCustomizeResults(sectionQuery, catalog || {}),
     [catalog, sectionQuery]
+  );
+  const filteredPieces = useMemo(
+    () => visibleCustomizePieces(
+      catalog?.pieces || [],
+      draft?.enabledPieces || [],
+      pieceFilter
+    ),
+    [catalog, draft?.enabledPieces, pieceFilter]
   );
   const currentValidationErrors = (
     validation.status === "invalid"
@@ -1601,6 +1611,9 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     const sectionId = result.sectionId || result.id;
     const section = document.getElementById(sectionId);
     if (!section) return;
+    if (result.kind === "piece" && result.pieceFilter) {
+      setPieceFilter(result.pieceFilter);
+    }
     setSectionOpen(sectionId, true);
     if (section instanceof HTMLDetailsElement) section.open = true;
     window.requestAnimationFrame(() => {
@@ -1726,8 +1739,21 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
           </CollapsibleStudioSection>
 
           <CollapsibleStudioSection sectionId="studio-pieces" title="Pieces" description="Enable pieces, set values of zero or more, and edit the starting board." {...studioSectionProps("studio-pieces")}>
+            <div className="piece-filter-bar" aria-label="Filter available pieces">
+              {PIECE_FILTERS.map((filter) => (
+                <button
+                  type="button"
+                  key={filter.id}
+                  className={pieceFilter === filter.id ? "active" : ""}
+                  aria-pressed={pieceFilter === filter.id}
+                  onClick={() => setPieceFilter(filter.id)}
+                >
+                  {filter.label}
+                </button>
+              ))}
+            </div>
             <div className="piece-catalog-grid">
-              {catalog.pieces.map((piece) => {
+              {filteredPieces.map((piece) => {
                 const enabled = draft.enabledPieces.includes(piece.type);
                 const effectivePiece = effectiveCatalogEntry(
                   piece,

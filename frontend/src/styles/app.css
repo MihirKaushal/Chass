@@ -4775,6 +4775,38 @@ details[open] > summary > .disclosure-arrow {
   width: 100px;
 }
 
+.piece-filter-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.38rem;
+  margin-bottom: 0.7rem;
+  padding: 0.38rem;
+  border: 1px solid rgba(26, 54, 93, 0.14);
+  border-radius: 10px;
+  background: rgba(234, 216, 181, 0.24);
+}
+
+.piece-filter-bar button {
+  padding: 0.4rem 0.68rem;
+  color: rgba(26, 54, 93, 0.74);
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  box-shadow: none;
+  font-size: 0.68rem;
+  font-weight: 800;
+}
+
+.piece-filter-bar button:hover,
+.piece-filter-bar button:focus-visible,
+.piece-filter-bar button.active {
+  color: white;
+  border-color: var(--accent);
+  background: var(--accent);
+  transform: none;
+}
+
 .piece-catalog-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
