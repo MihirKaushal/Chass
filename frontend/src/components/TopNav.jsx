@@ -41,8 +41,8 @@ function TopNav({
       </button>
 
       <nav className="tab-nav" aria-label="Game sections">
-        <button type="button" className="tab active">
-          Play
+        <button type="button" className="tab" onClick={onHome}>
+          Home
         </button>
         <button type="button" className="tab" onClick={onCustomize}>
           Customize
