@@ -4004,6 +4004,64 @@ button.secondary {
   transform: none;
 }
 
+.starting-system-dialog-backdrop {
+  position: fixed;
+  z-index: 90;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(13, 37, 68, 0.56);
+  backdrop-filter: blur(5px);
+}
+
+.starting-system-dialog {
+  width: min(460px, 100%);
+  padding: clamp(1rem, 4vw, 1.4rem);
+  border: 2px solid rgba(43, 108, 176, 0.34);
+  border-radius: 18px;
+  color: var(--deep);
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.5), rgba(234, 216, 181, 0.78)),
+    var(--panel);
+  box-shadow: 0 24px 60px rgba(8, 28, 54, 0.34);
+}
+
+.starting-system-dialog h2 {
+  margin: 0.25rem 0 0;
+  font-size: clamp(1.45rem, 4vw, 2rem);
+  letter-spacing: -0.035em;
+}
+
+.starting-system-dialog p {
+  margin: 0.65rem 0 1.15rem;
+  color: rgba(26, 54, 93, 0.76);
+  line-height: 1.5;
+}
+
+.starting-system-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.starting-system-dialog-actions button {
+  border: 1px solid transparent;
+  border-radius: 10px;
+  padding: 0.58rem 0.85rem;
+  color: white;
+  background: var(--accent);
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.starting-system-dialog-actions button.secondary {
+  color: var(--deep);
+  border-color: rgba(26, 54, 93, 0.22);
+  background: rgba(255, 255, 255, 0.54);
+}
+
 @keyframes customize-search-pulse {
   50% {
     outline-color: rgba(99, 179, 237, 0.3);

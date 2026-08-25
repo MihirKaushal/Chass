@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   configurationSectionStatuses,
+  hasConfigurationModifications,
   reconcileDraftIdentity,
   sectionIsModified,
 } from "./customizeSectionState.js";
@@ -74,4 +75,15 @@ test("restoring every section restores preset identity", () => {
     reconcileDraftIdentity(changed, baseline),
     baseline
   );
+});
+
+test("configuration replacement warnings only trigger for modified sections", () => {
+  assert.equal(hasConfigurationModifications({
+    pieces: { modified: false, issueCount: 2 },
+    victory: { modified: false, issueCount: 0 },
+  }), false);
+  assert.equal(hasConfigurationModifications({
+    pieces: { modified: true, issueCount: 0 },
+    victory: { modified: false, issueCount: 0 },
+  }), true);
 });

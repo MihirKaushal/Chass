@@ -88,6 +88,10 @@ export function configurationSectionStatuses(draft, baseline, errors = []) {
   return statuses;
 }
 
+export function hasConfigurationModifications(statuses = {}) {
+  return Object.values(statuses).some((status) => Boolean(status?.modified));
+}
+
 export function reconcileDraftIdentity(draft, baseline) {
   if (!draft || !baseline) return draft;
   const modified = Object.fromEntries(

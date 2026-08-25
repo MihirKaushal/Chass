@@ -12,6 +12,7 @@ import { PIECE_FILTERS, visibleCustomizePieces } from "../customizePieces";
 import {
   CONFIGURATION_SECTION_IDS,
   configurationSectionStatuses,
+  hasConfigurationModifications,
   reconcileDraftIdentity,
   sectionIsModified,
 } from "../customizeSectionState";
@@ -893,6 +894,50 @@ function CustomizeNavigator({
   );
 }
 
+function StartingSystemConfirmation({ mode, onCancel, onConfirm }) {
+  const cancelRef = useRef(null);
+
+  useEffect(() => {
+    if (!mode) return undefined;
+    cancelRef.current?.focus();
+    const closeOnEscape = (event) => {
+      if (event.key === "Escape") onCancel();
+    };
+    document.addEventListener("keydown", closeOnEscape);
+    return () => document.removeEventListener("keydown", closeOnEscape);
+  }, [mode, onCancel]);
+
+  if (!mode) return null;
+  return (
+    <div
+      className="starting-system-dialog-backdrop"
+      onMouseDown={(event) => {
+        if (event.target === event.currentTarget) onCancel();
+      }}
+    >
+      <section
+        className="starting-system-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="starting-system-dialog-title"
+        aria-describedby="starting-system-dialog-description"
+      >
+        <span className="eyebrow">Replace Current Setup</span>
+        <h2 id="starting-system-dialog-title">Apply {mode.name}?</h2>
+        <p id="starting-system-dialog-description">
+          This Starting System will replace your modified settings. This action cannot be undone.
+        </p>
+        <div className="starting-system-dialog-actions">
+          <button type="button" className="secondary" ref={cancelRef} onClick={onCancel}>
+            Keep My Changes
+          </button>
+          <button type="button" onClick={onConfirm}>Apply {mode.name}</button>
+        </div>
+      </section>
+    </div>
+  );
+}
+
 function RulebookSection({
   id,
   title: heading,
@@ -1118,6 +1163,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
   const [sectionQuery, setSectionQuery] = useState("");
   const [pieceFilter, setPieceFilter] = useState("all");
   const [openSections, setOpenSections] = useState(initialSectionVisibility);
+  const [pendingStartingSystem, setPendingStartingSystem] = useState(null);
   const [highlightedIssueSquares, setHighlightedIssueSquares] = useState([]);
   const [placementNotice, setPlacementNotice] = useState("");
   const issueSquareTimerRef = useRef(null);
@@ -1256,6 +1302,14 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     setRestoreFormationId(mode.formationId || "classic");
     setConfigurationBaseline(cloneDraft(nextDraft));
     setDraft(nextDraft);
+  };
+
+  const requestPopularMode = (mode) => {
+    if (hasConfigurationModifications(sectionStatuses)) {
+      setPendingStartingSystem(mode);
+      return;
+    }
+    applyPopularMode(mode);
   };
 
   const applyFormation = (formation) => {
@@ -1772,7 +1826,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                   id={`customize-mode-${mode.id}`}
                   className={`mode-preset-card ${configurationBaseline?.presetId === mode.id ? "selected" : ""}`}
                 >
-                  <button type="button" className="mode-preset-choice" onClick={() => applyPopularMode(mode)}>
+                  <button type="button" className="mode-preset-choice" onClick={() => requestPopularMode(mode)}>
                     <i>{mode.icon}</i><strong>{mode.name}</strong><small>{mode.summary}</small>
                   </button>
                   {mode.id === "classic" ? (
@@ -1990,6 +2044,15 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
       </section>
       {error ? <p className="studio-error">{error}</p> : null}
       <Rulebook catalog={catalog} draft={draft} />
+      <StartingSystemConfirmation
+        mode={pendingStartingSystem}
+        onCancel={() => setPendingStartingSystem(null)}
+        onConfirm={() => {
+          const mode = pendingStartingSystem;
+          setPendingStartingSystem(null);
+          if (mode) applyPopularMode(mode);
+        }}
+      />
     </section>
   );
 }
