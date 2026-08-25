@@ -44,7 +44,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
     <div className="page-frame">
       <main className="landing-shell">
         <section className="landing-hero">
-          <LandingNav active="play" onPlay={() => {}} onCustomize={onCustomize} />
+          <LandingNav active="home" onHome={() => {}} onCustomize={onCustomize} />
           <div className="landing-brand-mark" aria-hidden="true">
             <img src="/chass-mark.svg" alt="" />
           </div>
