@@ -468,10 +468,7 @@
   }
 
   .play-panel-close {
-    width: 2.25rem;
-    height: 2.25rem;
     justify-self: end;
-    font-size: 1.35rem;
   }
 
   .responsive-play-panel > .effects-panel,
