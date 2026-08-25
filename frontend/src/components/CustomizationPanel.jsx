@@ -800,9 +800,6 @@ function CustomizeNavigator({
 
   return (
     <aside className="customize-section-navigator" aria-label="Customize page navigation">
-      <div className="customize-navigator-heading">
-        <strong>Jump To A Section</strong>
-      </div>
       <label className="customize-section-search">
         <span className="visually-hidden">Search customize sections and settings</span>
         <input
