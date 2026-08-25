@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
-import { matchingCustomizeSections } from "../customizeNavigation";
+import { matchingCustomizeResults } from "../customizeNavigation";
 import {
   savedKingPointValue,
   synchronizeKingPointValue,
@@ -410,7 +410,7 @@ function ConfigurationBoard({
   );
 
   return (
-    <div className="studio-preview-stack" data-setting-key="board-editor">
+    <div className="studio-preview-stack" data-setting-key="board-editor" id="customize-board-editor">
       <div className="studio-board-frame">
         <div
           className="studio-board"
@@ -628,8 +628,8 @@ function CollapsibleStudioSection({
   );
 }
 
-function CustomizeNavigator({ query, sections, onQueryChange, onNavigate }) {
-  const firstResult = sections[0];
+function CustomizeNavigator({ query, results, onQueryChange, onNavigate }) {
+  const firstResult = results[0];
   const [menuOpen, setMenuOpen] = useState(false);
   const menuRef = useRef(null);
 
@@ -657,7 +657,7 @@ function CustomizeNavigator({ query, sections, onQueryChange, onNavigate }) {
           onKeyDown={(event) => {
             if (event.key !== "Enter" || !firstResult) return;
             event.preventDefault();
-            onNavigate(firstResult.id);
+            onNavigate(firstResult);
           }}
           placeholder="Find a setting or section"
         />
@@ -690,26 +690,27 @@ function CustomizeNavigator({ query, sections, onQueryChange, onNavigate }) {
         >
           <span>Jump to...</span>
           <small>
-            {sections.length} {query.trim()
-              ? `match${sections.length === 1 ? "" : "es"}`
-              : `section${sections.length === 1 ? "" : "s"}`}
+            {results.length} {query.trim()
+              ? `match${results.length === 1 ? "" : "es"}`
+              : `section${results.length === 1 ? "" : "s"}`}
           </small>
           <i aria-hidden="true" />
         </button>
         <div className="customize-jump-options" id="customize-jump-options">
-          {sections.length ? (
+          {results.length ? (
             <nav aria-label="Customize sections">
-              {sections.map((section) => (
+              {results.map((result) => (
                 <a
-                  href={`#${section.id}`}
-                  key={section.id}
+                  href={`#${result.targetId || result.sectionId}`}
+                  key={result.id}
                   onClick={(event) => {
                     event.preventDefault();
                     setMenuOpen(false);
-                    onNavigate(section.id);
+                    onNavigate(result);
                   }}
                 >
-                  {section.label}
+                  <span>{result.label}</span>
+                  {query.trim() && result.category ? <small>{result.category}</small> : null}
                 </a>
               ))}
             </nav>
@@ -952,9 +953,9 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     () => (validationRequest ? JSON.stringify(validationRequest) : null),
     [validationRequest]
   );
-  const matchingSections = useMemo(
-    () => matchingCustomizeSections(sectionQuery),
-    [sectionQuery]
+  const customizeSearchResults = useMemo(
+    () => matchingCustomizeResults(sectionQuery, catalog || {}),
+    [catalog, sectionQuery]
   );
 
   useEffect(() => {
@@ -1351,16 +1352,38 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     });
   };
 
-  const jumpToCustomizeSection = (sectionId) => {
+  const jumpToCustomizeResult = (result) => {
+    const sectionId = result.sectionId || result.id;
     const section = document.getElementById(sectionId);
     if (!section) return;
     if (section instanceof HTMLDetailsElement) section.open = true;
     window.requestAnimationFrame(() => {
-      section.scrollIntoView({ behavior: "smooth", block: "start" });
+      const target = document.getElementById(result.targetId) || section;
+      document.querySelectorAll(".customize-search-highlight").forEach(
+        (element) => element.classList.remove("customize-search-highlight")
+      );
+      window.clearTimeout(settingHighlightTimerRef.current);
+      if (target !== section) target.classList.add("customize-search-highlight");
+      target.scrollIntoView({
+        behavior: "smooth",
+        block: target === section ? "start" : "center",
+      });
       window.setTimeout(
-        () => section.querySelector("summary")?.focus({ preventScroll: true }),
+        () => {
+          const focusTarget = target.matches("button, input, select")
+            ? target
+            : target.querySelector("input, select, button")
+              || section.querySelector("summary");
+          focusTarget?.focus({ preventScroll: true });
+        },
         350
       );
+      if (target !== section) {
+        settingHighlightTimerRef.current = window.setTimeout(
+          () => target.classList.remove("customize-search-highlight"),
+          2600
+        );
+      }
     });
   };
 
@@ -1370,9 +1393,9 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
         <div className="studio-hero-copy"><span className="eyebrow">Configuration Studio</span><h1>Build Your Version Of Chass</h1><p>Choose a starting system, then adjust the board, pieces, victory rule, abilities, or Gambit setup.</p></div>
         <CustomizeNavigator
           query={sectionQuery}
-          sections={matchingSections}
+          results={customizeSearchResults}
           onQueryChange={setSectionQuery}
-          onNavigate={jumpToCustomizeSection}
+          onNavigate={jumpToCustomizeResult}
         />
       </header>
 
@@ -1400,13 +1423,14 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
               {catalog.popularModes.map((mode) => (
                 <article
                   key={mode.id}
+                  id={`customize-mode-${mode.id}`}
                   className={`mode-preset-card ${draft.presetId === mode.id ? "selected" : ""}`}
                 >
                   <button type="button" className="mode-preset-choice" onClick={() => applyPopularMode(mode)}>
                     <i>{mode.icon}</i><strong>{mode.name}</strong><small>{mode.summary}</small>
                   </button>
                   {mode.id === "classic" ? (
-                    <label className={`classic-predictor-toggle ${predictorCompatible ? "" : "is-disabled"}`}>
+                    <label id="customize-match-predictor" className={`classic-predictor-toggle ${predictorCompatible ? "" : "is-disabled"}`}>
                       <input
                         type="checkbox"
                         checked={predictorCompatible && draft.matchPredictorEnabled}
@@ -1427,15 +1451,17 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                 </article>
               ))}
             </div>
-            <h3 className="formation-heading">Popular Board Formations</h3>
-            <p className="formation-description">Change the starting piece arrangement without selecting a different overall game system.</p>
-            <div className="mode-preset-grid formation-grid">
-              {catalog.formations.map((formation) => <button type="button" key={formation.id} className={draft.formationId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}><i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small></button>)}
+            <div id="customize-popular-formations">
+              <h3 className="formation-heading">Popular Board Formations</h3>
+              <p className="formation-description">Change the starting piece arrangement without selecting a different overall game system.</p>
+              <div className="mode-preset-grid formation-grid">
+                {catalog.formations.map((formation) => <button type="button" id={`customize-formation-${formation.id}`} key={formation.id} className={draft.formationId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}><i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small></button>)}
+              </div>
             </div>
           </CollapsibleStudioSection>
 
           <CollapsibleStudioSection sectionId="studio-board-size" title="Board Size" description="Choose a preset or set dimensions from 4 to 16.">
-            <div className="dimension-presets" data-setting-key="board-dimensions">
+            <div className="dimension-presets" data-setting-key="board-dimensions" id="customize-board-dimensions">
               {[8, 10, 16].map((size) => <button type="button" key={size} className={draft.boardRows === size && draft.boardCols === size ? "active" : "secondary"} onClick={() => changeDimensions(size, size)}>{size}x{size}</button>)}
               <span>Custom</span>
               <label>Rows<input type="number" min={MIN_DIMENSION} max={MAX_DIMENSION} value={draft.boardRows} onChange={(event) => changeDimensions(event.target.value, draft.boardCols)} /></label>
@@ -1452,7 +1478,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                   draft.pieceParameters[piece.type]
                 );
                 return (
-                  <article key={piece.type} className={`piece-config-card ${enabled ? "enabled" : ""} ${piece.isCustom ? "custom" : ""}`}>
+                  <article id={`customize-piece-${piece.type}`} key={piece.type} className={`piece-config-card ${enabled ? "enabled" : ""} ${piece.isCustom ? "custom" : ""}`}>
                     <header><span><PieceGlyph type={piece.type} color="black" symbol={piece.symbols.black || piece.icon} /></span><div><h3>{piece.name}</h3><small>{piece.isCustom ? "Custom Piece" : "Classic Piece"}</small></div><input aria-label={`Enable ${piece.name}`} type="checkbox" checked={enabled} disabled={piece.type === "king"} onChange={(event) => togglePiece(piece.type, event.target.checked)} /></header>
                     <p>{effectivePiece.description}</p><small className="movement-copy">{effectivePiece.movement}</small>
                     <TunableParameterFields
@@ -1487,7 +1513,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             <div className="victory-grid" data-setting-key="victory-mode">
               {catalog.victoryModes.map((mode) => {
                 const reason = disabledVictoryModes[mode.id];
-                return <button type="button" key={mode.id} className={draft.victory.mode === mode.id ? "selected" : ""} disabled={Boolean(reason)} title={reason || ""} onClick={() => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, mode: mode.id } }))}><i>{mode.icon}</i><span><strong>{mode.name}</strong><small>{reason || mode.summary}</small></span></button>;
+                return <button type="button" id={`customize-victory-${mode.id}`} key={mode.id} className={draft.victory.mode === mode.id ? "selected" : ""} disabled={Boolean(reason)} title={reason || ""} onClick={() => setDraft((current) => ({ ...current, presetId: "custom", victory: { ...current.victory, mode: mode.id } }))}><i>{mode.icon}</i><span><strong>{mode.name}</strong><small>{reason || mode.summary}</small></span></button>;
               })}
             </div>
             <div className="conditional-fields">
@@ -1500,16 +1526,18 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
           </CollapsibleStudioSection>
 
           <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any game mode." className="ability-config-section">
-            <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
-            {draft.customRules.affinityEnabled ? <div className="conditional-fields">
-              <label>Command Point Cap<input type="number" min="0" max="20" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clamp(event.target.value, 0, 20) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
-            </div> : null}
+            <div id="customize-affinity-squares">
+              <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
+              {draft.customRules.affinityEnabled ? <div className="conditional-fields">
+                <label>Command Point Cap<input type="number" min="0" max="20" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clamp(event.target.value, 0, 20) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
+              </div> : null}
+            </div>
           </CollapsibleStudioSection>
 
           <CollapsibleStudioSection sectionId="studio-abilities" title="Special Abilities" description="Each player privately chooses the configured number of allowed abilities before play." className="ability-config-section">
             <Toggle settingKey="ability-options" checked={draft.specialAbilities.enabled} onChange={toggleSpecialAbilities} label="Enable Special Abilities" description="All compatible abilities start enabled. Selections are revealed after both players lock in." />
             {draft.specialAbilities.enabled ? <>
-              <div className="conditional-fields"><label>Abilities Per Player<input type="number" min="1" max={Math.max(1, draft.specialAbilities.allowed.length)} value={draft.specialAbilities.maxPerPlayer} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, maxPerPlayer: clamp(event.target.value, 1, Math.max(1, current.specialAbilities.allowed.length)) } }))} /><small>How many abilities each player selects. The default is 1.</small></label></div>
+              <div className="conditional-fields" id="customize-ability-count"><label>Abilities Per Player<input type="number" min="1" max={Math.max(1, draft.specialAbilities.allowed.length)} value={draft.specialAbilities.maxPerPlayer} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", specialAbilities: { ...current.specialAbilities, maxPerPlayer: clamp(event.target.value, 1, Math.max(1, current.specialAbilities.allowed.length)) } }))} /><small>How many abilities each player selects. The default is 1.</small></label></div>
               <div className="ability-option-grid" data-setting-key="ability-options">{catalog.specialAbilities.map((ability) => {
                 const enabled = draft.specialAbilities.allowed.includes(ability.id);
                 const reason = disabledAbilities[ability.id];
@@ -1518,7 +1546,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
                   draft.specialAbilities.parameters[ability.id]
                 );
                 return (
-                  <article key={ability.id} className={`ability-config-card ${enabled ? "selected" : ""}`}>
+                  <article id={`customize-ability-${ability.id}`} key={ability.id} className={`ability-config-card ${enabled ? "selected" : ""}`}>
                     <button
                       type="button"
                       className="ability-option-toggle"
@@ -1565,7 +1593,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
 
           <CollapsibleStudioSection sectionId="studio-gambit" title="Chass Gambit Settings" description="Configure private army construction for the current board and ruleset." className="gambit-config-section">
             <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => ({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled, draftEnabled: enabled ? current.gambit.draftEnabled : false } }))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
-            {draft.gambit.enabled ? <div className="gambit-settings-grid" data-setting-key="gambit-settings">
+            {draft.gambit.enabled ? <div className="gambit-settings-grid" data-setting-key="gambit-settings" id="customize-gambit-settings">
               <label>Maximum Points<input type="number" min="0" value={draft.gambit.budget} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, budget: Math.max(0, Number(event.target.value)) } }))} /><small>Players may spend less, but cannot exceed this limit.</small></label>
               <label>Maximum Pieces<input type="number" min="1" max="128" value={draft.gambit.maxPieces} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, maxPieces: Math.max(1, Number(event.target.value)) } }))} /><small>Includes the required King.</small></label>
               <label>Private Setup Rows<input type="number" min="1" max={Math.floor(draft.boardRows / 2)} value={draft.gambit.setupRows} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, setupRows: clamp(event.target.value, 1, Math.max(1, Math.floor(current.boardRows / 2))) } }))} /><small>Rows nearest each player that they may edit.</small></label>

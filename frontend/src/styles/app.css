@@ -3872,6 +3872,8 @@ button.secondary {
   right: 0;
   left: 0;
   padding: 0.42rem;
+  max-height: min(420px, 58vh);
+  overflow-y: auto;
   visibility: hidden;
   opacity: 0;
   border: 1px solid rgba(99, 179, 237, 0.35);
@@ -3899,12 +3901,14 @@ button.secondary {
 
 .customize-jump-options nav {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.22rem;
 }
 
 .customize-jump-options nav a {
   min-width: 0;
+  display: grid;
+  gap: 0.08rem;
   padding: 0.48rem 0.55rem;
   color: white;
   border: 1px solid transparent;
@@ -3921,6 +3925,38 @@ button.secondary {
   border-color: var(--accent-soft);
   background: rgba(99, 179, 237, 0.18);
   transform: none;
+}
+
+.customize-jump-options nav a > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customize-jump-options nav a > small {
+  overflow: hidden;
+  color: rgba(255, 255, 255, 0.6);
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 0.56rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.customize-search-highlight {
+  position: relative;
+  z-index: 3;
+  border-radius: 12px;
+  outline: 4px solid rgba(43, 108, 176, 0.72);
+  outline-offset: 4px;
+  animation: customize-search-pulse 700ms ease-in-out 2;
+}
+
+@keyframes customize-search-pulse {
+  50% {
+    outline-color: rgba(99, 179, 237, 0.3);
+    box-shadow: 0 0 0 8px rgba(99, 179, 237, 0.1);
+  }
 }
 
 .studio-shell {
@@ -6003,10 +6039,6 @@ details[open] > summary > .disclosure-arrow {
 
   .studio-hero h1 {
     font-size: 2.2rem;
-  }
-
-  .customize-jump-options nav {
-    grid-template-columns: 1fr;
   }
 
   .landing-intro span:first-child {
