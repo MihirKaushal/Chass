@@ -1167,10 +1167,11 @@ function Rulebook({ catalog, draft }) {
   );
 }
 
-function CustomizationPanel({ onCreate, initialPreset = "" }) {
+function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange }) {
   const [catalog, setCatalog] = useState(null);
   const [draft, setDraft] = useState(null);
   const [configurationBaseline, setConfigurationBaseline] = useState(null);
+  const [pageEntryBaseline, setPageEntryBaseline] = useState(null);
   const [selectedTool, setSelectedTool] = useState(null);
   const [boardHistory, setBoardHistory] = useState([]);
   const [restoreFormationId, setRestoreFormationId] = useState("classic");
@@ -1216,6 +1217,16 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
     ),
     [configurationBaseline, currentValidationErrors, draft]
   );
+  const pageConfigurationModified = useMemo(
+    () => hasConfigurationModifications(
+      configurationSectionStatuses(draft, pageEntryBaseline)
+    ),
+    [draft, pageEntryBaseline]
+  );
+
+  useEffect(() => {
+    onModificationChange?.(pageConfigurationModified);
+  }, [onModificationChange, pageConfigurationModified]);
 
   useEffect(() => {
     let cancelled = false;
@@ -1232,6 +1243,7 @@ function CustomizationPanel({ onCreate, initialPreset = "" }) {
             : "classic"
         );
         setConfigurationBaseline(cloneDraft(initial));
+        setPageEntryBaseline(cloneDraft(initial));
         setCatalog(payload);
         setDraft(initial);
       })

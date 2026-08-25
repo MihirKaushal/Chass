@@ -1198,7 +1198,7 @@ function App() {
     return (
       <CustomizePage
         onCreate={handleCreate}
-        onPlay={() => navigate("/")}
+        onHome={() => navigate("/")}
         initialPreset={route.preset}
       />
     );

@@ -1,12 +1,18 @@
-function LandingNav({ active, onPlay, onCustomize }) {
+function LandingNav({ active, onHome, onCustomize }) {
   return (
     <nav className="landing-mode-nav" aria-label="Chass sections">
-      <button type="button" className={active === "play" ? "active" : ""} onClick={onPlay}>
-        Play
+      <button
+        type="button"
+        className={active === "home" ? "active" : ""}
+        aria-current={active === "home" ? "page" : undefined}
+        onClick={onHome}
+      >
+        Home
       </button>
       <button
         type="button"
         className={active === "customize" ? "active" : ""}
+        aria-current={active === "customize" ? "page" : undefined}
         onClick={onCustomize}
       >
         Customize

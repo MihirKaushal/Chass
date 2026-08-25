@@ -4,6 +4,7 @@ import test from "node:test";
 import {
   recordedTurnCount,
   shouldConfirmCustomizeNavigation,
+  shouldConfirmDiscardingCustomization,
 } from "./leaveGameGuard.js";
 
 test("Customize navigation is immediate before the first turn", () => {
@@ -47,4 +48,10 @@ test("Finished and setup games do not show the leave-game warning", () => {
     }),
     false
   );
+});
+
+test("Home navigation warns only when the Customize configuration changed", () => {
+  assert.equal(shouldConfirmDiscardingCustomization(true), true);
+  assert.equal(shouldConfirmDiscardingCustomization(false), false);
+  assert.equal(shouldConfirmDiscardingCustomization(undefined), false);
 });

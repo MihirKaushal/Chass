@@ -11,3 +11,7 @@ export function shouldConfirmCustomizeNavigation(game) {
     && recordedTurnCount(game) > 0
   );
 }
+
+export function shouldConfirmDiscardingCustomization(configurationModified) {
+  return configurationModified === true;
+}
