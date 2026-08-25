@@ -4,6 +4,7 @@ import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { boardPlacementRestriction } from "../customizeBoardPlacement";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
+import { customizeLaunchState } from "../customizeLaunchState";
 import {
   matchingCustomizeResults,
   nextCustomizeResultIndex,
@@ -1727,12 +1728,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     validation.valid &&
     validation.requestKey === validationRequestKey &&
     !creatingMode;
-  const validationSummary =
-    validation.status === "checking" || validation.status === "loading"
-      ? "Checking configuration..."
-      : validation.valid
-        ? "Configuration valid"
-        : `${validation.errors.length} setting issue${validation.errors.length === 1 ? "" : "s"}`;
+  const launchState = customizeLaunchState(validation, validationRequestKey);
   const briefingConfiguration = {
     presetId: draft.presetId,
     formationId: draft.formationId,
@@ -1827,7 +1823,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   return (
     <section className="customization-panel configuration-studio">
       <header className="studio-hero">
-        <div className="studio-hero-copy"><span className="eyebrow">Configuration Studio</span><h1>Build Your Version Of Chass</h1><p>Choose a starting system, then adjust the board, pieces, victory rule, abilities, or Gambit setup.</p></div>
+        <div className="studio-hero-copy"><span className="eyebrow">Game Customizer</span><h1>Build Your Version Of Chass</h1><p>Choose a starting system, then adjust the board, pieces, win condition, abilities, or Gambit setup.</p></div>
         <CustomizeNavigator
           query={sectionQuery}
           results={customizeSearchResults}
@@ -1896,7 +1892,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
               ))}
             </div>
             <div id="customize-popular-formations">
-              <h3 className="formation-heading">Popular Board Formations</h3>
+              <h3 className="formation-heading">Starting Layout Presets</h3>
               <p className="formation-description">Apply a familiar starting arrangement and its compatible board defaults. Victory rules and other systems remain editable below.</p>
               <div className="mode-preset-grid formation-grid">
                 {catalog.formations.map((formation) => <button type="button" id={`customize-formation-${formation.id}`} key={formation.id} className={configurationBaseline?.formationId === formation.id ? "selected" : ""} onClick={() => applyFormation(formation)}><i>{formation.icon}</i><strong>{formation.name}</strong><small>{formation.summary}</small></button>)}
@@ -1966,7 +1962,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-victory" title="End Game Logic" description="Choose the condition that decides the result." {...studioSectionProps("studio-victory")}>
+          <CollapsibleStudioSection sectionId="studio-victory" title="Win Condition" description="Choose the condition that decides the result." {...studioSectionProps("studio-victory")}>
             <div className="victory-grid" data-setting-key="victory-mode">
               {catalog.victoryModes.map((mode) => {
                 const reason = disabledVictoryModes[mode.id];
@@ -2063,18 +2059,18 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
 
       <section className={`studio-launch-bar validation-${validation.status}`}>
         <div className="launch-validation-copy">
-          <span>Ready To Launch</span>
-          <strong>{validationSummary}</strong>
-          {validation.errors.length ? (
+          <span>{launchState.heading}</span>
+          <strong>{launchState.detail}</strong>
+          {launchState.errors.length ? (
             <div className="validation-inline-issues" aria-label="Configuration issues">
-              {validation.errors.map((issue, index) => (
+              {launchState.errors.map((issue, index) => (
                 <button type="button" key={`${issue}-${index}`} onClick={() => focusValidationIssue(issue)}>
                   <b>{index + 1}</b>{issue}
                 </button>
               ))}
             </div>
           ) : (
-            validation.warnings[0] ? <small>{validation.warnings[0]}</small> : null
+            launchState.warning ? <small>{launchState.warning}</small> : null
           )}
         </div>
         <GameBriefing

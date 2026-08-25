@@ -16,8 +16,8 @@ export const CUSTOMIZE_SECTION_LINKS = [
   },
   {
     id: "studio-victory",
-    label: "End Game Logic",
-    keywords: "victory win ending condition",
+    label: "Win Condition",
+    keywords: "victory win ending condition end game logic",
   },
   {
     id: "studio-custom-rules",
@@ -52,11 +52,11 @@ const STATIC_SETTING_LINKS = [
   },
   {
     id: "setting-popular-formations",
-    label: "Popular Board Formations",
+    label: "Starting Layout Presets",
     sectionId: "studio-popular-modes",
     category: "Starting Systems",
     targetId: "customize-popular-formations",
-    keywords: "starting arrangement layout formation",
+    keywords: "starting arrangement layout formation popular board formations",
   },
   {
     id: "setting-board-dimensions",
@@ -169,7 +169,7 @@ export function buildCustomizeSearchIndex(catalog = {}) {
     id: `formation-${formation.id}`,
     label: formation.name,
     sectionId: "studio-popular-modes",
-    category: "Popular Board Formations",
+    category: "Starting Layout Presets",
     targetId: `customize-formation-${formation.id}`,
     keywords: `${formation.id} ${formation.summary || ""}`,
     kind: "formation",
@@ -195,7 +195,7 @@ export function buildCustomizeSearchIndex(catalog = {}) {
     id: `victory-${mode.id}`,
     label: mode.name,
     sectionId: "studio-victory",
-    category: "End Game Logic",
+    category: "Win Condition",
     targetId: `customize-victory-${mode.id}`,
     keywords: `${mode.id} ${mode.id === "timed" ? "timer clock" : ""} ${mode.summary || ""}`,
     kind: "victory",
