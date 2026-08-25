@@ -109,6 +109,7 @@ function PlayPage({
       {game.configuration?.matchPredictorEnabled ? (
         <MatchPredictor
           analysis={matchAnalysis}
+          initialLayout={game.configuration?.initialLayout}
           moveCount={moveCount}
           refreshing={analysisRefreshing}
           onRetry={onRetryAnalysis}

@@ -75,25 +75,37 @@ def create_default_game(client) -> dict:
     return response.json()["game"]
 
 
-def classic_request(*, predictor_enabled: bool = True, queen_points: int = 9) -> dict:
+def classic_request(
+    *,
+    predictor_enabled: bool = True,
+    queen_points: int = 9,
+    initial_layout: list[dict] | None = None,
+    formation_id: str = "classic",
+    enabled_pieces: list[str] | None = None,
+) -> dict:
+    enabled = enabled_pieces or ["pawn", "knight", "bishop", "rook", "queen", "king"]
+    points = {
+        "pawn": 1,
+        "knight": 3,
+        "bishop": 3,
+        "rook": 5,
+        "queen": queen_points,
+        "king": 0,
+    }
     return {
         "mode": "local",
         "boardRows": 8,
         "boardCols": 8,
         "configuration": {
-            "presetId": "classic",
-            "formationId": "classic",
+            "presetId": formation_id,
+            "formationId": formation_id,
             "matchPredictorEnabled": predictor_enabled,
-            "enabledPieces": ["pawn", "knight", "bishop", "rook", "queen", "king"],
+            "enabledPieces": enabled,
             "piecePoints": {
-                "pawn": 1,
-                "knight": 3,
-                "bishop": 3,
-                "rook": 5,
-                "queen": queen_points,
-                "king": 0,
+                piece_type: points[piece_type]
+                for piece_type in enabled
             },
-            "initialLayout": classic_layout(8, 8),
+            "initialLayout": initial_layout or classic_layout(8, 8),
             "victory": {"mode": "checkmate"},
             "customRules": {"affinityEnabled": False},
             "specialAbilities": {"enabled": False, "allowed": []},
@@ -113,13 +125,13 @@ def test_untouched_classic_game_enables_match_predictor(client):
     assert analysis.json()["status"] == "unavailable"
 
 
-def test_backend_overrides_incompatible_predictor_request(client):
+def test_point_labels_remain_compatible_but_custom_board_sizes_do_not(client):
     custom_values = client.post(
         "/game/create",
         json=classic_request(queen_points=10),
     )
     assert custom_values.status_code == 200, custom_values.text
-    assert custom_values.json()["game"]["configuration"]["matchPredictorEnabled"] is False
+    assert custom_values.json()["game"]["configuration"]["matchPredictorEnabled"] is True
 
     custom_size = client.post(
         "/game/create",
@@ -129,13 +141,56 @@ def test_backend_overrides_incompatible_predictor_request(client):
     assert custom_size.json()["game"]["configuration"]["matchPredictorEnabled"] is False
 
 
+def test_standard_piece_custom_formations_enable_match_predictor(client):
+    without_queens = [
+        piece for piece in classic_layout(8, 8) if piece["type"] != "queen"
+    ]
+    created = client.post(
+        "/game/create",
+        json=classic_request(
+            initial_layout=without_queens,
+            formation_id="custom",
+        ),
+    )
+    assert created.status_code == 200, created.text
+    game = created.json()["game"]
+    assert game["configuration"]["matchPredictorEnabled"] is True
+
+    state = game_service.repository.get_game(game["id"]).state
+    eligibility = classic_analysis_eligibility(state)
+    assert eligibility.eligible is True
+    assert "q" not in classic_position_fen(state).split()[0]
+
+
+def test_standard_piece_subsets_work_when_no_pawn_can_promote(client):
+    rook_and_king_layout = [
+        piece
+        for piece in classic_layout(8, 8)
+        if piece["type"] in {"rook", "king"}
+    ]
+    created = client.post(
+        "/game/create",
+        json=classic_request(
+            initial_layout=rook_and_king_layout,
+            formation_id="custom",
+            enabled_pieces=["rook", "king"],
+        ),
+    )
+    assert created.status_code == 200, created.text
+    assert created.json()["game"]["configuration"]["matchPredictorEnabled"] is True
+
+
 @pytest.mark.parametrize(
     ("mutation", "reason_fragment"),
     [
         (lambda state: setattr(state.board, "rows", 10), "8x8"),
         (
-            lambda state: setattr(state.piece_definitions["queen"], "points", 10),
-            "definitions or values",
+            lambda state: setattr(
+                state.piece_definitions["queen"].patterns[0],
+                "repeat",
+                False,
+            ),
+            "movement",
         ),
         (
             lambda state: setattr(state.configuration.custom_rules, "affinity_enabled", True),
@@ -146,11 +201,18 @@ def test_backend_overrides_incompatible_predictor_request(client):
             "Special abilities",
         ),
         (
-            lambda state: state.configuration.initial_layout.__setitem__(
-                0,
-                {**state.configuration.initial_layout[0], "col": 2},
+            lambda state: (
+                state.board.grid[5].__setitem__(0, state.board.grid[6][0]),
+                state.board.grid[6].__setitem__(0, None),
             ),
-            "starting position",
+            "home rank",
+        ),
+        (
+            lambda state: state.board.grid[7].__setitem__(
+                slice(3, 5),
+                [state.board.grid[7][4], state.board.grid[7][3]],
+            ),
+            "castling squares",
         ),
     ],
 )

@@ -1,4 +1,8 @@
-import { evaluationLabel, outcomePercentages } from "../matchPredictor";
+import {
+  evaluationLabel,
+  isClassicStartingLayout,
+  outcomePercentages,
+} from "../matchPredictor";
 import Button from "./ui/Button";
 
 function factorValue(value) {
@@ -6,10 +10,21 @@ function factorValue(value) {
   return Number.isInteger(numeric) ? numeric : numeric.toFixed(1);
 }
 
-function MatchPredictor({ analysis, moveCount = 0, refreshing = false, onRetry }) {
+function MatchPredictor({
+  analysis,
+  initialLayout = [],
+  moveCount = 0,
+  refreshing = false,
+  onRetry,
+}) {
   const unavailable = analysis?.status === "unavailable";
   const ready = analysis?.status === "ready";
-  const percentages = outcomePercentages(analysis?.outcome, moveCount);
+  const calibrateOpening = isClassicStartingLayout(initialLayout);
+  const percentages = outcomePercentages(
+    analysis?.outcome,
+    moveCount,
+    { calibrateOpening }
+  );
   const loading = refreshing || !analysis || analysis.status === "analyzing";
 
   return (
@@ -19,12 +34,16 @@ function MatchPredictor({ analysis, moveCount = 0, refreshing = false, onRetry }
     >
       <header className="match-predictor-heading">
         <span>
-          <small>Classic Analysis</small>
+          <small>Stockfish Analysis</small>
           <h3>Match Predictor</h3>
         </span>
         <b className={`predictor-evaluation${unavailable ? " is-unavailable" : ""}`}>
           {loading ? <i aria-hidden="true" /> : null}
-          {unavailable ? "Unavailable" : loading ? "Updating" : evaluationLabel(analysis, moveCount)}
+          {unavailable
+            ? "Unavailable"
+            : loading
+              ? "Updating"
+              : evaluationLabel(analysis, moveCount, { calibrateOpening })}
         </b>
       </header>
 
@@ -74,7 +93,7 @@ function MatchPredictor({ analysis, moveCount = 0, refreshing = false, onRetry }
             ))}
           </div>
           <p className="predictor-engine-version">
-            Engine version: <strong>{analysis.engineVersion || "Stockfish"}</strong>
+            Engine version: <strong>{analysis.engineVersion || "Stockfish"}</strong>. Material uses standard chess values.
           </p>
         </details>
       ) : null}

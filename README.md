@@ -9,7 +9,7 @@ boards and pieces, modular rules, and real-time synchronization.
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
-- Live Classic Match Predictor with calibrated White/Black estimates and position factors
+- Live Stockfish Match Predictor for compatible 8x8 formations, with outcome estimates and position factors
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
 - Chass Gambit with maximum-budget hidden deployment, center affinity, and command powers
@@ -62,7 +62,7 @@ React + Vite
 FastAPI
   |-- Game service
   |-- Modular rule engine
-  |-- Async Classic analysis service --> Stockfish 18
+  |-- Async Stockfish analysis service --> Stockfish 18
   v
 Repository adapters
   |-- SQLAlchemy / SQLite locally
@@ -80,17 +80,18 @@ count, edit, or timing data before the atomic reveal.
 Game activity uses a renewable expiration lease, and both repository adapters cascade
 inactive-game cleanup to player seats, invitation records, and move audits.
 
-The Match Predictor is available only for an untouched 8x8 Classic Chass game. Its
-preference is enabled by default and automatically switches off when the board, formation,
-piece values or behavior, victory condition, rules, abilities, or terrain changes. Analysis
-runs after the move response, is cached by position, and is version-checked before a
-WebSocket result can update the UI.
+The Match Predictor supports Stockfish-compatible 8x8 games with standard pieces and
+movement, Checkmate victory, and either Classic or validated custom starting formations.
+Custom point labels remain available because Stockfish uses its own standard material
+values. Incompatible board geometry, movement, rules, abilities, terrain, or starting-state
+semantics turn analysis off automatically. Analysis runs after the move response, is cached
+by position, and is version-checked before a WebSocket result can update the UI.
 
 ## Project Structure
 
 ```text
 backend/
-  analysis/        Classic eligibility, FEN, factors, and Stockfish UCI service
+  analysis/        Stockfish eligibility, FEN, factors, and asynchronous UCI service
   models/          Domain models and API schemas
   repositories/    Firestore and SQL persistence adapters
   routes/          REST and WebSocket endpoints
