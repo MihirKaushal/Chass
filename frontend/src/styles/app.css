@@ -3799,6 +3799,18 @@ button.secondary {
   color: rgba(255, 255, 255, 0.62);
 }
 
+.customize-section-search input::-webkit-search-cancel-button,
+.rulebook-search input::-webkit-search-cancel-button {
+  display: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.customize-section-search input::-ms-clear,
+.rulebook-search input::-ms-clear {
+  display: none;
+}
+
 .customize-section-search button {
   padding: 0 0.68rem;
   color: white;
