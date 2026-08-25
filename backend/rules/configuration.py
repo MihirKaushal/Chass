@@ -10,8 +10,9 @@ from backend.catalog import (
     normalize_ability_parameters,
     normalize_piece_parameters,
 )
-from backend.models import PieceDefinition
+from backend.models import GameState, PieceDefinition
 from backend.models.schemas import CreateGameRequest
+from backend.rules.base import MovementHelper
 from backend.rules.material import INSUFFICIENT_MATERIAL_MESSAGE, StartingMaterialRule
 from backend.rules.variant_system import (
     CENTER_START_RESTRICTION_MESSAGE,
@@ -43,11 +44,47 @@ def _placement_key(piece: dict) -> tuple[int, int, str, str]:
     return piece["row"], piece["col"], piece["type"], piece["color"]
 
 
+class StartingKingSafetyRule:
+    id = "starting_king_safety"
+    name = "Starting King Safety"
+    description = "Neither King may begin the game in check or checkmate."
+
+    def issues(self, state: GameState, helper: MovementHelper) -> list[str]:
+        trial = state.clone()
+        if trial.configuration.special_abilities.enabled:
+            enabled_abilities = list(trial.configuration.special_abilities.allowed)
+            trial.abilities.selected = {
+                "white": enabled_abilities,
+                "black": enabled_abilities,
+            }
+
+        issues: list[str] = []
+        for color in ("white", "black"):
+            king_count = sum(
+                piece is not None and piece.type == "king" and piece.color == color
+                for row in trial.board.grid
+                for piece in row
+            )
+            if king_count == 1 and helper.is_king_in_check(trial, color):
+                issues.append(
+                    f"{color.title()} King cannot begin in check or checkmate."
+                )
+        return issues
+
+
 class ConfigurationRuleEngine:
     def __init__(self) -> None:
         self._pieces = build_catalog_piece_definitions()
         self._formations = {item["id"]: item for item in FORMATION_PRESETS}
         self.material = StartingMaterialRule()
+        self.starting_king_safety = StartingKingSafetyRule()
+
+    def starting_position_issues(
+        self,
+        state: GameState,
+        helper: MovementHelper,
+    ) -> list[str]:
+        return self.starting_king_safety.issues(state, helper)
 
     def validate(
         self,

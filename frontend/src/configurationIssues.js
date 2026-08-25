@@ -7,6 +7,11 @@ const ISSUE_RULES = [
     settingKey: "target-points",
   },
   {
+    pattern: /king cannot begin in check or checkmate/i,
+    sectionId: "studio-pieces",
+    settingKey: "board-editor",
+  },
+  {
     pattern: /kings? must begin outside|starting piece must be inside|starting square|starting barricade|marked center squares|only barricades may start|promotion rank|touching squares/i,
     sectionId: "studio-pieces",
     settingKey: "board-editor",
@@ -94,6 +99,11 @@ export function configurationIssueSquares(message = "", draft = {}) {
         (piece.color === "white" && piece.row === 0)
         || (piece.color === "black" && piece.row === rows - 1)
       )
+    ));
+  } else if (/king cannot begin in check or checkmate/i.test(message)) {
+    const color = message.match(/^(white|black)/i)?.[1]?.toLowerCase();
+    matches = placements.filter((piece) => (
+      piece.type === "king" && piece.color === color
     ));
   } else if (/two kings cannot begin on touching squares/i.test(message)) {
     const whiteKings = placements.filter((piece) => piece.type === "king" && piece.color === "white");

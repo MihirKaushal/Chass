@@ -199,11 +199,33 @@ def test_elephant_gives_charge_check_and_cannot_be_consumed(client):
         [
             {"row": 3, "col": 3, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "king", "color": "black"},
-            {"row": 1, "col": 3, "type": "elephant", "color": "black"},
+            {"row": 6, "col": 0, "type": "knight", "color": "white"},
+            {"row": 0, "col": 3, "type": "elephant", "color": "black"},
         ]
     )
     game = client.post("/game/create", json=check_payload).json()["game"]
-    assert game["gameStatus"] == "check"
+    white_wait = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 6,
+            "fromCol": 0,
+            "toRow": 4,
+            "toCol": 1,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    checked = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 0,
+            "fromCol": 3,
+            "toRow": 1,
+            "toCol": 3,
+            "expectedVersion": white_wait["version"],
+        },
+    )
+    assert checked.status_code == 200, checked.text
+    assert checked.json()["gameStatus"] == "check"
 
     cannibal_payload = elephant_game(
         [

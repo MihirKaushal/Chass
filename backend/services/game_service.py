@@ -626,6 +626,49 @@ def _apply_rule_patches(
     return ordered
 
 
+def _starting_state_for_configuration_validation(
+    request: CreateGameRequest,
+    piece_catalog: dict[str, PieceDefinition],
+    engine: RuleEngine,
+    *,
+    rule_settings: list[RuleSetting] | None = None,
+) -> GameState | None:
+    configuration, piece_definitions, gambit_state = _configuration_from_request(
+        request,
+        piece_catalog,
+    )
+    if gambit_state is not None or request.variant == "gambit":
+        return None
+
+    if configuration.victory.mode in {"point_race", "king_capture", "royal_score"}:
+        piece_definitions["king"].points = configuration.victory.king_points
+
+    rules = (
+        [setting.model_copy(deep=True) for setting in rule_settings]
+        if rule_settings is not None
+        else _apply_rule_patches(
+            settings=engine.default_rule_settings(),
+            patches=request.rules,
+            engine=engine,
+        )
+    )
+    return GameState(
+        id="configuration-validation",
+        board=_configured_board(
+            request.boardRows,
+            request.boardCols,
+            piece_definitions,
+            configuration,
+        ),
+        variant="classic",
+        phase="play",
+        current_player="white",
+        rules=rules,
+        piece_definitions=piece_definitions,
+        configuration=configuration,
+    )
+
+
 @dataclass(frozen=True)
 class AuthorizedGame:
     record: GameRecord
@@ -787,11 +830,43 @@ class GameService:
     def _invite_url(invite_token: str) -> str:
         return f"{get_settings().frontend_url}/join/{invite_token}"
 
-    def create_game(self, request: CreateGameRequest) -> GameSessionResponse:
-        piece_catalog = _piece_catalog_for_request(request)
+    def _validate_configuration_request(
+        self,
+        request: CreateGameRequest,
+        piece_catalog: dict[str, PieceDefinition],
+        *,
+        use_default_layout: bool = True,
+        rule_settings: list[RuleSetting] | None = None,
+    ):
         validation = self.engine.configuration.validate(
             request,
             piece_definitions=piece_catalog,
+            use_default_layout=use_default_layout,
+        )
+        try:
+            starting_state = _starting_state_for_configuration_validation(
+                request,
+                piece_catalog,
+                self.engine,
+                rule_settings=rule_settings,
+            )
+        except (HTTPException, KeyError, ValueError):
+            # Structural validation already reports malformed layouts and definitions.
+            starting_state = None
+        if starting_state is not None:
+            validation.errors.extend(
+                self.engine.configuration.starting_position_issues(
+                    starting_state,
+                    self.engine,
+                )
+            )
+        return validation
+
+    def create_game(self, request: CreateGameRequest) -> GameSessionResponse:
+        piece_catalog = _piece_catalog_for_request(request)
+        validation = self._validate_configuration_request(
+            request,
+            piece_catalog,
         )
         if not validation.valid:
             raise HTTPException(status_code=400, detail=validation.errors[0])
@@ -1013,9 +1088,9 @@ class GameService:
     ) -> ConfigurationValidationResponse:
         piece_catalog = _piece_catalog_for_request(request)
         return ConfigurationValidationResponse(
-            **self.engine.configuration.validate(
+            **self._validate_configuration_request(
                 request,
-                piece_definitions=piece_catalog,
+                piece_catalog,
             ).as_dict()
         )
 
@@ -1731,10 +1806,11 @@ class GameService:
                 },
             }
         )
-        validation = self.engine.configuration.validate(
+        validation = self._validate_configuration_request(
             validation_request,
-            piece_definitions=game_state.piece_definitions,
+            game_state.piece_definitions,
             use_default_layout=False,
+            rule_settings=game_state.rules,
         )
         if not validation.valid:
             raise HTTPException(status_code=400, detail=validation.errors[0])

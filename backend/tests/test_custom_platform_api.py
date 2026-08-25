@@ -78,6 +78,32 @@ def start_local_ability_game(
     return black.json()
 
 
+def deliver_getaway_checkmate(client, game: dict) -> dict:
+    white_wait = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 4,
+            "fromCol": 3,
+            "toRow": 2,
+            "toCol": 4,
+            "expectedVersion": game["version"],
+        },
+    )
+    assert white_wait.status_code == 200, white_wait.text
+    checkmate = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 6,
+            "fromCol": 0,
+            "toRow": 7,
+            "toCol": 0,
+            "expectedVersion": white_wait.json()["version"],
+        },
+    )
+    assert checkmate.status_code == 200, checkmate.text
+    return checkmate.json()
+
+
 def test_catalog_describes_custom_content(client):
     response = client.get("/game/catalog")
     assert response.status_code == 200
@@ -270,6 +296,91 @@ def test_configuration_rejects_a_two_king_start(client):
     creation = client.post("/game/create", json=payload)
     assert creation.status_code == 400
     assert creation.json()["detail"] == result["errors"][0]
+
+
+def test_every_victory_mode_rejects_either_king_starting_in_check(client):
+    checked_layouts = {
+        "white": [
+            {"row": 7, "col": 4, "type": "king", "color": "white"},
+            {"row": 6, "col": 1, "type": "rook", "color": "white"},
+            {"row": 0, "col": 0, "type": "king", "color": "black"},
+            {"row": 0, "col": 4, "type": "rook", "color": "black"},
+        ],
+        "black": [
+            {"row": 7, "col": 0, "type": "king", "color": "white"},
+            {"row": 7, "col": 4, "type": "rook", "color": "white"},
+            {"row": 0, "col": 4, "type": "king", "color": "black"},
+            {"row": 1, "col": 1, "type": "rook", "color": "black"},
+        ],
+    }
+    victory_modes = (
+        "checkmate",
+        "king_capture",
+        "timed",
+        "point_race",
+        "elimination",
+        "royal_score",
+        "center_dominion",
+        "royal_center",
+        "check_race",
+    )
+
+    for mode in victory_modes:
+        for checked_color, layout in checked_layouts.items():
+            payload = configured_game(
+                initialLayout=layout,
+                victory={
+                    "mode": mode,
+                    "targetPoints": 1,
+                    "timeSeconds": 600,
+                    "kingPoints": 1,
+                    "dominionRounds": 3,
+                    "checkTarget": 3,
+                },
+            )
+            result = client.post("/game/validate", json=payload).json()
+
+            assert result["valid"] is False, (mode, checked_color)
+            assert (
+                f"{checked_color.title()} King cannot begin in check or checkmate."
+                in result["errors"]
+            ), (mode, checked_color)
+
+    creation = client.post(
+        "/game/create",
+        json=configured_game(initialLayout=checked_layouts["white"]),
+    )
+    assert creation.status_code == 400
+    assert creation.json()["detail"] == "White King cannot begin in check or checkmate."
+
+
+def test_starting_check_validation_uses_custom_attacks_and_barricade_blockers(client):
+    elephant_check = configured_game(
+        enabledPieces=[*classic_types(), "elephant"],
+        initialLayout=[
+            {"row": 7, "col": 4, "type": "king", "color": "white"},
+            {"row": 6, "col": 1, "type": "rook", "color": "white"},
+            {"row": 0, "col": 0, "type": "king", "color": "black"},
+            {"row": 5, "col": 4, "type": "elephant", "color": "black"},
+        ],
+    )
+    elephant_result = client.post("/game/validate", json=elephant_check).json()
+    assert "White King cannot begin in check or checkmate." in elephant_result["errors"]
+
+    barricade_row, barricade_col = barricade_start_squares(8, 8, 1)[0]
+    blocked_rook = configured_game(
+        enabledPieces=[*classic_types(), "barricade"],
+        barricadeCount=1,
+        initialLayout=[
+            {"row": 7, "col": barricade_col, "type": "king", "color": "white"},
+            {"row": 6, "col": 1, "type": "rook", "color": "white"},
+            {"row": 0, "col": 0, "type": "king", "color": "black"},
+            {"row": 0, "col": barricade_col, "type": "rook", "color": "black"},
+        ],
+    )
+    assert 0 < barricade_row < 7
+    blocked_result = client.post("/game/validate", json=blocked_rook).json()
+    assert blocked_result["valid"] is True
 
 
 def test_every_victory_mode_rejects_a_pure_king_start(client):
@@ -1133,16 +1244,40 @@ def test_checkmate_still_ends_check_race_before_target(client):
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "rook", "color": "white"},
             {"row": 1, "col": 6, "type": "pawn", "color": "white"},
+            {"row": 4, "col": 3, "type": "knight", "color": "white"},
             {"row": 1, "col": 0, "type": "king", "color": "black"},
-            {"row": 7, "col": 0, "type": "rook", "color": "black"},
+            {"row": 6, "col": 0, "type": "rook", "color": "black"},
             {"row": 5, "col": 6, "type": "queen", "color": "black"},
         ],
         victory={"mode": "check_race", "checkTarget": 10},
     )
     game = client.post("/game/create", json=payload).json()["game"]
-    assert game["gameStatus"] == "checkmate"
-    assert game["winner"] == "black"
-    assert game["checkRace"]["checks"] == {"white": 0, "black": 0}
+    white_wait = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 4,
+            "fromCol": 3,
+            "toRow": 2,
+            "toCol": 4,
+            "expectedVersion": game["version"],
+        },
+    ).json()
+    checkmate = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 6,
+            "fromCol": 0,
+            "toRow": 7,
+            "toCol": 0,
+            "expectedVersion": white_wait["version"],
+        },
+    )
+
+    assert checkmate.status_code == 200, checkmate.text
+    finished = checkmate.json()
+    assert finished["gameStatus"] == "checkmate"
+    assert finished["winner"] == "black"
+    assert finished["checkRace"]["checks"] == {"white": 0, "black": 1}
 
 
 def test_barricade_must_be_single_neutral_and_centered(client):
@@ -1267,7 +1402,7 @@ def test_catapult_does_not_attack_while_recovering(client):
         },
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
-            {"row": 5, "col": 4, "type": "king", "color": "black"},
+            {"row": 5, "col": 7, "type": "king", "color": "black"},
             {"row": 6, "col": 4, "type": "catapult", "color": "white"},
             {"row": 4, "col": 4, "type": "rook", "color": "black"},
         ],
@@ -1819,11 +1954,13 @@ def test_getaway_swaps_the_king_with_a_queen_to_escape_checkmate(client):
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "queen", "color": "white"},
             {"row": 1, "col": 6, "type": "pawn", "color": "white"},
+            {"row": 4, "col": 3, "type": "knight", "color": "white"},
             {"row": 1, "col": 0, "type": "king", "color": "black"},
-            {"row": 7, "col": 0, "type": "rook", "color": "black"},
+            {"row": 6, "col": 0, "type": "rook", "color": "black"},
             {"row": 5, "col": 6, "type": "queen", "color": "black"},
         ],
     )
+    game = deliver_getaway_checkmate(client, game)
     assert game["gameStatus"] == "check"
     assert game["validMoves"] == []
     getaway = next(item for item in game["availableActions"] if item["actionType"] == "getaway")
@@ -1858,11 +1995,13 @@ def test_getaway_uses_configured_per_game_limit(client):
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "queen", "color": "white"},
             {"row": 1, "col": 6, "type": "pawn", "color": "white"},
+            {"row": 4, "col": 3, "type": "knight", "color": "white"},
             {"row": 1, "col": 0, "type": "king", "color": "black"},
-            {"row": 7, "col": 0, "type": "rook", "color": "black"},
+            {"row": 6, "col": 0, "type": "rook", "color": "black"},
             {"row": 5, "col": 6, "type": "queen", "color": "black"},
         ],
     )
+    game = deliver_getaway_checkmate(client, game)
     first = next(
         item for item in game["availableActions"] if item["actionType"] == "getaway"
     )
@@ -1940,11 +2079,13 @@ def test_getaway_does_not_offer_a_rook_swap(client):
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "rook", "color": "white"},
             {"row": 1, "col": 6, "type": "pawn", "color": "white"},
+            {"row": 4, "col": 3, "type": "knight", "color": "white"},
             {"row": 1, "col": 0, "type": "king", "color": "black"},
-            {"row": 7, "col": 0, "type": "rook", "color": "black"},
+            {"row": 6, "col": 0, "type": "rook", "color": "black"},
             {"row": 5, "col": 6, "type": "queen", "color": "black"},
         ],
     )
+    game = deliver_getaway_checkmate(client, game)
 
     assert game["gameStatus"] == "checkmate"
     assert game["winner"] == "black"
@@ -2186,7 +2327,7 @@ def test_maharani_can_cross_exactly_one_blocker_to_capture(client):
         },
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
-            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 0, "col": 6, "type": "king", "color": "black"},
             {"row": 7, "col": 0, "type": "maharani", "color": "white"},
             {"row": 6, "col": 0, "type": "pawn", "color": "white"},
             {"row": 4, "col": 0, "type": "rook", "color": "black"},
@@ -2217,7 +2358,7 @@ def test_maharani_uses_configured_blocker_count(client):
         pieceParameters={"maharani": {"blockersCrossed": 2}},
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
-            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 0, "col": 6, "type": "king", "color": "black"},
             {"row": 7, "col": 0, "type": "maharani", "color": "white"},
             {"row": 6, "col": 0, "type": "pawn", "color": "white"},
             {"row": 5, "col": 0, "type": "pawn", "color": "white"},
