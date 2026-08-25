@@ -1,0 +1,65 @@
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  font-family: var(--font-display);
+  color: var(--deep);
+  background-color: var(--bg);
+  background-image:
+    linear-gradient(rgba(43, 108, 176, 0.08) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(43, 108, 176, 0.08) 1px, transparent 1px),
+    radial-gradient(circle at 25% 15%, rgba(99, 179, 237, 0.15), transparent 45%);
+  background-size: 30px 30px, 30px 30px, cover;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+.app-shell {
+  max-width: 1540px;
+  margin: 0 auto;
+  padding: 1.25rem;
+}
+
+.app-shell.centered {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+}
+
+.page-frame {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.page-frame > main {
+  flex: 1 0 auto;
+}
+
+.page-frame > .landing-shell {
+  min-height: 0;
+}
+
+.site-footer {
+  width: min(1580px, calc(100% - 2rem));
+  margin: auto auto 0;
+  padding: 0.8rem 0 1rem;
+  color: rgba(26, 54, 93, 0.68);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-align: left;
+}
+
+.app-shell.page-frame .site-footer {
+  width: 100%;
+}
