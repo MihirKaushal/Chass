@@ -33,7 +33,10 @@ import {
   updatePiecePointValue,
 } from "../customizationState";
 import { matchesRulebookSearch } from "../rulebookSearch";
-import { isExactClassicDraft } from "../matchPredictor";
+import {
+  isStockfishCompatibleDraft,
+  stockfishDraftEligibility,
+} from "../matchPredictor";
 import {
   applyParameterChange,
   effectiveCatalogEntry,
@@ -387,7 +390,8 @@ function buildRequest(draft, mode = "local") {
       schemaVersion: 2,
       presetId: draft.presetId,
       formationId: draft.formationId,
-      matchPredictorEnabled: draft.matchPredictorEnabled && isExactClassicDraft(draft),
+      matchPredictorEnabled:
+        draft.matchPredictorEnabled && isStockfishCompatibleDraft(draft),
       barricadeCount: draft.barricadeCount,
       enabledPieces: draft.enabledPieces,
       piecePoints: Object.fromEntries(
@@ -1162,7 +1166,8 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const placementNoticeTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
   const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, requestKey: null });
-  const predictorCompatible = useMemo(() => isExactClassicDraft(draft), [draft]);
+  const predictorEligibility = useMemo(() => stockfishDraftEligibility(draft), [draft]);
+  const predictorCompatible = predictorEligibility.eligible;
   const validationRequest = useMemo(() => (draft ? buildRequest(draft) : null), [draft]);
   const validationRequestKey = useMemo(
     () => (validationRequest ? JSON.stringify(validationRequest) : null),
@@ -1857,8 +1862,8 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
                       <span>
                         <strong>Enable Match Predictor</strong>
                         <small>{predictorCompatible
-                          ? "Live Stockfish White and Black outcome estimates after every move."
-                          : "Select untouched Classic Chass settings to enable analysis."}</small>
+                          ? "Live Stockfish estimates for compatible 8x8 standard-piece games."
+                          : predictorEligibility.reason}</small>
                       </span>
                     </label>
                   ) : null}

@@ -1,28 +1,33 @@
-# Classic Match Predictor
+# Stockfish Match Predictor
 
-Chass! analyzes untouched Classic games with a local Stockfish 18 process. It displays a
-calibrated White/Black outcome estimate, a White-perspective evaluation, and transparent
+Chass! analyzes compatible 8x8 standard-chess positions with a local Stockfish 18 process.
+It displays a White/Black outcome estimate, a White-perspective evaluation, and transparent
 comparisons for material, King safety, legal mobility, pawn structure, and center control.
 
 No hosted chess service, API key, or paid dependency is required.
 
-## Exact Classic Eligibility
+## Compatibility Rules
 
 The setting starts enabled only when all of these conditions are true:
 
-- The mode and formation are `classic`.
 - The board is exactly 8x8.
-- The starting layout is the standard 32-piece position.
-- Only standard pieces are enabled, with their default values and movement behavior.
+- Only standard White and Black pieces are enabled and placed.
+- Every enabled piece retains standard movement and capture behavior.
 - The victory condition is Classic checkmate.
 - Check, checkmate, and stalemate rules remain enabled.
 - Variant rules, affinity squares, special abilities, and custom terrain are disabled.
-- Both Kings and only standard piece types remain in the live position.
+- Both sides have exactly one King and fit within legal standard material limits.
+- Unmoved Pawns begin on their home ranks and retain every standard promotion option.
+- Unmoved King and Rook arrangements use only standard castling squares.
 
-Changing any compatible setting in Customize automatically turns the preference off. The
-backend repeats the same validation and does not trust the browser flag. Returning to the
-Classic Chass preset restores compatibility, after which the player can keep the default or
-turn the predictor off explicitly.
+The starting formation does not need to be the standard 32-piece layout. Balanced or
+asymmetric custom formations remain eligible when they satisfy the rules above. Customized
+point labels are also allowed because they do not change a Checkmate game's legal moves or
+result; analysis and the Material factor continue to use Stockfish's standard piece values.
+
+Changing an incompatible setting in Customize automatically turns the preference off. The
+backend independently repeats the compatibility checks and does not trust the browser flag.
+Returning to a compatible configuration allows the player to enable the predictor again.
 
 Stockfish itself supports standard chess and Chess960 rather than Chass!'s custom rules, so
 the strict gate prevents plausible-looking but invalid variant estimates.
@@ -38,9 +43,10 @@ the strict gate prevents plausible-looking but invalid variant estimates.
 5. Results are normalized to White's perspective, cached by a SHA-256 position key, and
    broadcast over the existing game WebSocket.
 6. The React client accepts only a result whose game ID and version match the current board.
-   It splits draw likelihood evenly between the players and gradually phases in the engine
-   estimate over the first six plies so the initial position displays as 50/50. A short REST
-   polling fallback covers missed WebSocket messages.
+   It splits draw likelihood evenly between the players. The exact Classic opening gradually
+   phases in the engine estimate over the first six plies so it begins at 50/50; every other
+   formation displays the raw position-based estimate immediately. A short REST polling
+   fallback covers missed WebSocket messages.
 
 Older work is cancelled when a newer position arrives. Engine failure never blocks a move
 or ends a game; the card reports that analysis is unavailable while play continues.
@@ -93,8 +99,9 @@ free-tier defaults. After this change is pushed:
 1. Redeploy the Render service or allow the Blueprint to deploy the commit.
 2. Confirm the build log ends with `Installed verified Stockfish 18`.
 3. Open `/health` on the backend and confirm `matchPredictor` is `ready`.
-4. Create an untouched Classic game and confirm the predictor appears in the left Effects
-   panel and updates after a move.
+4. Create a Classic game and a compatible custom 8x8 formation. Confirm the predictor appears
+   in the left Effects panel, gives the custom formation an immediate estimate, and updates
+   after a move.
 
 No Vercel environment variable is needed beyond the existing `VITE_API_URL`.
 

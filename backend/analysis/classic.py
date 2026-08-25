@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import hashlib
 from dataclasses import dataclass
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING
 
-from backend.catalog import build_default_piece_definitions, classic_layout
+from backend.catalog import build_default_piece_definitions
 from backend.models import GameState, PieceDefinition
 from backend.models.schemas import PositionFactorView
 from backend.rules.variant_system import FINISHED_STATUSES
@@ -13,6 +13,7 @@ if TYPE_CHECKING:
     from backend.rules import RuleEngine
 
 CLASSIC_TYPES = frozenset({"pawn", "knight", "bishop", "rook", "queen", "king"})
+CLASSIC_PROMOTION_TYPES = frozenset({"knight", "bishop", "rook", "queen"})
 CLASSIC_POINTS: dict[str, int] = {
     "pawn": 1,
     "knight": 3,
@@ -20,6 +21,14 @@ CLASSIC_POINTS: dict[str, int] = {
     "rook": 5,
     "queen": 9,
     "king": 0,
+}
+CLASSIC_STARTING_COUNTS: dict[str, int] = {
+    "pawn": 8,
+    "knight": 2,
+    "bishop": 2,
+    "rook": 2,
+    "queen": 1,
+    "king": 1,
 }
 REQUIRED_CLASSIC_RULES = frozenset({"check", "checkmate", "stalemate"})
 DISABLED_CLASSIC_RULES = frozenset({"double_capture_rook", "score_target_win"})
@@ -40,36 +49,103 @@ class ClassicAnalysisEligibility:
     reason: str | None = None
 
 
-def _layout_signature(layout: list[dict[str, Any]]) -> list[tuple[int, int, str, str]]:
-    return sorted(
-        (
-            int(piece["row"]),
-            int(piece["col"]),
-            str(piece["type"]),
-            str(piece["color"]),
-        )
-        for piece in layout
-        if piece.get("type") != "barricade"
-    )
-
-
-def _definition_signature(definition: PieceDefinition) -> dict[str, Any]:
-    payload = definition.model_dump(mode="json")
-    if definition.type == "king" and payload.get("points") == 0:
-        payload["points"] = None
+def _definition_behavior_signature(definition: PieceDefinition) -> dict:
+    payload = definition.model_dump(mode="json", exclude={"points"})
     return payload
 
 
-def _definitions_are_classic(state: GameState) -> bool:
+def _definitions_use_classic_behavior(state: GameState) -> bool:
     defaults = build_default_piece_definitions()
-    for piece_type in CLASSIC_TYPES:
+    for piece_type in state.configuration.enabled_piece_types:
+        if piece_type not in CLASSIC_TYPES:
+            return False
         current = state.piece_definitions.get(piece_type)
         expected = defaults.get(piece_type)
         if current is None or expected is None:
             return False
-        if _definition_signature(current) != _definition_signature(expected):
+        if _definition_behavior_signature(current) != _definition_behavior_signature(expected):
             return False
     return True
+
+
+def _stockfish_position_reason(state: GameState) -> str | None:
+    positioned_pieces = [
+        (row_index, col_index, piece)
+        for row_index, row in enumerate(state.board.grid)
+        for col_index, piece in enumerate(row)
+        if piece is not None
+    ]
+    if any(
+        piece.color not in {"white", "black"} or piece.type not in CLASSIC_TYPES
+        for _, _, piece in positioned_pieces
+    ):
+        return "Only standard White and Black chess pieces can be analyzed."
+
+    enabled_types = set(state.configuration.enabled_piece_types)
+    if not enabled_types or not enabled_types <= CLASSIC_TYPES or "king" not in enabled_types:
+        return "Only standard chess piece types can be enabled."
+    if any(piece.type not in enabled_types for _, _, piece in positioned_pieces):
+        return "Every starting piece must use an enabled standard piece type."
+
+    has_pawns = any(piece.type == "pawn" for _, _, piece in positioned_pieces)
+    if has_pawns and not enabled_types.issuperset(CLASSIC_PROMOTION_TYPES):
+        return "All standard promotion pieces must remain enabled while Pawns are in play."
+
+    for color in ("white", "black"):
+        color_pieces = [
+            (row, col, piece)
+            for row, col, piece in positioned_pieces
+            if piece.color == color
+        ]
+        counts = {
+            piece_type: sum(piece.type == piece_type for _, _, piece in color_pieces)
+            for piece_type in CLASSIC_TYPES
+        }
+        if counts["king"] != 1:
+            return "Both sides must have exactly one King."
+        if len(color_pieces) > 16 or counts["pawn"] > CLASSIC_STARTING_COUNTS["pawn"]:
+            return "Each side must fit within standard chess material limits."
+
+        available_promotions = CLASSIC_STARTING_COUNTS["pawn"] - counts["pawn"]
+        required_promotions = sum(
+            max(0, counts[piece_type] - CLASSIC_STARTING_COUNTS[piece_type])
+            for piece_type in CLASSIC_PROMOTION_TYPES
+        )
+        if required_promotions > available_promotions:
+            return "The army contains more promoted material than standard chess permits."
+
+        pawn_home_row = 6 if color == "white" else 1
+        pawn_promotion_row = 0 if color == "white" else 7
+        if any(
+            piece.type == "pawn"
+            and (
+                row == pawn_promotion_row
+                or (not piece.has_moved and row != pawn_home_row)
+            )
+            for row, _, piece in color_pieces
+        ):
+            return "Unmoved Pawns must begin on their standard home rank for Stockfish analysis."
+
+        king_row, king_col, king = next(
+            (row, col, piece)
+            for row, col, piece in color_pieces
+            if piece.type == "king"
+        )
+        if king.has_moved:
+            continue
+        home_row = 7 if color == "white" else 0
+        for rook_row, rook_col, rook in color_pieces:
+            if (
+                rook.type != "rook"
+                or rook.has_moved
+                or rook_row != king_row
+                or abs(rook_col - king_col) < 3
+            ):
+                continue
+            if (king_row, king_col) != (home_row, 4) or rook_col not in {0, 7}:
+                return "Unmoved Kings and Rooks must use standard castling squares."
+
+    return None
 
 
 def classic_analysis_eligibility(
@@ -86,39 +162,27 @@ def classic_analysis_eligibility(
         )
 
     if state.variant != "classic" or state.gambit is not None:
-        return ClassicAnalysisEligibility(False, enabled, "Available only in Classic Chass.")
-    if state.board.rows != 8 or state.board.cols != 8:
-        return ClassicAnalysisEligibility(False, enabled, "Classic analysis requires an 8x8 board.")
-
-    configuration = state.configuration
-    if configuration.preset_id != "classic" or configuration.formation_id != "classic":
         return ClassicAnalysisEligibility(
             False,
             enabled,
-            "The starting mode or formation is not untouched Classic Chass.",
+            "Stockfish analysis requires standard Classic movement and turn rules.",
         )
-    if (
-        len(configuration.enabled_piece_types) != len(CLASSIC_TYPES)
-        or set(configuration.enabled_piece_types) != CLASSIC_TYPES
-    ):
-        return ClassicAnalysisEligibility(False, enabled, "Classic pieces were changed.")
+    if state.board.rows != 8 or state.board.cols != 8:
+        return ClassicAnalysisEligibility(False, enabled, "Stockfish analysis requires an 8x8 board.")
+
+    configuration = state.configuration
     if configuration.piece_parameters and any(configuration.piece_parameters.values()):
         return ClassicAnalysisEligibility(False, enabled, "Classic piece behavior was changed.")
-    if not _definitions_are_classic(state):
-        return ClassicAnalysisEligibility(False, enabled, "Classic piece definitions or values were changed.")
-
-    expected_layout = _layout_signature(classic_layout(8, 8))
-    configured_layout = configuration.initial_layout
-    if configured_layout and _layout_signature(configured_layout) != expected_layout:
-        return ClassicAnalysisEligibility(False, enabled, "The Classic starting position was changed.")
+    if not _definitions_use_classic_behavior(state):
+        return ClassicAnalysisEligibility(False, enabled, "Classic piece movement was changed.")
     if configuration.victory.mode != "checkmate":
         return ClassicAnalysisEligibility(False, enabled, "Classic checkmate victory is required.")
     if configuration.custom_rules.affinity_enabled:
-        return ClassicAnalysisEligibility(False, enabled, "Custom rules disable Classic analysis.")
+        return ClassicAnalysisEligibility(False, enabled, "Custom rules disable Stockfish analysis.")
     if configuration.special_abilities.enabled:
-        return ClassicAnalysisEligibility(False, enabled, "Special abilities disable Classic analysis.")
+        return ClassicAnalysisEligibility(False, enabled, "Special abilities disable Stockfish analysis.")
     if state.terrain:
-        return ClassicAnalysisEligibility(False, enabled, "Custom board terrain disables Classic analysis.")
+        return ClassicAnalysisEligibility(False, enabled, "Custom board terrain disables Stockfish analysis.")
 
     rule_settings = {setting.id: setting for setting in state.rules}
     if any(
@@ -131,11 +195,9 @@ def classic_analysis_eligibility(
     if any(setting.params for setting in rule_settings.values()):
         return ClassicAnalysisEligibility(False, enabled, "Rule parameters were customized.")
 
-    board_pieces = [piece for row in state.board.grid for piece in row if piece is not None]
-    if any(piece.color not in {"white", "black"} or piece.type not in CLASSIC_TYPES for piece in board_pieces):
-        return ClassicAnalysisEligibility(False, enabled, "The current board is not a legal Classic position.")
-    if any(sum(piece.type == "king" and piece.color == color for piece in board_pieces) != 1 for color in ("white", "black")):
-        return ClassicAnalysisEligibility(False, enabled, "Both Classic Kings must remain on the board.")
+    position_reason = _stockfish_position_reason(state)
+    if position_reason:
+        return ClassicAnalysisEligibility(False, enabled, position_reason)
 
     return ClassicAnalysisEligibility(True, enabled, None)
 
