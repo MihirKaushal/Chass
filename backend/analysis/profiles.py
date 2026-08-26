@@ -259,7 +259,7 @@ def _file_name(col: int) -> str:
 
 def _compile_fairy_profile(state: GameState, castling: CastlingProfile) -> AnalysisProfile:
     signature = {
-        "schema": 1,
+        "schema": 2,
         "rows": state.board.rows,
         "cols": state.board.cols,
         "victory": state.configuration.victory.mode,
@@ -277,6 +277,10 @@ def _compile_fairy_profile(state: GameState, castling: CastlingProfile) -> Analy
         f"maxRank = {state.board.rows}",
         f"maxFile = {state.board.cols}",
         f"startFen = {_generic_start_fen(state.board.rows, state.board.cols, state.configuration.victory.mode, state.configuration.victory.check_target)}",
+        f"promotionRegionWhite = *{state.board.rows}",
+        "promotionRegionBlack = *1",
+        "doubleStepRegionWhite = *2",
+        f"doubleStepRegionBlack = *{state.board.rows - 1}",
     ]
     if castling.enabled:
         assert castling.king_file is not None

@@ -20,6 +20,7 @@ from backend.analysis.profiles import (
 )
 from backend.analysis.service import MatchAnalysisService
 from backend.analysis.stockfish import EngineAnalysis
+from backend.models import Move
 from backend.routes.game import game_service
 from backend.rules import RuleEngine
 
@@ -106,6 +107,10 @@ def test_stockfish_is_preferred_before_deterministic_fairy_profiles(client):
     assert first.profile.engine_id == "fairy-stockfish"
     assert first.profile.profile_id == second.profile.profile_id
     assert first.profile.variant_definition == second.profile.variant_definition
+    assert "promotionRegionWhite = *10" in (first.profile.variant_definition or "")
+    assert "promotionRegionBlack = *1" in (first.profile.variant_definition or "")
+    assert "doubleStepRegionWhite = *2" in (first.profile.variant_definition or "")
+    assert "doubleStepRegionBlack = *9" in (first.profile.variant_definition or "")
 
     point_labels = large.clone()
     point_labels.piece_definitions["queen"].points = 17
@@ -361,18 +366,42 @@ def test_real_fairy_engine_matches_legal_moves_and_terminal_variants(client):
 
     async def scenario():
         try:
-            active_fen = analysis_position_fen(active, active_profile)
-            inspection = await provider.inspect_position(
-                active_fen,
-                active_profile,
-                rows=10,
-                cols=10,
-                side_to_move="white",
-            )
-            expected = MatchAnalysisService._chass_move_keys(active, RuleEngine())
-            assert inspection.legal_moves == expected
+            engine = RuleEngine()
+
+            async def assert_move_parity(candidate):
+                candidate_profile = select_analysis_profile(candidate).profile
+                assert candidate_profile is not None
+                candidate_fen = analysis_position_fen(candidate, candidate_profile)
+                inspection = await provider.inspect_position(
+                    candidate_fen,
+                    candidate_profile,
+                    rows=candidate.board.rows,
+                    cols=candidate.board.cols,
+                    side_to_move=candidate.current_player,
+                )
+                expected = MatchAnalysisService._chass_move_keys(candidate, engine)
+                assert inspection.legal_moves == expected
+                return candidate_fen, candidate_profile
+
+            active_fen, active_profile = await assert_move_parity(active)
             estimate = await provider.analyze(active_fen, active_profile)
             assert estimate.centipawns is not None or estimate.mate_in is not None
+
+            after_white, _ = engine.apply_move(
+                active,
+                Move(fromRow=8, fromCol=1, toRow=7, toCol=1),
+            )
+            await assert_move_parity(after_white)
+            assert (1, 1, 3, 1) in MatchAnalysisService._chass_move_keys(
+                after_white,
+                engine,
+            )
+
+            after_black, _ = engine.apply_move(
+                after_white,
+                Move(fromRow=1, fromCol=1, toRow=3, toCol=1),
+            )
+            await assert_move_parity(after_black)
 
             checkmate = active.clone()
             checkmate_profile = select_analysis_profile(checkmate).profile
