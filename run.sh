@@ -65,6 +65,25 @@ bootstrap_stockfish() {
   fi
 }
 
+bootstrap_fairy_stockfish() {
+  local engine_setting="${MATCH_PREDICTOR_ENGINE_ENABLED:-true}"
+  case "$engine_setting" in
+    0|false|False|FALSE|no|No|NO|off|Off|OFF)
+      return
+      ;;
+  esac
+
+  local engine_path="${FAIRY_STOCKFISH_PATH:-$ROOT_DIR/.stockfish/fairy-stockfish}"
+  if [[ -x "$engine_path" ]] || command -v fairy-stockfish >/dev/null 2>&1; then
+    return
+  fi
+
+  echo "Installing the optional static-variant Match Predictor engine..."
+  if ! FAIRY_STOCKFISH_INSTALL_PATH="$engine_path" "$ROOT_DIR/scripts/install_fairy_stockfish.sh"; then
+    echo "Warning: Fairy-Stockfish was not installed. Standard Stockfish analysis and gameplay remain available."
+  fi
+}
+
 cleanup() {
   if [[ "${CLEANUP_COMPLETE:-0}" == "1" ]]; then
     return
@@ -109,6 +128,7 @@ require_command npm
 bootstrap_backend
 bootstrap_frontend
 bootstrap_stockfish
+bootstrap_fairy_stockfish
 
 trap cleanup INT TERM EXIT
 
