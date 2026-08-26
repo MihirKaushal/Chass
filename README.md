@@ -9,7 +9,7 @@ boards and pieces, modular rules, and real-time synchronization.
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
-- Live Stockfish Match Predictor for compatible 8x8 formations, with outcome estimates and position factors
+- Auto-routed Stockfish and Fairy-Stockfish Match Predictor for compatible static games
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
 - Chass Gambit with maximum-budget hidden deployment, center affinity, and command powers
@@ -34,7 +34,7 @@ boards and pieces, modular rules, and real-time synchronization.
 | Languages | Python, JavaScript/JSX, CSS, SQL, Bash |
 | Frontend | React 18, React Hooks, Vite 5, native WebSocket API |
 | Backend | FastAPI, Uvicorn, Pydantic 2 |
-| Analysis | Stockfish 18, UCI, NNUE evaluation, W/D/L statistics |
+| Analysis | Stockfish 18, Fairy-Stockfish, UCI, NNUE, W/D/L statistics, parity validation |
 | Database | Cloud Firestore, Firebase Admin SDK, SQLAlchemy 2, SQLite |
 | Testing and quality | Pytest, HTTPX, Ruff, Vite production builds |
 | Hosting | Vercel, Render, Firebase |
@@ -48,7 +48,8 @@ boards and pieces, modular rules, and real-time synchronization.
 - **Firebase Admin:** Secure server-side Firestore access and transactions.
 - **SQLAlchemy:** Local SQLite persistence and an optional SQL fallback.
 - **Uvicorn:** ASGI server for FastAPI HTTP and WebSocket traffic.
-- **Stockfish:** Local UCI engine for asynchronous Classic position analysis; no paid API key.
+- **Stockfish and Fairy-Stockfish:** Local UCI engines for auto-routed position analysis;
+  no hosted API or paid key.
 - **Pytest and HTTPX:** Backend API and multiplayer integration testing.
 - **Ruff:** Python linting and code-quality checks.
 
@@ -62,7 +63,7 @@ React + Vite
 FastAPI
   |-- Game service
   |-- Modular rule engine
-  |-- Async Stockfish analysis service --> Stockfish 18
+  |-- Async analysis router --> Stockfish 18 / Fairy-Stockfish
   v
 Repository adapters
   |-- SQLAlchemy / SQLite locally
@@ -80,18 +81,19 @@ count, edit, or timing data before the atomic reveal.
 Game activity uses a renewable expiration lease, and both repository adapters cascade
 inactive-game cleanup to player seats, invitation records, and move audits.
 
-The Match Predictor supports Stockfish-compatible 8x8 games with standard pieces and
-movement, Checkmate victory, and either Classic or validated custom starting formations.
-Custom point labels remain available because Stockfish uses its own standard material
-values. Incompatible board geometry, movement, rules, abilities, terrain, or starting-state
-semantics turn analysis off automatically. Analysis runs after the move response, is cached
-by position, and is version-checked before a WebSocket result can update the UI.
+The Match Predictor prefers Stockfish 18 for compatible standard-rule 8x8 positions and
+routes validated static variants up to 10x12 to Fairy-Stockfish. Fairy profiles are generated
+deterministically from typed Chass settings; raw engine syntax is rejected. Before enabling a
+Fairy profile, the backend compares its legal moves and terminal outcome with the Chass Rule
+Engine. Stateful pieces, abilities, terrain, Affinity, and Gambit setup remain intentionally
+unsupported. Analysis runs after the move response, is cached by engine and position, and is
+version-checked before a WebSocket result can update the UI.
 
 ## Project Structure
 
 ```text
 backend/
-  analysis/        Stockfish eligibility, FEN, factors, and asynchronous UCI service
+  analysis/        Engine profiles, parity checks, FEN, factors, and asynchronous UCI service
   models/          Domain models and API schemas
   repositories/    Firestore and SQL persistence adapters
   routes/          REST and WebSocket endpoints
@@ -120,7 +122,7 @@ Requirements:
 - Python 3.11+
 - Node.js 20+
 - npm
-- `curl` and `tar` for the one-time Stockfish download
+- `curl`, `tar`, `make`, and a C++ compiler for the one-time engine installation
 
 Start the frontend and backend together:
 
@@ -136,8 +138,8 @@ Local addresses:
 - Health check: `http://localhost:8000/health`
 
 Local development uses SQLite and does not require Firebase. Press `Ctrl+C` to stop both
-services. The first run installs a checksum-verified Stockfish 18 binary into the ignored
-`.stockfish/` directory; later starts reuse it.
+services. The first run installs checksum-verified Stockfish 18 and Fairy-Stockfish engines
+into the ignored `.stockfish/` directory; later starts reuse them.
 
 ## Test and Build
 
@@ -163,7 +165,7 @@ npm run build
 | `POST` | `/game/join` | Join through an invitation |
 | `GET` | `/game/{id}` | Load game state |
 | `GET` | `/game/{id}/history` | Load an earlier page of move history |
-| `GET` | `/game/{id}/analysis` | Load or schedule the current Classic position estimate |
+| `GET` | `/game/{id}/analysis` | Load or schedule the current compatible position estimate |
 | `POST` | `/game/{id}/move` | Submit a move |
 | `POST` | `/game/{id}/action` | Use a custom piece or special-ability action |
 | `POST` | `/game/{id}/ability` | Lock a private player ability |
@@ -196,13 +198,18 @@ Use `.env.example` as the local template.
 | `INVITE_TTL_HOURS` | Invitation expiration time |
 | `GAME_IDLE_TTL_HOURS` | Hours after the last game change before deletion |
 | `GAME_CLEANUP_INTERVAL_MINUTES` | Cleanup frequency while FastAPI is awake |
-| `MATCH_PREDICTOR_ENGINE_ENABLED` | Enables or disables server-side Stockfish analysis |
+| `MATCH_PREDICTOR_ENGINE_ENABLED` | Enables or disables server-side engine analysis |
 | `STOCKFISH_PATH` | Optional path to a Stockfish executable |
 | `STOCKFISH_MOVETIME_MS` | Engine search time per position; default `180` |
 | `STOCKFISH_HASH_MB` | Memory assigned to the engine hash; default `32` |
 | `STOCKFISH_THREADS` | Engine worker threads; default `1` |
 | `STOCKFISH_STARTUP_TIMEOUT_SECONDS` | Seconds allowed for each cold-start attempt; default `15` |
 | `STOCKFISH_STARTUP_ATTEMPTS` | Engine startup attempts before reporting unavailable; default `2` |
+| `FAIRY_STOCKFISH_PATH` | Optional path to a largeboard Fairy-Stockfish executable |
+| `FAIRY_STOCKFISH_MOVETIME_MS` | Fairy search time per position; default `180` |
+| `FAIRY_STOCKFISH_HASH_MB` | Memory assigned to the Fairy hash; default `16` |
+| `FAIRY_STOCKFISH_THREADS` | Fairy worker threads; default `1` |
+| `FAIRY_STOCKFISH_MAX_PROFILES` | Generated profiles retained by one engine process; default `256` |
 | `VITE_API_URL` | Public backend address used by React |
 
 Do not commit `.env`, database passwords, or production secrets.
@@ -215,7 +222,7 @@ The repository includes configuration for a free personal-project deployment:
   and set `VITE_API_URL` to the Render backend URL.
 - **Backend:** Create a Render Blueprint from `render.yaml`, add the Firebase server
   credentials, and set `PERSISTENCE_BACKEND=firestore`. The Blueprint installs the pinned
-  Stockfish engine during the build.
+  Stockfish and Fairy-Stockfish engines during the build.
 - **Database:** Create a free Firebase project and its default Cloud Firestore database.
 
 See [Firebase Setup](docs/FIREBASE_SETUP.md) for the exact credential, migration, Render,
