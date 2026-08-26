@@ -958,21 +958,6 @@
   margin-bottom: 0.7rem;
 }
 
-.match-predictor-heading > span {
-  min-width: 0;
-  display: grid;
-  gap: 0.06rem;
-}
-
-.match-predictor-heading small {
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: 0.56rem;
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
 .match-predictor-heading h3 {
   margin: 0;
   color: var(--deep);
