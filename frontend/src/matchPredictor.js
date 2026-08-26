@@ -1,5 +1,6 @@
 const BACK_RANK = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
 const OPENING_CALIBRATION_PLIES = 6;
+const NON_IMMEDIATE_MATE_LIMIT = 99;
 
 function placementSignature(placements) {
   return (placements || [])
@@ -31,8 +32,11 @@ export function shouldCalibrateClassicOpening(analysis, placements) {
 export function outcomePercentages(
   outcome,
   moveCount = 0,
-  { calibrateOpening = true } = {}
+  { calibrateOpening = true, mateIn = null } = {}
 ) {
+  const normalizedMate = Number(mateIn);
+  if (normalizedMate === 1) return { white: 100, black: 0 };
+  if (normalizedMate === -1) return { white: 0, black: 100 };
   if (!outcome) return null;
   const [whiteWin, draw, blackWin] = [outcome.whiteWin, outcome.draw, outcome.blackWin].map((value) => (
     Math.max(0, Number(value) || 0)
@@ -49,7 +53,10 @@ export function outcomePercentages(
     ? 1
     : Math.min(1, completedPlies / OPENING_CALIBRATION_PLIES);
   const calibratedWhite = 50 + ((rawWhite - 50) * engineWeight);
-  const white = Math.max(0, Math.min(100, Math.round(calibratedWhite)));
+  const white = Math.max(
+    100 - NON_IMMEDIATE_MATE_LIMIT,
+    Math.min(NON_IMMEDIATE_MATE_LIMIT, Math.round(calibratedWhite))
+  );
   return { white, black: 100 - white };
 }
 
