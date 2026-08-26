@@ -34,7 +34,7 @@ function MatchPredictor({
       aria-live="polite"
     >
       <header className="match-predictor-heading">
-        <h3>Match Predictor</h3>
+        <h3>Match Analysis</h3>
         <b className={`predictor-evaluation${unavailable ? " is-unavailable" : ""}`}>
           {loading ? <i aria-hidden="true" /> : null}
           {unavailable

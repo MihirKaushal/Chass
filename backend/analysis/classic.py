@@ -158,7 +158,7 @@ def classic_analysis_eligibility(
         return ClassicAnalysisEligibility(
             eligible=False,
             enabled=False,
-            reason="Match Predictor was disabled for this game.",
+            reason="Match Analysis was disabled for this game.",
         )
 
     if state.variant != "classic" or state.gambit is not None:

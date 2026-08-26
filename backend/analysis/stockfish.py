@@ -194,7 +194,7 @@ class StockfishUciProvider:
                 )
                 self._last_error = None
                 self._public_error = None
-                logger.info("Match Predictor ready with %s", self._engine_name)
+                logger.info("Match Analysis ready with %s", self._engine_name)
                 return True
             except asyncio.CancelledError:
                 await self._terminate_locked()

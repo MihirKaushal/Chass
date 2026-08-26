@@ -9,7 +9,7 @@ boards and pieces, modular rules, and real-time synchronization.
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
-- Auto-routed Stockfish and Fairy-Stockfish Match Predictor for compatible static games
+- Auto-routed Stockfish and Fairy-Stockfish Match Analysis for compatible static games
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
 - Chass Gambit with maximum-budget hidden deployment, center affinity, and command powers
@@ -81,7 +81,7 @@ count, edit, or timing data before the atomic reveal.
 Game activity uses a renewable expiration lease, and both repository adapters cascade
 inactive-game cleanup to player seats, invitation records, and move audits.
 
-The Match Predictor prefers Stockfish 18 for compatible standard-rule 8x8 positions and
+The Match Analysis system prefers Stockfish 18 for compatible standard-rule 8x8 positions and
 routes validated static variants up to 10x12 to Fairy-Stockfish. Fairy profiles are generated
 deterministically from typed Chass settings; raw engine syntax is rejected. Before enabling a
 Fairy profile, the backend compares its legal moves and terminal outcome with the Chass Rule
@@ -227,7 +227,7 @@ The repository includes configuration for a free personal-project deployment:
 
 See [Firebase Setup](docs/FIREBASE_SETUP.md) for the exact credential, migration, Render,
 security-rule, rollback, and verification steps.
-See [Match Predictor](docs/MATCH_PREDICTOR.md) for eligibility, architecture, tuning,
+See [Match Analysis](docs/MATCH_ANALYSIS.md) for eligibility, architecture, tuning,
 deployment, and troubleshooting details.
 
 After Vercel deploys, set both Render values to the production frontend URL:

@@ -74,6 +74,11 @@ test("customize search returns direct setting and catalog destinations", () => {
   assert.equal(dimensions.label, "Board Dimensions");
   assert.equal(dimensions.category, "Board Size");
   assert.equal(dimensions.targetId, "customize-board-dimensions");
+
+  const analysis = matchingCustomizeResults("match analysis", catalog)[0];
+  assert.equal(analysis.label, "Match Analysis");
+  assert.equal(analysis.category, "Custom Rules");
+  assert.equal(analysis.targetId, "customize-match-analysis");
 });
 
 test("broad reference searches still navigate to the Rulebook section", () => {
