@@ -5,86 +5,33 @@ import {
   analysisMatchesGame,
   evaluationLabel,
   isClassicStartingLayout,
-  isStockfishCompatibleDraft,
   outcomePercentages,
-  stockfishDraftEligibility,
+  shouldCalibrateClassicOpening,
 } from "./matchPredictor.js";
 
 const backRank = ["rook", "knight", "bishop", "queen", "king", "bishop", "knight", "rook"];
 
-function classicDraft() {
-  return {
-    presetId: "classic",
-    formationId: "classic",
-    boardRows: 8,
-    boardCols: 8,
-    enabledPieces: ["pawn", "knight", "bishop", "rook", "queen", "king"],
-    pointValues: { pawn: 1, knight: 3, bishop: 3, rook: 5, queen: 9, king: 0 },
-    pieceParameters: {},
-    victory: { mode: "checkmate" },
-    customRules: { affinityEnabled: false },
-    specialAbilities: { enabled: false },
-    gambit: { enabled: false },
-    placements: backRank.flatMap((type, col) => [
-      { row: 0, col, type, color: "black" },
-      { row: 1, col, type: "pawn", color: "black" },
-      { row: 6, col, type: "pawn", color: "white" },
-      { row: 7, col, type, color: "white" },
-    ]),
-  };
+function classicLayout() {
+  return backRank.flatMap((type, col) => [
+    { row: 0, col, type, color: "black" },
+    { row: 1, col, type: "pawn", color: "black" },
+    { row: 6, col, type: "pawn", color: "white" },
+    { row: 7, col, type, color: "white" },
+  ]);
 }
 
-test("compatible 8x8 standard-piece formations can use Stockfish", () => {
-  const exact = classicDraft();
-  const withoutQueens = {
-    ...exact,
-    presetId: "custom",
-    formationId: "custom",
-    placements: exact.placements.filter((piece) => piece.type !== "queen"),
-  };
-  const customPointLabels = {
-    ...withoutQueens,
-    pointValues: { ...withoutQueens.pointValues, queen: 14, rook: 8 },
-  };
-  const reducedArmy = {
-    ...withoutQueens,
-    enabledPieces: ["rook", "king"],
-    placements: withoutQueens.placements.filter((piece) => ["rook", "king"].includes(piece.type)),
-  };
+test("only the exact Stockfish Classic opening receives neutral opening calibration", () => {
+  const exact = classicLayout();
+  const custom = exact.filter((piece) => piece.type !== "queen");
 
-  assert.equal(isStockfishCompatibleDraft(exact), true);
-  assert.equal(isStockfishCompatibleDraft(withoutQueens), true);
-  assert.equal(isStockfishCompatibleDraft(customPointLabels), true);
-  assert.equal(isStockfishCompatibleDraft(reducedArmy), true);
-  assert.equal(isClassicStartingLayout(exact.placements), true);
-  assert.equal(isClassicStartingLayout(withoutQueens.placements), false);
-});
-
-test("nonstandard rules, geometry, movement, and initial-state semantics remain incompatible", () => {
-  const exact = classicDraft();
-  const offRankPawn = exact.placements.map((piece) => (
-    piece.type === "pawn" && piece.color === "white" && piece.col === 0
-      ? { ...piece, row: 5 }
-      : piece
-  ));
-  const shiftedRoyalPair = exact.placements.map((piece) => {
-    if (piece.color !== "white" || piece.row !== 7) return piece;
-    if (piece.type === "king") return { ...piece, col: 3 };
-    if (piece.type === "queen") return { ...piece, col: 4 };
-    return piece;
-  });
-  const customizations = [
-    { ...exact, boardRows: 10 },
-    { ...exact, victory: { mode: "point_race" } },
-    { ...exact, customRules: { affinityEnabled: true } },
-    { ...exact, specialAbilities: { enabled: true } },
-    { ...exact, pieceParameters: { rook: { range: 3 } } },
-    { ...exact, enabledPieces: [...exact.enabledPieces, "maharani"] },
-    { ...exact, placements: offRankPawn },
-    { ...exact, placements: shiftedRoyalPair },
-  ];
-  customizations.forEach((draft) => assert.equal(isStockfishCompatibleDraft(draft), false));
-  assert.match(stockfishDraftEligibility(customizations[0]).reason, /8x8/);
+  assert.equal(isClassicStartingLayout(exact), true);
+  assert.equal(isClassicStartingLayout(custom), false);
+  assert.equal(shouldCalibrateClassicOpening({ engineId: "stockfish" }, exact), true);
+  assert.equal(shouldCalibrateClassicOpening({ engineId: "stockfish" }, custom), false);
+  assert.equal(
+    shouldCalibrateClassicOpening({ engineId: "fairy-stockfish" }, exact),
+    false
+  );
 });
 
 test("outcome percentages split draws between White and Black", () => {

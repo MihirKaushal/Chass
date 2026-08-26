@@ -45,10 +45,10 @@ const STATIC_SETTING_LINKS = [
   {
     id: "setting-match-predictor",
     label: "Match Predictor",
-    sectionId: "studio-popular-modes",
-    category: "Starting Systems",
+    sectionId: "studio-custom-rules",
+    category: "Custom Rules",
     targetId: "customize-match-predictor",
-    keywords: "stockfish analysis classic outcome estimate",
+    keywords: "stockfish fairy analysis automatic engine outcome estimate parity",
   },
   {
     id: "setting-popular-formations",
