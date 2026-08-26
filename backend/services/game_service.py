@@ -1094,6 +1094,20 @@ class GameService:
             ).as_dict()
         )
 
+    def configuration_analysis_state(
+        self,
+        request: CreateGameRequest,
+    ) -> GameState | None:
+        piece_catalog = _piece_catalog_for_request(request)
+        try:
+            return _starting_state_for_configuration_validation(
+                request,
+                piece_catalog,
+                self.engine,
+            )
+        except (HTTPException, KeyError, ValueError):
+            return None
+
     def viewer_color(self, record: GameRecord, player_token: str | None) -> str | None:
         if record.mode == "local":
             return None

@@ -14,7 +14,11 @@ from fastapi import (
 )
 from starlette.concurrency import run_in_threadpool
 
-from backend.analysis import MatchAnalysisService, StockfishUciProvider
+from backend.analysis import (
+    FairyStockfishUciProvider,
+    MatchAnalysisService,
+    StockfishUciProvider,
+)
 from backend.config import get_settings
 from backend.models.schemas import (
     AbilitySelectionRequest,
@@ -67,6 +71,18 @@ match_analysis_service = MatchAnalysisService(
         startup_attempts=analysis_settings.stockfish_startup_attempts,
     ),
     rule_engine,
+    fairy_provider=FairyStockfishUciProvider(
+        configured_path=analysis_settings.fairy_stockfish_path,
+        enabled=analysis_settings.match_predictor_engine_enabled,
+        movetime_ms=analysis_settings.fairy_stockfish_movetime_ms,
+        hash_mb=analysis_settings.fairy_stockfish_hash_mb,
+        threads=analysis_settings.fairy_stockfish_threads,
+        startup_timeout_seconds=(
+            analysis_settings.stockfish_startup_timeout_seconds
+        ),
+        startup_attempts=analysis_settings.stockfish_startup_attempts,
+        max_loaded_profiles=analysis_settings.fairy_stockfish_max_profiles,
+    ),
 )
 
 
@@ -136,7 +152,13 @@ async def validate_game_configuration(
     request: Request,
 ) -> ConfigurationValidationResponse:
     rate_limiter.check(request, "validate", limit=120, window_seconds=60)
-    return await run_in_threadpool(game_service.validate_configuration, payload)
+    validation = await run_in_threadpool(game_service.validate_configuration, payload)
+    state = await run_in_threadpool(game_service.configuration_analysis_state, payload)
+    compatibility = await match_analysis_service.configuration_compatibility(
+        state,
+        verify=validation.valid,
+    )
+    return validation.model_copy(update={"matchPredictor": compatibility})
 
 
 @router.get("/catalog")

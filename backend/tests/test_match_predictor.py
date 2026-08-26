@@ -125,7 +125,7 @@ def test_untouched_classic_game_enables_match_predictor(client):
     assert analysis.json()["status"] == "unavailable"
 
 
-def test_point_labels_remain_compatible_but_custom_board_sizes_do_not(client):
+def test_point_labels_use_stockfish_and_larger_static_boards_use_fairy(client):
     custom_values = client.post(
         "/game/create",
         json=classic_request(queen_points=10),
@@ -138,7 +138,12 @@ def test_point_labels_remain_compatible_but_custom_board_sizes_do_not(client):
         json={"mode": "local", "boardRows": 10, "boardCols": 10},
     )
     assert custom_size.status_code == 200, custom_size.text
-    assert custom_size.json()["game"]["configuration"]["matchPredictorEnabled"] is False
+    custom_game = custom_size.json()["game"]
+    assert custom_game["configuration"]["matchPredictorEnabled"] is True
+
+    analysis = client.get(f"/game/{custom_game['id']}/analysis")
+    assert analysis.status_code == 200
+    assert analysis.json()["engineId"] == "fairy-stockfish"
 
 
 def test_standard_piece_custom_formations_enable_match_predictor(client):
@@ -333,6 +338,9 @@ def test_analysis_service_caches_engine_results_and_publishes(client):
 
         ready = await service.request(state, game["version"])
         assert ready.status == "ready"
+        assert ready.engineId == "stockfish"
+        assert ready.engineName == "Stockfish 18"
+        assert ready.calibrated is True
         assert ready.evaluation.centipawns == 34
         assert ready.outcome.whiteWin == pytest.approx(0.41)
         assert ready.outcome.draw == pytest.approx(0.40)

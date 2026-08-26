@@ -4,10 +4,10 @@ import hashlib
 from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
-from backend.catalog import build_default_piece_definitions
+from backend.catalog import build_default_piece_definitions, classic_layout
 from backend.models import GameState, PieceDefinition
 from backend.models.schemas import PositionFactorView
-from backend.rules.variant_system import FINISHED_STATUSES
+from backend.rules.variant_system import FINISHED_STATUSES, objective_center_squares
 
 if TYPE_CHECKING:
     from backend.rules import RuleEngine
@@ -54,7 +54,7 @@ def _definition_behavior_signature(definition: PieceDefinition) -> dict:
     return payload
 
 
-def _definitions_use_classic_behavior(state: GameState) -> bool:
+def definitions_use_classic_behavior(state: GameState) -> bool:
     defaults = build_default_piece_definitions()
     for piece_type in state.configuration.enabled_piece_types:
         if piece_type not in CLASSIC_TYPES:
@@ -173,7 +173,7 @@ def classic_analysis_eligibility(
     configuration = state.configuration
     if configuration.piece_parameters and any(configuration.piece_parameters.values()):
         return ClassicAnalysisEligibility(False, enabled, "Classic piece behavior was changed.")
-    if not _definitions_use_classic_behavior(state):
+    if not definitions_use_classic_behavior(state):
         return ClassicAnalysisEligibility(False, enabled, "Classic piece movement was changed.")
     if configuration.victory.mode != "checkmate":
         return ClassicAnalysisEligibility(False, enabled, "Classic checkmate victory is required.")
@@ -203,11 +203,10 @@ def classic_analysis_eligibility(
 
 
 def synchronize_match_predictor_setting(state: GameState) -> None:
-    if not state.configuration.match_predictor_enabled:
-        return
-    eligibility = classic_analysis_eligibility(state, require_enabled=False)
-    if not eligibility.eligible:
-        state.configuration.match_predictor_enabled = False
+    # Compatibility import retained for callers that used the original module.
+    from backend.analysis.profiles import synchronize_match_predictor_setting as synchronize
+
+    synchronize(state)
 
 
 def _castling_rights(state: GameState) -> str:
@@ -355,21 +354,33 @@ def _king_safety(
         (row + dr, col + dc)
         for dr in (-1, 0, 1)
         for dc in (-1, 0, 1)
-        if 0 <= row + dr < 8 and 0 <= col + dc < 8
+        if 0 <= row + dr < state.board.rows and 0 <= col + dc < state.board.cols
     }
     pressure = len(zone & enemy_attacks)
     forward = -1 if color == "white" else 1
     shield = sum(
         (
-            0 <= row + forward < 8
-            and 0 <= shield_col < 8
+            0 <= row + forward < state.board.rows
+            and 0 <= shield_col < state.board.cols
             and (piece := state.board.grid[row + forward][shield_col]) is not None
             and piece.type == "pawn"
             and piece.color == color
         )
         for shield_col in (col - 1, col, col + 1)
     )
-    castled = int(col in {2, 6} and state.board.grid[row][col].has_moved)
+    initial_layout = state.configuration.initial_layout or classic_layout(
+        state.board.rows,
+        state.board.cols,
+    )
+    starting_king_cols = {
+        int(placement["col"])
+        for placement in initial_layout
+        if placement.get("type") == "king" and placement.get("color") == color
+    }
+    castled = int(
+        state.board.grid[row][col].has_moved
+        and any(abs(col - starting_col) == 2 for starting_col in starting_king_cols)
+    )
     return float((shield * 2) + (castled * 2) - (pressure * 1.5))
 
 
@@ -380,7 +391,7 @@ def extract_position_factors(
     material = {
         color: float(
             sum(
-                CLASSIC_POINTS[piece.type]
+                CLASSIC_POINTS.get(piece.type, float(piece.points or 0))
                 for row in state.board.grid
                 for piece in row
                 if piece is not None and piece.color == color
@@ -418,7 +429,7 @@ def extract_position_factors(
         )
         for color in ("white", "black")
     }
-    center = {(3, 3), (3, 4), (4, 3), (4, 4)}
+    center = set(objective_center_squares(state.board.rows, state.board.cols))
     center_control = {
         color: float(
             len(attacks[color] & center)

@@ -324,9 +324,24 @@ class MatchAnalysisView(BaseModel):
     evaluation: MatchEvaluationView | None = None
     outcome: MatchOutcomeView | None = None
     factors: list[PositionFactorView] = Field(default_factory=list)
+    engineId: Literal["stockfish", "fairy-stockfish"] | None = None
+    engineName: str | None = None
     engineVersion: str | None = None
-    modelVersion: str = "classic-factors-v1"
+    accuracy: str | None = None
+    calibrated: bool = False
+    modelVersion: str = "position-factors-v2"
     updatedAt: datetime | None = None
+
+
+class MatchPredictorCompatibilityView(BaseModel):
+    enabled: bool
+    eligible: bool
+    status: Literal["compatible", "incompatible", "verifying", "unavailable"]
+    engineId: Literal["stockfish", "fairy-stockfish"] | None = None
+    engineName: str | None = None
+    accuracy: str | None = None
+    reason: str | None = None
+    parityChecked: bool = False
 
 
 class GameResponse(BaseModel):
@@ -567,6 +582,46 @@ class CreateGameRequest(BaseModel):
     customPieces: list[PieceDefinitionPayload] = Field(default_factory=list, max_length=64)
     configuration: GameConfigurationPayload | None = None
 
+    @model_validator(mode="before")
+    @classmethod
+    def reject_raw_fairy_definitions(cls, value: Any) -> Any:
+        """Keep engine profiles server-generated instead of accepting INI fragments."""
+        pending = [value]
+        forbidden = False
+        while pending and not forbidden:
+            candidate = pending.pop()
+            if isinstance(candidate, dict):
+                for raw_key, nested in candidate.items():
+                    key = "".join(
+                        character
+                        for character in str(raw_key).lower()
+                        if character.isalnum()
+                    )
+                    fairy_profile_key = "fairy" in key and any(
+                        marker in key
+                        for marker in (
+                            "ini",
+                            "variant",
+                            "profile",
+                            "definition",
+                            "config",
+                        )
+                    )
+                    generic_ini_key = key in {"variantini", "variantdefinition"}
+                    if fairy_profile_key or generic_ini_key:
+                        forbidden = True
+                        break
+                    pending.append(nested)
+            elif isinstance(candidate, list):
+                pending.extend(candidate)
+
+        if forbidden:
+            raise ValueError(
+                "Raw Fairy-Stockfish profiles are not accepted; "
+                "Chass generates them from validated settings"
+            )
+        return value
+
     @model_validator(mode="after")
     def normalize_dimensions(self) -> "CreateGameRequest":
         if self.boardSize is not None:
@@ -735,6 +790,7 @@ class ConfigurationValidationResponse(BaseModel):
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     disabledOptions: dict[str, dict[str, str]] = Field(default_factory=dict)
+    matchPredictor: MatchPredictorCompatibilityView | None = None
 
 
 class BoardPlacement(BaseModel):
