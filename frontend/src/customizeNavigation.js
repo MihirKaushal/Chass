@@ -43,11 +43,11 @@ export const CUSTOMIZE_SECTION_LINKS = [
 
 const STATIC_SETTING_LINKS = [
   {
-    id: "setting-match-predictor",
-    label: "Match Predictor",
+    id: "setting-match-analysis",
+    label: "Match Analysis",
     sectionId: "studio-custom-rules",
     category: "Custom Rules",
-    targetId: "customize-match-predictor",
+    targetId: "customize-match-analysis",
     keywords: "stockfish fairy analysis automatic engine outcome estimate parity",
   },
   {

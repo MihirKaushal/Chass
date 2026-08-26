@@ -378,7 +378,7 @@ class MatchAnalysisService:
             try:
                 await self._listener(result)
             except Exception:
-                logger.exception("Match Predictor WebSocket broadcast failed")
+                logger.exception("Match Analysis WebSocket broadcast failed")
 
     async def _analyze(
         self,
@@ -468,7 +468,7 @@ class MatchAnalysisService:
         except asyncio.CancelledError:
             raise
         except Exception as error:
-            logger.warning("Match Predictor analysis failed: %s", error)
+            logger.warning("Match Analysis failed: %s", error)
             active_provider = (
                 self.fairy_provider if profile.engine_id == "fairy-stockfish" else self.provider
             )

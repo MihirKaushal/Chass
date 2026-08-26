@@ -978,7 +978,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
     && matchesRulebookSearch(query, mode)
   ));
   const predictorCopy = [
-    "Match Predictor",
+    "Match Analysis",
     "Stockfish 18",
     "Fairy-Stockfish",
     "engine analysis probability parity legal moves terminal outcomes",
@@ -1068,7 +1068,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
           </div>
         </div>
         <nav aria-label="Rulebook sections">
-          <a href="#rulebook-match-predictor">Match Predictor</a>
+          <a href="#rulebook-match-analysis">Match Analysis</a>
           <a href="#rulebook-pieces">Pieces</a>
           <a href="#rulebook-victory">Win Conditions</a>
           <a href="#rulebook-custom-rules">Custom Rules</a>
@@ -1077,7 +1077,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
         </nav>
       </header>
 
-      <RulebookSection id="rulebook-match-predictor" title="Match Predictor" description="How Chass selects an engine and where each estimate is reliable." revealKey={revealKey}>
+      <RulebookSection id="rulebook-match-analysis" title="Match Analysis" description="How Chass selects an engine and where each estimate is reliable." revealKey={revealKey}>
         {showPredictor ? (
           <div className="predictor-reference-grid">
             <article className={predictorProfile?.engineId === "stockfish" ? "is-selected" : ""}>
@@ -1094,7 +1094,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
               Current configuration: <strong>{predictorProfile?.engineName || "No compatible engine"}</strong>. {predictorProfile?.accuracy || predictorProfile?.reason || "Finish configuring the game to see automatic engine selection."}
             </p>
           </div>
-        ) : <EmptyState className="rulebook-empty">Match Predictor is not enabled in this configuration.</EmptyState>}
+        ) : <EmptyState className="rulebook-empty">Match Analysis is not enabled in this configuration.</EmptyState>}
       </RulebookSection>
 
       <RulebookSection id="rulebook-pieces" title="Piece Encyclopedia" description="Movement, value, and special behavior." revealKey={revealKey}>
@@ -1973,9 +1973,9 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
           </CollapsibleStudioSection>
 
           <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any compatible match." className="ability-config-section" {...studioSectionProps("studio-custom-rules")}>
-            <div id="customize-match-predictor" className="predictor-config-card">
+            <div id="customize-match-analysis" className="predictor-config-card">
               <Toggle
-                settingKey="match-predictor"
+                settingKey="match-analysis"
                 checked={draft.matchPredictorEnabled && (predictorCompatible || predictorChecking)}
                 disabled={predictorChecking || !predictorCompatible}
                 onChange={(matchPredictorEnabled) => setDraft((current) => ({
@@ -1983,7 +1983,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
                   presetId: "custom",
                   matchPredictorEnabled,
                 }))}
-                label="Enable Match Predictor"
+                label="Enable Match Analysis"
                 description="Chass automatically selects the strongest compatible engine. Engine choice cannot be overridden."
               />
               <div className={`predictor-engine-readout status-${predictorProfile?.status || "checking"}`}>

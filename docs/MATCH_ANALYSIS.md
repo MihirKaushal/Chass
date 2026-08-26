@@ -1,11 +1,11 @@
-# Match Predictor
+# Match Analysis
 
 Chass! analyzes compatible games with local UCI engines. It displays a White/Black outcome
 estimate, a White-perspective evaluation, and explainable comparisons for material, King
 safety, legal mobility, pawn structure, and center control.
 
 No hosted chess service, API key, or paid dependency is required. Chass automatically picks
-the strongest compatible engine; players can enable or disable prediction but cannot force
+the strongest compatible engine; players can enable or disable analysis but cannot force
 an engine that does not model their rules.
 
 ## Engine Routing
@@ -64,10 +64,10 @@ The browser never sends Fairy INI. FastAPI rejects raw Fairy profile, variant, d
 or INI fields. The backend compiler reads only validated typed settings, serializes a stable
 signature, hashes it into a safe variant name, and emits a deterministic definition.
 
-Generated profiles contain only bounded board dimensions, known win-condition fields, and
-validated castling files or center squares. They are stored in a process-local temporary
-registry. The provider retains a bounded number of profiles and recycles the UCI process
-when that limit is reached.
+Generated profiles contain only bounded board dimensions, board-aware Pawn home and promotion
+ranks, known win-condition fields, and validated castling files or center squares. They are
+stored in a process-local temporary registry. The provider retains a bounded number of profiles
+and recycles the UCI process when that limit is reached.
 
 ## Rule-Engine Parity
 
@@ -78,7 +78,7 @@ syntax alone:
 2. Fairy-Stockfish independently returns its legal moves with `perft 1`.
 3. Chass compares normalized source and destination coordinates.
 4. Terminal positions are probed independently and the winner or draw must agree.
-5. A mismatch disables prediction for that position while gameplay continues normally.
+5. A mismatch disables analysis for that position while gameplay continues normally.
 
 Parity results are cached by profile and position hash. The test suite also exercises the
 real pinned largeboard binary when it is installed, covering legal moves and Checkmate,

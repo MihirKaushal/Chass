@@ -341,7 +341,7 @@ def select_analysis_profile(
         return AnalysisProfileSelection(
             enabled=False,
             eligible=False,
-            reason="Match Predictor was disabled for this game.",
+            reason="Match Analysis was disabled for this game.",
         )
 
     stockfish = classic_analysis_eligibility(state, require_enabled=False)

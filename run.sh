@@ -59,9 +59,9 @@ bootstrap_stockfish() {
     return
   fi
 
-  echo "Installing the optional Classic Match Predictor engine..."
+  echo "Installing the optional Classic Match Analysis engine..."
   if ! STOCKFISH_INSTALL_PATH="$engine_path" "$ROOT_DIR/scripts/install_stockfish.sh"; then
-    echo "Warning: Stockfish was not installed. Chass! will run without live Match Predictor results."
+    echo "Warning: Stockfish was not installed. Chass! will run without live Match Analysis results."
   fi
 }
 
@@ -78,7 +78,7 @@ bootstrap_fairy_stockfish() {
     return
   fi
 
-  echo "Installing the optional static-variant Match Predictor engine..."
+  echo "Installing the optional static-variant Match Analysis engine..."
   if ! FAIRY_STOCKFISH_INSTALL_PATH="$engine_path" "$ROOT_DIR/scripts/install_fairy_stockfish.sh"; then
     echo "Warning: Fairy-Stockfish was not installed. Standard Stockfish analysis and gameplay remain available."
   fi
