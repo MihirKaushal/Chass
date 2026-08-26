@@ -78,6 +78,8 @@ class StockfishUciProvider:
         threads: int = 1,
         startup_timeout_seconds: int = 15,
         startup_attempts: int = 2,
+        engine_label: str = "Stockfish",
+        binary_names: tuple[str, ...] = ("stockfish",),
     ) -> None:
         self.enabled = enabled
         self.configured_path = configured_path
@@ -86,9 +88,11 @@ class StockfishUciProvider:
         self.threads = max(1, threads)
         self.startup_timeout_seconds = max(1, startup_timeout_seconds)
         self.startup_attempts = max(1, startup_attempts)
+        self.engine_label = engine_label
+        self.binary_names = binary_names
         self._process: asyncio.subprocess.Process | None = None
         self._lock = asyncio.Lock()
-        self._engine_name = "Stockfish"
+        self._engine_name = engine_label
         self._last_error: str | None = None
         self._public_error: str | None = None
         self._resolved_path: str | None = None
@@ -110,7 +114,10 @@ class StockfishUciProvider:
         return self._process is not None and self._process.returncode is None
 
     def _resolve_path(self) -> str | None:
-        candidates: list[str | None] = [self.configured_path, shutil.which("stockfish")]
+        candidates: list[str | None] = [
+            self.configured_path,
+            *(shutil.which(name) for name in self.binary_names),
+        ]
         for candidate in candidates:
             if not candidate:
                 continue
@@ -121,16 +128,16 @@ class StockfishUciProvider:
 
     async def _write(self, command: str) -> None:
         if self._process is None or self._process.stdin is None:
-            raise RuntimeError("Stockfish is not running")
+            raise RuntimeError(f"{self.engine_label} is not running")
         self._process.stdin.write(f"{command}\n".encode("ascii"))
         await self._process.stdin.drain()
 
     async def _readline(self) -> str:
         if self._process is None or self._process.stdout is None:
-            raise RuntimeError("Stockfish is not running")
+            raise RuntimeError(f"{self.engine_label} is not running")
         raw = await self._process.stdout.readline()
         if not raw:
-            raise RuntimeError("Stockfish exited unexpectedly")
+            raise RuntimeError(f"{self.engine_label} exited unexpectedly")
         return raw.decode("utf-8", errors="replace").strip()
 
     async def _read_until(self, expected: str) -> list[str]:
@@ -143,7 +150,7 @@ class StockfishUciProvider:
 
     async def _start_locked(self) -> bool:
         if not self.enabled:
-            self._last_error = "The Stockfish engine is disabled on this server."
+            self._last_error = f"The {self.engine_label} engine is disabled on this server."
             self._public_error = "Live analysis is disabled on this server."
             return False
         if self.ready:
@@ -153,7 +160,8 @@ class StockfishUciProvider:
         path = self._resolve_path()
         if path is None:
             self._last_error = (
-                "Stockfish is not installed on this server. The game remains fully playable."
+                f"{self.engine_label} is not installed on this server. "
+                "The game remains fully playable."
             )
             self._public_error = "The analysis engine is not installed on this server."
             return False
@@ -194,12 +202,11 @@ class StockfishUciProvider:
             except Exception as error:
                 detail = f"{type(error).__name__}: {error}".rstrip()
                 self._last_error = (
-                    f"Stockfish startup attempt {attempt}/{self.startup_attempts} "
+                    f"{self.engine_label} startup attempt {attempt}/{self.startup_attempts} "
                     f"failed: {detail}"
                 )
                 self._public_error = (
-                    "The analysis engine is still warming up or could not start. "
-                    "Retry in a moment."
+                    "The analysis engine is still warming up or could not start. Retry in a moment."
                 )
                 logger.warning(self._last_error)
                 await self._terminate_locked()
@@ -242,69 +249,65 @@ class StockfishUciProvider:
                     pass
             await self._terminate_locked()
 
+    async def _search_locked(self, fen: str) -> EngineAnalysis:
+        started = perf_counter()
+        latest: dict[str, object] = {}
+        try:
+            await self._write(f"position fen {fen}")
+            await self._write(f"go movetime {self.movetime_ms}")
+            timeout_seconds = max(2.0, (self.movetime_ms / 1000) + 2.0)
+
+            async def read_search() -> None:
+                nonlocal latest
+                while True:
+                    line = await self._readline()
+                    if line.startswith("info "):
+                        parsed = parse_uci_info(line)
+                        if "centipawns" in parsed or "mate_in" in parsed:
+                            latest.pop("centipawns", None)
+                            latest.pop("mate_in", None)
+                        latest = {
+                            **latest,
+                            **{key: value for key, value in parsed.items() if value is not None},
+                        }
+                    elif line.startswith("bestmove"):
+                        return
+
+            await asyncio.wait_for(read_search(), timeout=timeout_seconds)
+        except asyncio.CancelledError:
+            await self._terminate_locked()
+            raise
+        except Exception as error:
+            self._last_error = (
+                f"{self.engine_label} analysis failed: {type(error).__name__}: {error}"
+            ).rstrip()
+            self._public_error = "The analysis engine stopped unexpectedly. Retry in a moment."
+            await self._terminate_locked()
+            raise
+
+        elapsed_ms = round((perf_counter() - started) * 1000)
+        if "centipawns" not in latest and "mate_in" not in latest:
+            self._last_error = f"{self.engine_label} returned no position evaluation"
+            self._public_error = (
+                "The analysis engine did not return a position estimate. Retry in a moment."
+            )
+            await self._terminate_locked()
+            raise RuntimeError(f"{self.engine_label} returned no position evaluation")
+        return EngineAnalysis(
+            centipawns=latest.get("centipawns"),
+            mate_in=latest.get("mate_in"),
+            win=latest.get("win"),
+            draw=latest.get("draw"),
+            loss=latest.get("loss"),
+            depth=latest.get("depth"),
+            nodes=latest.get("nodes"),
+            principal_variation=list(latest.get("principal_variation", [])),
+            elapsed_ms=elapsed_ms,
+            engine_version=self._engine_name,
+        )
+
     async def analyze(self, fen: str) -> EngineAnalysis:
         async with self._lock:
             if not await self._start_locked():
-                raise RuntimeError(self._last_error or "Stockfish is unavailable")
-
-            started = perf_counter()
-            latest: dict[str, object] = {}
-            try:
-                await self._write(f"position fen {fen}")
-                await self._write(f"go movetime {self.movetime_ms}")
-                timeout_seconds = max(2.0, (self.movetime_ms / 1000) + 2.0)
-
-                async def read_search() -> None:
-                    nonlocal latest
-                    while True:
-                        line = await self._readline()
-                        if line.startswith("info "):
-                            parsed = parse_uci_info(line)
-                            if "centipawns" in parsed or "mate_in" in parsed:
-                                latest.pop("centipawns", None)
-                                latest.pop("mate_in", None)
-                            latest = {
-                                **latest,
-                                **{
-                                    key: value
-                                    for key, value in parsed.items()
-                                    if value is not None
-                                },
-                            }
-                        elif line.startswith("bestmove"):
-                            return
-
-                await asyncio.wait_for(read_search(), timeout=timeout_seconds)
-            except asyncio.CancelledError:
-                await self._terminate_locked()
-                raise
-            except Exception as error:
-                self._last_error = (
-                    f"Stockfish analysis failed: {type(error).__name__}: {error}"
-                ).rstrip()
-                self._public_error = (
-                    "The analysis engine stopped unexpectedly. Retry in a moment."
-                )
-                await self._terminate_locked()
-                raise
-
-            elapsed_ms = round((perf_counter() - started) * 1000)
-            if "centipawns" not in latest and "mate_in" not in latest:
-                self._last_error = "Stockfish returned no position evaluation"
-                self._public_error = (
-                    "The analysis engine did not return a position estimate. Retry in a moment."
-                )
-                await self._terminate_locked()
-                raise RuntimeError("Stockfish returned no position evaluation")
-            return EngineAnalysis(
-                centipawns=latest.get("centipawns"),
-                mate_in=latest.get("mate_in"),
-                win=latest.get("win"),
-                draw=latest.get("draw"),
-                loss=latest.get("loss"),
-                depth=latest.get("depth"),
-                nodes=latest.get("nodes"),
-                principal_variation=list(latest.get("principal_variation", [])),
-                elapsed_ms=elapsed_ms,
-                engine_version=self._engine_name,
-            )
+                raise RuntimeError(self._last_error or f"{self.engine_label} is unavailable")
+            return await self._search_locked(fen)

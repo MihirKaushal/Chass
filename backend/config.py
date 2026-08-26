@@ -58,6 +58,11 @@ class Settings:
     stockfish_threads: int
     stockfish_startup_timeout_seconds: int
     stockfish_startup_attempts: int
+    fairy_stockfish_path: str
+    fairy_stockfish_movetime_ms: int
+    fairy_stockfish_hash_mb: int
+    fairy_stockfish_threads: int
+    fairy_stockfish_max_profiles: int
 
     @property
     def is_production(self) -> bool:
@@ -131,4 +136,16 @@ def get_settings() -> Settings:
             "STOCKFISH_STARTUP_TIMEOUT_SECONDS", 15
         ),
         stockfish_startup_attempts=_positive_int("STOCKFISH_STARTUP_ATTEMPTS", 2),
+        fairy_stockfish_path=os.getenv(
+            "FAIRY_STOCKFISH_PATH",
+            str(PROJECT_ROOT / ".stockfish" / "fairy-stockfish"),
+        ).strip(),
+        fairy_stockfish_movetime_ms=_positive_int(
+            "FAIRY_STOCKFISH_MOVETIME_MS", 180
+        ),
+        fairy_stockfish_hash_mb=_positive_int("FAIRY_STOCKFISH_HASH_MB", 16),
+        fairy_stockfish_threads=_positive_int("FAIRY_STOCKFISH_THREADS", 1),
+        fairy_stockfish_max_profiles=_positive_int(
+            "FAIRY_STOCKFISH_MAX_PROFILES", 256
+        ),
     )

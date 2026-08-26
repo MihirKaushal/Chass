@@ -108,12 +108,13 @@ app.add_exception_handler(GoogleAuthError, _persistence_unavailable)
 
 
 @app.get("/health")
-def health() -> dict[str, str]:
+def health() -> dict[str, object]:
     response = {
         "status": "ok",
         "environment": settings.environment,
         "persistence": settings.persistence_backend,
         "matchPredictor": match_analysis_service.health_status(),
+        "matchPredictorEngines": match_analysis_service.health_details(),
     }
     predictor_reason = match_analysis_service.health_reason()
     if predictor_reason:
