@@ -51,6 +51,34 @@ test("opening calibration starts at 50/50 and fades over six plies", () => {
   assert.deepEqual(outcomePercentages(whiteBiasedOpening, 6), { white: 55, black: 45 });
   assert.deepEqual(
     outcomePercentages({ whiteWin: 1, draw: 0, blackWin: 0 }, 0),
+    { white: 99, black: 1 }
+  );
+});
+
+test("only mate in one can display a 100 percent advantage", () => {
+  const decisiveWhite = { whiteWin: 1, draw: 0, blackWin: 0 };
+  const decisiveBlack = { whiteWin: 0, draw: 0, blackWin: 1 };
+
+  assert.deepEqual(outcomePercentages(decisiveWhite, 20), { white: 99, black: 1 });
+  assert.deepEqual(outcomePercentages(decisiveBlack, 20), { white: 1, black: 99 });
+  assert.deepEqual(
+    outcomePercentages({ whiteWin: 0.93, draw: 0, blackWin: 0.07 }, 20),
+    { white: 93, black: 7 }
+  );
+  assert.deepEqual(
+    outcomePercentages(decisiveWhite, 20, { mateIn: 2 }),
+    { white: 99, black: 1 }
+  );
+  assert.deepEqual(
+    outcomePercentages(decisiveWhite, 20, { mateIn: 1 }),
+    { white: 100, black: 0 }
+  );
+  assert.deepEqual(
+    outcomePercentages(decisiveBlack, 20, { mateIn: -1 }),
+    { white: 0, black: 100 }
+  );
+  assert.deepEqual(
+    outcomePercentages(null, 20, { mateIn: 1 }),
     { white: 100, black: 0 }
   );
 });

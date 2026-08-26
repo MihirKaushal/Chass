@@ -24,7 +24,7 @@ function MatchPredictor({
   const percentages = outcomePercentages(
     analysis?.outcome,
     moveCount,
-    { calibrateOpening }
+    { calibrateOpening, mateIn: analysis?.evaluation?.mateIn }
   );
   const loading = refreshing || !analysis || analysis.status === "analyzing";
 
