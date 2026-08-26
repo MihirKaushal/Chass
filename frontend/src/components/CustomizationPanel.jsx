@@ -34,10 +34,6 @@ import {
 } from "../customizationState";
 import { matchesRulebookSearch } from "../rulebookSearch";
 import {
-  isStockfishCompatibleDraft,
-  stockfishDraftEligibility,
-} from "../matchPredictor";
-import {
   applyParameterChange,
   effectiveCatalogEntry,
   mergeParameterGroups,
@@ -390,8 +386,7 @@ function buildRequest(draft, mode = "local") {
       schemaVersion: 2,
       presetId: draft.presetId,
       formationId: draft.formationId,
-      matchPredictorEnabled:
-        draft.matchPredictorEnabled && isStockfishCompatibleDraft(draft),
+      matchPredictorEnabled: draft.matchPredictorEnabled,
       barricadeCount: draft.barricadeCount,
       enabledPieces: draft.enabledPieces,
       piecePoints: Object.fromEntries(
@@ -609,10 +604,10 @@ function ConfigurationBoard({
   );
 }
 
-function Toggle({ checked, onChange, label, description, settingKey }) {
+function Toggle({ checked, onChange, label, description, settingKey, disabled = false }) {
   return (
-    <label className="studio-toggle" data-setting-key={settingKey}>
-      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+    <label className={`studio-toggle${disabled ? " is-disabled" : ""}`} data-setting-key={settingKey}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(event) => onChange(event.target.checked)} />
       <span className="toggle-track" aria-hidden="true"><i /></span>
       <span className="toggle-copy"><strong>{label}</strong><small>{description}</small></span>
     </label>
@@ -963,7 +958,7 @@ function RulebookSection({
   );
 }
 
-function Rulebook({ catalog, draft }) {
+function Rulebook({ catalog, draft, predictorProfile }) {
   const [query, setQuery] = useState("");
   const [enabledOnly, setEnabledOnly] = useState(false);
   const effectivePieces = catalog.pieces.map((piece) => effectiveCatalogEntry(
@@ -982,6 +977,15 @@ function Rulebook({ catalog, draft }) {
     (!enabledOnly || draft.victory.mode === mode.id)
     && matchesRulebookSearch(query, mode)
   ));
+  const predictorCopy = [
+    "Match Predictor",
+    "Stockfish 18",
+    "Fairy-Stockfish",
+    "engine analysis probability parity legal moves terminal outcomes",
+    predictorProfile,
+  ];
+  const showPredictor = (!enabledOnly || draft.matchPredictorEnabled)
+    && matchesRulebookSearch(query, predictorCopy);
   const affinityCopy = [
     "Affinity Squares",
     "Each color receives two adaptive center squares. Hold both squares assigned to your color through the opponent's turn to earn one command point.",
@@ -1026,6 +1030,7 @@ function Rulebook({ catalog, draft }) {
   const showCountdowns = (!enabledOnly || enabledTimedEntries)
     && matchesRulebookSearch(query, "Turns And Countdowns", countdownCopy);
   const resultCount = visiblePieces.length
+    + Number(showPredictor)
     + visibleVictoryModes.length
     + Number(showAffinity)
     + visibleAbilities.length
@@ -1063,6 +1068,7 @@ function Rulebook({ catalog, draft }) {
           </div>
         </div>
         <nav aria-label="Rulebook sections">
+          <a href="#rulebook-match-predictor">Match Predictor</a>
           <a href="#rulebook-pieces">Pieces</a>
           <a href="#rulebook-victory">Win Conditions</a>
           <a href="#rulebook-custom-rules">Custom Rules</a>
@@ -1070,6 +1076,26 @@ function Rulebook({ catalog, draft }) {
           <a href="#rulebook-gambit">Gambit</a>
         </nav>
       </header>
+
+      <RulebookSection id="rulebook-match-predictor" title="Match Predictor" description="How Chass selects an engine and where each estimate is reliable." revealKey={revealKey}>
+        {showPredictor ? (
+          <div className="predictor-reference-grid">
+            <article className={predictorProfile?.engineId === "stockfish" ? "is-selected" : ""}>
+              <header><strong>Stockfish 18</strong><span>Preferred</span></header>
+              <p><b>Strengths:</b> Elite standard-chess search, NNUE evaluation, and mature W/D/L estimates. Chass uses it first for compatible standard-rule 8x8 positions, including validated custom formations.</p>
+              <p><b>Limits:</b> It cannot model larger boards, custom movement, Chass abilities, terrain, Affinity, or stateful variant rules.</p>
+            </article>
+            <article className={predictorProfile?.engineId === "fairy-stockfish" ? "is-selected" : ""}>
+              <header><strong>Fairy-Stockfish</strong><span>Experimental</span></header>
+              <p><b>Strengths:</b> Supports deterministic static variants on boards up to 10x12. Chass generates its profile and verifies legal moves and terminal behavior against the Rule Engine.</p>
+              <p><b>Limits:</b> Its outcome percentages are not calibrated on Chass games and are less trustworthy than Stockfish for standard chess. Stateful pieces, abilities, terrain, Affinity, and Gambit setup remain unsupported.</p>
+            </article>
+            <p className="predictor-reference-current">
+              Current configuration: <strong>{predictorProfile?.engineName || "No compatible engine"}</strong>. {predictorProfile?.accuracy || predictorProfile?.reason || "Finish configuring the game to see automatic engine selection."}
+            </p>
+          </div>
+        ) : <EmptyState className="rulebook-empty">Match Predictor is not enabled in this configuration.</EmptyState>}
+      </RulebookSection>
 
       <RulebookSection id="rulebook-pieces" title="Piece Encyclopedia" description="Movement, value, and special behavior." revealKey={revealKey}>
         <div className="rulebook-entry-grid">
@@ -1165,13 +1191,18 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const issueSquareTimerRef = useRef(null);
   const placementNoticeTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
-  const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, requestKey: null });
-  const predictorEligibility = useMemo(() => stockfishDraftEligibility(draft), [draft]);
-  const predictorCompatible = predictorEligibility.eligible;
+  const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, matchPredictor: null, requestKey: null });
   const validationRequest = useMemo(() => (draft ? buildRequest(draft) : null), [draft]);
   const validationRequestKey = useMemo(
     () => (validationRequest ? JSON.stringify(validationRequest) : null),
     [validationRequest]
+  );
+  const predictorProfile = validation.requestKey === validationRequestKey
+    ? validation.matchPredictor
+    : null;
+  const predictorChecking = Boolean(validationRequestKey) && !predictorProfile;
+  const predictorCompatible = Boolean(
+    predictorProfile?.eligible && predictorProfile.status !== "incompatible"
   );
   const customizeSearchResults = useMemo(
     () => matchingCustomizeResults(sectionQuery, catalog || {}),
@@ -1259,7 +1290,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
         })
         .catch((requestError) => {
           if (!cancelled) {
-            setValidation({ status: "invalid", valid: false, errors: [requestError.message], warnings: [], disabledOptions: {}, requestKey: null });
+            setValidation({ status: "invalid", valid: false, errors: [requestError.message], warnings: [], disabledOptions: {}, matchPredictor: null, requestKey: null });
           }
         });
     }, 250);
@@ -1272,9 +1303,14 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   }, [validationRequestKey]);
 
   useEffect(() => {
-    if (!draft || predictorCompatible || !draft.matchPredictorEnabled) return;
+    if (
+      !draft
+      || !predictorProfile
+      || predictorProfile.status !== "incompatible"
+      || !draft.matchPredictorEnabled
+    ) return;
     setDraft((current) => ({ ...current, matchPredictorEnabled: false }));
-  }, [draft, predictorCompatible]);
+  }, [draft, predictorProfile]);
 
   useEffect(() => () => {
     window.clearTimeout(issueSquareTimerRef.current);
@@ -1564,10 +1600,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     setDraft((current) => {
       let next = current;
       if (sectionId === "studio-popular-modes") {
-        next = {
-          ...current,
-          matchPredictorEnabled: configurationBaseline.matchPredictorEnabled,
-        };
+        next = current;
       } else if (sectionId === "studio-board-size") {
         const rows = configurationBaseline.boardRows;
         const cols = configurationBaseline.boardCols;
@@ -1638,6 +1671,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
       } else if (sectionId === "studio-custom-rules") {
         next = {
           ...current,
+          matchPredictorEnabled: configurationBaseline.matchPredictorEnabled,
           customRules: resetEnabledCustomRules(configurationBaseline.customRules),
         };
       } else if (sectionId === "studio-abilities") {
@@ -1848,25 +1882,6 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
                   <button type="button" className="mode-preset-choice" onClick={() => requestPopularMode(mode)}>
                     <i>{mode.icon}</i><strong>{mode.name}</strong><small>{mode.summary}</small>
                   </button>
-                  {mode.id === "classic" ? (
-                    <label id="customize-match-predictor" className={`classic-predictor-toggle ${predictorCompatible ? "" : "is-disabled"}`}>
-                      <input
-                        type="checkbox"
-                        checked={predictorCompatible && draft.matchPredictorEnabled}
-                        disabled={!predictorCompatible}
-                        onChange={(event) => setDraft((current) => ({
-                          ...current,
-                          matchPredictorEnabled: event.target.checked,
-                        }))}
-                      />
-                      <span>
-                        <strong>Enable Match Predictor</strong>
-                        <small>{predictorCompatible
-                          ? "Live Stockfish estimates for compatible 8x8 standard-piece games."
-                          : predictorEligibility.reason}</small>
-                      </span>
-                    </label>
-                  ) : null}
                 </article>
               ))}
             </div>
@@ -1958,6 +1973,30 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
           </CollapsibleStudioSection>
 
           <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any compatible match." className="ability-config-section" {...studioSectionProps("studio-custom-rules")}>
+            <div id="customize-match-predictor" className="predictor-config-card">
+              <Toggle
+                settingKey="match-predictor"
+                checked={draft.matchPredictorEnabled && (predictorCompatible || predictorChecking)}
+                disabled={predictorChecking || !predictorCompatible}
+                onChange={(matchPredictorEnabled) => setDraft((current) => ({
+                  ...current,
+                  presetId: "custom",
+                  matchPredictorEnabled,
+                }))}
+                label="Enable Match Predictor"
+                description="Chass automatically selects the strongest compatible engine. Engine choice cannot be overridden."
+              />
+              <div className={`predictor-engine-readout status-${predictorProfile?.status || "checking"}`}>
+                <span>
+                  <small>Selected Engine</small>
+                  <strong>{predictorChecking ? "Checking compatibility..." : predictorProfile?.engineName || "No compatible engine"}</strong>
+                </span>
+                {predictorProfile?.parityChecked ? <StatusBadge tone="success">Parity Verified</StatusBadge> : null}
+                {predictorProfile?.status === "unavailable" ? <StatusBadge tone="warning">Verification Unavailable</StatusBadge> : null}
+                <p>{predictorProfile?.accuracy || predictorProfile?.reason || "Validation will identify the best engine for these settings."}</p>
+                {predictorProfile?.reason && predictorProfile?.accuracy ? <small>{predictorProfile.reason}</small> : null}
+              </div>
+            </div>
             <div id="customize-affinity-squares">
               <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
               {draft.customRules.affinityEnabled ? <div className="conditional-fields">
@@ -2080,7 +2119,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
         </div>
       </section>
       {error ? <p className="studio-error">{error}</p> : null}
-      <Rulebook catalog={catalog} draft={draft} />
+      <Rulebook catalog={catalog} draft={draft} predictorProfile={predictorProfile} />
       <StartingSystemConfirmation
         mode={pendingStartingSystem}
         onCancel={() => setPendingStartingSystem(null)}

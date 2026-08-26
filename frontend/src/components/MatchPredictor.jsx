@@ -1,7 +1,7 @@
 import {
   evaluationLabel,
-  isClassicStartingLayout,
   outcomePercentages,
+  shouldCalibrateClassicOpening,
 } from "../matchPredictor";
 import Button from "./ui/Button";
 
@@ -19,7 +19,8 @@ function MatchPredictor({
 }) {
   const unavailable = analysis?.status === "unavailable";
   const ready = analysis?.status === "ready";
-  const calibrateOpening = isClassicStartingLayout(initialLayout);
+  const calibrateOpening = shouldCalibrateClassicOpening(analysis, initialLayout);
+  const engineName = analysis?.engineName || analysis?.engineVersion || "Analysis Engine";
   const percentages = outcomePercentages(
     analysis?.outcome,
     moveCount,
@@ -34,7 +35,7 @@ function MatchPredictor({
     >
       <header className="match-predictor-heading">
         <span>
-          <small>Stockfish Analysis</small>
+          <small>{engineName} Analysis</small>
           <h3>Match Predictor</h3>
         </span>
         <b className={`predictor-evaluation${unavailable ? " is-unavailable" : ""}`}>
@@ -93,7 +94,7 @@ function MatchPredictor({
             ))}
           </div>
           <p className="predictor-engine-version">
-            Engine version: <strong>{analysis.engineVersion || "Stockfish"}</strong>. Material uses standard chess values.
+            Engine: <strong>{analysis.engineVersion || engineName}</strong>. {analysis.accuracy || "Position estimate based on the current board."} Material uses standard chess values.
           </p>
         </details>
       ) : null}

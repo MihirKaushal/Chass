@@ -31,7 +31,7 @@ function sectionSnapshot(draft, sectionId) {
   if (!draft) return null;
   switch (sectionId) {
     case "studio-popular-modes":
-      return { matchPredictorEnabled: Boolean(draft.matchPredictorEnabled) };
+      return null;
     case "studio-board-size":
       return { boardRows: draft.boardRows, boardCols: draft.boardCols };
     case "studio-pieces":
@@ -49,9 +49,12 @@ function sectionSnapshot(draft, sectionId) {
         kingPoints: draft.pointValues?.king,
       };
     case "studio-custom-rules":
-      return draft.customRules?.affinityEnabled
-        ? draft.customRules
-        : { affinityEnabled: false };
+      return {
+        matchPredictorEnabled: Boolean(draft.matchPredictorEnabled),
+        customRules: draft.customRules?.affinityEnabled
+          ? draft.customRules
+          : { affinityEnabled: false },
+      };
     case "studio-abilities":
       return draft.specialAbilities?.enabled
         ? draft.specialAbilities
