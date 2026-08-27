@@ -112,6 +112,13 @@ test("mate evaluation identifies the winning side and distance", () => {
   );
 });
 
+test("variant terminal threats are described without claiming checkmate", () => {
+  assert.equal(
+    evaluationLabel({ evaluation: { mateIn: null, immediateWinner: "white" } }, 12),
+    "White can win this turn"
+  );
+});
+
 test("analysis is accepted only for the current game version", () => {
   const game = { id: "classic-1", version: 7 };
   assert.equal(analysisMatchesGame({ gameId: "classic-1", gameVersion: 7 }, game), true);

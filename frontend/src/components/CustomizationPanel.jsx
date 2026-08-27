@@ -335,7 +335,7 @@ function applyModeToDraft(current, mode, catalog) {
     ...current,
     presetId: mode.id,
     formationId,
-    matchPredictorEnabled: mode.matchPredictorEnabled ?? (mode.id === "classic"),
+    matchPredictorEnabled: mode.matchPredictorEnabled ?? true,
     boardRows: rows,
     boardCols: cols,
     enabledPieces: [...STANDARD_TYPES],
@@ -981,7 +981,8 @@ function Rulebook({ catalog, draft, predictorProfile }) {
     "Match Analysis",
     "Stockfish 18",
     "Fairy-Stockfish",
-    "engine analysis probability parity legal moves terminal outcomes",
+    "Chass Engine",
+    "engine analysis probability parity legal moves terminal outcomes custom pieces abilities",
     predictorProfile,
   ];
   const showPredictor = (!enabledOnly || draft.matchPredictorEnabled)
@@ -1089,6 +1090,11 @@ function Rulebook({ catalog, draft, predictorProfile }) {
               <header><strong>Fairy-Stockfish</strong><span>Experimental</span></header>
               <p><b>Strengths:</b> Supports deterministic static variants on boards up to 10x12. Chass generates its profile and verifies legal moves and terminal behavior against the Rule Engine.</p>
               <p><b>Limits:</b> Its outcome percentages are not calibrated on Chass games and are less trustworthy than Stockfish for standard chess. Stateful pieces, abilities, terrain, Affinity, and Gambit setup remain unsupported.</p>
+            </article>
+            <article className={predictorProfile?.engineId === "chass" ? "is-selected" : ""}>
+              <header><strong>Chass Engine</strong><span>Universal</span></header>
+              <p><b>Strengths:</b> Evaluates every valid Chass configuration through the same Rule Engine used for gameplay, including custom-piece settings, abilities, terrain, Affinity, runtime effects, and alternate win conditions.</p>
+              <p><b>Limits:</b> Its handcrafted evaluation and time-bounded search are experimental. It is weaker than Stockfish, is not trained on self-play data, and does not provide calibrated probabilities.</p>
             </article>
             <p className="predictor-reference-current">
               Current configuration: <strong>{predictorProfile?.engineName || "No compatible engine"}</strong>. {predictorProfile?.accuracy || predictorProfile?.reason || "Finish configuring the game to see automatic engine selection."}
@@ -1992,6 +1998,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
                   <strong>{predictorChecking ? "Checking compatibility..." : predictorProfile?.engineName || "No compatible engine"}</strong>
                 </span>
                 {predictorProfile?.parityChecked ? <StatusBadge tone="success">Parity Verified</StatusBadge> : null}
+                {predictorProfile?.engineId === "chass" ? <StatusBadge tone="info">Native Fallback</StatusBadge> : null}
                 {predictorProfile?.status === "unavailable" ? <StatusBadge tone="warning">Verification Unavailable</StatusBadge> : null}
                 <p>{predictorProfile?.accuracy || predictorProfile?.reason || "Validation will identify the best engine for these settings."}</p>
                 {predictorProfile?.reason && predictorProfile?.accuracy ? <small>{predictorProfile.reason}</small> : null}

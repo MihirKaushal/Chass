@@ -21,6 +21,9 @@ function MatchPredictor({
   const ready = analysis?.status === "ready";
   const calibrateOpening = shouldCalibrateClassicOpening(analysis, initialLayout);
   const engineName = analysis?.engineName || analysis?.engineVersion || "Analysis Engine";
+  const materialNote = analysis?.engineId === "chass"
+    ? "Material utility reflects configured behavior and active mechanics."
+    : "Material uses standard chess values.";
   const percentages = outcomePercentages(
     analysis?.outcome,
     moveCount,
@@ -91,7 +94,7 @@ function MatchPredictor({
             ))}
           </div>
           <p className="predictor-engine-version">
-            Engine: <strong>{analysis.engineVersion || engineName}</strong>. {analysis.accuracy || "Position estimate based on the current board."} Material uses standard chess values.
+            Engine: <strong>{analysis.engineVersion || engineName}</strong>. {analysis.accuracy || "Position estimate based on the current board."} {materialNote}
           </p>
         </details>
       ) : null}

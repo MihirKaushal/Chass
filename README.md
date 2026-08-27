@@ -9,7 +9,7 @@ boards and pieces, modular rules, and real-time synchronization.
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
-- Auto-routed Stockfish and Fairy-Stockfish Match Analysis for compatible static games
+- Auto-routed Stockfish, Fairy-Stockfish, and native Chass Engine Match Analysis
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
 - Chass Gambit with maximum-budget hidden deployment, center affinity, and command powers
@@ -34,7 +34,7 @@ boards and pieces, modular rules, and real-time synchronization.
 | Languages | Python, JavaScript/JSX, CSS, SQL, Bash |
 | Frontend | React 18, React Hooks, Vite 5, native WebSocket API |
 | Backend | FastAPI, Uvicorn, Pydantic 2 |
-| Analysis | Stockfish 18, Fairy-Stockfish, UCI, NNUE, W/D/L statistics, parity validation |
+| Analysis | Stockfish 18, Fairy-Stockfish, handcrafted evaluation, alpha-beta search, UCI, NNUE, W/D/L statistics |
 | Database | Cloud Firestore, Firebase Admin SDK, SQLAlchemy 2, SQLite |
 | Testing and quality | Pytest, HTTPX, Ruff, Vite production builds |
 | Hosting | Vercel, Render, Firebase |
@@ -50,6 +50,8 @@ boards and pieces, modular rules, and real-time synchronization.
 - **Uvicorn:** ASGI server for FastAPI HTTP and WebSocket traffic.
 - **Stockfish and Fairy-Stockfish:** Local UCI engines for auto-routed position analysis;
   no hosted API or paid key.
+- **Chass Engine:** Original handcrafted evaluator and bounded alpha-beta search for custom
+  pieces, abilities, terrain, Affinity, alternate victories, and boards through 16x16.
 - **Pytest and HTTPX:** Backend API and multiplayer integration testing.
 - **Ruff:** Python linting and code-quality checks.
 
@@ -63,7 +65,7 @@ React + Vite
 FastAPI
   |-- Game service
   |-- Modular rule engine
-  |-- Async analysis router --> Stockfish 18 / Fairy-Stockfish
+  |-- Async analysis router --> Stockfish 18 / Fairy-Stockfish / Chass Engine
   v
 Repository adapters
   |-- SQLAlchemy / SQLite locally
@@ -81,19 +83,21 @@ count, edit, or timing data before the atomic reveal.
 Game activity uses a renewable expiration lease, and both repository adapters cascade
 inactive-game cleanup to player seats, invitation records, and move audits.
 
-The Match Analysis system prefers Stockfish 18 for compatible standard-rule 8x8 positions and
+The Match Analysis router prefers Stockfish 18 for compatible standard-rule 8x8 positions and
 routes validated static variants up to 10x12 to Fairy-Stockfish. Fairy profiles are generated
-deterministically from typed Chass settings; raw engine syntax is rejected. Before enabling a
-Fairy profile, the backend compares its legal moves and terminal outcome with the Chass Rule
-Engine. Stateful pieces, abilities, terrain, Affinity, and Gambit setup remain intentionally
-unsupported. Analysis runs after the move response, is cached by engine and position, and is
+deterministically from typed Chass settings; raw engine syntax is rejected. Before using a
+Fairy profile, the backend compares legal moves and terminal outcomes with the Chass Rule
+Engine. Every remaining valid configuration falls back to the native Chass Engine, which
+combines behavior-based material, King safety, tactics, activity, center control, objective
+progress, terrain, and live special resources with time-bounded alpha-beta and quiescence
+search. Analysis runs after the move response, is cached by engine and full game state, and is
 version-checked before a WebSocket result can update the UI.
 
 ## Project Structure
 
 ```text
 backend/
-  analysis/        Engine profiles, parity checks, FEN, factors, and asynchronous UCI service
+  analysis/        Engine routing, native evaluation/search, parity checks, FEN, and async service
   models/          Domain models and API schemas
   repositories/    Firestore and SQL persistence adapters
   routes/          REST and WebSocket endpoints
@@ -165,7 +169,7 @@ npm run build
 | `POST` | `/game/join` | Join through an invitation |
 | `GET` | `/game/{id}` | Load game state |
 | `GET` | `/game/{id}/history` | Load an earlier page of move history |
-| `GET` | `/game/{id}/analysis` | Load or schedule the current compatible position estimate |
+| `GET` | `/game/{id}/analysis` | Load or schedule the current position estimate |
 | `POST` | `/game/{id}/move` | Submit a move |
 | `POST` | `/game/{id}/action` | Use a custom piece or special-ability action |
 | `POST` | `/game/{id}/ability` | Lock a private player ability |
@@ -210,6 +214,7 @@ Use `.env.example` as the local template.
 | `FAIRY_STOCKFISH_HASH_MB` | Memory assigned to the Fairy hash; default `16` |
 | `FAIRY_STOCKFISH_THREADS` | Fairy worker threads; default `1` |
 | `FAIRY_STOCKFISH_MAX_PROFILES` | Generated profiles retained by one engine process; default `256` |
+| `CHASS_ENGINE_MOVETIME_MS` | Native Chass search budget per position; default `180` |
 | `VITE_API_URL` | Public backend address used by React |
 
 Do not commit `.env`, database passwords, or production secrets.
