@@ -897,12 +897,12 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         winner={game.winner}
         onFlipBoard={() => setBoardFlipped((current) => !current)}
         onToggleAutoBoardFlip={() => setAutoBoardFlipEnabled((current) => !current)}
-        boardFlipped={boardFlipped}
         autoBoardFlipEnabled={autoBoardFlipEnabled}
         canReset={canRequestRestart}
         mode={game.mode}
         playerColor={session?.color}
-        connectionStatus={connectionStatus}
+        presence={presence}
+        gameReady={game.ready}
         variant={game.variant}
         phase={game.phase}
       />
@@ -911,8 +911,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         <OnlineLobby
           game={game}
           session={session}
-          presence={presence}
-          connectionStatus={connectionStatus}
           onReplaceInvite={handleReplaceInvite}
         />
       ) : null}
@@ -934,17 +932,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         onRespond={handleRematch}
         actionLoading={actionLoading}
       />
-      {!canMove &&
-      game.ready &&
-      game.mode === "online" &&
-      game.phase === "play" &&
-      !game.winner ? (
-        <p className="turn-notice">
-          You are {colorLabel(session?.color)}. Waiting for {colorLabel(game.currentPlayer)} to
-          move.
-        </p>
-      ) : null}
-
       {game.phase === "ability_selection" ? (
         <AbilitySelectionPage
           game={game}

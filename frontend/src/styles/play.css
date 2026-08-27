@@ -1,49 +1,29 @@
-.online-room {
+.online-invite-panel {
   display: grid;
-  grid-template-columns: minmax(220px, 1fr) auto minmax(280px, 1fr);
+  grid-template-columns: minmax(150px, auto) minmax(0, 1fr);
   gap: 1rem;
   align-items: center;
   margin-bottom: 1rem;
-  padding: 0.9rem 1rem;
+  padding: 0.75rem 0.9rem;
   border: 1px solid rgba(43, 108, 176, 0.28);
-  border-left: 5px solid var(--accent);
+  border-left: 4px solid var(--accent);
   border-radius: 14px;
   background: rgba(234, 216, 181, 0.76);
   box-shadow: 0 8px 20px rgba(26, 54, 93, 0.1);
 }
 
-.online-room--ready {
-  grid-template-columns: 1fr auto;
+.online-invite-heading {
+  display: grid;
+  gap: 0.15rem;
 }
 
-.online-room h2 {
-  margin: 0.15rem 0 0.2rem;
-  font-size: 1.1rem;
+.online-invite-heading strong {
+  color: var(--deep);
 }
 
-.online-room p {
-  margin: 0;
-  font-size: 0.82rem;
-}
-
-.seat-status {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.4rem;
-}
-
-.seat {
-  padding: 0.3rem 0.55rem;
-  border-radius: var(--radius-pill);
-  background: rgba(26, 54, 93, 0.08);
-  font-family: var(--font-mono);
-  font-size: 0.68rem;
-}
-
-.seat.connected {
-  color: #174d37;
-  background: rgba(65, 148, 110, 0.18);
+.online-invite-heading span {
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
 }
 
 .invite-controls {
@@ -2522,16 +2502,25 @@
 
 @media (max-width: 1024px) {
   .top-nav {
-    grid-template-columns: 1fr auto;
+    grid-template-columns: auto minmax(0, 1fr) auto;
   }
 
   .game-hud {
     grid-column: 1 / -1;
+    grid-row: 2;
     justify-content: flex-start;
   }
 
-  .online-room,
-  .online-room--ready {
+  .tab-nav {
+    justify-self: start;
+  }
+
+  .play-settings {
+    grid-column: 3;
+    grid-row: 1;
+  }
+
+  .online-invite-panel {
     grid-template-columns: 1fr;
   }
 
@@ -2539,7 +2528,6 @@
     grid-template-columns: 1fr;
   }
 
-  .seat-status,
   .invite-controls {
     justify-content: flex-start;
   }
@@ -2594,15 +2582,23 @@
   }
 
   .game-hud {
+    grid-row: 3;
     width: 100%;
   }
 
-  .top-nav {
-    grid-template-columns: 1fr;
+  .online-player-summary {
+    width: 100%;
+    min-inline-size: 0;
+    text-align: left;
+    white-space: normal;
   }
 
-  .tab-nav,
-  .board-actions {
+  .top-nav {
+    grid-template-columns: 1fr auto;
+  }
+
+  .tab-nav {
+    grid-column: 1 / -1;
     justify-self: stretch;
   }
 
@@ -2610,12 +2606,9 @@
     flex: 1;
   }
 
-  .board-actions {
-    justify-content: stretch;
-  }
-
-  .board-actions button {
-    flex: 1 1 130px;
+  .play-settings {
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .mode-choice-grid {
@@ -2634,7 +2627,7 @@
     width: 4rem;
   }
 
-  .online-room {
+  .online-invite-panel {
     padding: 0.8rem;
   }
 
