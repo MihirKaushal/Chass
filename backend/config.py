@@ -63,6 +63,7 @@ class Settings:
     fairy_stockfish_hash_mb: int
     fairy_stockfish_threads: int
     fairy_stockfish_max_profiles: int
+    chass_engine_movetime_ms: int
 
     @property
     def is_production(self) -> bool:
@@ -148,4 +149,5 @@ def get_settings() -> Settings:
         fairy_stockfish_max_profiles=_positive_int(
             "FAIRY_STOCKFISH_MAX_PROFILES", 256
         ),
+        chass_engine_movetime_ms=_positive_int("CHASS_ENGINE_MOVETIME_MS", 180),
     )

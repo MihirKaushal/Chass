@@ -369,7 +369,7 @@ def _configuration_from_request(
         configuration = GameConfiguration(
             preset_id="gambit" if request.variant == "gambit" else "classic",
             formation_id="classic",
-            match_predictor_enabled=request.variant != "gambit",
+            match_predictor_enabled=True,
             initial_layout=classic_layout(request.boardRows, request.boardCols),
             custom_rules=CustomRulesConfig(
                 affinity_enabled=request.variant == "gambit",

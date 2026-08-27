@@ -68,6 +68,17 @@ STOCKFISH_PROFILE = AnalysisProfile(
     profile_id="stockfish-standard-8x8-v1",
 )
 
+CHASS_PROFILE = AnalysisProfile(
+    engine_id="chass",
+    engine_name="Chass Engine",
+    accuracy=(
+        "Experimental handcrafted estimate for fully customized Chass games. "
+        "It understands active rules and runtime effects but is not trained or calibrated."
+    ),
+    calibrated=False,
+    profile_id="chass-hce-v1",
+)
+
 
 def _initial_placements(state: GameState) -> list[dict]:
     if state.configuration.initial_layout:
@@ -349,24 +360,27 @@ def select_analysis_profile(
         return AnalysisProfileSelection(enabled=enabled, eligible=True, profile=STOCKFISH_PROFILE)
 
     fairy_reason, castling = _fairy_reason(state)
-    if fairy_reason or castling is None:
+    if fairy_reason is None and castling is not None:
         return AnalysisProfileSelection(
             enabled=enabled,
-            eligible=False,
-            reason=fairy_reason or stockfish.reason,
+            eligible=True,
+            profile=_compile_fairy_profile(state, castling),
         )
     return AnalysisProfileSelection(
         enabled=enabled,
         eligible=True,
-        profile=_compile_fairy_profile(state, castling),
+        profile=CHASS_PROFILE,
+        reason=(
+            "Stockfish and Fairy-Stockfish cannot model every active mechanic, "
+            "so Chass Engine will analyze this game."
+        ),
     )
 
 
 def synchronize_match_predictor_setting(state: GameState) -> None:
-    if not state.configuration.match_predictor_enabled:
-        return
-    if not select_analysis_profile(state, require_enabled=False).eligible:
-        state.configuration.match_predictor_enabled = False
+    # Every valid game now has the native Chass Engine as a fallback. Preserve
+    # the player's explicit analysis setting instead of disabling it after edits.
+    return
 
 
 def _castling_rights(state: GameState, profile: AnalysisProfile) -> str:

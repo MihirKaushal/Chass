@@ -50,3 +50,5 @@ services:
         value: "1"
       - key: FAIRY_STOCKFISH_MAX_PROFILES
         value: "256"
+      - key: CHASS_ENGINE_MOVETIME_MS
+        value: "180"

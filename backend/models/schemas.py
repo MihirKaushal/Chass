@@ -295,6 +295,7 @@ class RematchView(BaseModel):
 class MatchEvaluationView(BaseModel):
     centipawns: int | None = None
     mateIn: int | None = None
+    immediateWinner: Literal["white", "black"] | None = None
     perspective: Literal["white"] = "white"
 
 
@@ -324,7 +325,7 @@ class MatchAnalysisView(BaseModel):
     evaluation: MatchEvaluationView | None = None
     outcome: MatchOutcomeView | None = None
     factors: list[PositionFactorView] = Field(default_factory=list)
-    engineId: Literal["stockfish", "fairy-stockfish"] | None = None
+    engineId: Literal["stockfish", "fairy-stockfish", "chass"] | None = None
     engineName: str | None = None
     engineVersion: str | None = None
     accuracy: str | None = None
@@ -337,7 +338,7 @@ class MatchPredictorCompatibilityView(BaseModel):
     enabled: bool
     eligible: bool
     status: Literal["compatible", "incompatible", "verifying", "unavailable"]
-    engineId: Literal["stockfish", "fairy-stockfish"] | None = None
+    engineId: Literal["stockfish", "fairy-stockfish", "chass"] | None = None
     engineName: str | None = None
     accuracy: str | None = None
     reason: str | None = None

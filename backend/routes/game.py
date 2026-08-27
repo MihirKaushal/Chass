@@ -15,6 +15,7 @@ from fastapi import (
 from starlette.concurrency import run_in_threadpool
 
 from backend.analysis import (
+    ChassAnalysisProvider,
     FairyStockfishUciProvider,
     MatchAnalysisService,
     StockfishUciProvider,
@@ -82,6 +83,11 @@ match_analysis_service = MatchAnalysisService(
         ),
         startup_attempts=analysis_settings.stockfish_startup_attempts,
         max_loaded_profiles=analysis_settings.fairy_stockfish_max_profiles,
+    ),
+    chass_provider=ChassAnalysisProvider(
+        rule_engine,
+        enabled=analysis_settings.match_predictor_engine_enabled,
+        movetime_ms=analysis_settings.chass_engine_movetime_ms,
     ),
 )
 

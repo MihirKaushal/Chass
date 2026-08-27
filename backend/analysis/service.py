@@ -7,12 +7,14 @@ from collections.abc import Awaitable, Callable
 from datetime import datetime, timezone
 from time import monotonic
 
+from backend.analysis.chass import ChassAnalysisProvider, chass_position_hash
 from backend.analysis.classic import (
     classic_position_fen,
     extract_position_factors,
 )
 from backend.analysis.fairy import FairyStockfishUciProvider
 from backend.analysis.profiles import (
+    CHASS_PROFILE,
     AnalysisProfile,
     analysis_position_fen,
     analysis_position_hash,
@@ -40,11 +42,16 @@ class MatchAnalysisService:
         rule_engine: RuleEngine,
         *,
         fairy_provider: FairyStockfishUciProvider | None = None,
+        chass_provider: ChassAnalysisProvider | None = None,
         cache_size: int = 512,
         failure_retry_seconds: float = 3.0,
     ) -> None:
         self.provider = provider
         self.fairy_provider = fairy_provider
+        self.chass_provider = chass_provider or ChassAnalysisProvider(
+            rule_engine,
+            enabled=provider.enabled,
+        )
         self.rule_engine = rule_engine
         self.cache_size = max(1, cache_size)
         self.failure_retry_seconds = max(0.1, failure_retry_seconds)
@@ -64,7 +71,9 @@ class MatchAnalysisService:
 
     async def start(self) -> bool:
         # Fairy-Stockfish starts lazily only when a compatible custom profile is used.
-        return await self.provider.start()
+        chass_ready = await self.chass_provider.start()
+        stockfish_ready = await self.provider.start()
+        return chass_ready or stockfish_ready
 
     async def shutdown(self) -> None:
         tasks = list(self._tasks.values())
@@ -81,6 +90,7 @@ class MatchAnalysisService:
         await self.provider.close()
         if self.fairy_provider is not None:
             await self.fairy_provider.close()
+        await self.chass_provider.close()
 
     def invalidate(self, game_id: str) -> None:
         self._latest_positions.pop(game_id, None)
@@ -91,7 +101,9 @@ class MatchAnalysisService:
 
     def health_status(self) -> str:
         providers = [
-            provider for provider in (self.provider, self.fairy_provider) if provider is not None
+            provider
+            for provider in (self.provider, self.fairy_provider, self.chass_provider)
+            if provider is not None
         ]
         if not any(provider.enabled for provider in providers):
             return "disabled"
@@ -102,9 +114,19 @@ class MatchAnalysisService:
         return "starting"
 
     def health_reason(self) -> str | None:
-        if self.provider.ready or (self.fairy_provider and self.fairy_provider.ready):
+        if any(
+            provider is not None and provider.ready
+            for provider in (self.provider, self.fairy_provider, self.chass_provider)
+        ):
             return None
-        return getattr(self.provider, "public_error", None)
+        return next(
+            (
+                provider.public_error
+                for provider in (self.provider, self.fairy_provider, self.chass_provider)
+                if provider is not None and provider.public_error
+            ),
+            None,
+        )
 
     def health_details(self) -> dict[str, str]:
         def status(provider) -> str:
@@ -119,7 +141,15 @@ class MatchAnalysisService:
         return {
             "stockfish": status(self.provider),
             "fairyStockfish": status(self.fairy_provider),
+            "chass": status(self.chass_provider),
         }
+
+    def _provider_for(self, profile: AnalysisProfile):
+        if profile.engine_id == "fairy-stockfish":
+            return self.fairy_provider
+        if profile.engine_id == "chass":
+            return self.chass_provider
+        return self.provider
 
     @staticmethod
     def _disabled_view(
@@ -158,7 +188,7 @@ class MatchAnalysisService:
             return MatchOutcomeView(whiteWin=1, draw=0, blackWin=0)
         if state.winner == "black":
             return MatchOutcomeView(whiteWin=0, draw=0, blackWin=1)
-        if state.game_status in {"stalemate", "draw"}:
+        if state.phase == "finished":
             return MatchOutcomeView(whiteWin=0, draw=1, blackWin=0)
         return None
 
@@ -166,7 +196,7 @@ class MatchAnalysisService:
     def _terminal_label(state: GameState) -> str | None:
         if state.winner in {"white", "black"}:
             return state.winner
-        if state.game_status in {"stalemate", "draw"}:
+        if state.phase == "finished":
             return "draw"
         return None
 
@@ -272,6 +302,17 @@ class MatchAnalysisService:
                 parityChecked=False,
                 reason="Preferred engine for compatible standard-rule 8x8 positions.",
             )
+        if profile.engine_id == "chass":
+            return MatchPredictorCompatibilityView(
+                **base,
+                eligible=True,
+                status="compatible",
+                parityChecked=False,
+                reason=(
+                    "Universal fallback for Chass rules, custom pieces, special abilities, "
+                    "terrain, and alternate win conditions."
+                ),
+            )
         if not verify:
             return MatchPredictorCompatibilityView(
                 **base,
@@ -302,14 +343,26 @@ class MatchAnalysisService:
                 ),
             )
         return MatchPredictorCompatibilityView(
-            **base,
-            eligible=compatible,
-            status="compatible" if compatible else "incompatible",
-            parityChecked=True,
+            **(
+                base
+                if compatible
+                else {
+                    "enabled": snapshot.configuration.match_predictor_enabled,
+                    "engineId": CHASS_PROFILE.engine_id,
+                    "engineName": CHASS_PROFILE.engine_name,
+                    "accuracy": CHASS_PROFILE.accuracy,
+                }
+            ),
+            eligible=True,
+            status="compatible",
+            parityChecked=compatible,
             reason=(
                 "Chass and Fairy agree on legal moves and terminal behavior."
                 if compatible
-                else reason
+                else (
+                    f"{reason or 'Fairy parity could not be established.'} "
+                    "Chass Engine will analyze this configuration instead."
+                )
             ),
         )
 
@@ -380,19 +433,62 @@ class MatchAnalysisService:
             except Exception:
                 logger.exception("Match Analysis WebSocket broadcast failed")
 
+    async def _native_analysis_view(
+        self,
+        state: GameState,
+        version: int,
+        position_hash: str,
+        *,
+        reason: str | None = None,
+    ) -> MatchAnalysisView:
+        chass_result = await self.chass_provider.analyze(state)
+        terminal_outcome = self._terminal_outcome(state)
+        outcome = terminal_outcome or MatchOutcomeView(
+            whiteWin=chass_result.white_share,
+            draw=0,
+            blackWin=1 - chass_result.white_share,
+        )
+        return MatchAnalysisView(
+            gameId=state.id,
+            enabled=True,
+            eligible=True,
+            status="ready",
+            reason=(
+                "The game has reached a final result."
+                if terminal_outcome is not None
+                else reason
+            ),
+            gameVersion=version,
+            positionHash=position_hash,
+            evaluation=MatchEvaluationView(
+                centipawns=round(chass_result.score * 100),
+                mateIn=chass_result.mate_in,
+                immediateWinner=chass_result.immediate_winner,
+            ),
+            outcome=outcome,
+            factors=chass_result.factors,
+            engineVersion=chass_result.engine_version,
+            modelVersion=chass_result.model_version,
+            **self._profile_fields(CHASS_PROFILE),
+            updatedAt=datetime.now(timezone.utc),
+        )
+
     async def _analyze(
         self,
         state: GameState,
         version: int,
         position_hash: str,
-        fen: str,
+        fen: str | None,
         profile: AnalysisProfile,
     ) -> None:
+        analysis_profile = profile
         try:
             # Let the authoritative move response clear the event loop first, then keep
             # legal-move factor generation off that loop entirely.
             await asyncio.sleep(ANALYSIS_DEBOUNCE_SECONDS)
             if profile.engine_id == "fairy-stockfish":
+                if fen is None:
+                    raise RuntimeError("Fairy-Stockfish analysis requires a FEN position")
                 compatible, parity_reason = await self._verify_fairy_parity(
                     state,
                     profile,
@@ -400,17 +496,29 @@ class MatchAnalysisService:
                     position_hash,
                 )
                 if not compatible:
-                    result = self._disabled_view(
+                    analysis_profile = CHASS_PROFILE
+                    result = await self._native_analysis_view(
                         state,
                         version,
-                        enabled=True,
-                        reason=parity_reason,
-                        profile=profile,
+                        position_hash,
+                        reason=(
+                            f"{parity_reason} Chass Engine is analyzing this position instead."
+                        ),
                     )
-                    result.positionHash = position_hash
                     self._cache_result(position_hash, result)
                     await self._publish_if_current(result)
                     return
+
+            if profile.engine_id == "chass":
+                result = await self._native_analysis_view(
+                    state,
+                    version,
+                    position_hash,
+                )
+                self._cache_result(position_hash, result)
+                self._failures.pop((state.id, position_hash), None)
+                await self._publish_if_current(result)
+                return
 
             factors = await asyncio.to_thread(
                 extract_position_factors,
@@ -441,8 +549,12 @@ class MatchAnalysisService:
                 if profile.engine_id == "fairy-stockfish":
                     if self.fairy_provider is None:
                         raise RuntimeError("Fairy-Stockfish is not configured on this server")
+                    if fen is None:
+                        raise RuntimeError("Fairy-Stockfish analysis requires a FEN position")
                     engine_result = await self.fairy_provider.analyze(fen, profile)
                 else:
+                    if fen is None:
+                        raise RuntimeError("Stockfish analysis requires a FEN position")
                     engine_result = await self.provider.analyze(fen)
                 evaluation, outcome = self._normalize_engine_result(
                     engine_result,
@@ -469,9 +581,7 @@ class MatchAnalysisService:
             raise
         except Exception as error:
             logger.warning("Match Analysis failed: %s", error)
-            active_provider = (
-                self.fairy_provider if profile.engine_id == "fairy-stockfish" else self.provider
-            )
+            active_provider = self._provider_for(analysis_profile)
             public_error = getattr(active_provider, "public_error", None)
             unavailable = MatchAnalysisView(
                 gameId=state.id,
@@ -484,7 +594,7 @@ class MatchAnalysisService:
                 gameVersion=version,
                 positionHash=position_hash,
                 engineVersion=active_provider.engine_name if active_provider else None,
-                **self._profile_fields(profile),
+                **self._profile_fields(analysis_profile),
                 updatedAt=datetime.now(timezone.utc),
             )
             self._cache_failure(state.id, position_hash, unavailable)
@@ -504,6 +614,14 @@ class MatchAnalysisService:
         *,
         retry_failed: bool = False,
     ) -> MatchAnalysisView:
+        if state.phase not in {"play", "finished"}:
+            self.invalidate(state.id)
+            return self._disabled_view(
+                state,
+                version,
+                enabled=state.configuration.match_predictor_enabled,
+                reason="Match Analysis begins after private setup is complete.",
+            )
         selection = select_analysis_profile(state)
         if not selection.eligible or selection.profile is None:
             self.invalidate(state.id)
@@ -515,12 +633,16 @@ class MatchAnalysisService:
             )
         profile = selection.profile
 
-        fen = (
-            classic_position_fen(state)
-            if profile.engine_id == "stockfish"
-            else analysis_position_fen(state, profile)
-        )
-        position_hash = analysis_position_hash(state, profile, fen)
+        if profile.engine_id == "chass":
+            fen = None
+            position_hash = chass_position_hash(state)
+        else:
+            fen = (
+                classic_position_fen(state)
+                if profile.engine_id == "stockfish"
+                else analysis_position_fen(state, profile)
+            )
+            position_hash = analysis_position_hash(state, profile, fen)
         cached = self._cache.get(position_hash)
         if cached is not None:
             self._cache.move_to_end(position_hash)
@@ -541,9 +663,7 @@ class MatchAnalysisService:
             failed = failed_entry[1]
             return failed.model_copy(deep=True, update={"gameVersion": version})
 
-        active_provider = (
-            self.fairy_provider if profile.engine_id == "fairy-stockfish" else self.provider
-        )
+        active_provider = self._provider_for(profile)
         if active_provider is None or not active_provider.enabled:
             return MatchAnalysisView(
                 gameId=state.id,
