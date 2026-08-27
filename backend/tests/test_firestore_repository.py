@@ -298,6 +298,55 @@ def test_firestore_invites_are_transactional_and_replaceable(firestore_service):
         service.join_game(JoinGameRequest(inviteToken=replacement.inviteToken))
 
 
+def test_firestore_reconnect_invites_rotate_either_player_seat(firestore_service):
+    service, _, client = firestore_service
+    created = service.create_game(CreateGameRequest(mode="online"))
+    joined = service.join_game(JoinGameRequest(inviteToken=created.inviteToken))
+    game_id = created.game.id
+
+    invite_black = service.create_reconnect_invite(game_id, created.playerToken)
+    assert invite_black.targetColor == "black"
+    rejoined_black = service.join_game(
+        JoinGameRequest(inviteCode=invite_black.inviteCode)
+    )
+    assert rejoined_black.playerColor == "black"
+    assert rejoined_black.role == "player"
+    with pytest.raises(HTTPException) as old_black:
+        service.get_game(game_id, joined.playerToken)
+    assert old_black.value.status_code == 403
+
+    invite_white = service.create_reconnect_invite(game_id, rejoined_black.playerToken)
+    assert invite_white.targetColor == "white"
+    rejoined_white = service.join_game(
+        JoinGameRequest(inviteCode=invite_white.inviteCode)
+    )
+    assert rejoined_white.playerColor == "white"
+    assert rejoined_white.role == "host"
+    with pytest.raises(HTTPException) as old_white:
+        service.get_game(game_id, created.playerToken)
+    assert old_white.value.status_code == 403
+
+    players = list(client.documents[PLAYERS].values())
+    assert len(players) == 2
+    assert {(player["color"], player["role"]) for player in players} == {
+        ("white", "host"),
+        ("black", "player"),
+    }
+
+
+def test_firestore_player_return_revokes_pending_reconnect_invite(firestore_service):
+    service, _, _ = firestore_service
+    created = service.create_game(CreateGameRequest(mode="online"))
+    service.join_game(JoinGameRequest(inviteToken=created.inviteToken))
+
+    reconnect = service.create_reconnect_invite(created.game.id, created.playerToken)
+    service.revoke_reconnect_invites(created.game.id, reconnect.targetColor)
+
+    with pytest.raises(HTTPException, match="replaced") as stale_invite:
+        service.join_game(JoinGameRequest(inviteCode=reconnect.inviteCode))
+    assert stale_invite.value.status_code == 409
+
+
 def test_firestore_inactive_invite_cannot_revive_game(firestore_service):
     service, _, client = firestore_service
     created = service.create_game(CreateGameRequest(mode="online"))

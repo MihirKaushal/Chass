@@ -205,6 +205,14 @@ export function replaceInvite(gameId, token) {
   });
 }
 
+export function createReconnectInvite(gameId, token) {
+  return request(`/game/${gameId}/reconnect-invite`, {
+    method: "POST",
+    body: JSON.stringify({}),
+    token,
+  });
+}
+
 export function getWebSocketUrl(gameId) {
   const normalized = API_BASE.replace("http://", "ws://").replace("https://", "wss://");
   return `${normalized}/game/ws/${encodeURIComponent(gameId)}`;

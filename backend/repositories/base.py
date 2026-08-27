@@ -148,7 +148,12 @@ class GameRepository(Protocol):
         invite_token_hash: str,
         invite_expires_at: datetime,
         game_expires_at: datetime,
+        *,
+        target_color: str = "black",
+        replaces_existing_player: bool = False,
     ) -> None: ...
+
+    def revoke_reconnect_invites(self, game_id: str, target_color: str) -> None: ...
 
     def save_game(
         self,

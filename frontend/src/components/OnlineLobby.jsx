@@ -1,22 +1,26 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 import Button from "./ui/Button";
 import FormField from "./ui/FormField";
 import StableStatus from "./ui/StableStatus";
 
 function OnlineLobby({
-  game,
   session,
+  inviteState,
+  reconnectInvite,
+  reconnectInviteLoading,
+  onRetryReconnectInvite,
   onReplaceInvite,
 }) {
   const [copyState, setCopyState] = useState("");
-  const isHost = session?.role === "host";
-  const inviteUrl = session?.inviteUrl;
-  const inviteCode = session?.inviteCode || session?.inviteToken;
+  const activeInvite = inviteState?.reconnect ? reconnectInvite : session;
+  const inviteUrl = activeInvite?.inviteUrl;
+  const inviteCode = activeInvite?.inviteCode || activeInvite?.inviteToken;
+  const targetLabel = inviteState?.targetColor === "white" ? "White" : "Black";
 
-  if (game.ready || !isHost) {
-    return null;
-  }
+  useEffect(() => setCopyState(""), [inviteCode, inviteState?.targetColor]);
+
+  if (!inviteState) return null;
 
   const copyInvite = async (value, successMessage) => {
     if (!value) {
@@ -32,13 +36,26 @@ function OnlineLobby({
   };
 
   return (
-    <section className="online-invite-panel" aria-label="Online game invitation">
+    <section
+      className={`online-invite-panel${inviteState.reconnect ? " is-reconnect" : ""}`}
+      aria-label={`Invite ${targetLabel} to the online game`}
+    >
       <div className="online-invite-heading">
-        <strong>Invite Black</strong>
-        <span>Share the private link or code.</span>
+        <strong>Invite {targetLabel}</strong>
+        <span>
+          {inviteState.reconnect
+            ? `${targetLabel} is offline. Share a fresh one-time link or code to continue.`
+            : "Share the private link or code."}
+        </span>
       </div>
       <div className="invite-controls">
-        {inviteUrl ? (
+        {reconnectInviteLoading && !inviteUrl ? (
+          <StableStatus
+            className="invite-generation-status"
+            visible
+            message={`Creating ${targetLabel}'s reconnect invite...`}
+          />
+        ) : inviteUrl ? (
           <>
             <FormField label="Private Invite Link">
               <input type="text" value={inviteUrl} readOnly onFocus={(event) => event.target.select()} />
@@ -54,8 +71,10 @@ function OnlineLobby({
             </Button>
           </>
         ) : (
-          <Button onClick={onReplaceInvite}>
-            Create New Invite
+          <Button
+            onClick={inviteState.reconnect ? onRetryReconnectInvite : onReplaceInvite}
+          >
+            {inviteState.reconnect ? "Try Again" : "Create New Invite"}
           </Button>
         )}
         <StableStatus

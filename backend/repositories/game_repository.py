@@ -238,20 +238,26 @@ class SqlGameRepository:
                         GamePlayerRow.color == invite.target_color,
                     )
                 )
-                if occupied is not None:
-                    raise InviteClaimError("Game already has two players")
+                if invite.replaces_existing_player:
+                    if occupied is None:
+                        raise InviteClaimError("The disconnected player seat no longer exists")
+                    occupied.token_hash = player_token_hash
+                    occupied.last_seen_at = now
+                else:
+                    if occupied is not None:
+                        raise InviteClaimError("Game already has two players")
 
-                session.add(
-                    GamePlayerRow(
-                        id=str(uuid.uuid4()),
-                        game_id=invite.game_id,
-                        color=invite.target_color,
-                        role="player",
-                        token_hash=player_token_hash,
-                        joined_at=now,
-                        last_seen_at=now,
+                    session.add(
+                        GamePlayerRow(
+                            id=str(uuid.uuid4()),
+                            game_id=invite.game_id,
+                            color=invite.target_color,
+                            role="host" if invite.target_color == "white" else "player",
+                            token_hash=player_token_hash,
+                            joined_at=now,
+                            last_seen_at=now,
+                        )
                     )
-                )
                 invite.used_at = now
                 game.updated_at = now
                 game.expires_at = game_expires_at
@@ -266,7 +272,12 @@ class SqlGameRepository:
         invite_token_hash: str,
         invite_expires_at: datetime,
         game_expires_at: datetime,
+        *,
+        target_color: str = "black",
+        replaces_existing_player: bool = False,
     ) -> None:
+        if target_color not in {"white", "black"}:
+            raise ValueError("Invite target color must be white or black")
         now = datetime.now(timezone.utc)
 
         with session_scope() as session:
@@ -279,6 +290,17 @@ class SqlGameRepository:
             current_expiration = _as_utc(game.expires_at)
             if current_expiration is not None and current_expiration <= now:
                 raise RepositoryError("Game has expired")
+
+            occupied = session.scalar(
+                select(GamePlayerRow).where(
+                    GamePlayerRow.game_id == game_id,
+                    GamePlayerRow.color == target_color,
+                )
+            )
+            if replaces_existing_player and occupied is None:
+                raise RepositoryError("The disconnected player seat no longer exists")
+            if not replaces_existing_player and occupied is not None:
+                raise RepositoryError("The invited player seat is already occupied")
 
             existing = session.scalars(
                 select(GameInviteRow).where(
@@ -295,13 +317,30 @@ class SqlGameRepository:
                     id=str(uuid.uuid4()),
                     game_id=game_id,
                     token_hash=invite_token_hash,
-                    target_color="black",
+                    target_color=target_color,
+                    replaces_existing_player=replaces_existing_player,
                     created_at=now,
                     expires_at=invite_expires_at,
                 )
             )
             game.updated_at = now
             game.expires_at = game_expires_at
+            session.commit()
+
+    def revoke_reconnect_invites(self, game_id: str, target_color: str) -> None:
+        now = datetime.now(timezone.utc)
+        with session_scope() as session:
+            session.execute(
+                update(GameInviteRow)
+                .where(
+                    GameInviteRow.game_id == game_id,
+                    GameInviteRow.target_color == target_color,
+                    GameInviteRow.replaces_existing_player.is_(True),
+                    GameInviteRow.used_at.is_(None),
+                    GameInviteRow.revoked_at.is_(None),
+                )
+                .values(revoked_at=now)
+            )
             session.commit()
 
     def save_game(

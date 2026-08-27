@@ -38,6 +38,12 @@ class GameSocketManager:
         if not room:
             self.connections.pop(game_id, None)
 
+    def is_color_connected(self, game_id: str, color: str) -> bool:
+        return any(
+            identity.color == color
+            for identity in self.connections.get(game_id, {}).values()
+        )
+
     async def send(self, websocket: WebSocket, event_type: str, payload: dict | None = None) -> None:
         await websocket.send_json({"type": event_type, **(payload or {})})
 

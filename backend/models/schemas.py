@@ -843,3 +843,4 @@ class InviteResponse(BaseModel):
     inviteCode: str
     inviteUrl: str
     inviteExpiresAt: datetime
+    targetColor: Literal["white", "black"]

@@ -991,6 +991,7 @@ class GameService:
 
     def join_game(self, request: JoinGameRequest) -> GameSessionResponse:
         player_token = generate_token()
+        player_token_hash = hash_token(player_token)
         now = datetime.now(timezone.utc)
         invite_credential = normalize_invite_credential(
             request.inviteCode or request.inviteToken or ""
@@ -998,7 +999,7 @@ class GameService:
         try:
             record = self.repository.claim_invite(
                 hash_token(invite_credential),
-                hash_token(player_token),
+                player_token_hash,
                 self._expiration_deadline(now),
                 self._inactive_before(now),
             )
@@ -1029,11 +1030,15 @@ class GameService:
                 self.engine.evaluate_state(next_state)
             record = self._save(record, next_state)
 
+        player = self.repository.get_player(record.state.id, player_token_hash)
+        if player is None:
+            raise HTTPException(status_code=500, detail="The joined player seat could not be loaded")
+
         return GameSessionResponse(
-            game=self.serialize_game(record, viewer_color="black"),
+            game=self.serialize_game(record, viewer_color=player.color),
             playerToken=player_token,
-            playerColor="black",
-            role="player",
+            playerColor=player.color,
+            role=player.role,
         )
 
     def get_game(self, game_id: str, player_token: str | None = None) -> GameRecord:
@@ -1140,7 +1145,48 @@ class GameService:
             inviteCode=invite_token,
             inviteUrl=self._invite_url(invite_token),
             inviteExpiresAt=expires_at,
+            targetColor="black",
         )
+
+    def reconnect_target(self, game_id: str, player_token: str | None) -> str:
+        authorized = self.authorize(game_id, player_token)
+        if authorized.record.mode != "online" or authorized.player is None:
+            raise HTTPException(status_code=409, detail="Reconnect invites require an online game")
+        if not authorized.record.ready:
+            raise HTTPException(status_code=409, detail="The second player has not joined yet")
+        return "black" if authorized.player.color == "white" else "white"
+
+    def create_reconnect_invite(
+        self,
+        game_id: str,
+        player_token: str | None,
+    ) -> InviteResponse:
+        target_color = self.reconnect_target(game_id, player_token)
+        invite_token = generate_invite_code()
+        now = datetime.now(timezone.utc)
+        expires_at = now + timedelta(hours=get_settings().invite_ttl_hours)
+        try:
+            self.repository.replace_invite(
+                game_id,
+                hash_token(invite_token),
+                expires_at,
+                self._expiration_deadline(now),
+                target_color=target_color,
+                replaces_existing_player=True,
+            )
+        except (ExpiredGameError, RepositoryError) as error:
+            raise HTTPException(status_code=410, detail=str(error)) from error
+        return InviteResponse(
+            inviteToken=invite_token,
+            inviteCode=invite_token,
+            inviteUrl=self._invite_url(invite_token),
+            inviteExpiresAt=expires_at,
+            targetColor=target_color,
+        )
+
+    def revoke_reconnect_invites(self, game_id: str, target_color: str) -> None:
+        if target_color in {"white", "black"}:
+            self.repository.revoke_reconnect_invites(game_id, target_color)
 
     @staticmethod
     def _setup_color(authorized: AuthorizedGame) -> str:
