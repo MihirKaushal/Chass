@@ -1155,6 +1155,10 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
             "A successful trade consumes the turn and starts a {cooldownTurns}-turn cooldown.",
             "Kings and neutral pieces cannot be selected.",
             "Neither removal awards score and it cannot be used while in check.",
+            (
+                "A legal standard capture takes priority on the board; use the Special "
+                "Actions panel when you intentionally want the trade instead."
+            ),
         ],
         "details": [],
     },

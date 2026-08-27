@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   actionsForGlobalSelection,
+  boardActionsWithStandardMovePriority,
   globalActionSelectionKey,
   necromancyPurchaseOptions,
 } from "./specialActionSelection.js";
@@ -90,4 +91,37 @@ test("Selecting a purchase exposes only that piece's legal board squares", () =>
     [{ row: 7, col: 0 }, { row: 7, col: 1 }]
   );
   assert.ok(selected.every((action) => action.params.capturedPieceId === "rook-1"));
+});
+
+test("standard captures take priority over overlapping Eye for an Eye targets", () => {
+  const actions = [
+    {
+      id: "eye:rook-white:rook-black",
+      actionType: "eye_for_an_eye",
+      source: { row: 7, col: 0 },
+      target: { row: 0, col: 0 },
+    },
+    {
+      id: "eye:rook-white:rook-black-2",
+      actionType: "eye_for_an_eye",
+      source: { row: 7, col: 0 },
+      target: { row: 0, col: 7 },
+    },
+    {
+      id: "projectile:catapult:pawn",
+      actionType: "catapult_projectile",
+      source: { row: 7, col: 0 },
+      target: { row: 0, col: 0 },
+    },
+  ];
+
+  const visible = boardActionsWithStandardMovePriority(
+    actions,
+    new Set(["0-0"])
+  );
+
+  assert.deepEqual(
+    visible.map((action) => action.id),
+    ["eye:rook-white:rook-black-2", "projectile:catapult:pawn"]
+  );
 });
