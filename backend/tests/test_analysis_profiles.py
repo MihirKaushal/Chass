@@ -5,6 +5,7 @@ from pathlib import Path
 
 import pytest
 
+from backend.analysis.chass import ChassAnalysisProvider
 from backend.analysis.classic import extract_position_factors
 from backend.analysis.fairy import (
     FairyPositionInspection,
@@ -150,33 +151,37 @@ def test_configuration_validation_reports_the_auto_selected_engine(client):
     assert large_profile["status"] in {"compatible", "unavailable"}
 
 
-def test_fairy_profile_limits_and_stateful_features_remain_incompatible(client):
+def test_fairy_limits_and_stateful_features_fall_back_to_chass(client):
     maximum = create_state(client, rows=FAIRY_MAX_RANKS, cols=FAIRY_MAX_FILES)
     assert select_analysis_profile(maximum).eligible is True
 
     too_tall = maximum.clone()
     too_tall.board.rows = FAIRY_MAX_RANKS + 1
     result = select_analysis_profile(too_tall, require_enabled=False)
-    assert result.eligible is False
-    assert "10 rows by 12 columns" in (result.reason or "")
+    assert result.eligible is True
+    assert result.profile is not None
+    assert result.profile.engine_id == "chass"
 
     too_wide = maximum.clone()
     too_wide.board.cols = FAIRY_MAX_FILES + 1
     result = select_analysis_profile(too_wide, require_enabled=False)
-    assert result.eligible is False
-    assert "10 rows by 12 columns" in (result.reason or "")
+    assert result.eligible is True
+    assert result.profile is not None
+    assert result.profile.engine_id == "chass"
 
     affinity = maximum.clone()
     affinity.configuration.custom_rules.affinity_enabled = True
     result = select_analysis_profile(affinity, require_enabled=False)
-    assert result.eligible is False
-    assert "Affinity Squares" in (result.reason or "")
+    assert result.eligible is True
+    assert result.profile is not None
+    assert result.profile.engine_id == "chass"
 
     custom_movement = maximum.clone()
     custom_movement.piece_definitions["rook"].patterns[0].repeat = False
     result = select_analysis_profile(custom_movement, require_enabled=False)
-    assert result.eligible is False
-    assert "standard piece movement" in (result.reason or "")
+    assert result.eligible is True
+    assert result.profile is not None
+    assert result.profile.engine_id == "chass"
 
     missing_promotion = maximum.clone()
     missing_promotion.configuration.enabled_piece_types.remove("queen")
@@ -186,8 +191,9 @@ def test_fairy_profile_limits_and_stateful_features_remain_incompatible(client):
             if piece is not None and piece.type == "queen":
                 missing_promotion.board.grid[row][col] = None
     result = select_analysis_profile(missing_promotion, require_enabled=False)
-    assert result.eligible is False
-    assert "promotion pieces" in (result.reason or "")
+    assert result.eligible is True
+    assert result.profile is not None
+    assert result.profile.engine_id == "chass"
 
 
 def test_generated_fairy_fen_and_perft_parser_support_largeboard_coordinates(client):
@@ -237,6 +243,7 @@ def test_fairy_compatibility_requires_chass_move_parity(client):
         IdleStockfishProvider(),
         engine,
         fairy_provider=FakeFairyProvider(frozenset()),
+        chass_provider=ChassAnalysisProvider(engine, movetime_ms=40),
     )
 
     async def mismatch_scenario():
@@ -244,9 +251,17 @@ def test_fairy_compatibility_requires_chass_move_parity(client):
             state,
             verify=True,
         )
-        assert compatibility.status == "incompatible"
-        assert compatibility.parityChecked is True
+        assert compatibility.status == "compatible"
+        assert compatibility.engineId == "chass"
+        assert compatibility.parityChecked is False
         assert "legal-move parity failed" in (compatibility.reason or "")
+        pending = await mismatch_service.request(state, version=1)
+        assert pending.status == "analyzing"
+        await mismatch_service.wait_for_game(state.id)
+        ready = await mismatch_service.request(state, version=1)
+        assert ready.status == "ready"
+        assert ready.engineId == "chass"
+        assert "analyzing this position instead" in (ready.reason or "")
         await mismatch_service.shutdown()
 
     asyncio.run(mismatch_scenario())

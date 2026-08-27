@@ -10,6 +10,7 @@ from backend.analysis.classic import (
     extract_position_factors,
     synchronize_match_predictor_setting,
 )
+from backend.analysis.profiles import select_analysis_profile
 from backend.analysis.service import MatchAnalysisService
 from backend.analysis.stockfish import EngineAnalysis, parse_uci_info
 from backend.catalog import classic_layout
@@ -221,7 +222,7 @@ def test_standard_piece_subsets_work_when_no_pawn_can_promote(client):
         ),
     ],
 )
-def test_any_classic_customization_disables_predictor(
+def test_classic_customizations_fall_back_to_chass_engine(
     client,
     mutation,
     reason_fragment: str,
@@ -235,7 +236,11 @@ def test_any_classic_customization_disables_predictor(
     assert reason_fragment in (eligibility.reason or "")
 
     synchronize_match_predictor_setting(state)
-    assert state.configuration.match_predictor_enabled is False
+    assert state.configuration.match_predictor_enabled is True
+    selection = select_analysis_profile(state)
+    assert selection.eligible is True
+    assert selection.profile is not None
+    assert selection.profile.engine_id == "chass"
 
 
 def test_player_can_explicitly_disable_predictor(client):

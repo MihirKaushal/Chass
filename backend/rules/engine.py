@@ -491,3 +491,64 @@ class RuleEngine:
             col=col,
             evolve_to=evolve_to,
         )
+
+    @staticmethod
+    def _prepare_simulation_state(state: GameState) -> tuple[GameState, dict[str, float] | None]:
+        simulated = state.clone()
+        remaining = None
+        if simulated.clock is not None:
+            remaining = dict(simulated.clock.remaining_seconds)
+            simulated.clock.turn_started_at = datetime.now(timezone.utc)
+        return simulated, remaining
+
+    @staticmethod
+    def _restore_simulation_clock(
+        state: GameState,
+        remaining: dict[str, float] | None,
+    ) -> None:
+        if state.clock is None or remaining is None:
+            return
+        state.clock.remaining_seconds = remaining
+        state.clock.turn_started_at = datetime.now(timezone.utc)
+
+    def simulate_turn_move(self, state: GameState, move: Move) -> GameState:
+        """Apply a complete move without charging wall-clock time to either player."""
+        simulated, remaining = self._prepare_simulation_state(state)
+        next_state, _ = self.apply_move(simulated, move)
+        self._restore_simulation_clock(next_state, remaining)
+        return next_state
+
+    def simulate_turn_action(
+        self,
+        state: GameState,
+        color: str,
+        payload: dict,
+    ) -> GameState:
+        """Apply a complete custom action without charging wall-clock time."""
+        simulated, remaining = self._prepare_simulation_state(state)
+        next_state, _ = self.apply_custom_action(simulated, color, payload)
+        self._restore_simulation_clock(next_state, remaining)
+        return next_state
+
+    def simulate_command_power(
+        self,
+        state: GameState,
+        color: str,
+        *,
+        power: str,
+        row: int,
+        col: int,
+        evolve_to: str | None,
+    ) -> GameState:
+        """Apply a complete command power without charging wall-clock time."""
+        simulated, remaining = self._prepare_simulation_state(state)
+        next_state, _ = self.apply_command_power(
+            simulated,
+            color,
+            power=power,
+            row=row,
+            col=col,
+            evolve_to=evolve_to,
+        )
+        self._restore_simulation_clock(next_state, remaining)
+        return next_state
