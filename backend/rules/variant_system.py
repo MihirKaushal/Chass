@@ -97,6 +97,51 @@ def objective_center_squares(rows: int, cols: int) -> list[tuple[int, int]]:
     return centered_board_squares(rows, cols, 4)
 
 
+def _balance_affinity_board_colors(
+    rows: int,
+    cols: int,
+    selected: list[tuple[int, int]],
+) -> list[tuple[int, int]]:
+    """Swap equally central cells until light and dark board colors are balanced."""
+    half = len(selected) // 2
+    parity_counts = {
+        parity: sum(1 for square in selected if sum(square) % 2 == parity)
+        for parity in (0, 1)
+    }
+    if parity_counts[0] == half:
+        return sorted(selected)
+
+    underrepresented = 0 if parity_counts[0] < half else 1
+    overrepresented = 1 - underrepresented
+    swap_count = half - parity_counts[underrepresented]
+    center_rows = [rows // 2] if rows % 2 else [rows // 2 - 1, rows // 2]
+    candidate_rows = range(rows) if rows % 2 else center_rows
+    candidates = [(row, col) for row in candidate_rows for col in range(cols)]
+    selected_set = set(selected)
+
+    def distance(square: tuple[int, int]) -> int:
+        return (2 * square[0] - (rows - 1)) ** 2 + (
+            2 * square[1] - (cols - 1)
+        ) ** 2
+
+    additions = sorted(
+        (
+            square
+            for square in candidates
+            if square not in selected_set and sum(square) % 2 == underrepresented
+        ),
+        key=lambda square: (distance(square), square[1], square[0]),
+    )[:swap_count]
+    removals = sorted(
+        (square for square in selected if sum(square) % 2 == overrepresented),
+        key=lambda square: (-distance(square), -square[1], -square[0]),
+    )[:swap_count]
+
+    selected_set.difference_update(removals)
+    selected_set.update(additions)
+    return sorted(selected_set)
+
+
 def affinity_start_squares(
     rows: int,
     cols: int,
@@ -147,7 +192,7 @@ def affinity_start_squares(
                 break
             selected.extend(pair)
 
-    ordered = sorted(selected[:limit])
+    ordered = _balance_affinity_board_colors(rows, cols, selected[:limit])
     half = len(ordered) // 2
     if rows % 2:
         white = ordered[::2]

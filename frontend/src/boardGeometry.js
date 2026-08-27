@@ -71,6 +71,56 @@ export function objectiveCenterSquares(rows, cols) {
   return centeredBoardSquares(rows, cols, 4);
 }
 
+function balanceAffinityBoardColors(rows, cols, selected) {
+  const half = selected.length / 2;
+  const parityCounts = [0, 0];
+  selected.forEach(({ row, col }) => {
+    parityCounts[(row + col) % 2] += 1;
+  });
+  if (parityCounts[0] === half) return selected;
+
+  const underrepresented = parityCounts[0] < half ? 0 : 1;
+  const overrepresented = 1 - underrepresented;
+  const swapCount = half - parityCounts[underrepresented];
+  const candidateRows = rows % 2
+    ? Array.from({ length: rows }, (_, row) => row)
+    : [rows / 2 - 1, rows / 2];
+  const candidates = candidateRows.flatMap((row) =>
+    Array.from({ length: cols }, (_, col) => ({ row, col }))
+  );
+  const selectedKeys = new Set(
+    selected.map(({ row, col }) => squareKey(row, col))
+  );
+  const distance = ({ row, col }) =>
+    (2 * row - (rows - 1)) ** 2 + (2 * col - (cols - 1)) ** 2;
+  const additions = candidates
+    .filter(({ row, col }) => (
+      !selectedKeys.has(squareKey(row, col))
+      && (row + col) % 2 === underrepresented
+    ))
+    .sort((left, right) =>
+      distance(left) - distance(right)
+      || left.col - right.col
+      || left.row - right.row
+    )
+    .slice(0, swapCount);
+  const removals = selected
+    .filter(({ row, col }) => (row + col) % 2 === overrepresented)
+    .sort((left, right) =>
+      distance(right) - distance(left)
+      || right.col - left.col
+      || right.row - left.row
+    )
+    .slice(0, swapCount);
+  const removalKeys = new Set(
+    removals.map(({ row, col }) => squareKey(row, col))
+  );
+  return [
+    ...selected.filter(({ row, col }) => !removalKeys.has(squareKey(row, col))),
+    ...additions,
+  ];
+}
+
 export function affinitySquares(rows, cols, count = 4) {
   if (rows <= 0 || cols <= 0) return { white: [], black: [] };
 
@@ -123,9 +173,10 @@ export function affinitySquares(rows, cols, count = 4) {
     });
   }
 
-  const ordered = selected.slice(0, limit).sort((left, right) =>
-    left.row - right.row || left.col - right.col
-  );
+  const ordered = balanceAffinityBoardColors(rows, cols, selected.slice(0, limit))
+    .sort(
+      (left, right) => left.row - right.row || left.col - right.col
+    );
   const half = ordered.length / 2;
   let white;
   if (rows % 2) {
