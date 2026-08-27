@@ -5,6 +5,7 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 
 from sqlalchemy import (
+    Boolean,
     DateTime,
     ForeignKey,
     Index,
@@ -79,6 +80,9 @@ class GameInviteRow(Base):
     )
     token_hash: Mapped[str] = mapped_column(String(64), nullable=False)
     target_color: Mapped[str] = mapped_column(String(16), nullable=False, default="black")
+    replaces_existing_player: Mapped[bool] = mapped_column(
+        Boolean, nullable=False, default=False
+    )
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), nullable=False, default=utc_now
     )
@@ -172,9 +176,26 @@ def _upgrade_legacy_games_table(engine: Engine) -> None:
                 connection.execute(text(f"ALTER TABLE games ADD COLUMN {column} {definition}"))
 
 
+def _upgrade_legacy_game_invites_table(engine: Engine) -> None:
+    inspector = inspect(engine)
+    if "game_invites" not in inspector.get_table_names():
+        return
+
+    existing = {column["name"] for column in inspector.get_columns("game_invites")}
+    if "replaces_existing_player" not in existing:
+        with engine.begin() as connection:
+            connection.execute(
+                text(
+                    "ALTER TABLE game_invites "
+                    "ADD COLUMN replaces_existing_player BOOLEAN NOT NULL DEFAULT FALSE"
+                )
+            )
+
+
 def init_db() -> None:
     engine = get_engine()
     _upgrade_legacy_games_table(engine)
+    _upgrade_legacy_game_invites_table(engine)
     Base.metadata.create_all(engine)
 
 

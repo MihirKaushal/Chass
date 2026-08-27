@@ -662,6 +662,37 @@ async def replace_invite(
     )
 
 
+@router.post("/{game_id}/reconnect-invite", response_model=InviteResponse)
+async def create_reconnect_invite(
+    game_id: str,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> InviteResponse:
+    rate_limiter.check(
+        request,
+        "reconnect-invite",
+        limit=12,
+        window_seconds=60,
+        discriminator=game_id,
+    )
+    token = _bearer_token(authorization)
+    target_color = await run_in_threadpool(
+        game_service.reconnect_target,
+        game_id,
+        token,
+    )
+    if socket_manager.is_color_connected(game_id, target_color):
+        raise HTTPException(
+            status_code=409,
+            detail=f"{target_color.title()} has already reconnected",
+        )
+    return await run_in_threadpool(
+        game_service.create_reconnect_invite,
+        game_id,
+        token,
+    )
+
+
 @router.websocket("/ws/{game_id}")
 async def game_ws(websocket: WebSocket, game_id: str) -> None:
     await websocket.accept()
@@ -700,6 +731,24 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
         color=authorized.player.color if authorized.player else None,
         role=authorized.player.role if authorized.player else "local",
     )
+    if identity.color is not None:
+        try:
+            await run_in_threadpool(
+                game_service.revoke_reconnect_invites,
+                game_id,
+                identity.color,
+            )
+        except Exception:
+            await socket_manager.send(
+                websocket,
+                "error",
+                {
+                    "message": "Unable to secure this player seat. Reconnecting...",
+                    "status": 503,
+                },
+            )
+            await websocket.close(code=1011)
+            return
     await socket_manager.connect(game_id, websocket, identity, accept=False)
 
     try:

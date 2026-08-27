@@ -10,6 +10,23 @@
   border-radius: 14px;
   background: rgba(234, 216, 181, 0.76);
   box-shadow: 0 8px 20px rgba(26, 54, 93, 0.1);
+  animation: online-invite-arrive 180ms ease-out;
+}
+
+.online-invite-panel.is-reconnect {
+  border-left-color: var(--success);
+}
+
+@keyframes online-invite-arrive {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .online-invite-heading {
@@ -70,6 +87,12 @@
 .invite-copy-status {
   width: 100%;
   color: var(--ink-muted);
+  text-align: right;
+}
+
+.invite-generation-status {
+  min-width: 220px;
+  color: var(--primary);
   text-align: right;
 }
 

@@ -172,6 +172,7 @@ class FirestoreGameRepository:
                     "expires_at": invite_expires_at,
                     "used_at": None,
                     "revoked_at": None,
+                    "replaces_existing_player": False,
                 },
             )
 
@@ -407,17 +408,50 @@ class FirestoreGameRepository:
 
             target_color = str(invite.get("target_color", "black"))
             player_colors = set(str(color) for color in game.get("player_colors", []))
-            if target_color in player_colors:
-                raise InviteClaimError("Game already has two players")
+            replaces_existing_player = bool(invite.get("replaces_existing_player", False))
+            replaced_player_ref = None
+            replaced_player = None
+            if replaces_existing_player:
+                replaced_player_hash = str(invite.get("replaced_player_hash", ""))
+                if not replaced_player_hash:
+                    raise InviteClaimError("Reconnect invite is missing its player seat")
+                replaced_player_ref = self.client.collection(PLAYERS).document(
+                    replaced_player_hash
+                )
+                replaced_player_snapshot = replaced_player_ref.get(transaction=transaction)
+                if not replaced_player_snapshot.exists:
+                    raise InviteClaimError("The disconnected player seat no longer exists")
+                replaced_player = replaced_player_snapshot.to_dict() or {}
+                if (
+                    replaced_player.get("game_id") != game_id
+                    or replaced_player.get("color") != target_color
+                    or target_color not in player_colors
+                ):
+                    raise InviteClaimError("Reconnect invite no longer matches this player seat")
+            else:
+                if target_color in player_colors:
+                    raise InviteClaimError("Game already has two players")
+                player_colors.add(target_color)
 
-            player_colors.add(target_color)
+            role = (
+                str(replaced_player.get("role", "player"))
+                if replaced_player is not None
+                else ("host" if target_color == "white" else "player")
+            )
+            joined_at = (
+                replaced_player.get("joined_at", now)
+                if replaced_player is not None
+                else now
+            )
+            if replaced_player_ref is not None:
+                transaction.delete(replaced_player_ref)
             transaction.set(
                 player_ref,
                 {
                     "game_id": game_id,
                     "color": target_color,
-                    "role": "player",
-                    "joined_at": now,
+                    "role": role,
+                    "joined_at": joined_at,
                     "last_seen_at": now,
                 },
             )
@@ -447,7 +481,27 @@ class FirestoreGameRepository:
         invite_token_hash: str,
         invite_expires_at: datetime,
         game_expires_at: datetime,
+        *,
+        target_color: str = "black",
+        replaces_existing_player: bool = False,
     ) -> None:
+        if target_color not in {"white", "black"}:
+            raise ValueError("Invite target color must be white or black")
+
+        replaced_player_hash = None
+        if replaces_existing_player:
+            player_snapshots = self.client.collection(PLAYERS).where(
+                filter=FieldFilter("game_id", "==", game_id)
+            ).stream()
+            matching_players = [
+                snapshot
+                for snapshot in player_snapshots
+                if (snapshot.to_dict() or {}).get("color") == target_color
+            ]
+            if len(matching_players) != 1:
+                raise RepositoryError("The disconnected player seat no longer exists")
+            replaced_player_hash = matching_players[0].id
+
         game_ref = self.client.collection(GAMES).document(game_id)
         new_invite_ref = self.client.collection(INVITES).document(invite_token_hash)
         transaction = self.client.transaction()
@@ -465,6 +519,11 @@ class FirestoreGameRepository:
             current_expiration = _as_utc(game.get("expires_at"))
             if current_expiration is not None and current_expiration <= now:
                 raise RepositoryError("Game has expired")
+            player_colors = set(str(color) for color in game.get("player_colors", []))
+            if replaces_existing_player and target_color not in player_colors:
+                raise RepositoryError("The disconnected player seat no longer exists")
+            if not replaces_existing_player and target_color in player_colors:
+                raise RepositoryError("The invited player seat is already occupied")
             active_invite_hash = game.get("active_invite_hash")
             old_invite_ref = None
             old_invite_snapshot = None
@@ -479,11 +538,13 @@ class FirestoreGameRepository:
                 new_invite_ref,
                 {
                     "game_id": game_id,
-                    "target_color": "black",
+                    "target_color": target_color,
                     "created_at": now,
                     "expires_at": invite_expires_at,
                     "used_at": None,
                     "revoked_at": None,
+                    "replaces_existing_player": replaces_existing_player,
+                    "replaced_player_hash": replaced_player_hash,
                 },
             )
             transaction.update(
@@ -496,6 +557,43 @@ class FirestoreGameRepository:
             )
 
         replace(transaction)
+
+    def revoke_reconnect_invites(self, game_id: str, target_color: str) -> None:
+        game_ref = self.client.collection(GAMES).document(game_id)
+        transaction = self.client.transaction()
+
+        @firestore.transactional
+        def revoke(transaction):
+            now = datetime.now(timezone.utc)
+            game_snapshot = game_ref.get(transaction=transaction)
+            if not game_snapshot.exists:
+                return
+
+            game = game_snapshot.to_dict() or {}
+            active_invite_hash = game.get("active_invite_hash")
+            if not active_invite_hash:
+                return
+
+            invite_ref = self.client.collection(INVITES).document(active_invite_hash)
+            invite_snapshot = invite_ref.get(transaction=transaction)
+            if not invite_snapshot.exists:
+                return
+
+            invite = invite_snapshot.to_dict() or {}
+            should_revoke = (
+                invite.get("game_id") == game_id
+                and invite.get("target_color") == target_color
+                and bool(invite.get("replaces_existing_player", False))
+                and invite.get("used_at") is None
+                and invite.get("revoked_at") is None
+            )
+            if not should_revoke:
+                return
+
+            transaction.update(invite_ref, {"revoked_at": now})
+            transaction.update(game_ref, {"active_invite_hash": None})
+
+        revoke(transaction)
 
     def save_game(
         self,
