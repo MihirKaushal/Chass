@@ -74,6 +74,10 @@ export function evaluationLabel(
     const winner = evaluation.mateIn > 0 ? "White" : "Black";
     return `${winner} mates in ${Math.abs(evaluation.mateIn)}`;
   }
+  if (evaluation.immediateWinner) {
+    const winner = evaluation.immediateWinner === "white" ? "White" : "Black";
+    return `${winner} can win this turn`;
+  }
   if (evaluation.centipawns == null) return "Balanced position";
   const pawns = evaluation.centipawns / 100;
   if (Math.abs(pawns) < 0.005) return "Even";

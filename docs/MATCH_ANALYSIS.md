@@ -1,12 +1,12 @@
 # Match Analysis
 
-Chass! analyzes compatible games with local UCI engines. It displays a White/Black outcome
-estimate, a White-perspective evaluation, and explainable comparisons for material, King
-safety, legal mobility, pawn structure, and center control.
+Chass! analyzes every valid game through an automatic three-engine router. It displays a
+White/Black advantage estimate, a White-perspective evaluation, and explainable comparisons
+for the factors relevant to the active configuration.
 
 No hosted chess service, API key, or paid dependency is required. Chass automatically picks
 the strongest compatible engine; players can enable or disable analysis but cannot force
-an engine that does not model their rules.
+an engine that does not model their rules. The native fallback requires no additional binary.
 
 ## Engine Routing
 
@@ -48,7 +48,8 @@ Chass games and should not be presented as equal in reliability to Stockfish's s
 chess estimates.
 
 The following systems remain incompatible because their state cannot be expressed faithfully
-by the current Fairy profile format:
+by the current Fairy profile format. They are routed to Chass Engine rather than losing
+analysis:
 
 - Custom pieces or customized movement
 - Special Abilities
@@ -57,6 +58,34 @@ by the current Fairy profile format:
 - Chass Gambit and Draft Gambit setup
 - Point scoring, clocks, elimination, and multi-turn Dominion
 - Boards larger than 10x12, including 16x16
+
+### Chass Engine
+
+Chass Engine is the universal fallback when Stockfish and Fairy-Stockfish cannot faithfully
+model the configuration. It is an original backend implementation, not copied engine code and
+not a neural network. Version `chass-hce-v1` combines:
+
+- Behavior-based material values that stay independent of user point labels except when
+  points are an actual scoring or ability resource.
+- King safety, checks, escape squares, shields, and active royal effects.
+- Tactical captures, hanging pieces, custom actions, promotions, command powers, and
+  rule-specific threats.
+- Piece activity, adaptive center control, pawn structure, terrain, clocks, scores, and
+  progress toward all nine win conditions.
+- Explicit utility for every built-in custom piece, every tunable piece parameter, all seven
+  abilities and their tunable values, Affinity resources, and live cooldown/runtime state.
+- A time- and node-bounded alpha-beta search with ordered actions, a transposition table, and
+  shallow quiescence stabilization after checks, captures, and special actions.
+
+All candidate moves, custom actions, and command powers are applied through cloned game states
+and the authoritative Rule Engine. The evaluator never reimplements move legality in the
+analysis service or frontend. A catalog coverage test fails when a new rule, win condition,
+piece parameter, or ability parameter is introduced without an explicit engine mapping.
+
+Chass Engine is intentionally labeled experimental. Its White/Black split is a bounded
+heuristic advantage estimate, not a trained or calibrated win probability. It reserves 100%
+for an authoritative checkmate in one and caps other estimates below 100%. Self-play data and
+probability calibration remain future work.
 
 ## Safe Profile Generation
 
@@ -78,7 +107,7 @@ syntax alone:
 2. Fairy-Stockfish independently returns its legal moves with `perft 1`.
 3. Chass compares normalized source and destination coordinates.
 4. Terminal positions are probed independently and the winner or draw must agree.
-5. A mismatch disables analysis for that position while gameplay continues normally.
+5. A mismatch routes that position to Chass Engine while gameplay continues normally.
 
 Parity results are cached by profile and position hash. The test suite also exercises the
 real pinned largeboard binary when it is installed, covering legal moves and Checkmate,
@@ -88,18 +117,21 @@ Royal Center, and Check Race terminal outcomes.
 
 1. FastAPI returns and broadcasts the authoritative move first.
 2. The analysis service snapshots the matching game version.
-3. The backend selects Stockfish or a generated Fairy profile.
-4. Chass serializes the position and computes board-size-aware factors off the event loop.
-5. The selected persistent UCI process returns a score and W/D/L values.
-6. Results are normalized to White's perspective and cached by engine profile and position.
+3. The backend selects Stockfish, a generated Fairy profile, or Chass Engine.
+4. Board-size-aware factor generation and native search run off the event loop.
+5. A UCI engine returns score and W/D/L data, or Chass Engine returns its heuristic score and
+   dynamic factors.
+6. Results are normalized to White's perspective and cached by engine profile and complete
+   position state.
 7. The current version is broadcast over the game WebSocket; stale results are ignored.
 
 Suggested lines, depth, node counts, and timing diagnostics stay server-side. Older work is
 cancelled when a newer position arrives. An engine failure never blocks a move or ends a
 game; the card reports that analysis is unavailable while play continues.
 
-These probabilities are engine estimates, not a model trained by this repository. A future
-self-play dataset and calibrated probability layer are intentionally deferred.
+Only Stockfish's standard-chess output uses its mature W/D/L model. Fairy and Chass estimates
+are explicitly experimental. A future self-play dataset and calibrated probability layer are
+intentionally deferred.
 
 ## Local Setup
 
@@ -137,6 +169,7 @@ FAIRY_STOCKFISH_MOVETIME_MS=180
 FAIRY_STOCKFISH_HASH_MB=16
 FAIRY_STOCKFISH_THREADS=1
 FAIRY_STOCKFISH_MAX_PROFILES=256
+CHASS_ENGINE_MOVETIME_MS=180
 ```
 
 The defaults favor responsive free-tier deployment. Raise search time, threads, or hash
@@ -150,17 +183,20 @@ After pushing this change:
 1. Redeploy the Render service or allow the Blueprint to deploy the commit.
 2. Confirm the build log reports both verified engine installations.
 3. Open `/health` and inspect `matchPredictorEngines.stockfish` and
-   `matchPredictorEngines.fairyStockfish`.
+   `matchPredictorEngines.fairyStockfish`; the native provider appears under
+   `matchPredictorEngines.chass`.
 4. Create an 8x8 standard-rule game and confirm Stockfish is selected.
 5. Create a compatible 10x10 standard-piece game and confirm Fairy-Stockfish is selected and
    marked parity verified in Customize.
+6. Enable a custom piece, ability, Affinity, alternate win condition, or 16x16 board and
+   confirm Chass Engine is selected.
 
 Fairy-Stockfish starts lazily on its first compatible validation or game. Before that first
 use, its detailed health value may be `not_started`. No new Vercel variable is required.
 
 Overall health values:
 
-- `ready`: at least one configured engine process is ready.
+- `ready`: at least one configured analysis provider is ready.
 - `starting`: an enabled engine has not started yet.
 - `unavailable`: configured engines failed to start.
 - `disabled`: `MATCH_PREDICTOR_ENGINE_ENABLED` is off.
