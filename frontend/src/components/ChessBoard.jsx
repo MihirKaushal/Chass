@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { boardFileLabel, boardSquareLabel } from "../boardGeometry";
+import { boardActionsWithStandardMovePriority } from "../specialActionSelection";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
 
@@ -56,6 +57,16 @@ function ChessBoard({
     .map((move) => `${move.to.row}-${move.to.col}`);
 
   const activeTargetSet = new Set(activeTargets);
+  const standardTargetsBySource = useMemo(() => {
+    const grouped = new Map();
+    validMoves.forEach((move) => {
+      const sourceKey = `${move.from.row}-${move.from.col}`;
+      const targets = grouped.get(sourceKey) || new Set();
+      targets.add(`${move.to.row}-${move.to.col}`);
+      grouped.set(sourceKey, targets);
+    });
+    return grouped;
+  }, [validMoves]);
   const actionsBySource = useMemo(() => {
     const grouped = new Map();
     availableActions.forEach((action) => {
@@ -63,8 +74,18 @@ function ChessBoard({
       const key = `${action.source.row}-${action.source.col}`;
       grouped.set(key, [...(grouped.get(key) || []), action]);
     });
-    return grouped;
-  }, [availableActions]);
+    return new Map(
+      [...grouped.entries()]
+        .map(([sourceKey, actions]) => [
+          sourceKey,
+          boardActionsWithStandardMovePriority(
+            actions,
+            standardTargetsBySource.get(sourceKey) || new Set()
+          ),
+        ])
+        .filter(([, actions]) => actions.length)
+    );
+  }, [availableActions, standardTargetsBySource]);
   const selectedActionSourceKey = selectedActionSource
     ? `${selectedActionSource.row}-${selectedActionSource.col}`
     : "";

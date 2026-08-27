@@ -15,6 +15,17 @@ export function actionsForGlobalSelection(actions = [], selectionKey = null) {
   );
 }
 
+export function boardActionsWithStandardMovePriority(
+  actions = [],
+  standardTargetKeys = new Set()
+) {
+  return actions.filter((action) => (
+    action.actionType !== "eye_for_an_eye"
+    || !action.target
+    || !standardTargetKeys.has(`${action.target.row}-${action.target.col}`)
+  ));
+}
+
 export function necromancyPurchaseOptions(actions = [], capturedPieces = []) {
   const capturedById = new Map(
     capturedPieces.map((piece) => [piece.pieceId, piece])
