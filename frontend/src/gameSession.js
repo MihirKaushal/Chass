@@ -6,8 +6,16 @@ function storageKey(gameId) {
   return `${SESSION_PREFIX}${gameId}`;
 }
 
-export function saveGameSession(gameId, session) {
-  const normalized = {
+function browserStorage(name) {
+  try {
+    return globalThis[name];
+  } catch {
+    return null;
+  }
+}
+
+function normalizeGameSession(gameId, session) {
+  return {
     gameId,
     mode: session.mode,
     variant: session.variant || "classic",
@@ -19,18 +27,70 @@ export function saveGameSession(gameId, session) {
     inviteUrl: session.inviteUrl || null,
     inviteExpiresAt: session.inviteExpiresAt || null,
   };
-  const serialized = JSON.stringify(normalized);
-  memorySessions.set(gameId, normalized);
+}
 
+function readStorage(storage, gameId) {
   try {
-    localStorage.setItem(storageKey(gameId), serialized);
+    const value = storage?.getItem(storageKey(gameId));
+    if (!value) return null;
+    const parsed = JSON.parse(value);
+    return parsed && typeof parsed === "object" && parsed.gameId === gameId
+      ? parsed
+      : null;
   } catch {
-    try {
-      sessionStorage.setItem(storageKey(gameId), serialized);
-    } catch {
-      // In-memory storage still supports navigation during this page lifetime.
-    }
+    return null;
   }
+}
+
+function writeStorage(storage, gameId, session) {
+  try {
+    storage?.setItem(storageKey(gameId), JSON.stringify(session));
+    return Boolean(storage);
+  } catch {
+    return false;
+  }
+}
+
+function sameOnlineSeat(left, right) {
+  if (left?.mode !== "online" || right?.mode !== "online") return true;
+  return Boolean(
+    (left.token && left.token === right.token)
+    || (left.color && left.color === right.color)
+  );
+}
+
+export function persistGameSession(gameId, session, tabStorage, persistentStorage) {
+  const normalized = normalizeGameSession(gameId, session);
+
+  // Tabs share localStorage, so their White and Black credentials must stay tab-scoped.
+  writeStorage(tabStorage, gameId, normalized);
+  const persistent = readStorage(persistentStorage, gameId);
+  if (!persistent || sameOnlineSeat(persistent, normalized)) {
+    writeStorage(persistentStorage, gameId, normalized);
+  }
+
+  return normalized;
+}
+
+export function loadPersistedGameSession(gameId, tabStorage, persistentStorage) {
+  const tabSession = readStorage(tabStorage, gameId);
+  if (tabSession) return tabSession;
+
+  const persistentSession = readStorage(persistentStorage, gameId);
+  if (persistentSession) {
+    writeStorage(tabStorage, gameId, persistentSession);
+  }
+  return persistentSession;
+}
+
+export function saveGameSession(gameId, session) {
+  const normalized = persistGameSession(
+    gameId,
+    session,
+    browserStorage("sessionStorage"),
+    browserStorage("localStorage")
+  );
+  memorySessions.set(gameId, normalized);
 }
 
 export function loadGameSession(gameId) {
@@ -39,18 +99,13 @@ export function loadGameSession(gameId) {
     return inMemory;
   }
 
-  try {
-    const value =
-      localStorage.getItem(storageKey(gameId)) || sessionStorage.getItem(storageKey(gameId));
-    if (!value) {
-      return null;
-    }
-    const parsed = JSON.parse(value);
-    memorySessions.set(gameId, parsed);
-    return parsed;
-  } catch {
-    return null;
-  }
+  const persisted = loadPersistedGameSession(
+    gameId,
+    browserStorage("sessionStorage"),
+    browserStorage("localStorage")
+  );
+  if (persisted) memorySessions.set(gameId, persisted);
+  return persisted;
 }
 
 export function updateGameSession(gameId, patch) {
