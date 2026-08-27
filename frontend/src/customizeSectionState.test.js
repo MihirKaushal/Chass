@@ -53,6 +53,12 @@ test("disabled rules and abilities ignore inactive latent values", () => {
   assert.equal(sectionIsModified(changed, baseline, "studio-abilities"), false);
 });
 
+test("the play-only Match Analysis preference does not modify Custom Rules", () => {
+  const baseline = classicDraft();
+  const changed = { ...baseline, matchPredictorEnabled: false };
+  assert.equal(sectionIsModified(changed, baseline, "studio-custom-rules"), false);
+});
+
 test("validation errors are counted against their owning sections", () => {
   const baseline = classicDraft();
   const statuses = configurationSectionStatuses(baseline, baseline, [

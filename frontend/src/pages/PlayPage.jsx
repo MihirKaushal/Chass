@@ -25,6 +25,7 @@ function PlayPage({
   matchAnalysis,
   analysisRefreshing,
   onRetryAnalysis,
+  matchAnalysisEnabled,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
   const [selectedGlobalActionKey, setSelectedGlobalActionKey] = useState(null);
@@ -106,7 +107,7 @@ function PlayPage({
       selectedGlobalActionKey={selectedGlobalActionKey}
       onSelectGlobalActionKey={selectGlobalAction}
     >
-      {game.configuration?.matchPredictorEnabled ? (
+      {game.configuration?.matchPredictorEnabled && matchAnalysisEnabled ? (
         <MatchPredictor
           analysis={matchAnalysis}
           initialLayout={game.configuration?.initialLayout}
@@ -189,7 +190,7 @@ function PlayPage({
       effectCount={
         (game.countdowns?.length || 0)
         + (game.availableActions?.length ? 1 : 0)
-        + (game.configuration?.matchPredictorEnabled ? 1 : 0)
+        + (game.configuration?.matchPredictorEnabled && matchAnalysisEnabled ? 1 : 0)
       }
       moveCount={moveCount}
     />

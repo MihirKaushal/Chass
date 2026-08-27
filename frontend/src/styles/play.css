@@ -951,6 +951,7 @@
   min-height: 1.55rem;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.3rem;
   padding: 0.26rem 0.42rem;
   border-radius: var(--radius-pill);
@@ -959,7 +960,7 @@
   font-family: var(--font-mono);
   font-size: 0.56rem;
   line-height: 1.25;
-  text-align: right;
+  text-align: center;
   white-space: nowrap;
 }
 

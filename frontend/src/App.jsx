@@ -206,6 +206,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [matchAnalysis, setMatchAnalysis] = useState(null);
   const [analysisRefreshing, setAnalysisRefreshing] = useState(false);
   const [analysisRetryKey, setAnalysisRetryKey] = useState(0);
+  const [matchAnalysisEnabled, setMatchAnalysisEnabled] = useState(true);
   const [presence, setPresence] = useState({ white: false, black: false });
   const [boardFlipped, setBoardFlipped] = useState(
     session?.mode === "online" && session?.color === "black"
@@ -318,6 +319,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         setSocketMessage(`${colorLabel(payload.color)} joined the game.`);
       } else if (
         payload.type === "match_analysis"
+        && matchAnalysisEnabled
         && analysisMatchesGame(payload.analysis, gameRef.current)
       ) {
         setMatchAnalysis(payload.analysis);
@@ -328,7 +330,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   });
 
   useEffect(() => {
-    if (!game?.configuration?.matchPredictorEnabled) {
+    if (!matchAnalysisEnabled || !game?.configuration?.matchPredictorEnabled) {
       setMatchAnalysis(null);
       setAnalysisRefreshing(false);
       return undefined;
@@ -391,6 +393,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     game?.configuration?.matchPredictorEnabled,
     game?.id,
     game?.version,
+    matchAnalysisEnabled,
     session?.token,
   ]);
 
@@ -898,6 +901,9 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         onFlipBoard={() => setBoardFlipped((current) => !current)}
         onToggleAutoBoardFlip={() => setAutoBoardFlipEnabled((current) => !current)}
         autoBoardFlipEnabled={autoBoardFlipEnabled}
+        onToggleMatchAnalysis={() => setMatchAnalysisEnabled((current) => !current)}
+        matchAnalysisEnabled={matchAnalysisEnabled}
+        matchAnalysisAvailable={game.configuration?.matchPredictorEnabled !== false}
         canReset={canRequestRestart}
         mode={game.mode}
         playerColor={session?.color}
@@ -964,6 +970,10 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           catalog={catalog}
           onLoadEarlierHistory={handleLoadEarlierHistory}
           historyLoading={historyLoading}
+          matchAnalysis={matchAnalysis}
+          analysisRefreshing={analysisRefreshing}
+          onRetryAnalysis={retryMatchAnalysis}
+          matchAnalysisEnabled={matchAnalysisEnabled}
         />
       ) : (
         <PlayPage
@@ -981,6 +991,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           matchAnalysis={matchAnalysis}
           analysisRefreshing={analysisRefreshing}
           onRetryAnalysis={retryMatchAnalysis}
+          matchAnalysisEnabled={matchAnalysisEnabled}
         />
       )}
 

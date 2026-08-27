@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { onlinePlayerSummary, roomLabel } from "../playHeader";
+import { onlinePlayerStatus, onlinePlayerSummary, roomLabel } from "../playHeader";
 import Button from "./ui/Button";
 import StatusBadge from "./ui/StatusBadge";
 
@@ -18,6 +18,9 @@ function TopNav({
   onFlipBoard,
   onToggleAutoBoardFlip,
   autoBoardFlipEnabled,
+  onToggleMatchAnalysis,
+  matchAnalysisEnabled,
+  matchAnalysisAvailable,
   canReset,
   mode,
   playerColor,
@@ -29,6 +32,7 @@ function TopNav({
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
   const settingsTriggerRef = useRef(null);
+  const onlineStatus = onlinePlayerStatus(playerColor, presence, gameReady);
   const statusLabel =
     phase === "lobby"
       ? "Waiting For Player"
@@ -45,7 +49,7 @@ function TopNav({
   useEffect(() => {
     if (!settingsOpen) return undefined;
 
-    settingsRef.current?.querySelector('[role="menuitem"]')?.focus();
+    settingsRef.current?.querySelector('[role^="menuitem"]:not(:disabled)')?.focus();
     const closeOnOutsideClick = (event) => {
       if (!settingsRef.current?.contains(event.target)) {
         setSettingsOpen(false);
@@ -73,7 +77,7 @@ function TopNav({
 
   const handleMenuKeyDown = (event) => {
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
-    const items = [...event.currentTarget.querySelectorAll('[role="menuitem"]:not(:disabled)')];
+    const items = [...event.currentTarget.querySelectorAll('[role^="menuitem"]:not(:disabled)')];
     if (!items.length) return;
     event.preventDefault();
     const currentIndex = items.indexOf(document.activeElement);
@@ -96,15 +100,40 @@ function TopNav({
       </button>
 
       <nav className="tab-nav" aria-label="Game sections">
-        <button type="button" className="tab" onClick={onHome}>
+        <button type="button" className="tab site-nav-button" onClick={onHome}>
           Home
         </button>
-        <button type="button" className="tab" onClick={onCustomize}>
+        <button type="button" className="tab site-nav-button" onClick={onCustomize}>
           Customize
         </button>
       </nav>
 
       <div className="game-hud">
+        {mode === "online" ? (
+          <span
+            className={`online-player-summary connection-${onlineStatus.connection || "spectator"}`}
+            aria-label={onlinePlayerSummary(playerColor, presence, gameReady)}
+            aria-live="polite"
+          >
+            {onlineStatus.role === "spectator" ? (
+              <span>You are spectating this online room.</span>
+            ) : (
+              <>
+                <span>
+                  You are playing as <strong className={`player-color-token ${onlineStatus.playerColor}`}>{title(onlineStatus.playerColor)}</strong>.
+                </span>
+                <span>
+                  <strong className={`player-color-token ${onlineStatus.opponentColor}`}>{title(onlineStatus.opponentColor)}</strong>{" "}
+                  {onlineStatus.connection === "waiting" ? (
+                    <>has not joined.</>
+                  ) : (
+                    <>is <strong className={`connection-label ${onlineStatus.connection}`}>{onlineStatus.connection}</strong>.</>
+                  )}
+                </span>
+              </>
+            )}
+          </span>
+        ) : null}
         <span className="turn-banner">
           <i aria-hidden="true" />
           {phase === "play" && !winner ? `${title(currentPlayer)} to move` : statusLabel}
@@ -113,11 +142,6 @@ function TopNav({
           <StatusBadge tone="info" className="status-chip">
             {title(gameStatus)}
           </StatusBadge>
-        ) : null}
-        {mode === "online" ? (
-          <span className="online-player-summary" aria-live="polite">
-            {onlinePlayerSummary(playerColor, presence, gameReady)}
-          </span>
         ) : null}
         <StatusBadge className="mode-chip">
           {roomLabel(mode)}
@@ -137,9 +161,8 @@ function TopNav({
           onClick={() => setSettingsOpen((open) => !open)}
         >
           <svg viewBox="0 0 24 24" aria-hidden="true">
-            <circle cx="12" cy="12" r="5" />
-            <circle cx="12" cy="12" r="2" />
-            <path d="M12 2.5v4M12 17.5v4M2.5 12h4M17.5 12h4M5.3 5.3l2.8 2.8M15.9 15.9l2.8 2.8M18.7 5.3l-2.8 2.8M8.1 15.9l-2.8 2.8" />
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.09a2 2 0 0 1 1 1.74v.5a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.38a2 2 0 0 0-.73-2.73l-.15-.09a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2Z" />
+            <circle cx="12" cy="12" r="3" />
           </svg>
         </button>
         {settingsOpen ? (
@@ -150,6 +173,16 @@ function TopNav({
             aria-label="Game settings"
             onKeyDown={handleMenuKeyDown}
           >
+            <Button
+              size="small"
+              variant={matchAnalysisEnabled ? "primary" : "secondary"}
+              role="menuitemcheckbox"
+              aria-checked={matchAnalysisEnabled}
+              disabled={!matchAnalysisAvailable}
+              onClick={() => runSetting(onToggleMatchAnalysis)}
+            >
+              Match Analysis: {matchAnalysisAvailable ? (matchAnalysisEnabled ? "Enabled" : "Disabled") : "Unavailable"}
+            </Button>
             <Button size="small" variant="secondary" role="menuitem" onClick={() => runSetting(onFlipBoard)}>
               Flip Board
             </Button>

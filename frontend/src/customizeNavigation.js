@@ -45,9 +45,9 @@ const STATIC_SETTING_LINKS = [
   {
     id: "setting-match-analysis",
     label: "Match Analysis",
-    sectionId: "studio-custom-rules",
-    category: "Custom Rules",
-    targetId: "customize-match-analysis",
+    sectionId: "rulebook",
+    category: "Rulebook",
+    targetId: "rulebook-match-analysis",
     keywords: "stockfish fairy analysis automatic engine outcome estimate parity",
   },
   {
