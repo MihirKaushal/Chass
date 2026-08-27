@@ -2,10 +2,75 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  loadPersistedGameSession,
   mergeHistoryRecords,
+  persistGameSession,
   playerHasAbility,
   projectPendingMove,
 } from "./gameSession.js";
+
+class MemoryStorage {
+  constructor() {
+    this.values = new Map();
+  }
+
+  getItem(key) {
+    return this.values.get(key) ?? null;
+  }
+
+  setItem(key, value) {
+    this.values.set(key, String(value));
+  }
+}
+
+test("online tabs retain separate seats when either page reloads", () => {
+  const gameId = "shared-browser-game";
+  const persistentStorage = new MemoryStorage();
+  const whiteTabStorage = new MemoryStorage();
+  const blackTabStorage = new MemoryStorage();
+
+  persistGameSession(
+    gameId,
+    { gameId, mode: "online", color: "white", token: "white-token", role: "host" },
+    whiteTabStorage,
+    persistentStorage
+  );
+  persistGameSession(
+    gameId,
+    { gameId, mode: "online", color: "black", token: "black-token", role: "player" },
+    blackTabStorage,
+    persistentStorage
+  );
+
+  const reloadedWhite = loadPersistedGameSession(
+    gameId,
+    whiteTabStorage,
+    persistentStorage
+  );
+  const reloadedBlack = loadPersistedGameSession(
+    gameId,
+    blackTabStorage,
+    persistentStorage
+  );
+  const recoveredSeat = loadPersistedGameSession(
+    gameId,
+    new MemoryStorage(),
+    persistentStorage
+  );
+
+  assert.deepEqual(
+    [reloadedWhite.color, reloadedWhite.token],
+    ["white", "white-token"]
+  );
+  assert.deepEqual(
+    [reloadedBlack.color, reloadedBlack.token],
+    ["black", "black-token"]
+  );
+  assert.deepEqual(
+    [recoveredSeat.color, recoveredSeat.token],
+    ["white", "white-token"]
+  );
+});
 
 test("playerHasAbility reads list-shaped selections", () => {
   const game = {
