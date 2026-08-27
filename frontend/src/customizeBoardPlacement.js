@@ -35,6 +35,7 @@ export function boardPlacementRestriction(draft, tool, row, col) {
     {
       victoryMode: draft.victory?.mode,
       affinityEnabled: Boolean(draft.customRules?.affinityEnabled),
+      affinitySquareCount: draft.customRules?.affinitySquareCount ?? 4,
     }
   ).some((square) => occupies(square, row, col));
   if (significantCenter && tool.type !== "barricade") {

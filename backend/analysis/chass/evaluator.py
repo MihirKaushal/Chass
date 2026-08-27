@@ -398,20 +398,47 @@ def _center_values(
     attacks: dict[str, set[tuple[int, int]]],
 ) -> dict[str, float]:
     general_center = set(objective_center_squares(state.board.rows, state.board.cols))
-    affinity = affinity_start_squares(state.board.rows, state.board.cols)
+    config = state.configuration.custom_rules
+    affinity = affinity_start_squares(
+        state.board.rows,
+        state.board.cols,
+        config.affinity_square_count,
+    )
+    dominion = affinity_start_squares(state.board.rows, state.board.cols, 4)
     values = {color: 0.0 for color in COLORS}
-    for color in COLORS:
-        targets = (
-            set(affinity[color])
-            if state.configuration.victory.mode == "center_dominion"
-            or state.configuration.custom_rules.affinity_enabled
-            else general_center
-        )
+
+    def control_value(color: str, targets: set[tuple[int, int]], required: int) -> float:
         occupied = sum(
             (piece := state.board.grid[row][col]) is not None and piece.color == color
             for row, col in targets
         )
         influenced = len(attacks[color] & targets)
+        threshold = max(1, min(required, len(targets)))
+        threshold_progress = min(occupied, threshold) / threshold
+        surplus = max(0, occupied - threshold) / max(1, len(targets) - threshold)
+        influence_progress = influenced / max(1, len(targets))
+        return (4.0 * threshold_progress) + (0.5 * surplus) + (1.3 * influence_progress)
+
+    for color in COLORS:
+        focused_values: list[float] = []
+        if state.configuration.victory.mode == "center_dominion":
+            focused_values.append(control_value(color, set(dominion[color]), 2))
+        if config.affinity_enabled:
+            focused_values.append(
+                control_value(
+                    color,
+                    set(affinity[color]),
+                    config.affinity_control_required,
+                )
+            )
+        if focused_values:
+            values[color] = sum(focused_values) / len(focused_values)
+            continue
+        occupied = sum(
+            (piece := state.board.grid[row][col]) is not None and piece.color == color
+            for row, col in general_center
+        )
+        influenced = len(attacks[color] & general_center)
         values[color] = (2.0 * occupied) + (0.65 * influenced)
     return values
 
@@ -706,7 +733,11 @@ def _affinity_resource_value(state: GameState, color: str, engine: RuleEngine) -
     config = state.configuration.custom_rules
     points = state.affinity.command_points[color]
     cap = max(1, config.command_point_cap)
-    controls = engine.gambit.affinity.controls(state, color)
+    controlled_count = engine.gambit.affinity.control_count(state, color)
+    control_progress = min(
+        1.0,
+        controlled_count / max(1, config.affinity_control_required),
+    )
     primed = state.affinity.primed[color]
     remaining_power = sum(
         max(0, config.power_usage_caps[power] - state.affinity.power_usage[color].get(power, 0))
@@ -716,7 +747,7 @@ def _affinity_resource_value(state: GameState, color: str, engine: RuleEngine) -
     return (
         (1.2 * points)
         + (0.7 * points / cap)
-        + (1.0 if controls else 0)
+        + control_progress
         + (0.45 if primed else 0)
         + (0.2 * remaining_power)
         + (0.08 * math.log1p(cap))

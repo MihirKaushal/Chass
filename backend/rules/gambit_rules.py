@@ -99,6 +99,9 @@ class DeploymentZoneRule:
                 state.board.cols,
                 victory_mode=state.configuration.victory.mode,
                 affinity_enabled=state.configuration.custom_rules.affinity_enabled,
+                affinity_square_count=(
+                    state.configuration.custom_rules.affinity_square_count
+                ),
             )
         )
         for piece in pieces:
@@ -382,6 +385,9 @@ class OpeningSafetyRule:
                 trial.board.cols,
                 victory_mode=trial.configuration.victory.mode,
                 affinity_enabled=trial.configuration.custom_rules.affinity_enabled,
+                affinity_square_count=(
+                    trial.configuration.custom_rules.affinity_square_count
+                ),
             )
         )
         if significant_centers and any(
@@ -407,22 +413,35 @@ class AffinityControlRule:
         id="affinity_control",
         name="Affinity Squares",
         description=(
-            "Hold both center squares of your color through the opponent's turn to gain "
-            "one command point, up to the configured cap."
+            "Hold the configured number of center squares assigned to your color through "
+            "the opponent's turn to gain one command point, up to the configured cap."
         ),
         tier="custom",
     )
 
     @staticmethod
-    def controls(state: GameState, color: str) -> bool:
+    def control_count(state: GameState, color: str) -> int:
         if not state.configuration.custom_rules.affinity_enabled:
-            return False
-        squares = affinity_start_squares(state.board.rows, state.board.cols)
+            return 0
+        config = state.configuration.custom_rules
+        squares = affinity_start_squares(
+            state.board.rows,
+            state.board.cols,
+            config.affinity_square_count,
+        )
+        controlled = 0
         for row, col in squares[color]:
             piece = state.board.grid[row][col]
-            if piece is None or piece.color != color:
-                return False
-        return True
+            if piece is not None and piece.color == color:
+                controlled += 1
+        return controlled
+
+    @classmethod
+    def controls(cls, state: GameState, color: str) -> bool:
+        return (
+            cls.control_count(state, color)
+            >= state.configuration.custom_rules.affinity_control_required
+        )
 
     def complete_turn(self, state: GameState, acting_color: str) -> None:
         if not state.configuration.custom_rules.affinity_enabled:
@@ -905,6 +924,12 @@ class GambitRuleSet:
 
     def affinity_control(self, state: GameState) -> dict[str, bool]:
         return {color: self.affinity.controls(state, color) for color in ("white", "black")}
+
+    def affinity_control_counts(self, state: GameState) -> dict[str, int]:
+        return {
+            color: self.affinity.control_count(state, color)
+            for color in ("white", "black")
+        }
 
     def legal_power_targets(self, state: GameState, color: str, helper) -> dict[str, list[dict]]:
         targets: dict[str, list[dict]] = {}

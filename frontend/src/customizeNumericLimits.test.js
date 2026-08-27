@@ -22,7 +22,11 @@ function draft(overrides = {}) {
       dominionRounds: 3,
       checkTarget: 3,
     },
-    customRules: { commandPointCap: 3 },
+    customRules: {
+      affinitySquareCount: 4,
+      affinityControlRequired: 2,
+      commandPointCap: 3,
+    },
     specialAbilities: {
       allowed: ["getaway", "scorch"],
       maxPerPlayer: 1,
@@ -62,6 +66,8 @@ test("numeric bounds adapt Gambit limits to deployment space", () => {
   assert.equal(bounds.gambitMaxPiecesMaximum, 15);
   assert.equal(bounds.gambitMaxQueensMaximum, 14);
   assert.equal(bounds.draftPoolCountMaximum, 30);
+  assert.equal(bounds.affinitySquareCountMaximum, 10);
+  assert.equal(bounds.affinityControlRequiredMaximum, 2);
 });
 
 test("numeric normalization enforces linked limits and preserves meaningful zeroes", () => {
@@ -79,7 +85,11 @@ test("numeric normalization enforces linked limits and preserves meaningful zero
       dominionRounds: 0,
       checkTarget: 101,
     },
-    customRules: { commandPointCap: 0 },
+    customRules: {
+      affinitySquareCount: 32,
+      affinityControlRequired: 16,
+      commandPointCap: 0,
+    },
     specialAbilities: {
       allowed: ["getaway", "scorch"],
       maxPerPlayer: 8,
@@ -102,6 +112,8 @@ test("numeric normalization enforces linked limits and preserves meaningful zero
   assert.equal(normalized.victory.dominionRounds, 1);
   assert.equal(normalized.victory.checkTarget, 100);
   assert.equal(normalized.customRules.commandPointCap, 1);
+  assert.equal(normalized.customRules.affinitySquareCount, 10);
+  assert.equal(normalized.customRules.affinityControlRequired, 5);
   assert.equal(normalized.specialAbilities.maxPerPlayer, 2);
   assert.equal(normalized.gambit.budget, 7);
   assert.equal(normalized.gambit.setupRows, 3);
@@ -130,4 +142,5 @@ test("global schema ceilings still apply on the largest board", () => {
   assert.equal(bounds.gambitMaxPiecesMaximum, 128);
   assert.equal(bounds.gambitMaxQueensMaximum, 32);
   assert.equal(bounds.draftPoolCountMaximum, 256);
+  assert.equal(bounds.affinitySquareCountMaximum, 32);
 });

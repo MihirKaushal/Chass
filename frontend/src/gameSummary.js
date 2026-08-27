@@ -67,7 +67,11 @@ export function buildGameBriefing({
         : `Private armies with a ${Math.max(0, Number(gambit.budget) || 0)}-point cap`
     );
   }
-  if (customRules.affinityEnabled) tags.push("Affinity squares start empty");
+  if (customRules.affinityEnabled) {
+    const squareCount = positiveInteger(customRules.affinitySquareCount, 4);
+    const required = positiveInteger(customRules.affinityControlRequired, 2);
+    tags.push(`${squareCount} Affinity squares; control ${required} to earn CP`);
+  }
   if (abilities.enabled && abilities.allowed?.length) {
     const maximum = positiveInteger(abilities.maxPerPlayer, 1);
     tags.push(`${maximum} ${maximum === 1 ? "ability" : "abilities"} per player`);

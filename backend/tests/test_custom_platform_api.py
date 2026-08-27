@@ -187,10 +187,15 @@ def test_affinity_custom_rule_is_available_in_classic_games(client):
     assert game["variant"] == "classic"
     assert game["configuration"]["customRules"] == {
         "affinityEnabled": True,
+        "affinitySquareCount": 4,
+        "affinityControlRequired": 2,
         "commandPointCap": 4,
     }
     assert game["affinity"]["enabled"] is True
     assert game["affinity"]["commandPointCap"] == 4
+    assert game["affinity"]["squareCount"] == 4
+    assert game["affinity"]["controlRequired"] == 2
+    assert game["affinity"]["controlCounts"] == {"white": 0, "black": 0}
     assert game["affinity"]["squares"] == {
         "white": [{"row": 3, "col": 3}, {"row": 4, "col": 4}],
         "black": [{"row": 3, "col": 4}, {"row": 4, "col": 3}],
@@ -223,6 +228,69 @@ def test_affinity_command_point_cap_must_be_positive(client):
         error["loc"][-1] == "commandPointCap"
         for error in response.json()["detail"]
     )
+
+
+def test_affinity_configuration_validates_even_board_bounded_counts(client):
+    odd = client.post(
+        "/game/validate",
+        json=configured_game(
+            customRules={
+                "affinityEnabled": True,
+                "affinitySquareCount": 5,
+                "affinityControlRequired": 2,
+            },
+        ),
+    )
+    assert odd.status_code == 422
+    assert any(
+        error["loc"][-1] == "affinitySquareCount"
+        for error in odd.json()["detail"]
+    )
+
+    too_many = configured_game(
+        customRules={
+            "affinityEnabled": True,
+            "affinitySquareCount": 10,
+            "affinityControlRequired": 2,
+        },
+    )
+    too_many["boardCols"] = 4
+    response = client.post("/game/validate", json=too_many)
+    assert response.status_code == 422
+    assert "twice the board width" in response.text
+
+    excessive_requirement = client.post(
+        "/game/validate",
+        json=configured_game(
+            customRules={
+                "affinityEnabled": True,
+                "affinitySquareCount": 6,
+                "affinityControlRequired": 4,
+            },
+        ),
+    )
+    assert excessive_requirement.status_code == 422
+    assert "one color's square count" in excessive_requirement.text
+
+
+def test_affinity_response_uses_configured_square_and_control_counts(client):
+    response = client.post(
+        "/game/create",
+        json=configured_game(
+            customRules={
+                "affinityEnabled": True,
+                "affinitySquareCount": 6,
+                "affinityControlRequired": 1,
+                "commandPointCap": 5,
+            },
+        ),
+    )
+    assert response.status_code == 200, response.text
+    affinity = response.json()["game"]["affinity"]
+    assert affinity["squareCount"] == 6
+    assert affinity["controlRequired"] == 1
+    assert len(affinity["squares"]["white"]) == 3
+    assert len(affinity["squares"]["black"]) == 3
 
 
 def test_catalog_formations_have_complete_horde_and_castle_armies(client):
@@ -616,6 +684,19 @@ def test_center_geometry_adapts_to_even_and_odd_board_heights(client):
         "white": [(3, 1), (3, 4)],
         "black": [(3, 2), (3, 5)],
     }
+    expanded_odd = affinity_start_squares(7, 7, 8)
+    assert len(expanded_odd["white"]) == 4
+    assert len(expanded_odd["black"]) == 4
+    assert len(set(expanded_odd["white"] + expanded_odd["black"])) == 8
+    assert {row for row, _ in expanded_odd["white"] + expanded_odd["black"]} == {
+        2,
+        3,
+        4,
+    }
+    maximum = affinity_start_squares(16, 16, 32)
+    assert len(maximum["white"]) == 16
+    assert len(maximum["black"]) == 16
+    assert {row for row, _ in maximum["white"] + maximum["black"]} == {7, 8}
     assert significant_center_start_squares(
         8,
         8,
@@ -626,6 +707,14 @@ def test_center_geometry_adapts_to_even_and_odd_board_heights(client):
         7,
         affinity_enabled=True,
     ) == [(3, 1), (3, 2), (3, 4), (3, 5)]
+    assert len(
+        significant_center_start_squares(
+            8,
+            8,
+            affinity_enabled=True,
+            affinity_square_count=8,
+        )
+    ) == 8
 
     payload = configured_game(
         gambit={

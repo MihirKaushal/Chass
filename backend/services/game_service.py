@@ -346,10 +346,14 @@ def _sync_piece_metadata(game_state: GameState) -> None:
             apply_definition(captured_piece)
 
 
-def _center_affinity_squares(board_rows: int, board_cols: int) -> dict[str, list[BoardCoordinate]]:
+def _center_affinity_squares(
+    board_rows: int,
+    board_cols: int,
+    count: int = 4,
+) -> dict[str, list[BoardCoordinate]]:
     return {
         color: [BoardCoordinate(row=row, col=col) for row, col in squares]
-        for color, squares in affinity_start_squares(board_rows, board_cols).items()
+        for color, squares in affinity_start_squares(board_rows, board_cols, count).items()
     }
 
 
@@ -373,6 +377,8 @@ def _configuration_from_request(
             initial_layout=classic_layout(request.boardRows, request.boardCols),
             custom_rules=CustomRulesConfig(
                 affinity_enabled=request.variant == "gambit",
+                affinity_square_count=4,
+                affinity_control_required=2,
                 command_point_cap=3,
             ),
         )
@@ -435,11 +441,30 @@ def _configuration_from_request(
         definitions[piece_type] = definition
 
     custom_rules_explicit = "customRules" in payload.model_fields_set
-    legacy_affinity_explicit = "affinityEnabled" in payload.gambit.model_fields_set
+    legacy_affinity_explicit = bool(
+        {
+            "affinityEnabled",
+            "affinitySquareCount",
+            "affinityControlRequired",
+            "commandPointCap",
+        }
+        & payload.gambit.model_fields_set
+    )
     affinity_enabled = payload.customRules.affinityEnabled
+    affinity_square_count = payload.customRules.affinitySquareCount
+    affinity_control_required = payload.customRules.affinityControlRequired
     command_point_cap = payload.customRules.commandPointCap
     if not custom_rules_explicit and legacy_affinity_explicit:
-        affinity_enabled = bool(payload.gambit.affinityEnabled)
+        affinity_enabled = (
+            bool(payload.gambit.affinityEnabled)
+            if payload.gambit.affinityEnabled is not None
+            else payload.gambit.enabled
+        )
+        affinity_square_count = payload.gambit.affinitySquareCount or 4
+        affinity_control_required = min(
+            payload.gambit.affinityControlRequired or 2,
+            affinity_square_count // 2,
+        )
         command_point_cap = (
             payload.gambit.commandPointCap
             if payload.gambit.commandPointCap is not None
@@ -448,6 +473,8 @@ def _configuration_from_request(
     elif not custom_rules_explicit and payload.gambit.enabled:
         # Older clients treated affinity as part of Gambit and omitted the field.
         affinity_enabled = True
+        affinity_square_count = 4
+        affinity_control_required = 2
         command_point_cap = 3
 
     configuration = GameConfiguration(
@@ -473,6 +500,8 @@ def _configuration_from_request(
         ),
         custom_rules=CustomRulesConfig(
             affinity_enabled=affinity_enabled,
+            affinity_square_count=affinity_square_count,
+            affinity_control_required=affinity_control_required,
             command_point_cap=command_point_cap,
         ),
         special_abilities=SpecialAbilityConfig(
@@ -508,6 +537,12 @@ def _configuration_from_request(
         gambit.config.setup_rows = payload.gambit.setupRows
         gambit.config.command_point_cap = configuration.custom_rules.command_point_cap
         gambit.config.affinity_enabled = configuration.custom_rules.affinity_enabled
+        gambit.config.affinity_square_count = (
+            configuration.custom_rules.affinity_square_count
+        )
+        gambit.config.affinity_control_required = (
+            configuration.custom_rules.affinity_control_required
+        )
         gambit.config.draft_enabled = payload.gambit.draftEnabled
         gambit.config.require_exact_budget = False
         gambit.config.piece_points = {
@@ -538,6 +573,7 @@ def _configuration_from_request(
         gambit.config.affinity_squares = _center_affinity_squares(
             request.boardRows,
             request.boardCols,
+            configuration.custom_rules.affinity_square_count,
         )
     # Standard promotion and command transformations remain available even when
     # their piece types are not part of the starting army catalog.
@@ -885,9 +921,22 @@ class GameService:
         request.variant = "gambit" if is_gambit else "classic"
         if is_gambit and gambit_state is None:
             gambit_state = GambitState()
+            gambit_state.config.affinity_enabled = (
+                configuration.custom_rules.affinity_enabled
+            )
+            gambit_state.config.command_point_cap = (
+                configuration.custom_rules.command_point_cap
+            )
+            gambit_state.config.affinity_square_count = (
+                configuration.custom_rules.affinity_square_count
+            )
+            gambit_state.config.affinity_control_required = (
+                configuration.custom_rules.affinity_control_required
+            )
             gambit_state.config.affinity_squares = _center_affinity_squares(
                 request.boardRows,
                 request.boardCols,
+                configuration.custom_rules.affinity_square_count,
             )
         if gambit_state is not None:
             try:
@@ -1851,6 +1900,12 @@ class GameService:
                         "commandPointCap": (
                             game_state.configuration.custom_rules.command_point_cap
                         ),
+                        "affinitySquareCount": (
+                            game_state.configuration.custom_rules.affinity_square_count
+                        ),
+                        "affinityControlRequired": (
+                            game_state.configuration.custom_rules.affinity_control_required
+                        ),
                     },
                     "specialAbilities": {
                         "enabled": game_state.configuration.special_abilities.enabled,
@@ -1976,6 +2031,12 @@ class GameService:
                 "commandPointCap": (
                     game_state.configuration.custom_rules.command_point_cap
                 ),
+                "affinitySquareCount": (
+                    game_state.configuration.custom_rules.affinity_square_count
+                ),
+                "affinityControlRequired": (
+                    game_state.configuration.custom_rules.affinity_control_required
+                ),
             },
             "specialAbilities": {
                 "enabled": game_state.configuration.special_abilities.enabled,
@@ -1998,6 +2059,12 @@ class GameService:
                         ),
                         "commandPointCap": (
                             game_state.configuration.custom_rules.command_point_cap
+                        ),
+                        "affinitySquareCount": (
+                            game_state.configuration.custom_rules.affinity_square_count
+                        ),
+                        "affinityControlRequired": (
+                            game_state.configuration.custom_rules.affinity_control_required
                         ),
                         "pieceCaps": game_state.gambit.config.piece_caps,
                         "draftEnabled": game_state.gambit.config.draft_enabled,
@@ -2255,6 +2322,7 @@ class GameService:
         affinity_squares = affinity_start_squares(
             game_state.board.rows,
             game_state.board.cols,
+            affinity_config.affinity_square_count,
         )
         command_viewer = viewer_color if record.mode == "online" else game_state.current_player
         legal_power_targets: dict[str, list[Position]] = {
@@ -2277,6 +2345,8 @@ class GameService:
         affinity_view = AffinityView(
             enabled=affinity_config.affinity_enabled,
             commandPointCap=affinity_config.command_point_cap,
+            squareCount=affinity_config.affinity_square_count,
+            controlRequired=affinity_config.affinity_control_required,
             powerCosts=affinity_config.power_costs,
             powerUsageCaps=affinity_config.power_usage_caps,
             squares={
@@ -2286,6 +2356,7 @@ class GameService:
             commandPoints=game_state.affinity.command_points,
             primed=game_state.affinity.primed,
             controlled=self.engine.gambit.affinity_control(game_state),
+            controlCounts=self.engine.gambit.affinity_control_counts(game_state),
             powerUsage=game_state.affinity.power_usage,
             legalPowerTargets=legal_power_targets,
             lastPowerExplanation=game_state.affinity.last_power_explanation,
@@ -2351,6 +2422,8 @@ class GameService:
                     setupRows=gambit.config.setup_rows,
                     commandPointCap=affinity_config.command_point_cap,
                     affinityEnabled=affinity_config.affinity_enabled,
+                    affinitySquareCount=affinity_config.affinity_square_count,
+                    affinityControlRequired=affinity_config.affinity_control_required,
                     requireExactBudget=False,
                     draftEnabled=gambit.config.draft_enabled,
                     draftPool=gambit.config.draft_pool,

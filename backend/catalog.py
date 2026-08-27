@@ -1402,7 +1402,12 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "boardCols": 8,
         "formationId": "classic",
         "victory": {"mode": "checkmate"},
-        "customRules": {"affinityEnabled": True, "commandPointCap": 3},
+        "customRules": {
+            "affinityEnabled": True,
+            "affinitySquareCount": 4,
+            "affinityControlRequired": 2,
+            "commandPointCap": 3,
+        },
         "gambit": {"enabled": True, "draftEnabled": False},
     },
     {
@@ -1417,7 +1422,12 @@ POPULAR_PRESETS: list[dict[str, Any]] = [
         "boardCols": 8,
         "formationId": "classic",
         "victory": {"mode": "checkmate"},
-        "customRules": {"affinityEnabled": True, "commandPointCap": 3},
+        "customRules": {
+            "affinityEnabled": True,
+            "affinitySquareCount": 4,
+            "affinityControlRequired": 2,
+            "commandPointCap": 3,
+        },
         "gambit": {"enabled": True, "draftEnabled": True},
     },
 ]

@@ -31,6 +31,7 @@ from backend.catalog import (
 from backend.models import ClassicRuleState, ClockState, Move, Piece
 from backend.routes.game import game_service
 from backend.rules import RuleEngine
+from backend.rules.variant_system import affinity_start_squares
 
 
 class IdleStockfishProvider:
@@ -305,6 +306,29 @@ def test_position_hash_tracks_rule_parameters_runtime_and_model_version(client):
 
     assert MODEL_VERSION.startswith("chass-hce-")
     assert len({baseline, configured, runtime}) == 3
+
+
+def test_affinity_threshold_changes_partial_control_value(client):
+    state = _minimal_state(client)
+    engine = RuleEngine()
+    state.configuration.custom_rules.affinity_enabled = True
+    state.configuration.custom_rules.affinity_square_count = 8
+    row, col = affinity_start_squares(8, 8, 8)["white"][0]
+    state.board.grid[row][col] = _piece(state, "rook", "white")
+
+    state.configuration.custom_rules.affinity_control_required = 1
+    immediate = ChassEvaluator(engine).evaluate(state, detailed=False)
+    state.configuration.custom_rules.affinity_control_required = 4
+    gradual = ChassEvaluator(engine).evaluate(state, detailed=False)
+
+    assert (
+        immediate.values["special_resources"]["white"]
+        > gradual.values["special_resources"]["white"]
+    )
+    assert (
+        immediate.values["center_control"]["white"]
+        > gradual.values["center_control"]["white"]
+    )
 
 
 def test_rule_engine_turn_simulation_is_immutable_and_clock_safe(client):

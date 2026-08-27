@@ -766,6 +766,53 @@ def test_classic_affinity_awards_one_point_and_reinforce_consumes_the_turn():
     assert "used Reinforce" in explanation
 
 
+def test_affinity_primes_at_the_configured_control_threshold():
+    engine = RuleEngine()
+    definitions = build_default_piece_definitions()
+    board = Board(rows=8, cols=8, grid=[[None for _ in range(8)] for _ in range(8)])
+    state = GameState(
+        id="affinity-threshold-test",
+        board=board,
+        variant="classic",
+        phase="play",
+        configuration=GameConfiguration(
+            custom_rules=CustomRulesConfig(
+                affinity_enabled=True,
+                affinity_square_count=6,
+                affinity_control_required=1,
+            ),
+        ),
+        piece_definitions=definitions,
+        rules=engine.default_rule_settings(),
+    )
+    state.board.grid[7][4] = create_piece(state, "king", "white")
+    state.board.grid[0][7] = create_piece(state, "king", "black")
+    state.board.grid[3][2] = create_piece(state, "rook", "white")
+
+    state, _ = engine.apply_move(
+        state,
+        Move(fromRow=7, fromCol=4, toRow=6, toCol=4),
+    )
+    assert state.affinity.primed["white"] is True
+
+    state, _ = engine.apply_move(
+        state,
+        Move(fromRow=0, fromCol=7, toRow=1, toCol=7),
+    )
+    assert state.affinity.command_points["white"] == 1
+
+    stricter = state.clone()
+    stricter.current_player = "white"
+    stricter.configuration.custom_rules.affinity_control_required = 2
+    stricter.affinity.primed["white"] = False
+    stricter.affinity.command_points["white"] = 0
+    stricter, _ = engine.apply_move(
+        stricter,
+        Move(fromRow=6, fromCol=4, toRow=7, toCol=4),
+    )
+    assert stricter.affinity.primed["white"] is False
+
+
 def make_gambit_play_state() -> tuple[RuleEngine, GameState]:
     engine = RuleEngine()
     state = GameState(

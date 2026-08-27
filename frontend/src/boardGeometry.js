@@ -71,36 +71,97 @@ export function objectiveCenterSquares(rows, cols) {
   return centeredBoardSquares(rows, cols, 4);
 }
 
-export function affinitySquares(rows, cols) {
-  if (rows % 2) {
-    const line = centeredBoardSquares(rows, cols, 4).sort((left, right) => left.col - right.col);
-    return {
-      white: [line[0], line[2]],
-      black: [line[1], line[3]],
+export function affinitySquares(rows, cols, count = 4) {
+  if (rows <= 0 || cols <= 0) return { white: [], black: [] };
+
+  const requested = Math.trunc(Number(count));
+  const safeRequested = Number.isFinite(requested) ? requested : 4;
+  const limit = Math.min(
+    Math.max(2, safeRequested - (safeRequested % 2)),
+    rows * cols,
+    cols * 2
+  );
+  let selected;
+  if (rows % 2 === 0) {
+    selected = centeredBoardSquares(rows, cols, limit);
+  } else {
+    const centerRow = Math.floor(rows / 2);
+    const rotate = ({ row, col }) => ({ row: rows - 1 - row, col: cols - 1 - col });
+    const distance = ({ row, col }) =>
+      (2 * row - (rows - 1)) ** 2 + (2 * col - (cols - 1)) ** 2;
+    const collectPairs = (candidates) => {
+      const pairs = new Map();
+      candidates.forEach((square) => {
+        const partner = rotate(square);
+        if (partner.row === square.row && partner.col === square.col) return;
+        const ordered = [square, partner].sort((left, right) =>
+          left.row - right.row || left.col - right.col
+        );
+        pairs.set(
+          `${squareKey(ordered[0].row, ordered[0].col)}|${squareKey(ordered[1].row, ordered[1].col)}`,
+          ordered
+        );
+      });
+      return [...pairs.values()].sort((left, right) =>
+        distance(left[0]) - distance(right[0]) ||
+        left[0].row - right[0].row ||
+        left[0].col - right[0].col
+      );
     };
+    const centralPairs = collectPairs(
+      Array.from({ length: cols }, (_, col) => ({ row: centerRow, col }))
+    );
+    const outerPairs = collectPairs(
+      Array.from({ length: rows }, (_, row) => row)
+        .filter((row) => row !== centerRow)
+        .flatMap((row) => Array.from({ length: cols }, (_, col) => ({ row, col })))
+    );
+    selected = [];
+    [...centralPairs, ...outerPairs].some((pair) => {
+      selected.push(...pair);
+      return selected.length >= limit;
+    });
   }
 
-  const [leftCol, rightCol] = centeredBoardSquares(1, cols, 2)
-    .map((square) => square.col)
-    .sort((left, right) => left - right);
-  const upperRow = rows / 2 - 1;
-  const lowerRow = rows / 2;
+  const ordered = selected.slice(0, limit).sort((left, right) =>
+    left.row - right.row || left.col - right.col
+  );
+  const half = ordered.length / 2;
+  let white;
+  if (rows % 2) {
+    white = ordered.filter((_, index) => index % 2 === 0);
+  } else {
+    const checkerWhite = ordered.filter(({ row, col }) => (row + col) % 2 === 0);
+    white = checkerWhite.length === half
+      ? checkerWhite
+      : [...ordered]
+        .sort((left, right) =>
+          ((left.row + left.col) % 2) - ((right.row + right.col) % 2) ||
+          left.row - right.row ||
+          left.col - right.col
+        )
+        .slice(0, half);
+  }
+  const whiteKeys = new Set(white.map(({ row, col }) => squareKey(row, col)));
   return {
-    white: [{ row: upperRow, col: leftCol }, { row: lowerRow, col: rightCol }],
-    black: [{ row: upperRow, col: rightCol }, { row: lowerRow, col: leftCol }],
+    white: [...white].sort((left, right) => left.row - right.row || left.col - right.col),
+    black: ordered.filter(({ row, col }) => !whiteKeys.has(squareKey(row, col))),
   };
 }
 
 export function significantCenterSquares(
   rows,
   cols,
-  { victoryMode = "", affinityEnabled = false } = {}
+  { victoryMode = "", affinityEnabled = false, affinitySquareCount = 4 } = {}
 ) {
   const squares = new Map();
   const add = ({ row, col }) => squares.set(squareKey(row, col), { row, col });
 
-  if (victoryMode === "center_dominion" || affinityEnabled) {
-    Object.values(affinitySquares(rows, cols)).flat().forEach(add);
+  if (victoryMode === "center_dominion") {
+    Object.values(affinitySquares(rows, cols, 4)).flat().forEach(add);
+  }
+  if (affinityEnabled) {
+    Object.values(affinitySquares(rows, cols, affinitySquareCount)).flat().forEach(add);
   }
   if (victoryMode === "royal_center") {
     objectiveCenterSquares(rows, cols).forEach(add);
