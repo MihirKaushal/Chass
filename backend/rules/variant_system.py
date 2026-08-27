@@ -100,22 +100,68 @@ def objective_center_squares(rows: int, cols: int) -> list[tuple[int, int]]:
 def affinity_start_squares(
     rows: int,
     cols: int,
+    count: int = 4,
 ) -> dict[str, list[tuple[int, int]]]:
-    if rows % 2:
-        line = sorted(centered_board_squares(rows, cols, 4), key=lambda item: item[1])
-        return {
-            "white": [line[0], line[2]],
-            "black": [line[1], line[3]],
-        }
+    """Return an even, color-balanced cluster expanding from the board center."""
+    if rows <= 0 or cols <= 0:
+        return {"white": [], "black": []}
 
-    upper_row, lower_row = rows // 2 - 1, rows // 2
-    center_cols = sorted(
-        col for _, col in centered_board_squares(1, cols, 2)
-    )
-    left_col, right_col = center_cols
+    limit = min(max(2, count - (count % 2)), rows * cols, cols * 2)
+    if rows % 2 == 0:
+        selected = centered_board_squares(rows, cols, limit)
+    else:
+        center_row = rows // 2
+
+        def rotate(square: tuple[int, int]) -> tuple[int, int]:
+            return rows - 1 - square[0], cols - 1 - square[1]
+
+        def distance(square: tuple[int, int]) -> int:
+            return (2 * square[0] - (rows - 1)) ** 2 + (
+                2 * square[1] - (cols - 1)
+            ) ** 2
+
+        # Keep odd-height layouts on the exact center row for as long as an
+        # even, rotation-balanced selection fits, then grow into nearby rows.
+        central_pairs = [
+            tuple(sorted(((center_row, col), rotate((center_row, col)))))
+            for col in range(cols)
+            if rotate((center_row, col)) != (center_row, col)
+        ]
+        central_pairs = sorted(
+            set(central_pairs),
+            key=lambda pair: (distance(pair[0]), pair),
+        )
+        outer_pairs = [
+            tuple(sorted(((row, col), rotate((row, col)))))
+            for row in range(rows)
+            for col in range(cols)
+            if row != center_row and rotate((row, col)) != (row, col)
+        ]
+        outer_pairs = sorted(
+            set(outer_pairs),
+            key=lambda pair: (distance(pair[0]), pair),
+        )
+        selected = []
+        for pair in [*central_pairs, *outer_pairs]:
+            if len(selected) >= limit:
+                break
+            selected.extend(pair)
+
+    ordered = sorted(selected[:limit])
+    half = len(ordered) // 2
+    if rows % 2:
+        white = ordered[::2]
+    else:
+        checker_white = [square for square in ordered if sum(square) % 2 == 0]
+        white = (
+            checker_white
+            if len(checker_white) == half
+            else sorted(ordered, key=lambda square: (sum(square) % 2, square))[:half]
+        )
+    white_set = set(white)
     return {
-        "white": [(upper_row, left_col), (lower_row, right_col)],
-        "black": [(upper_row, right_col), (lower_row, left_col)],
+        "white": sorted(white),
+        "black": [square for square in ordered if square not in white_set],
     }
 
 
@@ -125,13 +171,23 @@ def significant_center_start_squares(
     *,
     victory_mode: str | None = None,
     affinity_enabled: bool = False,
+    affinity_square_count: int = 4,
 ) -> list[tuple[int, int]]:
     """Return center squares that must be contested rather than pre-occupied."""
     squares: set[tuple[int, int]] = set()
-    if victory_mode == "center_dominion" or affinity_enabled:
+    if victory_mode == "center_dominion":
+        squares.update(
+            square for color_squares in affinity_start_squares(rows, cols, 4).values()
+            for square in color_squares
+        )
+    if affinity_enabled:
         squares.update(
             square
-            for color_squares in affinity_start_squares(rows, cols).values()
+            for color_squares in affinity_start_squares(
+                rows,
+                cols,
+                affinity_square_count,
+            ).values()
             for square in color_squares
         )
     if victory_mode == "royal_center":

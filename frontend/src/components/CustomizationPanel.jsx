@@ -191,7 +191,12 @@ function defaultDraft(catalog) {
     pieceCaps,
     placements: classicLayout(8, 8),
     victory: { mode: "checkmate", targetPoints: 21, timeSeconds: 600, kingPoints: 0, dominionRounds: 3, checkTarget: 3 },
-    customRules: { affinityEnabled: false, commandPointCap: 3 },
+    customRules: {
+      affinityEnabled: false,
+      affinitySquareCount: 4,
+      affinityControlRequired: 2,
+      commandPointCap: 3,
+    },
     specialAbilities: {
       enabled: false,
       allowed: [],
@@ -282,6 +287,8 @@ function loadSavedDraft(catalog) {
           (gambit.affinityEnabled !== undefined
             ? {
                 affinityEnabled: gambit.affinityEnabled,
+                affinitySquareCount: gambit.affinitySquareCount ?? 4,
+                affinityControlRequired: gambit.affinityControlRequired ?? 2,
                 commandPointCap: gambit.commandPointCap ?? 3,
               }
             : {})
@@ -484,6 +491,7 @@ function ConfigurationBoard({
     significantCenterSquares(draft.boardRows, draft.boardCols, {
       victoryMode: draft.victory.mode,
       affinityEnabled: draft.customRules.affinityEnabled,
+      affinitySquareCount: draft.customRules.affinitySquareCount,
     }).map((square) => `${square.row}-${square.col}`)
   );
   const issueSquareMap = useMemo(
@@ -988,8 +996,11 @@ function Rulebook({ catalog, draft, predictorProfile }) {
   const showPredictor = matchesRulebookSearch(query, predictorCopy);
   const affinityCopy = [
     "Affinity Squares",
-    "Each color receives two adaptive center squares. Hold both squares assigned to your color through the opponent's turn to earn one command point.",
+    `The board marks ${draft.customRules.affinitySquareCount} centered squares, divided equally between White and Black.`,
+    `Hold ${draft.customRules.affinityControlRequired} of your ${draft.customRules.affinitySquareCount / 2} assigned squares through the opponent's turn to earn one command point.`,
     "Spend one point for a Pawn, two to evolve a Pawn, or three for a Rook. A command uses the normal turn and must leave the King safe.",
+    "Affinity Square Count",
+    "Squares Required",
     "Command Point Cap",
     `The cap controls how many unused command points a player may save. The current cap is ${draft.customRules.commandPointCap}.`,
     "Marked center squares must begin empty; only Barricades may start there.",
@@ -1133,13 +1144,16 @@ function Rulebook({ catalog, draft, predictorProfile }) {
         {showAffinity ? <div className="rulebook-gambit-copy">
           <div>
             <h4>Affinity Squares</h4>
-            <p>Each color receives two adaptive center squares. Hold both squares assigned to your color through the opponent&apos;s turn to earn one command point.</p>
+            <p>The board marks {draft.customRules.affinitySquareCount} centered squares, divided equally so each color receives {draft.customRules.affinitySquareCount / 2}.</p>
+            <p>Hold {draft.customRules.affinityControlRequired} of your assigned squares through the opponent&apos;s turn to earn one command point.</p>
             <p>Spend one point for a Pawn, two to evolve a Pawn, or three for a Rook. A command uses the normal turn and must leave the King safe.</p>
             <p>Marked center squares must begin empty; only Barricades may start there.</p>
           </div>
           <div>
-            <h4>Command Point Cap</h4>
-            <p>The cap controls how many unused command points a player may save. It defaults to three and can be changed without enabling Chass Gambit.</p>
+            <h4>Configuration</h4>
+            <p><strong>Affinity squares:</strong> {draft.customRules.affinitySquareCount} total.</p>
+            <p><strong>Squares required:</strong> {draft.customRules.affinityControlRequired} per player.</p>
+            <p><strong>Command point cap:</strong> {draft.customRules.commandPointCap}. This limits how many unused points a player may save.</p>
           </div>
         </div> : <EmptyState className="rulebook-empty">No matching custom rules in this configuration.</EmptyState>}
       </RulebookSection>
@@ -1965,8 +1979,24 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
 
           <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any compatible match." className="ability-config-section" {...studioSectionProps("studio-custom-rules")}>
             <div id="customize-affinity-squares">
-              <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
+              <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with centered marked squares empty, then control the configured number of your color to earn command points." />
               {draft.customRules.affinityEnabled ? <div className="conditional-fields">
+                <label>Affinity Squares<select value={draft.customRules.affinitySquareCount} onChange={(event) => {
+                  const affinitySquareCount = Number(event.target.value);
+                  setDraft((current) => ({
+                    ...current,
+                    presetId: "custom",
+                    customRules: {
+                      ...current.customRules,
+                      affinitySquareCount,
+                      affinityControlRequired: Math.min(
+                        current.customRules.affinityControlRequired,
+                        affinitySquareCount / 2
+                      ),
+                    },
+                  }));
+                }}>{Array.from({ length: ((numericBounds.affinitySquareCountMaximum - numericBounds.affinitySquareCountMin) / 2) + 1 }, (_, index) => numericBounds.affinitySquareCountMin + (index * 2)).map((count) => <option key={count} value={count}>{count}</option>)}</select><small>Total centered squares, divided equally between White and Black. Maximum: twice the board width.</small></label>
+                <label>Squares Required<select value={draft.customRules.affinityControlRequired} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityControlRequired: clampWholeNumber(event.target.value, numericBounds.affinityControlRequiredMin, numericBounds.affinityControlRequiredMaximum) } }))}>{Array.from({ length: numericBounds.affinityControlRequiredMaximum }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count}</option>)}</select><small>Own-color squares a player must hold to prime and earn a command point. The default is 2.</small></label>
                 <label>Command Point Cap<input type="number" min={numericBounds.commandPointCapMin} max={numericBounds.commandPointCapMax} step="1" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clampWholeNumber(event.target.value, numericBounds.commandPointCapMin, numericBounds.commandPointCapMax) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
               </div> : null}
             </div>

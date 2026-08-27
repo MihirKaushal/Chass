@@ -13,6 +13,10 @@ CHECK_TARGET_MIN = 1
 CHECK_TARGET_MAX = 100
 COMMAND_POINT_CAP_MIN = 1
 COMMAND_POINT_CAP_MAX = 20
+AFFINITY_SQUARE_COUNT_MIN = 2
+AFFINITY_SQUARE_COUNT_MAX = 32
+AFFINITY_CONTROL_REQUIRED_MIN = 1
+AFFINITY_CONTROL_REQUIRED_MAX = 16
 ABILITY_SELECTION_MIN = 1
 ABILITY_SELECTION_MAX = 16
 BARRICADE_COUNT_MIN = 0
@@ -46,6 +50,10 @@ def customization_limits() -> dict[str, int]:
         "checkTargetMax": CHECK_TARGET_MAX,
         "commandPointCapMin": COMMAND_POINT_CAP_MIN,
         "commandPointCapMax": COMMAND_POINT_CAP_MAX,
+        "affinitySquareCountMin": AFFINITY_SQUARE_COUNT_MIN,
+        "affinitySquareCountMax": AFFINITY_SQUARE_COUNT_MAX,
+        "affinityControlRequiredMin": AFFINITY_CONTROL_REQUIRED_MIN,
+        "affinityControlRequiredMax": AFFINITY_CONTROL_REQUIRED_MAX,
         "abilitySelectionMin": ABILITY_SELECTION_MIN,
         "abilitySelectionMax": ABILITY_SELECTION_MAX,
         "barricadeCountMin": BARRICADE_COUNT_MIN,

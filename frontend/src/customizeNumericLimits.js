@@ -13,6 +13,10 @@ const FALLBACK_LIMITS = Object.freeze({
   checkTargetMax: 100,
   commandPointCapMin: 1,
   commandPointCapMax: 20,
+  affinitySquareCountMin: 2,
+  affinitySquareCountMax: 32,
+  affinityControlRequiredMin: 1,
+  affinityControlRequiredMax: 16,
   abilitySelectionMin: 1,
   abilitySelectionMax: 16,
   barricadeCountMin: 0,
@@ -40,6 +44,12 @@ export function clampWholeNumber(value, minimum, maximum) {
   const number = Number(value);
   if (!Number.isFinite(number)) return safeMinimum;
   return Math.max(safeMinimum, Math.min(safeMaximum, Math.trunc(number)));
+}
+
+export function clampEvenWholeNumber(value, minimum, maximum) {
+  const clamped = clampWholeNumber(value, minimum, maximum);
+  const even = clamped - (clamped % 2);
+  return Math.max(minimum, Math.min(maximum, even));
 }
 
 export function customizeNumericBounds(draft = {}, suppliedLimits = {}) {
@@ -92,6 +102,22 @@ export function customizeNumericBounds(draft = {}, suppliedLimits = {}) {
     limits.pointMin,
     limits.pointMax
   );
+  const affinitySquareCountMaximum = Math.max(
+    limits.affinitySquareCountMin,
+    Math.min(limits.affinitySquareCountMax, boardCols * 2)
+  );
+  const affinitySquareCount = clampEvenWholeNumber(
+    draft.customRules?.affinitySquareCount ?? 4,
+    limits.affinitySquareCountMin,
+    affinitySquareCountMaximum
+  );
+  const affinityControlRequiredMaximum = Math.max(
+    limits.affinityControlRequiredMin,
+    Math.min(
+      limits.affinityControlRequiredMax,
+      affinitySquareCount / 2
+    )
+  );
 
   return {
     ...limits,
@@ -100,6 +126,8 @@ export function customizeNumericBounds(draft = {}, suppliedLimits = {}) {
     abilityCountMaximum,
     barricadeCountMinimum,
     barricadeCountMaximum,
+    affinitySquareCountMaximum,
+    affinityControlRequiredMaximum,
     gambitBudgetMinimum: Math.max(limits.gambitBudgetMin, kingPoints),
     gambitSetupRowsMaximum: setupRowsMaximum,
     gambitMaxPiecesMaximum: maxPiecesMaximum,
@@ -162,6 +190,11 @@ export function normalizeCustomizeNumbers(draft, suppliedLimits = {}) {
   pieceCaps.king = 1;
   pieceCaps.queen = maxQueens;
   draftPool.king = 2;
+  const affinitySquareCount = clampEvenWholeNumber(
+    draft.customRules?.affinitySquareCount ?? 4,
+    limits.affinitySquareCountMin,
+    initialBounds.affinitySquareCountMaximum
+  );
 
   return {
     ...draft,
@@ -200,6 +233,15 @@ export function normalizeCustomizeNumbers(draft, suppliedLimits = {}) {
     },
     customRules: {
       ...draft.customRules,
+      affinitySquareCount,
+      affinityControlRequired: clampWholeNumber(
+        draft.customRules?.affinityControlRequired ?? 2,
+        limits.affinityControlRequiredMin,
+        Math.min(
+          limits.affinityControlRequiredMax,
+          affinitySquareCount / 2
+        )
+      ),
       commandPointCap: clampWholeNumber(
         draft.customRules?.commandPointCap,
         limits.commandPointCapMin,

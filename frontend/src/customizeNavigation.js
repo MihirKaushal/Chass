@@ -88,7 +88,7 @@ const STATIC_SETTING_LINKS = [
     sectionId: "studio-custom-rules",
     category: "Custom Rules",
     targetId: "customize-affinity-squares",
-    keywords: "center control command points cap",
+    keywords: "center control command points cap affinity square count squares required threshold",
   },
   {
     id: "setting-abilities-per-player",

@@ -8,6 +8,10 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from backend.configuration_limits import (
     ABILITY_SELECTION_MAX,
     ABILITY_SELECTION_MIN,
+    AFFINITY_CONTROL_REQUIRED_MAX,
+    AFFINITY_CONTROL_REQUIRED_MIN,
+    AFFINITY_SQUARE_COUNT_MAX,
+    AFFINITY_SQUARE_COUNT_MIN,
     BARRICADE_COUNT_MAX,
     BARRICADE_COUNT_MIN,
     BOARD_DIMENSION_MAX,
@@ -149,6 +153,8 @@ class GambitConfigView(BaseModel):
     setupRows: int
     commandPointCap: int
     affinityEnabled: bool = True
+    affinitySquareCount: int = 4
+    affinityControlRequired: int = 2
     requireExactBudget: bool = False
     draftEnabled: bool = False
     draftPool: dict[str, int] = Field(default_factory=dict)
@@ -202,12 +208,15 @@ class GambitView(BaseModel):
 class AffinityView(BaseModel):
     enabled: bool = False
     commandPointCap: int = 3
+    squareCount: int = 4
+    controlRequired: int = 2
     powerCosts: dict[str, int] = Field(default_factory=dict)
     powerUsageCaps: dict[str, int] = Field(default_factory=dict)
     squares: dict[str, list[Position]] = Field(default_factory=dict)
     commandPoints: dict[str, int] = Field(default_factory=dict)
     primed: dict[str, bool] = Field(default_factory=dict)
     controlled: dict[str, bool] = Field(default_factory=dict)
+    controlCounts: dict[str, int] = Field(default_factory=dict)
     powerUsage: dict[str, dict[str, int]] = Field(default_factory=dict)
     legalPowerTargets: dict[str, list[Position]] = Field(default_factory=dict)
     lastPowerExplanation: str | None = None
@@ -474,11 +483,30 @@ class SpecialAbilityConfigPayload(BaseModel):
 
 class CustomRulesConfigPayload(BaseModel):
     affinityEnabled: bool = False
+    affinitySquareCount: int = Field(
+        default=4,
+        ge=AFFINITY_SQUARE_COUNT_MIN,
+        le=AFFINITY_SQUARE_COUNT_MAX,
+        multiple_of=2,
+    )
+    affinityControlRequired: int = Field(
+        default=2,
+        ge=AFFINITY_CONTROL_REQUIRED_MIN,
+        le=AFFINITY_CONTROL_REQUIRED_MAX,
+    )
     commandPointCap: int = Field(
         default=3,
         ge=COMMAND_POINT_CAP_MIN,
         le=COMMAND_POINT_CAP_MAX,
     )
+
+    @model_validator(mode="after")
+    def validate_control_requirement(self) -> "CustomRulesConfigPayload":
+        if self.affinityControlRequired > self.affinitySquareCount // 2:
+            raise ValueError(
+                "Affinity control requirement cannot exceed one color's square count"
+            )
+        return self
 
 
 class GambitConfigPayload(BaseModel):
@@ -501,6 +529,17 @@ class GambitConfigPayload(BaseModel):
     )
     # Legacy aliases retained so saved configurations continue to load.
     affinityEnabled: bool | None = None
+    affinitySquareCount: int | None = Field(
+        default=None,
+        ge=AFFINITY_SQUARE_COUNT_MIN,
+        le=AFFINITY_SQUARE_COUNT_MAX,
+        multiple_of=2,
+    )
+    affinityControlRequired: int | None = Field(
+        default=None,
+        ge=AFFINITY_CONTROL_REQUIRED_MIN,
+        le=AFFINITY_CONTROL_REQUIRED_MAX,
+    )
     commandPointCap: int | None = Field(
         default=None,
         ge=COMMAND_POINT_CAP_MIN,
@@ -518,6 +557,14 @@ class GambitConfigPayload(BaseModel):
             raise ValueError("Draft pool counts cannot be negative")
         if any(value > DRAFT_POOL_COUNT_MAX for value in self.draftPool.values()):
             raise ValueError(f"Draft pool counts cannot exceed {DRAFT_POOL_COUNT_MAX}")
+        if (
+            self.affinitySquareCount is not None
+            and self.affinityControlRequired is not None
+            and self.affinityControlRequired > self.affinitySquareCount // 2
+        ):
+            raise ValueError(
+                "Affinity control requirement cannot exceed one color's square count"
+            )
         return self
 
 
@@ -628,6 +675,17 @@ class CreateGameRequest(BaseModel):
         if self.boardSize is not None:
             self.boardRows = self.boardSize
             self.boardCols = self.boardSize
+        if self.configuration:
+            affinity_count = self.configuration.customRules.affinitySquareCount
+            if (
+                "customRules" not in self.configuration.model_fields_set
+                and self.configuration.gambit.affinitySquareCount is not None
+            ):
+                affinity_count = self.configuration.gambit.affinitySquareCount
+            if affinity_count > self.boardCols * 2:
+                raise ValueError(
+                    "Affinity square count cannot exceed twice the board width"
+                )
         if self.configuration and self.configuration.gambit.enabled:
             gambit = self.configuration.gambit
             if gambit.setupRows > self.boardRows // 2:

@@ -305,6 +305,7 @@ class ConfigurationRuleEngine:
                 board_cols,
                 victory_mode=mode,
                 affinity_enabled=payload.customRules.affinityEnabled,
+                affinity_square_count=payload.customRules.affinitySquareCount,
             )
         )
         if any(

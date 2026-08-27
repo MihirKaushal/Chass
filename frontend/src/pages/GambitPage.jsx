@@ -3,6 +3,11 @@ import { useEffect, useMemo, useState } from "react";
 import ActiveActionStrip from "../components/ActiveActionStrip";
 import BoardMarkerGuide from "../components/BoardMarkerGuide";
 import ChessBoard from "../components/ChessBoard";
+import {
+  initialCommandDisclosure,
+  revealEarnedCommandPoints,
+  toggleCommandDisclosure,
+} from "../commandDisclosure";
 import GameBriefing from "../components/GameBriefing";
 import MatchPredictor from "../components/MatchPredictor";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
@@ -414,84 +419,116 @@ export function CommandPanel({ game, interactive, selectedPower, onSelectPower, 
   const points = affinity.commandPoints[color] || 0;
   const controlled = affinity.controlled[color];
   const primed = affinity.primed[color];
+  const required = affinity.controlRequired || 2;
+  const assigned = affinity.squares[color]?.length || (affinity.squareCount || 4) / 2;
+  const controlCount = affinity.controlCounts?.[color] || 0;
+  const [disclosure, setDisclosure] = useState(() => (
+    initialCommandDisclosure(affinity.commandPoints)
+  ));
+  const expanded = disclosure[color]?.expanded || false;
+  const bodyId = `command-panel-${game.id}-${color}`;
+
+  useEffect(() => {
+    setDisclosure((current) => (
+      revealEarnedCommandPoints(current, affinity.commandPoints)
+    ));
+  }, [affinity.commandPoints.black, affinity.commandPoints.white]);
+
+  const toggleExpanded = () => {
+    if (expanded && selectedPower) onSelectPower(null);
+    setDisclosure((current) => toggleCommandDisclosure(current, color));
+  };
 
   return (
     <section className="command-panel">
       <header className="command-heading">
-        <div>
-          <span className="eyebrow">{title(color)} command</span>
-          <h2>Command Points</h2>
-        </div>
-        <div className="command-pips" aria-label={`${points} of ${affinity.commandPointCap} command points`}>
-          {Array.from({ length: affinity.commandPointCap }).map((_, index) => (
-            <i key={index} className={index < points ? "filled" : ""} />
-          ))}
-        </div>
+        <button
+          type="button"
+          className="command-disclosure-toggle"
+          aria-expanded={expanded}
+          aria-controls={bodyId}
+          onClick={toggleExpanded}
+        >
+          <span className="command-heading-copy">
+            <span className="eyebrow">{title(color)} command</span>
+            <strong>Command Points</strong>
+          </span>
+          <span className="command-heading-status">
+            <span className="command-pips" aria-label={`${points} of ${affinity.commandPointCap} command points`}>
+              {Array.from({ length: affinity.commandPointCap }).map((_, index) => (
+                <i key={index} className={index < points ? "filled" : ""} />
+              ))}
+            </span>
+            <span className="command-toggle-arrow" aria-hidden="true" />
+          </span>
+        </button>
       </header>
 
-      <div className={`affinity-readout ${controlled ? "controlled" : ""}`}>
-        <strong>{controlled ? "Affinity held" : "Affinity contested"}</strong>
-        <span>
-          {!affinity.enabled
-            ? "Affinity squares are disabled for this game."
-            : primed
-            ? "Keep both squares through the enemy turn to earn 1 point."
-            : "Occupy both marked squares at the end of your turn to prime a point."}
-        </span>
-      </div>
-
-      <div className="power-list">
-        {Object.entries(POWER_COPY).map(([power, copy]) => {
-          const cost = affinity.powerCosts[power];
-          const usage = affinity.powerUsage[color]?.[power] || 0;
-          const cap = affinity.powerUsageCaps[power];
-          const targets = affinity.legalPowerTargets[power] || [];
-          const available = interactive && points >= cost && usage < cap && targets.length > 0;
-          return (
-            <button
-              type="button"
-              key={power}
-              className={`power-card ${selectedPower === power ? "selected" : ""}`}
-              disabled={!available}
-              onClick={() => onSelectPower(selectedPower === power ? null : power)}
-            >
-              <span className="power-cost">{cost} CP</span>
-              <span className="power-copy">
-                <strong>{copy.label}</strong>
-                <small>{copy.kicker}</small>
-                <span>{copy.description}</span>
-              </span>
-              <span className="power-uses">{usage}/{cap}</span>
-            </button>
-          );
-        })}
-      </div>
-
-      {selectedPower === "evolve" ? (
-        <div className="evolve-choice" role="group" aria-label="Choose evolved piece">
-          <span>Evolve into</span>
-          {(["knight", "bishop"]).map((pieceType) => (
-            <button
-              type="button"
-              key={pieceType}
-              className={evolveTo === pieceType ? "active" : ""}
-              onClick={() => setEvolveTo(pieceType)}
-            >
-              {title(pieceType)}
-            </button>
-          ))}
+      <div id={bodyId} className="command-disclosure-body" hidden={!expanded}>
+        <div className={`affinity-readout ${controlled ? "controlled" : ""}`}>
+          <strong>{controlled ? "Affinity held" : "Affinity contested"}</strong>
+          <span>
+            {!affinity.enabled
+              ? "Affinity squares are disabled for this game."
+              : primed
+              ? `Keep control of at least ${required} squares through the enemy turn to earn 1 point.`
+              : `Control ${required} of your ${assigned} marked squares to prime a point. Currently held: ${controlCount}.`}
+          </span>
         </div>
-      ) : null}
 
-      {selectedPower ? (
-        <p className="power-instruction">
-          Select one of the pulsing board squares. This action uses your full turn.
-        </p>
-      ) : (
-        <p className="power-instruction muted">
-          Command powers may block check, create check, or deliver checkmate.
-        </p>
-      )}
+        <div className="power-list">
+          {Object.entries(POWER_COPY).map(([power, copy]) => {
+            const cost = affinity.powerCosts[power];
+            const usage = affinity.powerUsage[color]?.[power] || 0;
+            const cap = affinity.powerUsageCaps[power];
+            const targets = affinity.legalPowerTargets[power] || [];
+            const available = interactive && points >= cost && usage < cap && targets.length > 0;
+            return (
+              <button
+                type="button"
+                key={power}
+                className={`power-card ${selectedPower === power ? "selected" : ""}`}
+                disabled={!available}
+                onClick={() => onSelectPower(selectedPower === power ? null : power)}
+              >
+                <span className="power-cost">{cost} CP</span>
+                <span className="power-copy">
+                  <strong>{copy.label}</strong>
+                  <small>{copy.kicker}</small>
+                  <span>{copy.description}</span>
+                </span>
+                <span className="power-uses">{usage}/{cap}</span>
+              </button>
+            );
+          })}
+        </div>
+
+        {selectedPower === "evolve" ? (
+          <div className="evolve-choice" role="group" aria-label="Choose evolved piece">
+            <span>Evolve into</span>
+            {(["knight", "bishop"]).map((pieceType) => (
+              <button
+                type="button"
+                key={pieceType}
+                className={evolveTo === pieceType ? "active" : ""}
+                onClick={() => setEvolveTo(pieceType)}
+              >
+                {title(pieceType)}
+              </button>
+            ))}
+          </div>
+        ) : null}
+
+        {selectedPower ? (
+          <p className="power-instruction">
+            Select one of the pulsing board squares. This action uses your full turn.
+          </p>
+        ) : (
+          <p className="power-instruction muted">
+            Command powers may block check, create check, or deliver checkmate.
+          </p>
+        )}
+      </div>
     </section>
   );
 }

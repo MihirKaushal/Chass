@@ -36,7 +36,7 @@ test("briefing keeps the selected victory and modifiers concise", () => {
       title: "10x8 Custom Match",
       summary: "Give check 4 times first; checkmate also wins.",
       tags: [
-        "Affinity squares start empty",
+        "4 Affinity squares; control 2 to earn CP",
         "2 abilities per player",
         "2 custom piece types",
       ],

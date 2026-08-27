@@ -203,6 +203,8 @@ class SpecialAbilityConfig(BaseModel):
 
 class CustomRulesConfig(BaseModel):
     affinity_enabled: bool = False
+    affinity_square_count: int = Field(default=4, ge=2, le=32, multiple_of=2)
+    affinity_control_required: int = Field(default=2, ge=1, le=16)
     command_point_cap: int = Field(default=3, ge=0)
     power_costs: dict[str, int] = Field(
         default_factory=lambda: {"reinforce": 1, "evolve": 2, "stronghold": 3}
@@ -210,6 +212,14 @@ class CustomRulesConfig(BaseModel):
     power_usage_caps: dict[str, int] = Field(
         default_factory=lambda: {"reinforce": 2, "evolve": 2, "stronghold": 1}
     )
+
+    @model_validator(mode="after")
+    def validate_affinity_control_requirement(self) -> "CustomRulesConfig":
+        if self.affinity_control_required > self.affinity_square_count // 2:
+            raise ValueError(
+                "Affinity control requirement cannot exceed one color's square count"
+            )
+        return self
 
 
 class GameConfiguration(BaseModel):
@@ -351,6 +361,8 @@ class GambitConfig(BaseModel):
     setup_rows: int = Field(default=2, ge=1)
     command_point_cap: int = Field(default=3, ge=0)
     affinity_enabled: bool = True
+    affinity_square_count: int = Field(default=4, ge=2, le=32, multiple_of=2)
+    affinity_control_required: int = Field(default=2, ge=1, le=16)
     # Retained for backward-compatible state loading. New games always treat
     # the budget as a maximum rather than an exact spending requirement.
     require_exact_budget: bool = False
@@ -411,6 +423,14 @@ class GambitConfig(BaseModel):
             ],
         }
     )
+
+    @model_validator(mode="after")
+    def validate_affinity_control_requirement(self) -> "GambitConfig":
+        if self.affinity_control_required > self.affinity_square_count // 2:
+            raise ValueError(
+                "Affinity control requirement cannot exceed one color's square count"
+            )
+        return self
 
 
 class GambitState(BaseModel):

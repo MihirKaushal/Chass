@@ -2064,6 +2064,70 @@
   box-shadow: var(--shadow);
 }
 
+.command-heading {
+  display: block;
+}
+
+.command-disclosure-toggle {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0;
+  color: var(--deep);
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.command-disclosure-toggle:hover .command-heading-copy > strong,
+.command-disclosure-toggle:focus-visible .command-heading-copy > strong {
+  color: var(--accent);
+}
+
+.command-disclosure-toggle:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 5px;
+  border-radius: var(--radius-sm);
+}
+
+.command-heading-copy {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.command-heading-copy > strong {
+  font-size: 1.15rem;
+  transition: color 160ms ease;
+}
+
+.command-heading-status {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+}
+
+.command-toggle-arrow {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  border-right: 2px solid var(--accent);
+  border-bottom: 2px solid var(--accent);
+  transform: rotate(45deg) translate(-2px, -2px);
+  transition: transform 160ms ease;
+}
+
+.command-disclosure-toggle[aria-expanded="true"] .command-toggle-arrow {
+  transform: rotate(225deg) translate(-1px, -1px);
+}
+
+.command-disclosure-body[hidden] {
+  display: none;
+}
+
 .war-chest-panel {
   position: sticky;
   top: 1rem;
@@ -2339,7 +2403,10 @@
 
 .command-pips {
   display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
   gap: 0.3rem;
+  max-width: 124px;
 }
 
 .command-pips i {

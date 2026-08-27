@@ -127,6 +127,7 @@ export function configurationIssueSquares(message = "", draft = {}) {
       significantCenterSquares(rows, cols, {
         victoryMode: draft.victory?.mode,
         affinityEnabled: Boolean(draft.customRules?.affinityEnabled),
+        affinitySquareCount: draft.customRules?.affinitySquareCount ?? 4,
       }).map(issueSquareKey)
     );
     matches = placements.filter((piece) => (
