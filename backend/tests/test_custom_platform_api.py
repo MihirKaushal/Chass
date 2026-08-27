@@ -697,6 +697,12 @@ def test_center_geometry_adapts_to_even_and_odd_board_heights(client):
     assert len(maximum["white"]) == 16
     assert len(maximum["black"]) == 16
     assert {row for row, _ in maximum["white"] + maximum["black"]} == {7, 8}
+    near_maximum = affinity_start_squares(16, 16, 30)
+    assert len(near_maximum["white"]) == 15
+    assert len(near_maximum["black"]) == 15
+    assert set(near_maximum["white"] + near_maximum["black"]) == {
+        (row, col) for row in (7, 8) for col in range(15)
+    }
     assert significant_center_start_squares(
         8,
         8,
@@ -736,6 +742,23 @@ def test_center_geometry_adapts_to_even_and_odd_board_heights(client):
         "white": [{"row": 3, "col": 1}, {"row": 3, "col": 4}],
         "black": [{"row": 3, "col": 2}, {"row": 3, "col": 5}],
     }
+
+
+def test_affinity_geometry_always_balances_ownership_and_board_colors():
+    for rows in range(4, 17):
+        for cols in range(4, 17):
+            for count in range(2, cols * 2 + 1, 2):
+                layout = affinity_start_squares(rows, cols, count)
+                selected = layout["white"] + layout["black"]
+                parity_counts = [
+                    sum(1 for row, col in selected if (row + col) % 2 == parity)
+                    for parity in (0, 1)
+                ]
+
+                assert len(layout["white"]) == count // 2
+                assert len(layout["black"]) == count // 2
+                assert parity_counts == [count // 2, count // 2]
+                assert len(set(selected)) == count
 
 
 def test_center_focused_rules_require_an_unoccupied_start(client):

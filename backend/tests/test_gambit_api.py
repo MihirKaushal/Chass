@@ -14,7 +14,10 @@ from backend.models.schemas import CreateGameRequest
 from backend.realtime import GameSocketManager, SocketIdentity
 from backend.rules import RuleEngine
 from backend.rules.gambit_rules import create_piece
-from backend.rules.variant_system import CENTER_START_RESTRICTION_MESSAGE
+from backend.rules.variant_system import (
+    CENTER_START_RESTRICTION_MESSAGE,
+    affinity_start_squares,
+)
 from backend.services.game_service import build_default_piece_definitions
 
 STANDARD_DEPLOYMENT = [
@@ -787,7 +790,12 @@ def test_affinity_primes_at_the_configured_control_threshold():
     )
     state.board.grid[7][4] = create_piece(state, "king", "white")
     state.board.grid[0][7] = create_piece(state, "king", "black")
-    state.board.grid[3][2] = create_piece(state, "rook", "white")
+    affinity_row, affinity_col = affinity_start_squares(8, 8, 6)["white"][0]
+    state.board.grid[affinity_row][affinity_col] = create_piece(
+        state,
+        "rook",
+        "white",
+    )
 
     state, _ = engine.apply_move(
         state,

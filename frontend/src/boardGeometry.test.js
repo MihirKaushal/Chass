@@ -44,6 +44,44 @@ test("affinity layouts expand from center and stay color-balanced", () => {
     new Set([...maximum.white, ...maximum.black].map(({ row }) => row)),
     new Set([7, 8])
   );
+
+  const nearMaximum = affinitySquares(16, 16, 30);
+  assert.equal(nearMaximum.white.length, 15);
+  assert.equal(nearMaximum.black.length, 15);
+  assert.deepEqual(
+    new Set(
+      [...nearMaximum.white, ...nearMaximum.black]
+        .map(({ row, col }) => `${row}-${col}`)
+    ),
+    new Set(
+      [7, 8].flatMap((row) =>
+        Array.from({ length: 15 }, (_, col) => `${row}-${col}`)
+      )
+    )
+  );
+});
+
+test("every affinity layout balances ownership and checkerboard colors", () => {
+  for (let rows = 4; rows <= 16; rows += 1) {
+    for (let cols = 4; cols <= 16; cols += 1) {
+      for (let count = 2; count <= cols * 2; count += 2) {
+        const layout = affinitySquares(rows, cols, count);
+        const selected = [...layout.white, ...layout.black];
+        const parityCounts = [0, 0];
+        selected.forEach(({ row, col }) => {
+          parityCounts[(row + col) % 2] += 1;
+        });
+
+        assert.equal(layout.white.length, count / 2);
+        assert.equal(layout.black.length, count / 2);
+        assert.deepEqual(parityCounts, [count / 2, count / 2]);
+        assert.equal(
+          new Set(selected.map(({ row, col }) => `${row}-${col}`)).size,
+          count
+        );
+      }
+    }
+  }
 });
 
 test("configured affinity counts reserve the matching number of center squares", () => {

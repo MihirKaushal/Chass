@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  clampEvenWholeNumber,
   clampWholeNumber,
   customizeNumericBounds,
   normalizeCustomizeNumbers,
@@ -47,6 +48,12 @@ test("whole-number clamping rejects decimals and both out-of-range directions", 
   assert.equal(clampWholeNumber(50, 1, 20), 20);
   assert.equal(clampWholeNumber(4.9, 1, 20), 4);
   assert.equal(clampWholeNumber("invalid", 1, 20), 1);
+});
+
+test("affinity square inputs remain even and respect their dynamic bounds", () => {
+  assert.equal(clampEvenWholeNumber(3, 2, 32), 2);
+  assert.equal(clampEvenWholeNumber(31, 2, 32), 30);
+  assert.equal(clampEvenWholeNumber(34, 2, 32), 32);
 });
 
 test("numeric bounds adapt Gambit limits to deployment space", () => {

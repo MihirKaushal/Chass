@@ -10,6 +10,7 @@ import {
   nextCustomizeResultIndex,
 } from "../customizeNavigation";
 import {
+  clampEvenWholeNumber,
   clampWholeNumber,
   customizeNumericBounds,
   normalizeCustomizeNumbers,
@@ -1981,8 +1982,12 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             <div id="customize-affinity-squares">
               <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with centered marked squares empty, then control the configured number of your color to earn command points." />
               {draft.customRules.affinityEnabled ? <div className="conditional-fields">
-                <label>Affinity Squares<select value={draft.customRules.affinitySquareCount} onChange={(event) => {
-                  const affinitySquareCount = Number(event.target.value);
+                <label>Affinity Squares<input type="number" min={numericBounds.affinitySquareCountMin} max={numericBounds.affinitySquareCountMaximum} step="2" value={draft.customRules.affinitySquareCount} onChange={(event) => {
+                  const affinitySquareCount = clampEvenWholeNumber(
+                    event.target.value,
+                    numericBounds.affinitySquareCountMin,
+                    numericBounds.affinitySquareCountMaximum
+                  );
                   setDraft((current) => ({
                     ...current,
                     presetId: "custom",
@@ -1995,8 +2000,8 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
                       ),
                     },
                   }));
-                }}>{Array.from({ length: ((numericBounds.affinitySquareCountMaximum - numericBounds.affinitySquareCountMin) / 2) + 1 }, (_, index) => numericBounds.affinitySquareCountMin + (index * 2)).map((count) => <option key={count} value={count}>{count}</option>)}</select><small>Total centered squares, divided equally between White and Black. Maximum: twice the board width.</small></label>
-                <label>Squares Required<select value={draft.customRules.affinityControlRequired} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityControlRequired: clampWholeNumber(event.target.value, numericBounds.affinityControlRequiredMin, numericBounds.affinityControlRequiredMaximum) } }))}>{Array.from({ length: numericBounds.affinityControlRequiredMaximum }, (_, index) => index + 1).map((count) => <option key={count} value={count}>{count}</option>)}</select><small>Own-color squares a player must hold to prime and earn a command point. The default is 2.</small></label>
+                }} /><small>Total centered squares, divided equally between White and Black. Maximum: twice the board width.</small></label>
+                <label>Squares Required<input type="number" min={numericBounds.affinityControlRequiredMin} max={numericBounds.affinityControlRequiredMaximum} step="1" value={draft.customRules.affinityControlRequired} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityControlRequired: clampWholeNumber(event.target.value, numericBounds.affinityControlRequiredMin, numericBounds.affinityControlRequiredMaximum) } }))} /><small>Own-color squares a player must hold to prime and earn a command point. The default is 2.</small></label>
                 <label>Command Point Cap<input type="number" min={numericBounds.commandPointCapMin} max={numericBounds.commandPointCapMax} step="1" value={draft.customRules.commandPointCap} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, commandPointCap: clampWholeNumber(event.target.value, numericBounds.commandPointCapMin, numericBounds.commandPointCapMax) } }))} /><small>Maximum command points a player may save. The default is 3.</small></label>
               </div> : null}
             </div>
