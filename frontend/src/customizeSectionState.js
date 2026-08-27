@@ -50,7 +50,6 @@ function sectionSnapshot(draft, sectionId) {
       };
     case "studio-custom-rules":
       return {
-        matchPredictorEnabled: Boolean(draft.matchPredictorEnabled),
         customRules: draft.customRules?.affinityEnabled
           ? draft.customRules
           : { affinityEnabled: false },

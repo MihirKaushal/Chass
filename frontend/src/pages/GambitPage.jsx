@@ -4,6 +4,7 @@ import ActiveActionStrip from "../components/ActiveActionStrip";
 import BoardMarkerGuide from "../components/BoardMarkerGuide";
 import ChessBoard from "../components/ChessBoard";
 import GameBriefing from "../components/GameBriefing";
+import MatchPredictor from "../components/MatchPredictor";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 import PieceGlyph from "../components/PieceGlyph";
 import ResponsivePlayLayout from "../components/ResponsivePlayLayout";
@@ -507,12 +508,17 @@ function GambitPlay({
   catalog,
   onLoadEarlierHistory,
   historyLoading,
+  matchAnalysis,
+  analysisRefreshing,
+  onRetryAnalysis,
+  matchAnalysisEnabled,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
   const [selectedGlobalActionKey, setSelectedGlobalActionKey] = useState(null);
   const [selectedBoardAction, setSelectedBoardAction] = useState(null);
   const [evolveTo, setEvolveTo] = useState("knight");
   const lastMove = game.history.length ? game.history[game.history.length - 1] : null;
+  const moveCount = game.historyPagination?.totalMoves ?? game.history.length;
   const powerTargets = selectedPower
     ? game.affinity.legalPowerTargets[selectedPower] || []
     : [];
@@ -587,6 +593,15 @@ function GambitPlay({
         selectedGlobalActionKey={selectedGlobalActionKey}
         onSelectGlobalActionKey={selectGlobalAction}
       >
+        {game.configuration?.matchPredictorEnabled && matchAnalysisEnabled ? (
+          <MatchPredictor
+            analysis={matchAnalysis}
+            initialLayout={game.configuration?.initialLayout}
+            moveCount={moveCount}
+            refreshing={analysisRefreshing}
+            onRetry={onRetryAnalysis}
+          />
+        ) : null}
         <CommandPanel
           game={game}
           interactive={interactive && !actionLoading}
@@ -657,8 +672,12 @@ function GambitPlay({
       effects={effectsPanel}
       board={board}
       info={infoPanel}
-      effectCount={(game.countdowns?.length || 0) + (game.availableActions?.length ? 1 : 0)}
-      moveCount={game.historyPagination?.totalMoves ?? game.history.length}
+      effectCount={
+        (game.countdowns?.length || 0)
+        + (game.availableActions?.length ? 1 : 0)
+        + (game.configuration?.matchPredictorEnabled && matchAnalysisEnabled ? 1 : 0)
+      }
+      moveCount={moveCount}
     />
   );
 }

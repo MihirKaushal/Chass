@@ -94,6 +94,12 @@
   background: var(--accent);
 }
 
+.landing-mode-nav button.active:hover,
+.landing-mode-nav button.active:focus-visible {
+  color: white;
+  background: #245f9e;
+}
+
 .landing-copy {
   max-width: 680px;
   position: relative;

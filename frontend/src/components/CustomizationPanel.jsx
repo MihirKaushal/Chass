@@ -260,7 +260,7 @@ function loadSavedDraft(catalog) {
       schemaVersion: 2,
       presetId: configuration.presetId || "custom",
       formationId: configuration.formationId || "custom",
-      matchPredictorEnabled: configuration.matchPredictorEnabled ?? base.matchPredictorEnabled,
+      matchPredictorEnabled: true,
       barricadeCount: configuration.barricadeCount ?? base.barricadeCount,
       boardRows,
       boardCols,
@@ -335,7 +335,7 @@ function applyModeToDraft(current, mode, catalog) {
     ...current,
     presetId: mode.id,
     formationId,
-    matchPredictorEnabled: mode.matchPredictorEnabled ?? true,
+    matchPredictorEnabled: true,
     boardRows: rows,
     boardCols: cols,
     enabledPieces: [...STANDARD_TYPES],
@@ -386,7 +386,7 @@ function buildRequest(draft, mode = "local") {
       schemaVersion: 2,
       presetId: draft.presetId,
       formationId: draft.formationId,
-      matchPredictorEnabled: draft.matchPredictorEnabled,
+      matchPredictorEnabled: true,
       barricadeCount: draft.barricadeCount,
       enabledPieces: draft.enabledPieces,
       piecePoints: Object.fromEntries(
@@ -985,8 +985,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
     "engine analysis probability parity legal moves terminal outcomes custom pieces abilities",
     predictorProfile,
   ];
-  const showPredictor = (!enabledOnly || draft.matchPredictorEnabled)
-    && matchesRulebookSearch(query, predictorCopy);
+  const showPredictor = matchesRulebookSearch(query, predictorCopy);
   const affinityCopy = [
     "Affinity Squares",
     "Each color receives two adaptive center squares. Hold both squares assigned to your color through the opponent's turn to earn one command point.",
@@ -1100,7 +1099,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
               Current configuration: <strong>{predictorProfile?.engineName || "No compatible engine"}</strong>. {predictorProfile?.accuracy || predictorProfile?.reason || "Finish configuring the game to see automatic engine selection."}
             </p>
           </div>
-        ) : <EmptyState className="rulebook-empty">Match Analysis is not enabled in this configuration.</EmptyState>}
+        ) : <EmptyState className="rulebook-empty">No matching Match Analysis reference.</EmptyState>}
       </RulebookSection>
 
       <RulebookSection id="rulebook-pieces" title="Piece Encyclopedia" description="Movement, value, and special behavior." revealKey={revealKey}>
@@ -1206,10 +1205,6 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const predictorProfile = validation.requestKey === validationRequestKey
     ? validation.matchPredictor
     : null;
-  const predictorChecking = Boolean(validationRequestKey) && !predictorProfile;
-  const predictorCompatible = Boolean(
-    predictorProfile?.eligible && predictorProfile.status !== "incompatible"
-  );
   const customizeSearchResults = useMemo(
     () => matchingCustomizeResults(sectionQuery, catalog || {}),
     [catalog, sectionQuery]
@@ -1307,16 +1302,6 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     setHighlightedIssueSquares([]);
     window.clearTimeout(issueSquareTimerRef.current);
   }, [validationRequestKey]);
-
-  useEffect(() => {
-    if (
-      !draft
-      || !predictorProfile
-      || predictorProfile.status !== "incompatible"
-      || !draft.matchPredictorEnabled
-    ) return;
-    setDraft((current) => ({ ...current, matchPredictorEnabled: false }));
-  }, [draft, predictorProfile]);
 
   useEffect(() => () => {
     window.clearTimeout(issueSquareTimerRef.current);
@@ -1677,7 +1662,6 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
       } else if (sectionId === "studio-custom-rules") {
         next = {
           ...current,
-          matchPredictorEnabled: configurationBaseline.matchPredictorEnabled,
           customRules: resetEnabledCustomRules(configurationBaseline.customRules),
         };
       } else if (sectionId === "studio-abilities") {
@@ -1804,6 +1788,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     if (section instanceof HTMLDetailsElement) section.open = true;
     window.requestAnimationFrame(() => {
       const target = document.getElementById(result.targetId) || section;
+      if (target instanceof HTMLDetailsElement) target.open = true;
       document.querySelectorAll(".customize-search-highlight").forEach(
         (element) => element.classList.remove("customize-search-highlight")
       );
@@ -1979,31 +1964,6 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
           </CollapsibleStudioSection>
 
           <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any compatible match." className="ability-config-section" {...studioSectionProps("studio-custom-rules")}>
-            <div id="customize-match-analysis" className="predictor-config-card">
-              <Toggle
-                settingKey="match-analysis"
-                checked={draft.matchPredictorEnabled && (predictorCompatible || predictorChecking)}
-                disabled={predictorChecking || !predictorCompatible}
-                onChange={(matchPredictorEnabled) => setDraft((current) => ({
-                  ...current,
-                  presetId: "custom",
-                  matchPredictorEnabled,
-                }))}
-                label="Enable Match Analysis"
-                description="Chass automatically selects the strongest compatible engine. Engine choice cannot be overridden."
-              />
-              <div className={`predictor-engine-readout status-${predictorProfile?.status || "checking"}`}>
-                <span>
-                  <small>Selected Engine</small>
-                  <strong>{predictorChecking ? "Checking compatibility..." : predictorProfile?.engineName || "No compatible engine"}</strong>
-                </span>
-                {predictorProfile?.parityChecked ? <StatusBadge tone="success">Parity Verified</StatusBadge> : null}
-                {predictorProfile?.engineId === "chass" ? <StatusBadge tone="info">Native Fallback</StatusBadge> : null}
-                {predictorProfile?.status === "unavailable" ? <StatusBadge tone="warning">Verification Unavailable</StatusBadge> : null}
-                <p>{predictorProfile?.accuracy || predictorProfile?.reason || "Validation will identify the best engine for these settings."}</p>
-                {predictorProfile?.reason && predictorProfile?.accuracy ? <small>{predictorProfile.reason}</small> : null}
-              </div>
-            </div>
             <div id="customize-affinity-squares">
               <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with the marked center empty, then control both squares of your color to earn command points." />
               {draft.customRules.affinityEnabled ? <div className="conditional-fields">
