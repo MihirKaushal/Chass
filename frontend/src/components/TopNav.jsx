@@ -28,6 +28,7 @@ function TopNav({
   gameReady,
   variant,
   phase,
+  bot,
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
@@ -134,6 +135,16 @@ function TopNav({
             )}
           </span>
         ) : null}
+        {mode === "bot" && bot ? (
+          <span className="bot-player-summary" aria-label={`You are playing ${title(bot.humanColor)} against the estimated ${bot.targetElo} Elo bot.`}>
+            <span>
+              You are <strong className={`player-color-token ${bot.humanColor}`}>{title(bot.humanColor)}</strong>.
+            </span>
+            <span>
+              <strong>Estimated {bot.targetElo}</strong> bot plays {title(bot.botColor)}.
+            </span>
+          </span>
+        ) : null}
         <span className="turn-banner">
           <i aria-hidden="true" />
           {phase === "play" && !winner ? `${title(currentPlayer)} to move` : statusLabel}
@@ -196,7 +207,9 @@ function TopNav({
             </Button>
             {canReset ? (
               <Button size="small" role="menuitem" onClick={() => runSetting(onReset)}>
-                {variant === "gambit" ? "Request New Setup" : "Request Restart"}
+                {mode === "bot"
+                  ? "Restart Game"
+                  : variant === "gambit" ? "Request New Setup" : "Request Restart"}
               </Button>
             ) : null}
           </div>

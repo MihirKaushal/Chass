@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { getCatalog } from "../api/gameApi";
+import { availableBotProfiles, buildClassicBotRequest } from "../botGame";
+import BotSetupDialog from "../components/BotSetupDialog";
 import LandingNav from "../components/LandingNav";
 import PageSkeleton from "../components/PageSkeleton";
 import SiteFooter from "../components/SiteFooter";
@@ -12,9 +14,11 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
   const [showCodeEntry, setShowCodeEntry] = useState(false);
   const [inviteCode, setInviteCode] = useState("");
   const [error, setError] = useState("");
+  const [catalog, setCatalog] = useState(null);
+  const [showBotSetup, setShowBotSetup] = useState(false);
 
   useEffect(() => {
-    getCatalog().catch(() => {});
+    getCatalog().then(setCatalog).catch(() => {});
   }, []);
 
   const start = async (mode) => {
@@ -37,6 +41,17 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
     }
     setError("");
     onJoinCode(normalized);
+  };
+
+  const startBot = async (selection) => {
+    setCreatingMode("bot");
+    setError("");
+    try {
+      await onCreate(buildClassicBotRequest(selection));
+    } catch (requestError) {
+      setError(requestError.message);
+      setCreatingMode("");
+    }
   };
 
   if (creatingMode) return <PageSkeleton variant="play" />;
@@ -87,16 +102,28 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
           </div>
 
           <div className="join-code-entry">
-            <Button
-              variant="secondary"
-              className="join-code-toggle"
-              onClick={() => {
-                setShowCodeEntry((current) => !current);
-                setError("");
-              }}
-            >
-              Enter Invite Code
-            </Button>
+            <div className="landing-secondary-actions">
+              <Button
+                variant="secondary"
+                className="play-bot-toggle"
+                onClick={() => {
+                  setShowBotSetup(true);
+                  setError("");
+                }}
+              >
+                Play Against A Bot
+              </Button>
+              <Button
+                variant="secondary"
+                className="join-code-toggle"
+                onClick={() => {
+                  setShowCodeEntry((current) => !current);
+                  setError("");
+                }}
+              >
+                Enter Invite Code
+              </Button>
+            </div>
             {showCodeEntry ? (
               <form onSubmit={joinWithCode}>
                 <label htmlFor="invite-code">Invite Code</label>
@@ -124,6 +151,14 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
         </section>
       </main>
       <SiteFooter />
+      <BotSetupDialog
+        open={showBotSetup}
+        profiles={availableBotProfiles(catalog)}
+        loading={creatingMode === "bot"}
+        error={error}
+        onClose={() => setShowBotSetup(false)}
+        onStart={startBot}
+      />
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
   useGameAction,
   useCommandPower,
 } from "./api/gameApi";
+import { botTurnIsPending, sessionForPublicGame } from "./botGame";
 import OnlineLobby from "./components/OnlineLobby";
 import PageSkeleton from "./components/PageSkeleton";
 import SiteFooter from "./components/SiteFooter";
@@ -213,10 +214,10 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [reconnectInvite, setReconnectInvite] = useState(null);
   const [reconnectInviteLoading, setReconnectInviteLoading] = useState(false);
   const [boardFlipped, setBoardFlipped] = useState(
-    session?.mode === "online" && session?.color === "black"
+    ["online", "bot"].includes(session?.mode) && session?.color === "black"
   );
   const [autoBoardFlipEnabled, setAutoBoardFlipEnabled] = useState(
-    session?.mode !== "online"
+    !["online", "bot"].includes(session?.mode)
   );
   const [endgameMessage, setEndgameMessage] = useState("");
   const [showEndgameModal, setShowEndgameModal] = useState(false);
@@ -258,16 +259,12 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     const latest = await getGame(gameId, session?.token);
     applyIncomingGame(latest);
 
-    if (!session && latest.mode === "local") {
-      const localSession = {
-        gameId,
-        mode: "local",
-        role: "local",
-        token: null,
-        color: null,
-      };
-      saveGameSession(gameId, localSession);
-      setSession(localSession);
+    if (!session) {
+      const restoredSession = sessionForPublicGame(gameId, latest);
+      if (restoredSession) {
+        saveGameSession(gameId, restoredSession);
+        setSession(restoredSession);
+      }
     }
 
     return latest;
@@ -289,16 +286,12 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           return;
         }
         applyIncomingGame(latest);
-        if (!session && latest.mode === "local") {
-          const localSession = {
-            gameId,
-            mode: "local",
-            role: "local",
-            token: null,
-            color: null,
-          };
-          saveGameSession(gameId, localSession);
-          setSession(localSession);
+        if (!session) {
+          const restoredSession = sessionForPublicGame(gameId, latest);
+          if (restoredSession) {
+            saveGameSession(gameId, restoredSession);
+            setSession(restoredSession);
+          }
         }
       })
       .catch((requestError) => {
@@ -322,6 +315,9 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     onEvent: (payload) => {
       if (payload.type === "player_joined") {
         setSocketMessage(`${colorLabel(payload.color)} joined the game.`);
+      } else if (payload.type === "bot_error") {
+        setError(payload.message || "The chess bot is temporarily unavailable.");
+        setAnalysisRefreshing(false);
       } else if (
         payload.type === "match_analysis"
         && matchAnalysisEnabled
@@ -357,6 +353,11 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     if (!matchAnalysisEnabled || !game?.configuration?.matchPredictorEnabled) {
       setMatchAnalysis(null);
       setAnalysisRefreshing(false);
+      return undefined;
+    }
+    if (botTurnIsPending(game)) {
+      setMatchAnalysis(null);
+      setAnalysisRefreshing(true);
       return undefined;
     }
 
@@ -520,7 +521,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   }, [game?.version]);
 
   useEffect(() => {
-    if (game?.mode !== "online" || !session?.color) {
+    if (!["online", "bot"].includes(game?.mode) || !session?.color) {
       return;
     }
 
@@ -544,8 +545,10 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       game.phase === "play" &&
       (game.historyPagination?.totalMoves ?? game.history.length) === 0
     ) {
-      setBoardFlipped(game.mode === "online" ? session?.color === "black" : false);
-      setAutoBoardFlipEnabled(game.mode !== "online");
+      setBoardFlipped(
+        ["online", "bot"].includes(game.mode) ? session?.color === "black" : false
+      );
+      setAutoBoardFlipEnabled(!["online", "bot"].includes(game.mode));
     }
   }, [game?.history?.length, game?.mode, game?.phase, game?.variant, session?.color]);
 
@@ -832,6 +835,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       setShowEndgameModal(false);
       if (game.mode === "online") {
         setBoardFlipped(session?.color === "black");
+      } else if (game.mode === "bot") {
+        setBoardFlipped(game.bot?.humanColor === "black");
       } else if (action === "accept") {
         setBoardFlipped(false);
       }
@@ -973,6 +978,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         gameReady={game.ready}
         variant={game.variant}
         phase={game.phase}
+        bot={game.bot}
       />
 
       {game.mode === "online" ? (
@@ -993,12 +999,16 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       {socketMessage ? <p className="sync-message">{socketMessage}</p> : null}
       <StableStatus
         className="global-loading"
-        visible={actionLoading}
-        message={actionLoading
-          ? pendingMove
-            ? "Confirming move..."
-            : "Syncing authoritative game state..."
-          : ""}
+        visible={actionLoading || botTurnIsPending(game)}
+        message={
+          botTurnIsPending(game)
+            ? `${game.bot?.label || "Chess"} bot is thinking...`
+            : actionLoading
+              ? pendingMove
+                ? "Confirming move..."
+                : "Syncing authoritative game state..."
+              : ""
+        }
       />
       <RestartRequestPanel
         game={game}

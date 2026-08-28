@@ -3,9 +3,10 @@ import test from "node:test";
 
 import { onlinePlayerStatus, onlinePlayerSummary, roomLabel } from "./playHeader.js";
 
-test("play header uses stable local and online room labels", () => {
+test("play header uses stable room labels", () => {
   assert.equal(roomLabel("local"), "Local Room");
   assert.equal(roomLabel("online"), "Online Room");
+  assert.equal(roomLabel("bot"), "Bot Match");
 });
 
 test("online play header identifies the player and connected opponent", () => {
