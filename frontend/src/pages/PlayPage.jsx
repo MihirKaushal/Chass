@@ -106,6 +106,16 @@ function PlayPage({
       actionLoading={actionLoading}
       selectedGlobalActionKey={selectedGlobalActionKey}
       onSelectGlobalActionKey={selectGlobalAction}
+      specialRulesContent={game.affinity?.enabled ? (
+        <CommandPanel
+          game={game}
+          interactive={interactive && !actionLoading}
+          selectedPower={selectedPower}
+          onSelectPower={selectPower}
+          evolveTo={evolveTo}
+          setEvolveTo={setEvolveTo}
+        />
+      ) : null}
     >
       {game.configuration?.matchPredictorEnabled && matchAnalysisEnabled ? (
         <MatchPredictor
@@ -114,16 +124,6 @@ function PlayPage({
           moveCount={moveCount}
           refreshing={analysisRefreshing}
           onRetry={onRetryAnalysis}
-        />
-      ) : null}
-      {game.affinity?.enabled ? (
-        <CommandPanel
-          game={game}
-          interactive={interactive && !actionLoading}
-          selectedPower={selectedPower}
-          onSelectPower={selectPower}
-          evolveTo={evolveTo}
-          setEvolveTo={setEvolveTo}
         />
       ) : null}
     </EffectsPanel>

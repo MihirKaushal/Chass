@@ -1,5 +1,11 @@
 const PLAYER_COLORS = ["white", "black"];
 
+export function formatCommandPointCount(points = 0, cap = 0) {
+  const safePoints = Math.max(0, Math.trunc(Number(points)) || 0);
+  const safeCap = Math.max(0, Math.trunc(Number(cap)) || 0);
+  return `${safePoints}/${safeCap}`;
+}
+
 export function initialCommandDisclosure(commandPoints = {}) {
   return Object.fromEntries(
     PLAYER_COLORS.map((color) => {

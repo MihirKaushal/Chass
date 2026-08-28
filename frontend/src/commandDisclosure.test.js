@@ -2,10 +2,18 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  formatCommandPointCount,
   initialCommandDisclosure,
   revealEarnedCommandPoints,
   toggleCommandDisclosure,
 } from "./commandDisclosure.js";
+
+test("command point counters stay compact at small and large caps", () => {
+  assert.equal(formatCommandPointCount(0, 3), "0/3");
+  assert.equal(formatCommandPointCount(4, 9), "4/9");
+  assert.equal(formatCommandPointCount(12, 12), "12/12");
+  assert.equal(formatCommandPointCount(0, 20), "0/20");
+});
 
 test("command details begin closed at zero points and open for restored points", () => {
   const state = initialCommandDisclosure({ white: 0, black: 2 });
