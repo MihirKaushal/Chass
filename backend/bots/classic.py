@@ -71,8 +71,12 @@ def classic_bot_eligibility(
     if not definitions_use_classic_behavior(state):
         return ClassicBotEligibility(False, "Classic piece movement cannot be modified.")
     if any(
-        state.piece_definitions[piece_type].points
-        != (None if piece_type == "king" else CLASSIC_POINTS[piece_type])
+        (
+            state.piece_definitions[piece_type].points not in {None, 0}
+            if piece_type == "king"
+            else state.piece_definitions[piece_type].points
+            != CLASSIC_POINTS[piece_type]
+        )
         for piece_type in CLASSIC_TYPES
     ):
         return ClassicBotEligibility(False, "Classic piece point values are required.")
