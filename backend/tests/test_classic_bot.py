@@ -207,3 +207,53 @@ def test_human_cannot_submit_a_move_during_the_bot_turn(client, monkeypatch):
     )
     assert second_move.status_code == 409
     assert second_move.json()["detail"] == "Wait for the bot to move."
+
+
+def test_bot_turn_reaches_the_human_over_the_existing_websocket(client, monkeypatch):
+    from backend.routes.game import classic_bot_engine
+
+    async def choose_black_reply(context):
+        return BotDecision(
+            move=Move(fromRow=1, fromCol=3, toRow=3, toCol=3),
+            engine_id="stockfish",
+            engine_name="Stockfish 18",
+            profile_id=context.profile_id,
+            target_elo=800,
+            elapsed_ms=1,
+        )
+
+    monkeypatch.setattr(classic_bot_engine, "choose_action", choose_black_reply)
+    game = create_bot_game(client).json()["game"]
+
+    with client.websocket_connect(f"/game/ws/{game['id']}") as websocket:
+        websocket.send_json({"type": "authenticate", "token": None})
+        initial = websocket.receive_json()
+        assert initial["type"] == "game_state"
+        assert initial["game"]["bot"]["humanColor"] == "white"
+        assert websocket.receive_json()["type"] == "presence"
+
+        moved = client.post(
+            f"/game/{game['id']}/move",
+            json={
+                "fromRow": 6,
+                "fromCol": 4,
+                "toRow": 4,
+                "toCol": 4,
+                "expectedVersion": game["version"],
+            },
+        )
+        assert moved.status_code == 200
+
+        event_types: list[str] = []
+        final = None
+        for _ in range(5):
+            event = websocket.receive_json()
+            event_types.append(event["type"])
+            if event.get("game", {}).get("version") == 3:
+                final = event["game"]
+                break
+
+        assert "bot_thinking" in event_types
+        assert final is not None
+        assert final["currentPlayer"] == "white"
+        assert final["board"][3][3]["type"] == "pawn"
