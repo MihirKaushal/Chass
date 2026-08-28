@@ -6,11 +6,18 @@ from copy import deepcopy
 from dataclasses import dataclass, replace
 from datetime import datetime, timedelta, timezone
 from functools import lru_cache
+from secrets import choice
 from threading import Lock
 
 from fastapi import HTTPException
 
 from backend.analysis import synchronize_match_predictor_setting
+from backend.bots import (
+    BotTurnContext,
+    bot_profile_catalog,
+    classic_bot_eligibility,
+    get_bot_profile,
+)
 from backend.catalog import (
     VICTORY_MODES,
     adaptive_back_rank,
@@ -32,6 +39,7 @@ from backend.models import (
     AffinityState,
     Board,
     BoardCoordinate,
+    BotState,
     CenterDominionState,
     CheckRaceState,
     ClassicRuleState,
@@ -57,6 +65,8 @@ from backend.models.schemas import (
     AvailableActionView,
     BoardPlacement,
     BoardTerrainView,
+    BotCompatibilityView,
+    BotView,
     CaptureView,
     CenterDominionView,
     CheckRaceView,
@@ -806,7 +816,7 @@ class GameService:
         require_host: bool = False,
     ) -> AuthorizedGame:
         record = self._load_game(game_id)
-        if record.mode == "local":
+        if record.mode in {"local", "bot"}:
             return AuthorizedGame(record=record, player=None)
 
         if not player_token:
@@ -831,10 +841,10 @@ class GameService:
                 status_code=409,
                 detail="Your game view is out of date. The latest position has been loaded.",
             )
-        if record.mode == "online" and requested is None:
+        if record.mode in {"online", "bot"} and requested is None:
             raise HTTPException(
                 status_code=428,
-                detail="Online game updates must include expectedVersion",
+                detail="Remote game updates must include expectedVersion",
             )
         return requested if requested is not None else record.version
 
@@ -998,6 +1008,33 @@ class GameService:
             score={"white": 0, "black": 0},
         )
 
+        if request.mode == "bot":
+            if request.bot is None:
+                raise HTTPException(status_code=400, detail="Choose a bot difficulty.")
+            try:
+                profile = get_bot_profile(request.bot.profileId)
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+            eligibility = classic_bot_eligibility(game_state)
+            if not eligibility.eligible:
+                raise HTTPException(
+                    status_code=400,
+                    detail=eligibility.reason or "This configuration cannot use a bot yet.",
+                )
+            human_color = (
+                choice(("white", "black"))
+                if request.bot.humanColor == "random"
+                else request.bot.humanColor
+            )
+            bot_color = "black" if human_color == "white" else "white"
+            game_state.bot = BotState(
+                profile_id=profile.id,
+                target_elo=profile.target_elo,
+                label=profile.label,
+                human_color=human_color,
+                bot_color=bot_color,
+            )
+
         self.engine.evaluate_state(game_state)
         synchronize_match_predictor_setting(game_state)
 
@@ -1005,15 +1042,23 @@ class GameService:
         now = datetime.now(timezone.utc)
         game_expires_at = self._expiration_deadline(now)
 
-        if request.mode == "local":
+        if request.mode in {"local", "bot"}:
             record = self.repository.create_game(
                 game_state,
-                mode="local",
+                mode=request.mode,
                 expires_at=game_expires_at,
             )
             return GameSessionResponse(
-                game=self.serialize_game(record),
-                role="local",
+                game=self.serialize_game(
+                    record,
+                    viewer_color=(
+                        game_state.bot.human_color if game_state.bot is not None else None
+                    ),
+                ),
+                playerColor=(
+                    game_state.bot.human_color if game_state.bot is not None else None
+                ),
+                role="human" if request.mode == "bot" else "local",
             )
 
         host_token = generate_token()
@@ -1134,19 +1179,36 @@ class GameService:
 
     @staticmethod
     def catalog() -> dict:
-        return deepcopy(_cached_catalog())
+        payload = deepcopy(_cached_catalog())
+        payload["botProfiles"] = bot_profile_catalog()
+        return payload
 
     def validate_configuration(
         self,
         request: CreateGameRequest,
     ) -> ConfigurationValidationResponse:
         piece_catalog = _piece_catalog_for_request(request)
-        return ConfigurationValidationResponse(
+        response = ConfigurationValidationResponse(
             **self._validate_configuration_request(
                 request,
                 piece_catalog,
             ).as_dict()
         )
+        state = self.configuration_analysis_state(request)
+        eligibility = (
+            classic_bot_eligibility(state)
+            if state is not None
+            else None
+        )
+        response.bot = BotCompatibilityView(
+            eligible=bool(eligibility and eligibility.eligible),
+            reason=(
+                eligibility.reason
+                if eligibility is not None
+                else "Bots currently support a valid Classic Chass setup only."
+            ),
+        )
+        return response
 
     def configuration_analysis_state(
         self,
@@ -1165,6 +1227,8 @@ class GameService:
     def viewer_color(self, record: GameRecord, player_token: str | None) -> str | None:
         if record.mode == "local":
             return None
+        if record.mode == "bot":
+            return record.state.bot.human_color if record.state.bot is not None else None
         if not player_token:
             raise HTTPException(status_code=401, detail="A player token is required.")
         player = self.repository.get_player(record.state.id, hash_token(player_token))
@@ -1590,6 +1654,12 @@ class GameService:
                     detail=f"Only {game_state.current_player} can move right now",
                 )
 
+        if record.mode == "bot":
+            if game_state.bot is None:
+                raise HTTPException(status_code=409, detail="Bot settings are unavailable.")
+            if game_state.current_player != game_state.bot.human_color:
+                raise HTTPException(status_code=409, detail="Wait for the bot to move.")
+
         self._expected_version(record, request.expectedVersion)
         move = Move(
             fromRow=request.fromRow,
@@ -1613,7 +1683,59 @@ class GameService:
         return (
             saved,
             explanation,
-            authorized.player.color if authorized.player else None,
+            (
+                authorized.player.color
+                if authorized.player
+                else (game_state.bot.human_color if game_state.bot is not None else None)
+            ),
+        )
+
+    def bot_turn_context(self, game_id: str, expected_version: int) -> BotTurnContext:
+        record = self._load_game(game_id)
+        state = record.state
+        if record.mode != "bot" or state.bot is None:
+            raise HTTPException(status_code=409, detail="This is not a bot game.")
+        if record.version != expected_version:
+            raise HTTPException(status_code=409, detail="The bot turn is out of date.")
+        if (
+            state.phase != "play"
+            or state.game_status in FINISHED_STATUSES
+            or state.current_player != state.bot.bot_color
+        ):
+            raise HTTPException(status_code=409, detail="The bot does not move in this state.")
+        return BotTurnContext(
+            game_id=game_id,
+            game_version=record.version,
+            state=state.clone(),
+            profile_id=state.bot.profile_id,
+        )
+
+    def move_bot_piece(
+        self,
+        game_id: str,
+        move: Move,
+        expected_version: int,
+    ) -> tuple[GameRecord, str]:
+        record = self._load_game(game_id)
+        state = record.state
+        if record.mode != "bot" or state.bot is None:
+            raise HTTPException(status_code=409, detail="This is not a bot game.")
+        if record.version != expected_version:
+            raise HTTPException(status_code=409, detail="The bot turn is out of date.")
+        if (
+            state.phase != "play"
+            or state.game_status in FINISHED_STATUSES
+            or state.current_player != state.bot.bot_color
+        ):
+            raise HTTPException(status_code=409, detail="The bot does not move in this state.")
+        try:
+            next_state, explanation = self.engine.apply_move(state, move)
+        except ValueError as error:
+            raise HTTPException(status_code=400, detail=str(error)) from error
+        move_record = next_state.history[-1]
+        return (
+            self._save(record, next_state, MoveAudit.from_record(move_record)),
+            explanation,
         )
 
     def update_rules(
@@ -1787,6 +1909,9 @@ class GameService:
                 detail="Both players must join before requesting a restart.",
             )
         self._expected_version(record, request.expectedVersion)
+        if record.mode == "bot":
+            state = self._reset_state(record, ResetGameRequest())
+            return self._save(record, state), state.bot.human_color if state.bot else None
         if record.mode == "online":
             if authorized.player is None:
                 raise HTTPException(status_code=403, detail="A player seat is required.")
@@ -2188,9 +2313,11 @@ class GameService:
             for row in board_grid
         ]
 
-        valid_moves = self._valid_moves_for_record(record)
+        can_view_actions = record.mode == "local" or (
+            viewer_color == game_state.current_player
+        )
+        valid_moves = self._valid_moves_for_record(record) if can_view_actions else ()
 
-        can_view_actions = record.mode == "local" or viewer_color == game_state.current_player
         available_actions = (
             self.engine.get_available_actions(game_state, game_state.current_player)
             if record.ready and game_state.phase == "play" and can_view_actions
@@ -2325,7 +2452,9 @@ class GameService:
             game_state.board.cols,
             affinity_config.affinity_square_count,
         )
-        command_viewer = viewer_color if record.mode == "online" else game_state.current_player
+        command_viewer = (
+            viewer_color if record.mode in {"online", "bot"} else game_state.current_player
+        )
         legal_power_targets: dict[str, list[Position]] = {
             power: [] for power in affinity_config.power_costs
         }
@@ -2504,7 +2633,7 @@ class GameService:
                 checks=game_state.check_race.checks,
             )
 
-        if record.mode == "online":
+        if record.mode in {"online", "bot"}:
             ability_viewer = viewer_color
         elif game_state.phase in {"ability_selection", "handoff"}:
             ability_viewer = game_state.abilities.active_selection_color
@@ -2561,12 +2690,30 @@ class GameService:
                 "white": (
                     "local"
                     if record.mode == "local"
-                    else ("joined" if "white" in record.player_colors else "open")
+                    else (
+                        "human"
+                        if game_state.bot is not None
+                        and game_state.bot.human_color == "white"
+                        else (
+                            "bot"
+                            if game_state.bot is not None
+                            else ("joined" if "white" in record.player_colors else "open")
+                        )
+                    )
                 ),
                 "black": (
                     "local"
                     if record.mode == "local"
-                    else ("joined" if "black" in record.player_colors else "open")
+                    else (
+                        "human"
+                        if game_state.bot is not None
+                        and game_state.bot.human_color == "black"
+                        else (
+                            "bot"
+                            if game_state.bot is not None
+                            else ("joined" if "black" in record.player_colors else "open")
+                        )
+                    )
                 ),
             },
             boardRows=game_state.board.rows,
@@ -2695,5 +2842,26 @@ class GameService:
                 requestedBy=game_state.rematch.requested_by,
                 approvals=game_state.rematch.approvals,
                 canRespondAs=(viewer_color if viewer_color else "local"),
+            ),
+            bot=(
+                BotView(
+                    profileId=game_state.bot.profile_id,
+                    targetElo=game_state.bot.target_elo,
+                    label=game_state.bot.label,
+                    description=get_bot_profile(game_state.bot.profile_id).description,
+                    engineId=game_state.bot.engine_id,
+                    engineName="Stockfish 18",
+                    humanColor=game_state.bot.human_color,
+                    botColor=game_state.bot.bot_color,
+                    status=(
+                        "thinking"
+                        if game_state.phase == "play"
+                        and game_state.game_status not in FINISHED_STATUSES
+                        and game_state.current_player == game_state.bot.bot_color
+                        else "idle"
+                    ),
+                )
+                if game_state.bot is not None
+                else None
             ),
         )

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import asyncio
+import logging
 from typing import Annotated
 
 from fastapi import (
@@ -20,6 +22,7 @@ from backend.analysis import (
     MatchAnalysisService,
     StockfishUciProvider,
 )
+from backend.bots import BotTurnScheduler, StockfishClassicBotEngine
 from backend.config import get_settings
 from backend.models.schemas import (
     AbilitySelectionRequest,
@@ -53,24 +56,25 @@ from backend.repositories import (
     GameRecord,
 )
 from backend.rules import RuleEngine
+from backend.rules.variant_system import FINISHED_STATUSES
 from backend.services.game_service import GameService
 
 router = APIRouter(prefix="/game", tags=["game"])
+logger = logging.getLogger(__name__)
 rule_engine = RuleEngine()
 game_service = GameService(rule_engine)
 analysis_settings = get_settings()
+stockfish_provider = StockfishUciProvider(
+    configured_path=analysis_settings.stockfish_path,
+    enabled=analysis_settings.match_predictor_engine_enabled,
+    movetime_ms=analysis_settings.stockfish_movetime_ms,
+    hash_mb=analysis_settings.stockfish_hash_mb,
+    threads=analysis_settings.stockfish_threads,
+    startup_timeout_seconds=analysis_settings.stockfish_startup_timeout_seconds,
+    startup_attempts=analysis_settings.stockfish_startup_attempts,
+)
 match_analysis_service = MatchAnalysisService(
-    StockfishUciProvider(
-        configured_path=analysis_settings.stockfish_path,
-        enabled=analysis_settings.match_predictor_engine_enabled,
-        movetime_ms=analysis_settings.stockfish_movetime_ms,
-        hash_mb=analysis_settings.stockfish_hash_mb,
-        threads=analysis_settings.stockfish_threads,
-        startup_timeout_seconds=(
-            analysis_settings.stockfish_startup_timeout_seconds
-        ),
-        startup_attempts=analysis_settings.stockfish_startup_attempts,
-    ),
+    stockfish_provider,
     rule_engine,
     fairy_provider=FairyStockfishUciProvider(
         configured_path=analysis_settings.fairy_stockfish_path,
@@ -90,6 +94,7 @@ match_analysis_service = MatchAnalysisService(
         movetime_ms=analysis_settings.chass_engine_movetime_ms,
     ),
 )
+classic_bot_engine = StockfishClassicBotEngine(stockfish_provider, rule_engine)
 
 
 def _bearer_token(authorization: str | None) -> str | None:
@@ -146,10 +151,102 @@ async def _broadcast_match_analysis(analysis: MatchAnalysisView) -> None:
 match_analysis_service.set_listener(_broadcast_match_analysis)
 
 
+def _bot_turn_needed(record: GameRecord) -> bool:
+    state = record.state
+    return bool(
+        record.mode == "bot"
+        and state.bot is not None
+        and state.phase == "play"
+        and state.game_status not in FINISHED_STATUSES
+        and state.current_player == state.bot.bot_color
+    )
+
+
+async def _run_bot_turn(game_id: str, expected_version: int) -> None:
+    try:
+        context = await run_in_threadpool(
+            game_service.bot_turn_context,
+            game_id,
+            expected_version,
+        )
+        decision = await classic_bot_engine.choose_action(context)
+        record, explanation = await run_in_threadpool(
+            game_service.move_bot_piece,
+            game_id,
+            decision.move,
+            expected_version,
+        )
+        viewer_color = record.state.bot.human_color if record.state.bot else None
+        response = game_service.serialize_game(
+            record,
+            last_explanation=explanation,
+            viewer_color=viewer_color,
+        )
+        serialized_views = {viewer_color: response}
+        await _broadcast_state(
+            record,
+            last_explanation=explanation,
+            serialized_views=serialized_views,
+        )
+        if response.phase == "finished":
+            await _broadcast_state(
+                record,
+                event_type="game_ended",
+                last_explanation=explanation,
+                serialized_views=serialized_views,
+            )
+        await match_analysis_service.request(record.state, record.version)
+    except asyncio.CancelledError:
+        raise
+    except HTTPException as error:
+        if error.status_code != 409:
+            logger.warning("Bot turn failed for %s: %s", game_id, error.detail)
+            await socket_manager.broadcast(
+                game_id,
+                "bot_error",
+                {
+                    "message": "The chess bot could not move. Reload to retry.",
+                    "recoverable": True,
+                },
+            )
+    except Exception:
+        logger.exception("Bot turn failed for game %s", game_id)
+        await socket_manager.broadcast(
+            game_id,
+            "bot_error",
+            {
+                "message": "The chess bot is temporarily unavailable. Reload to retry.",
+                "recoverable": True,
+            },
+        )
+
+
+bot_turn_scheduler = BotTurnScheduler(_run_bot_turn)
+
+
+async def _ensure_bot_turn(record: GameRecord) -> None:
+    if not _bot_turn_needed(record):
+        return
+    if bot_turn_scheduler.schedule(record.state.id, record.version):
+        await socket_manager.broadcast(
+            record.state.id,
+            "bot_thinking",
+            {
+                "gameVersion": record.version,
+                "profileId": record.state.bot.profile_id if record.state.bot else None,
+                "targetElo": record.state.bot.target_elo if record.state.bot else None,
+            },
+        )
+
+
 @router.post("/create", response_model=GameSessionResponse)
 async def create_game(payload: CreateGameRequest, request: Request) -> GameSessionResponse:
     rate_limiter.check(request, "create", limit=20, window_seconds=3600)
-    return await run_in_threadpool(game_service.create_game, payload)
+    response = await run_in_threadpool(game_service.create_game, payload)
+    if response.game.mode == "bot":
+        record = await run_in_threadpool(game_service.get_game, response.game.id)
+        await _ensure_bot_turn(record)
+    return response
 
 
 @router.post("/validate", response_model=ConfigurationValidationResponse)
@@ -206,10 +303,12 @@ async def get_game(
         game_id,
         token,
     )
-    return game_service.serialize_game(
+    response = game_service.serialize_game(
         authorized.record,
-        viewer_color=authorized.player.color if authorized.player else None,
+        viewer_color=game_service.viewer_color(authorized.record, token),
     )
+    await _ensure_bot_turn(authorized.record)
+    return response
 
 
 @router.get("/{game_id}/analysis", response_model=MatchAnalysisView)
@@ -306,7 +405,10 @@ async def make_move(
             last_explanation=explanation,
             serialized_views=serialized_views,
         )
-    await match_analysis_service.request(record.state, record.version)
+    if record.mode == "bot" and response.phase != "finished":
+        await _ensure_bot_turn(record)
+    else:
+        await match_analysis_service.request(record.state, record.version)
     return response
 
 
@@ -500,6 +602,7 @@ async def rematch_game(
         event_type="rematch_state",
         serialized_views={viewer_color: response},
     )
+    await _ensure_bot_turn(record)
     return response
 
 
@@ -728,10 +831,22 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
         return
 
     identity = SocketIdentity(
-        color=authorized.player.color if authorized.player else None,
-        role=authorized.player.role if authorized.player else "local",
+        color=(
+            authorized.player.color
+            if authorized.player
+            else (
+                authorized.record.state.bot.human_color
+                if authorized.record.state.bot is not None
+                else None
+            )
+        ),
+        role=(
+            authorized.player.role
+            if authorized.player
+            else ("human" if authorized.record.mode == "bot" else "local")
+        ),
     )
-    if identity.color is not None:
+    if identity.color is not None and authorized.record.mode == "online":
         try:
             await run_in_threadpool(
                 game_service.revoke_reconnect_invites,
@@ -762,6 +877,7 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
                 ).model_dump(by_alias=True)
             },
         )
+        await _ensure_bot_turn(authorized.record)
         await socket_manager.broadcast_presence(game_id)
 
         while True:

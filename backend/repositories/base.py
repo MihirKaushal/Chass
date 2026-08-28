@@ -47,7 +47,9 @@ class GameRecord:
 
     @property
     def ready(self) -> bool:
-        return self.mode == "local" or {"white", "black"}.issubset(self.player_colors)
+        return self.mode in {"local", "bot"} or {"white", "black"}.issubset(
+            self.player_colors
+        )
 
 
 @dataclass(frozen=True)
