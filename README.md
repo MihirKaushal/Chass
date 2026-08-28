@@ -1,14 +1,15 @@
 # Chass!
 
 Chass! is a full-stack browser chess platform for classic games and configurable chess
-variants. It supports local two-player games, private link-or-code multiplayer, custom
-boards and pieces, modular rules, and real-time synchronization.
+variants. It supports local two-player games, Stockfish opponents, private link-or-code
+multiplayer, custom boards and pieces, modular rules, and real-time synchronization.
 
 **Live site:** [https://playchass.vercel.app](https://playchass.vercel.app)
 
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
+- Seven estimated Stockfish bot levels from 500 through 2500 Elo
 - Auto-routed Stockfish, Fairy-Stockfish, and native Chass Engine Match Analysis
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
@@ -65,6 +66,7 @@ React + Vite
 FastAPI
   |-- Game service
   |-- Modular rule engine
+  |-- Versioned bot-turn coordinator --> Stockfish 18
   |-- Async analysis router --> Stockfish 18 / Fairy-Stockfish / Chass Engine
   v
 Repository adapters
@@ -93,11 +95,17 @@ progress, terrain, and live special resources with time-bounded alpha-beta and q
 search. Analysis runs after the move response, is cached by engine and full game state, and is
 version-checked before a WebSocket result can update the UI.
 
+Classic bot games keep move authority in the Chass Rule Engine. Stockfish ranks only
+Chass-approved legal moves, and every selection is validated again before the normal
+versioned move transaction commits it. One recoverable background task is allowed per game
+version, so refreshes and duplicate sockets cannot create duplicate bot turns.
+
 ## Project Structure
 
 ```text
 backend/
   analysis/        Engine routing, native evaluation/search, parity checks, FEN, and async service
+  bots/            Difficulty profiles, Classic move selection, and turn scheduling
   models/          Domain models and API schemas
   repositories/    Firestore and SQL persistence adapters
   routes/          REST and WebSocket endpoints
@@ -165,7 +173,7 @@ npm run build
 | `GET` | `/health` | Service health check |
 | `GET` | `/game/catalog` | Load pieces, abilities, victories, and presets |
 | `POST` | `/game/validate` | Validate a complete configuration and return incompatible options |
-| `POST` | `/game/create` | Create a local or online game |
+| `POST` | `/game/create` | Create a local, online, or Classic bot game |
 | `POST` | `/game/join` | Join through an invitation |
 | `GET` | `/game/{id}` | Load game state |
 | `GET` | `/game/{id}/history` | Load an earlier page of move history |
@@ -234,6 +242,8 @@ See [Firebase Setup](docs/FIREBASE_SETUP.md) for the exact credential, migration
 security-rule, rollback, and verification steps.
 See [Match Analysis](docs/MATCH_ANALYSIS.md) for eligibility, architecture, tuning,
 deployment, and troubleshooting details.
+See [Classic Bots](docs/CLASSIC_BOTS.md) for difficulty profiles, safety boundaries, and
+future engine extension points.
 
 After Vercel deploys, set both Render values to the production frontend URL:
 
