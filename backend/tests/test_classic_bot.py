@@ -86,6 +86,34 @@ def test_bot_game_persists_human_seat_and_rejects_custom_setups(client):
     assert custom.status_code == 400
     assert "8x8" in custom.json()["detail"]
 
+    canonical_ui_payload = {
+        "mode": "bot",
+        "boardRows": 8,
+        "boardCols": 8,
+        "bot": {"profileId": "stockfish-500", "humanColor": "white"},
+        "configuration": {
+            "schemaVersion": 2,
+            "presetId": "classic",
+            "formationId": "classic",
+            "enabledPieces": ["pawn", "knight", "bishop", "rook", "queen", "king"],
+            "piecePoints": {
+                "pawn": 1,
+                "knight": 3,
+                "bishop": 3,
+                "rook": 5,
+                "queen": 9,
+                "king": 0,
+            },
+            "initialLayout": game["configuration"]["initialLayout"],
+            "victory": {"mode": "checkmate", "kingPoints": 0},
+            "customRules": {"affinityEnabled": False},
+            "specialAbilities": {"enabled": False, "allowed": []},
+            "gambit": {"enabled": False},
+        },
+    }
+    canonical = client.post("/game/create", json=canonical_ui_payload)
+    assert canonical.status_code == 200, canonical.text
+
 
 def test_human_and_bot_moves_share_the_rule_engine_pipeline(client, monkeypatch):
     from backend.routes.game import classic_bot_engine
