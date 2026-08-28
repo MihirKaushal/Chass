@@ -74,6 +74,18 @@ def test_bot_game_persists_human_seat_and_rejects_custom_setups(client):
     assert loaded.json()["bot"]["humanColor"] == "white"
     assert loaded.json()["validMoves"]
 
+    changed_rules = client.post(
+        f"/game/{game['id']}/rules",
+        json={
+            "expectedVersion": game["version"],
+            "rules": [{"id": "double_capture_rook", "enabled": True}],
+        },
+    )
+    assert changed_rules.status_code == 409
+    assert changed_rules.json()["detail"] == (
+        "Bot game settings are fixed after the match is created."
+    )
+
     custom = client.post(
         "/game/create",
         json={

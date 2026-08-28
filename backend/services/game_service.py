@@ -816,7 +816,14 @@ class GameService:
         require_host: bool = False,
     ) -> AuthorizedGame:
         record = self._load_game(game_id)
-        if record.mode in {"local", "bot"}:
+        if record.mode == "local":
+            return AuthorizedGame(record=record, player=None)
+        if record.mode == "bot":
+            if require_host:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Bot game settings are fixed after the match is created.",
+                )
             return AuthorizedGame(record=record, player=None)
 
         if not player_token:
