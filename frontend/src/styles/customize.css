@@ -1610,6 +1610,13 @@ details[open] > summary > .disclosure-arrow {
   background: rgba(99, 179, 237, 0.14);
 }
 
+.studio-launch-bar .launch-actions .ui-button-content,
+.studio-launch-bar .launch-actions .ui-button-progress,
+.studio-launch-bar .launch-actions .ui-button-progress span {
+  color: #fff;
+  font-size: 0.76rem;
+}
+
 .studio-error {
   margin: 0.65rem 0 0;
   color: var(--danger);
