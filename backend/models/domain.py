@@ -308,6 +308,15 @@ class GameResult(BaseModel):
     winner: Color | None = None
 
 
+class BotState(BaseModel):
+    profile_id: str
+    target_elo: int = Field(ge=1)
+    label: str
+    engine_id: Literal["stockfish"] = "stockfish"
+    human_color: Color = "white"
+    bot_color: Color = "black"
+
+
 class ClockState(BaseModel):
     initial_seconds: int
     remaining_seconds: dict[Color, float]
@@ -479,6 +488,7 @@ class GameState(BaseModel):
     variant: GameVariant = "classic"
     phase: GamePhase = "play"
     gambit: GambitState | None = None
+    bot: BotState | None = None
     current_player: Color = "white"
     rules: list[RuleSetting] = Field(default_factory=list)
     piece_definitions: dict[str, PieceDefinition] = Field(default_factory=dict)

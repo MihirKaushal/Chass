@@ -16,7 +16,12 @@ from .profiles import (
     synchronize_match_predictor_setting,
 )
 from .service import MatchAnalysisService
-from .stockfish import EngineAnalysis, StockfishUciProvider
+from .stockfish import (
+    EngineAnalysis,
+    EngineMoveCandidate,
+    EngineMoveSearch,
+    StockfishUciProvider,
+)
 
 __all__ = [
     "AnalysisProfile",
@@ -26,6 +31,8 @@ __all__ = [
     "ChassEngineResult",
     "ChassEvaluator",
     "EngineAnalysis",
+    "EngineMoveCandidate",
+    "EngineMoveSearch",
     "FairyPositionInspection",
     "FairyStockfishUciProvider",
     "MatchAnalysisService",

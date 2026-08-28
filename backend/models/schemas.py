@@ -355,9 +355,21 @@ class MatchPredictorCompatibilityView(BaseModel):
     parityChecked: bool = False
 
 
+class BotView(BaseModel):
+    profileId: str
+    targetElo: int
+    label: str
+    description: str
+    engineId: Literal["stockfish"] = "stockfish"
+    engineName: str = "Stockfish 18"
+    humanColor: Literal["white", "black"]
+    botColor: Literal["white", "black"]
+    status: Literal["idle", "thinking"] = "idle"
+
+
 class GameResponse(BaseModel):
     id: str
-    mode: Literal["local", "online"]
+    mode: Literal["local", "online", "bot"]
     variant: Literal["classic", "gambit"] = "classic"
     phase: Literal[
         "lobby",
@@ -402,6 +414,7 @@ class GameResponse(BaseModel):
     royalCenter: RoyalCenterView | None = None
     checkRace: CheckRaceView | None = None
     rematch: RematchView = Field(default_factory=RematchView)
+    bot: BotView | None = None
 
 
 class RulePatch(BaseModel):
@@ -609,8 +622,13 @@ class GameConfigurationPayload(BaseModel):
         return self
 
 
+class BotGameConfigPayload(BaseModel):
+    profileId: str = Field(min_length=1, max_length=64)
+    humanColor: Literal["white", "black", "random"] = "white"
+
+
 class CreateGameRequest(BaseModel):
-    mode: Literal["local", "online"] = "local"
+    mode: Literal["local", "online", "bot"] = "local"
     variant: Literal["classic", "gambit"] = "classic"
     boardSize: int | None = Field(
         default=None,
@@ -630,6 +648,7 @@ class CreateGameRequest(BaseModel):
     rules: list[RulePatch] = Field(default_factory=list, max_length=128)
     customPieces: list[PieceDefinitionPayload] = Field(default_factory=list, max_length=64)
     configuration: GameConfigurationPayload | None = None
+    bot: BotGameConfigPayload | None = None
 
     @model_validator(mode="before")
     @classmethod
@@ -696,6 +715,10 @@ class CreateGameRequest(BaseModel):
         custom_types = [piece.type for piece in self.customPieces]
         if len(custom_types) != len(set(custom_types)):
             raise ValueError("Custom piece types must be unique")
+        if self.mode == "bot" and self.bot is None:
+            raise ValueError("Choose a bot difficulty before starting the game")
+        if self.mode != "bot" and self.bot is not None:
+            raise ValueError("Bot settings are only valid for bot games")
         return self
 
 
@@ -845,12 +868,18 @@ class RematchRequest(BaseModel):
     expectedVersion: int | None = Field(default=None, ge=1)
 
 
+class BotCompatibilityView(BaseModel):
+    eligible: bool
+    reason: str | None = None
+
+
 class ConfigurationValidationResponse(BaseModel):
     valid: bool
     errors: list[str] = Field(default_factory=list)
     warnings: list[str] = Field(default_factory=list)
     disabledOptions: dict[str, dict[str, str]] = Field(default_factory=dict)
     matchPredictor: MatchPredictorCompatibilityView | None = None
+    bot: BotCompatibilityView | None = None
 
 
 class BoardPlacement(BaseModel):

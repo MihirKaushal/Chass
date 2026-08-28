@@ -14,7 +14,12 @@ from starlette.responses import JSONResponse
 from backend.config import get_settings
 from backend.db import init_db
 from backend.firebase_client import get_firestore_client, reset_firestore_client
-from backend.routes import game_router, game_service, match_analysis_service
+from backend.routes import (
+    bot_turn_scheduler,
+    game_router,
+    game_service,
+    match_analysis_service,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -60,6 +65,7 @@ async def lifespan(_: FastAPI):
     finally:
         stop_event.set()
         await cleanup_task
+        await bot_turn_scheduler.shutdown()
         await match_analysis_service.shutdown()
 
 
@@ -115,6 +121,15 @@ def health() -> dict[str, object]:
         "persistence": settings.persistence_backend,
         "matchPredictor": match_analysis_service.health_status(),
         "matchPredictorEngines": match_analysis_service.health_details(),
+        "classicBot": (
+            "ready"
+            if match_analysis_service.provider.ready
+            else (
+                "disabled"
+                if not match_analysis_service.provider.enabled
+                else "unavailable"
+            )
+        ),
     }
     predictor_reason = match_analysis_service.health_reason()
     if predictor_reason:

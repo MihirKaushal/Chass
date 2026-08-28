@@ -25,6 +25,23 @@ class EngineAnalysis:
     engine_version: str = "Stockfish"
 
 
+@dataclass(frozen=True)
+class EngineMoveCandidate:
+    move: str
+    centipawns: int | None
+    mate_in: int | None
+    depth: int | None
+    nodes: int | None
+
+
+@dataclass(frozen=True)
+class EngineMoveSearch:
+    best_move: str | None
+    candidates: list[EngineMoveCandidate] = field(default_factory=list)
+    elapsed_ms: int = 0
+    engine_version: str = "Stockfish"
+
+
 def parse_uci_info(line: str) -> dict[str, object]:
     tokens = line.split()
     parsed: dict[str, object] = {}
@@ -37,6 +54,9 @@ def parse_uci_info(line: str) -> dict[str, object]:
 
     parsed["depth"] = integer_after("depth")
     parsed["nodes"] = integer_after("nodes")
+    multipv = integer_after("multipv")
+    if multipv is not None:
+        parsed["multipv"] = multipv
 
     try:
         score_index = tokens.index("score")
@@ -253,6 +273,7 @@ class StockfishUciProvider:
         started = perf_counter()
         latest: dict[str, object] = {}
         try:
+            await self._set_search_options_locked(multipv=1, limit_strength_elo=None)
             await self._write(f"position fen {fen}")
             await self._write(f"go movetime {self.movetime_ms}")
             timeout_seconds = max(2.0, (self.movetime_ms / 1000) + 2.0)
@@ -306,8 +327,150 @@ class StockfishUciProvider:
             engine_version=self._engine_name,
         )
 
+    async def _set_search_options_locked(
+        self,
+        *,
+        multipv: int,
+        limit_strength_elo: int | None,
+    ) -> None:
+        await self._write(f"setoption name MultiPV value {max(1, multipv)}")
+        if limit_strength_elo is None:
+            await self._write("setoption name UCI_LimitStrength value false")
+            await self._write("setoption name Skill Level value 20")
+        else:
+            await self._write("setoption name UCI_LimitStrength value true")
+            await self._write(f"setoption name UCI_Elo value {limit_strength_elo}")
+        await self._write("isready")
+        await asyncio.wait_for(
+            self._read_until("readyok"),
+            timeout=self.startup_timeout_seconds,
+        )
+
+    async def _search_moves_locked(
+        self,
+        fen: str,
+        *,
+        search_moves: list[str],
+        multipv: int,
+        nodes: int | None,
+        movetime_ms: int | None,
+        limit_strength_elo: int | None,
+    ) -> EngineMoveSearch:
+        if not search_moves:
+            raise ValueError("At least one legal move is required for an engine search.")
+        if nodes is not None and movetime_ms is not None:
+            raise ValueError("Choose either a node limit or a time limit, not both.")
+
+        started = perf_counter()
+        latest_by_rank: dict[int, dict[str, object]] = {}
+        best_move: str | None = None
+        candidate_count = min(max(1, multipv), len(search_moves))
+        try:
+            await self._set_search_options_locked(
+                multipv=candidate_count,
+                limit_strength_elo=limit_strength_elo,
+            )
+            await self._write(f"position fen {fen}")
+            if nodes is not None:
+                command = f"go nodes {max(1, nodes)}"
+                timeout_seconds = max(3.0, min(15.0, nodes / 25_000 + 3.0))
+            else:
+                search_time = max(25, movetime_ms or self.movetime_ms)
+                command = f"go movetime {search_time}"
+                timeout_seconds = max(2.0, (search_time / 1_000) + 2.0)
+            command = f"{command} searchmoves {' '.join(search_moves)}"
+            await self._write(command)
+
+            async def read_search() -> None:
+                nonlocal best_move
+                while True:
+                    line = await self._readline()
+                    if line.startswith("info "):
+                        parsed = parse_uci_info(line)
+                        variation = list(parsed.get("principal_variation", []))
+                        if not variation:
+                            continue
+                        rank = int(parsed.get("multipv", 1))
+                        current = latest_by_rank.get(rank, {})
+                        if "centipawns" in parsed or "mate_in" in parsed:
+                            current.pop("centipawns", None)
+                            current.pop("mate_in", None)
+                        latest_by_rank[rank] = {
+                            **current,
+                            **{key: value for key, value in parsed.items() if value is not None},
+                        }
+                    elif line.startswith("bestmove"):
+                        tokens = line.split()
+                        if len(tokens) > 1 and tokens[1] not in {"(none)", "0000"}:
+                            best_move = tokens[1]
+                        return
+
+            await asyncio.wait_for(read_search(), timeout=timeout_seconds)
+        except asyncio.CancelledError:
+            await self._terminate_locked()
+            raise
+        except Exception as error:
+            self._last_error = (
+                f"{self.engine_label} move search failed: {type(error).__name__}: {error}"
+            ).rstrip()
+            self._public_error = "The chess engine stopped unexpectedly. Retry in a moment."
+            await self._terminate_locked()
+            raise
+
+        candidates: list[EngineMoveCandidate] = []
+        for rank in sorted(latest_by_rank):
+            values = latest_by_rank[rank]
+            variation = list(values.get("principal_variation", []))
+            if not variation:
+                continue
+            candidates.append(
+                EngineMoveCandidate(
+                    move=variation[0],
+                    centipawns=values.get("centipawns"),
+                    mate_in=values.get("mate_in"),
+                    depth=values.get("depth"),
+                    nodes=values.get("nodes"),
+                )
+            )
+
+        if best_move is None and candidates:
+            best_move = candidates[0].move
+        if best_move is None:
+            self._last_error = f"{self.engine_label} returned no legal bot move"
+            self._public_error = "The chess engine did not return a move. Retry in a moment."
+            raise RuntimeError(self._last_error)
+
+        return EngineMoveSearch(
+            best_move=best_move,
+            candidates=candidates,
+            elapsed_ms=round((perf_counter() - started) * 1_000),
+            engine_version=self._engine_name,
+        )
+
     async def analyze(self, fen: str) -> EngineAnalysis:
         async with self._lock:
             if not await self._start_locked():
                 raise RuntimeError(self._last_error or f"{self.engine_label} is unavailable")
             return await self._search_locked(fen)
+
+    async def search_moves(
+        self,
+        fen: str,
+        *,
+        search_moves: list[str],
+        multipv: int = 1,
+        nodes: int | None = None,
+        movetime_ms: int | None = None,
+        limit_strength_elo: int | None = None,
+    ) -> EngineMoveSearch:
+        async with self._lock:
+            if not await self._start_locked():
+                raise RuntimeError(self._last_error or f"{self.engine_label} is unavailable")
+            return await self._search_moves_locked(
+                fen,
+                search_moves=search_moves,
+                multipv=multipv,
+                nodes=nodes,
+                movetime_ms=movetime_ms,
+                limit_strength_elo=limit_strength_elo,
+            )
