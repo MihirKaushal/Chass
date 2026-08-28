@@ -96,6 +96,7 @@ class RuleView(BaseModel):
     enabled: bool
     canDisable: bool
     isSpecial: bool = False
+    displayGroup: str | None = None
     params: dict[str, Any] = Field(default_factory=dict)
 
 

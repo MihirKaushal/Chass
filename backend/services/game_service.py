@@ -2277,6 +2277,7 @@ class GameService:
                     enabled=True,
                     canDisable=False,
                     isSpecial=True,
+                    displayGroup="affinity",
                     params={},
                 )
                 for rule in self.engine.gambit.available_command_rules()

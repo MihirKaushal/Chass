@@ -200,7 +200,18 @@ def test_affinity_custom_rule_is_available_in_classic_games(client):
         "white": [{"row": 3, "col": 3}, {"row": 4, "col": 4}],
         "black": [{"row": 3, "col": 4}, {"row": 4, "col": 3}],
     }
-    assert any(rule["id"] == "affinity_control" for rule in game["rules"])
+    affinity_rules = {
+        rule["id"]: rule
+        for rule in game["rules"]
+        if rule["displayGroup"] == "affinity"
+    }
+    assert set(affinity_rules) == {
+        "affinity_control",
+        "command_points",
+        "gambit_pawn_reinforcement",
+        "gambit_pawn_evolution",
+        "gambit_rook_stronghold",
+    }
 
     command = client.post(
         f"/game/{game['id']}/command",

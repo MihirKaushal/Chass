@@ -2401,27 +2401,23 @@
   box-shadow: none;
 }
 
-.command-pips {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 0.3rem;
-  max-width: 124px;
+.command-point-count {
+  min-width: 3.2rem;
+  padding: 0.28rem 0.48rem;
+  color: var(--accent);
+  text-align: center;
+  border: 1px solid rgba(43, 108, 176, 0.28);
+  border-radius: var(--radius-pill);
+  background: rgba(99, 179, 237, 0.13);
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
 }
 
-.command-pips i {
-  width: 15px;
-  height: 30px;
-  display: block;
-  border: 2px solid var(--accent);
-  border-radius: 4px;
-  background: rgba(255, 255, 255, 0.4);
-  transform: skew(-8deg);
-}
-
-.command-pips i.filled {
-  background: var(--accent-soft);
-  box-shadow: 0 0 12px rgba(99, 179, 237, 0.55);
+.effect-disclosure-list > .command-panel {
+  margin-bottom: 0;
 }
 
 .affinity-readout {

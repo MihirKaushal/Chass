@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { boardSquareLabel } from "../boardGeometry";
 import { necromancyPurchaseOptions } from "../specialActionSelection";
+import { specialRulePresentation } from "../specialRulePresentation";
 import { effectiveCatalogEntry } from "../variantTuning";
 import { victoryDisplayMetadata } from "../victoryDisplay";
 import PieceGlyph from "./PieceGlyph";
@@ -279,18 +280,16 @@ function EffectDisclosure({ title: heading, itemKeys, children, emptyDescription
   );
 }
 
-function SpecialRulesDisclosure({ game }) {
-  const activeRules = (game.rules || []).filter(
-    (rule) => rule.enabled && (rule.isSpecial || rule.tier !== "basic")
-  );
+function SpecialRulesDisclosure({ game, children = null }) {
+  const { rules, affinityEnabled, itemKeys } = specialRulePresentation(game);
   return (
     <EffectDisclosure
       title="Special Rules"
-      itemKeys={activeRules.map((rule) => rule.id)}
+      itemKeys={itemKeys}
       emptyDescription="No special rules are enabled for this match."
     >
       <div className="effect-disclosure-list">
-        {activeRules.map((rule) => {
+        {rules.map((rule) => {
           const params = rule.id === "configured_victory"
             ? victoryDisplayMetadata(game.configuration?.victory)
             : Object.entries(rule.params || {}).map(([key, value]) => ({
@@ -311,6 +310,7 @@ function SpecialRulesDisclosure({ game }) {
             </article>
           );
         })}
+        {affinityEnabled ? children : null}
       </div>
     </EffectDisclosure>
   );
@@ -411,10 +411,10 @@ function SpecialAbilitiesDisclosure({ abilities, catalog, parameters }) {
   );
 }
 
-function EnabledEffects({ game, catalog }) {
+function EnabledEffects({ game, catalog, specialRulesContent = null }) {
   return (
     <div className="enabled-effects" aria-label="Enabled match options">
-      <SpecialRulesDisclosure game={game} />
+      <SpecialRulesDisclosure game={game}>{specialRulesContent}</SpecialRulesDisclosure>
       <CustomPiecesDisclosure game={game} />
       <SpecialAbilitiesDisclosure
         abilities={game.abilities}
@@ -432,6 +432,7 @@ export function EffectsPanel({
   actionLoading,
   selectedGlobalActionKey,
   onSelectGlobalActionKey,
+  specialRulesContent = null,
   children,
 }) {
   return (
@@ -447,7 +448,11 @@ export function EffectsPanel({
         selectedGlobalActionKey={selectedGlobalActionKey}
         onSelectGlobalActionKey={onSelectGlobalActionKey}
       />
-      <EnabledEffects game={game} catalog={catalog} />
+      <EnabledEffects
+        game={game}
+        catalog={catalog}
+        specialRulesContent={specialRulesContent}
+      />
     </aside>
   );
 }

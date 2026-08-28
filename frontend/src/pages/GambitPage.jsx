@@ -4,6 +4,7 @@ import ActiveActionStrip from "../components/ActiveActionStrip";
 import BoardMarkerGuide from "../components/BoardMarkerGuide";
 import ChessBoard from "../components/ChessBoard";
 import {
+  formatCommandPointCount,
   initialCommandDisclosure,
   revealEarnedCommandPoints,
   toggleCommandDisclosure,
@@ -454,10 +455,11 @@ export function CommandPanel({ game, interactive, selectedPower, onSelectPower, 
             <strong>Command Points</strong>
           </span>
           <span className="command-heading-status">
-            <span className="command-pips" aria-label={`${points} of ${affinity.commandPointCap} command points`}>
-              {Array.from({ length: affinity.commandPointCap }).map((_, index) => (
-                <i key={index} className={index < points ? "filled" : ""} />
-              ))}
+            <span
+              className="command-point-count"
+              aria-label={`${points} of ${affinity.commandPointCap} command points`}
+            >
+              {formatCommandPointCount(points, affinity.commandPointCap)}
             </span>
             <span className="command-toggle-arrow" aria-hidden="true" />
           </span>
@@ -623,22 +625,13 @@ function GambitPlay({
 
   const effectsPanel = (
     <EffectsPanel
-        game={game}
-        catalog={catalog}
-        onAction={handleAction}
-        actionLoading={actionLoading}
-        selectedGlobalActionKey={selectedGlobalActionKey}
-        onSelectGlobalActionKey={selectGlobalAction}
-      >
-        {game.configuration?.matchPredictorEnabled && matchAnalysisEnabled ? (
-          <MatchPredictor
-            analysis={matchAnalysis}
-            initialLayout={game.configuration?.initialLayout}
-            moveCount={moveCount}
-            refreshing={analysisRefreshing}
-            onRetry={onRetryAnalysis}
-          />
-        ) : null}
+      game={game}
+      catalog={catalog}
+      onAction={handleAction}
+      actionLoading={actionLoading}
+      selectedGlobalActionKey={selectedGlobalActionKey}
+      onSelectGlobalActionKey={selectGlobalAction}
+      specialRulesContent={game.affinity?.enabled ? (
         <CommandPanel
           game={game}
           interactive={interactive && !actionLoading}
@@ -647,6 +640,17 @@ function GambitPlay({
           evolveTo={evolveTo}
           setEvolveTo={setEvolveTo}
         />
+      ) : null}
+    >
+      {game.configuration?.matchPredictorEnabled && matchAnalysisEnabled ? (
+        <MatchPredictor
+          analysis={matchAnalysis}
+          initialLayout={game.configuration?.initialLayout}
+          moveCount={moveCount}
+          refreshing={analysisRefreshing}
+          onRetry={onRetryAnalysis}
+        />
+      ) : null}
     </EffectsPanel>
   );
   const matchBriefing = (
