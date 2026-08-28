@@ -64,12 +64,24 @@ def select_bot_engine(state: GameState) -> BotEngineSelection:
         )
 
     return BotEngineSelection(
-        eligible=False,
+        eligible=True,
+        engine_id="chass",
+        engine_name="Chass Engine",
         reason=(
-            fairy.reason
-            or classic.reason
-            or "This configuration is not supported by an available chess bot."
+            "This configuration uses Chass Engine because its custom mechanics cannot "
+            "be represented safely by Stockfish or Fairy-Stockfish."
         ),
+    )
+
+
+def _chass_compatibility(reason: str) -> BotCompatibility:
+    return BotCompatibility(
+        eligible=True,
+        status="compatible",
+        reason=reason,
+        engine_id="chass",
+        engine_name="Chass Engine",
+        profiles=bot_profiles_for_engine("chass"),
     )
 
 
@@ -106,6 +118,11 @@ async def verify_bot_compatibility(
             status="compatible",
             reason="Stockfish 18 is available for the exact Classic Chass setup.",
         )
+    if selection.engine_id == "chass":
+        return _chass_compatibility(
+            selection.reason
+            or "Chass Engine supports this custom game through the authoritative Rule Engine."
+        )
     if not verify or selection.analysis_profile is None:
         return BotCompatibility(
             **base,
@@ -121,21 +138,14 @@ async def verify_bot_compatibility(
         )
     except Exception as error:
         logger.warning("Fairy bot compatibility verification unavailable: %s", error)
-        return BotCompatibility(
-            **base,
-            eligible=False,
-            status="unavailable",
-            reason=(
-                getattr(analysis_service.fairy_provider, "public_error", None)
-                or "Fairy-Stockfish verification is temporarily unavailable."
-            ),
+        return _chass_compatibility(
+            "Fairy-Stockfish verification is unavailable, so Chass Engine will safely "
+            "run this game instead."
         )
     if not compatible:
-        return BotCompatibility(
-            **base,
-            eligible=False,
-            status="incompatible",
-            reason=reason or "Fairy-Stockfish does not match Chass legal moves.",
+        return _chass_compatibility(
+            f"{reason or 'Fairy-Stockfish does not match Chass legal moves.'} "
+            "Chass Engine will run this game instead."
         )
     return BotCompatibility(
         **base,

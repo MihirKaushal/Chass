@@ -312,7 +312,7 @@ class BotState(BaseModel):
     profile_id: str
     target_elo: int = Field(ge=1)
     label: str
-    engine_id: Literal["stockfish", "fairy-stockfish"] = "stockfish"
+    engine_id: Literal["stockfish", "fairy-stockfish", "chass"] = "stockfish"
     human_color: Color = "white"
     bot_color: Color = "black"
 

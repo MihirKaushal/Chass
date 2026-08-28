@@ -11,12 +11,22 @@ from .evaluator import ChassEvaluator, chass_position_hash
 
 
 @dataclass(frozen=True)
+class RankedAction:
+    action: ChassAction
+    score: float
+    immediate_winner: str | None = None
+    mate_in: int | None = None
+
+
+@dataclass(frozen=True)
 class SearchResult:
     score: float
     depth: int
     nodes: int
     mate_in: int | None = None
     immediate_winner: str | None = None
+    best_action: ChassAction | None = None
+    ranked_actions: tuple[RankedAction, ...] = ()
 
 
 class SearchDeadline(Exception):
@@ -182,6 +192,69 @@ class ChassSearch:
         self._table[key] = best
         return best
 
+    @staticmethod
+    def _ordered_rankings(
+        state: GameState,
+        rankings: list[RankedAction],
+    ) -> list[RankedAction]:
+        maximizing = state.current_player == "white"
+        return sorted(
+            rankings,
+            key=lambda item: (
+                -item.score if maximizing else item.score,
+                item.action.key,
+            ),
+        )
+
+    def _rank_root_actions(
+        self,
+        state: GameState,
+        actions: list[ChassAction],
+        *,
+        depth: int,
+    ) -> tuple[list[RankedAction], bool]:
+        rankings: list[RankedAction] = []
+        for action in actions:
+            try:
+                child = self._apply(state, action)
+                if child is None:
+                    continue
+                terminal_score = self._terminal_score(child)
+                score = (
+                    terminal_score
+                    if terminal_score is not None
+                    else self._search(
+                        child,
+                        depth - 1,
+                        float("-inf"),
+                        float("inf"),
+                    )
+                )
+            except SearchDeadline:
+                return self._ordered_rankings(state, rankings), False
+
+            immediate_winner = (
+                state.current_player
+                if child.winner == state.current_player
+                else None
+            )
+            mate_in = None
+            if (
+                immediate_winner is not None
+                and child.result is not None
+                and child.result.reason_code == "checkmate"
+            ):
+                mate_in = 1 if state.current_player == "white" else -1
+            rankings.append(
+                RankedAction(
+                    action=action,
+                    score=score,
+                    immediate_winner=immediate_winner,
+                    mate_in=mate_in,
+                )
+            )
+        return self._ordered_rankings(state, rankings), True
+
     def analyze(
         self,
         state: GameState,
@@ -211,37 +284,8 @@ class ChassSearch:
         if not actions:
             return SearchResult(static, depth=0, nodes=0)
 
-        maximizing = state.current_player == "white"
-        best = float("-inf") if maximizing else float("inf")
-        explored = 0
-        mate_in = None
-        immediate_winner = None
-        try:
-            for action in actions:
-                child = self._apply(state, action)
-                if child is None:
-                    continue
-                explored += 1
-                terminal_score = self._terminal_score(child)
-                if child.winner == state.current_player:
-                    immediate_winner = state.current_player
-                    if child.result is not None and child.result.reason_code == "checkmate":
-                        mate_in = 1 if state.current_player == "white" else -1
-                score = (
-                    terminal_score
-                    if terminal_score is not None
-                    else self._quiescence(
-                        child,
-                        float("-inf"),
-                        float("inf"),
-                        depth=1,
-                    )
-                )
-                best = max(best, score) if maximizing else min(best, score)
-        except SearchDeadline:
-            pass
-
-        if explored == 0:
+        rankings, completed = self._rank_root_actions(state, actions, depth=1)
+        if not rankings:
             return SearchResult(static, depth=0, nodes=self._nodes)
 
         completed_depth = 1
@@ -249,22 +293,26 @@ class ChassSearch:
             0.0,
             (self._deadline - perf_counter()) / (self.movetime_ms / 1000),
         )
-        if len(actions) <= self.max_reply_actions and remaining_fraction > 0.35:
-            try:
-                deeper = self._search(
-                    state,
-                    2,
-                    float("-inf"),
-                    float("inf"),
-                )
-                best = deeper
+        if (
+            completed
+            and len(actions) <= self.max_reply_actions
+            and remaining_fraction > 0.35
+        ):
+            deeper_rankings, deeper_completed = self._rank_root_actions(
+                state,
+                actions,
+                depth=2,
+            )
+            if deeper_completed and deeper_rankings:
+                rankings = deeper_rankings
                 completed_depth = 2
-            except SearchDeadline:
-                pass
+        best = rankings[0]
         return SearchResult(
-            score=best,
+            score=best.score,
             depth=completed_depth,
             nodes=self._nodes,
-            mate_in=mate_in,
-            immediate_winner=immediate_winner,
+            mate_in=best.mate_in,
+            immediate_winner=best.immediate_winner,
+            best_action=best.action,
+            ranked_actions=tuple(rankings),
         )

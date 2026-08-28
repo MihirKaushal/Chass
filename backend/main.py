@@ -130,6 +130,7 @@ def health() -> dict[str, object]:
         "botEngines": {
             "stockfish": engine_status(match_analysis_service.provider),
             "fairyStockfish": engine_status(match_analysis_service.fairy_provider),
+            "chass": "ready",
         },
     }
     predictor_reason = match_analysis_service.health_reason()

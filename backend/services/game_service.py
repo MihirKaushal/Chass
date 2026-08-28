@@ -13,7 +13,9 @@ from fastapi import HTTPException
 
 from backend.analysis import synchronize_match_predictor_setting
 from backend.bots import (
+    BotDecision,
     BotTurnContext,
+    bot_action_needed,
     bot_profile_catalog,
     get_bot_profile,
     select_bot_engine,
@@ -45,6 +47,7 @@ from backend.models import (
     ClassicRuleState,
     ClockState,
     CustomRulesConfig,
+    DeploymentPiece,
     GambitState,
     GameConfiguration,
     GameState,
@@ -1028,7 +1031,12 @@ class GameService:
                     status_code=400,
                     detail=selection.reason or "This configuration cannot use a bot yet.",
                 )
-            if profile.engine_id != selection.engine_id:
+            compatible_engine_ids = {selection.engine_id}
+            if selection.engine_id == "fairy-stockfish":
+                # Async parity verification may safely route this static game
+                # to the native fallback before GameService is called.
+                compatible_engine_ids.add("chass")
+            if profile.engine_id not in compatible_engine_ids:
                 raise HTTPException(
                     status_code=400,
                     detail=(
@@ -1215,7 +1223,7 @@ class GameService:
         directly_compatible = bool(
             selection
             and selection.eligible
-            and selection.engine_id == "stockfish"
+            and selection.engine_id in {"stockfish", "chass"}
         )
         response.bot = BotCompatibilityView(
             eligible=directly_compatible,
@@ -1227,7 +1235,12 @@ class GameService:
                 else "incompatible"
             ),
             reason=(
-                "Stockfish 18 is available for the exact Classic Chass setup."
+                (
+                    "Stockfish 18 is available for the exact Classic Chass setup."
+                    if selection and selection.engine_id == "stockfish"
+                    else selection.reason
+                    or "Chass Engine supports this custom configuration."
+                )
                 if directly_compatible
                 else "Fairy move parity must be verified before launching this bot."
                 if selection and selection.eligible
@@ -1343,6 +1356,12 @@ class GameService:
             if authorized.player is None:
                 raise HTTPException(status_code=403, detail="A player seat is required.")
             return authorized.player.color
+        if authorized.record.mode == "bot":
+            if state.bot is None:
+                raise HTTPException(status_code=409, detail="Bot settings are unavailable.")
+            if state.abilities.active_selection_color != state.bot.human_color:
+                raise HTTPException(status_code=409, detail="Wait for the bot to choose.")
+            return state.bot.human_color
         return state.abilities.active_selection_color
 
     def select_ability(
@@ -1383,6 +1402,9 @@ class GameService:
         if record.mode == "local" and color == "white":
             next_state.abilities.active_selection_color = "black"
             next_state.phase = "handoff"
+        elif record.mode == "bot" and not all(next_state.abilities.selected.values()):
+            assert next_state.bot is not None
+            next_state.abilities.active_selection_color = next_state.bot.bot_color
         elif all(next_state.abilities.selected.values()):
             next_state.phase = (
                 self.engine.gambit.preparation_phase(next_state.gambit)
@@ -1441,6 +1463,9 @@ class GameService:
                 )
             if authorized.player is None or authorized.player.color != color:
                 raise HTTPException(status_code=403, detail=f"Only {color} can act right now.")
+        elif record.mode == "bot":
+            if record.state.bot is None or color != record.state.bot.human_color:
+                raise HTTPException(status_code=409, detail="Wait for the bot to act.")
         self._expected_version(record, request.expectedVersion)
         try:
             next_state, explanation = self.engine.apply_custom_action(
@@ -1471,6 +1496,10 @@ class GameService:
             if authorized.player is None:
                 raise HTTPException(status_code=403, detail="A player seat is required.")
             return authorized.player.color
+        if authorized.record.mode == "bot":
+            if state.bot is None:
+                raise HTTPException(status_code=409, detail="Bot settings are unavailable.")
+            return state.bot.human_color
         return state.gambit.active_deployment_color
 
     def update_gambit_draft(
@@ -1497,6 +1526,12 @@ class GameService:
                     status_code=403,
                     detail=f"It is {state.gambit.draft_active_color.title()}'s draft pick.",
                 )
+        elif record.mode == "bot":
+            if state.bot is None:
+                raise HTTPException(status_code=409, detail="Bot settings are unavailable.")
+            color = state.bot.human_color
+            if color != state.gambit.draft_active_color:
+                raise HTTPException(status_code=409, detail="Wait for the bot to draft.")
         else:
             color = state.gambit.draft_active_color
 
@@ -1627,6 +1662,12 @@ class GameService:
                     detail=f"Only {record.state.current_player} can act right now.",
                 )
             color = authorized.player.color
+        elif record.mode == "bot":
+            if record.state.bot is None:
+                raise HTTPException(status_code=409, detail="Bot settings are unavailable.")
+            if record.state.current_player != record.state.bot.human_color:
+                raise HTTPException(status_code=409, detail="Wait for the bot to act.")
+            color = record.state.bot.human_color
         else:
             color = record.state.current_player
 
@@ -1732,18 +1773,191 @@ class GameService:
             raise HTTPException(status_code=409, detail="This is not a bot game.")
         if record.version != expected_version:
             raise HTTPException(status_code=409, detail="The bot turn is out of date.")
-        if (
-            state.phase != "play"
-            or state.game_status in FINISHED_STATUSES
-            or state.current_player != state.bot.bot_color
-        ):
-            raise HTTPException(status_code=409, detail="The bot does not move in this state.")
+        if not bot_action_needed(state):
+            raise HTTPException(status_code=409, detail="The bot does not act in this state.")
         return BotTurnContext(
             game_id=game_id,
             game_version=record.version,
             state=state.clone(),
             profile_id=state.bot.profile_id,
         )
+
+    def apply_bot_decision(
+        self,
+        game_id: str,
+        decision: BotDecision,
+        expected_version: int,
+    ) -> tuple[GameRecord, str]:
+        record = self._load_game(game_id)
+        state = record.state
+        if record.mode != "bot" or state.bot is None:
+            raise HTTPException(status_code=409, detail="This is not a bot game.")
+        if record.version != expected_version:
+            raise HTTPException(status_code=409, detail="The bot turn is out of date.")
+        if not bot_action_needed(state):
+            raise HTTPException(status_code=409, detail="The bot does not act in this state.")
+        native_fallback = (
+            state.bot.engine_id in {"stockfish", "fairy-stockfish"}
+            and decision.engine_id == "chass"
+        )
+        if not native_fallback and (
+            decision.engine_id != state.bot.engine_id
+            or decision.profile_id != state.bot.profile_id
+        ):
+            raise HTTPException(status_code=409, detail="The bot decision profile is out of date.")
+
+        fallback_from = None
+        if native_fallback:
+            try:
+                fallback_profile = get_bot_profile(decision.profile_id)
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+            if (
+                fallback_profile.engine_id != "chass"
+                or fallback_profile.target_elo != decision.target_elo
+            ):
+                raise HTTPException(status_code=400, detail="The fallback profile is invalid.")
+            fallback_from = get_bot_profile(state.bot.profile_id).engine_name
+            state = state.clone()
+            assert state.bot is not None
+            state.bot.profile_id = fallback_profile.id
+            state.bot.target_elo = fallback_profile.target_elo
+            state.bot.label = fallback_profile.label
+            state.bot.engine_id = fallback_profile.engine_id
+
+        color = state.bot.bot_color
+        history_length = len(state.history)
+        if decision.action_kind == "move":
+            if decision.move is None:
+                raise HTTPException(status_code=400, detail="The bot move is incomplete.")
+            try:
+                next_state, explanation = self.engine.apply_move(state, decision.move)
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+        elif decision.action_kind == "custom":
+            try:
+                next_state, explanation = self.engine.apply_custom_action(
+                    state,
+                    color,
+                    dict(decision.payload or {}),
+                )
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+        elif decision.action_kind == "command":
+            payload = decision.payload or {}
+            try:
+                next_state, explanation = self.engine.apply_command_power(
+                    state,
+                    color,
+                    power=str(payload.get("power", "")),
+                    row=int(payload["row"]),
+                    col=int(payload["col"]),
+                    evolve_to=(
+                        str(payload["evolveTo"])
+                        if payload.get("evolveTo") is not None
+                        else None
+                    ),
+                )
+            except (KeyError, TypeError, ValueError) as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+        elif decision.action_kind == "ability_selection":
+            config = state.configuration.special_abilities
+            choices = list((decision.payload or {}).get("abilityIds") or [])
+            if (
+                state.phase != "ability_selection"
+                or state.abilities.active_selection_color != color
+                or state.abilities.selected[color]
+            ):
+                raise HTTPException(status_code=409, detail="Bot ability selection is not active.")
+            if len(choices) != config.max_per_player or any(
+                ability_id not in config.allowed for ability_id in choices
+            ):
+                raise HTTPException(status_code=400, detail="The bot ability selection is invalid.")
+            next_state = state.clone()
+            next_state.abilities.selected[color] = choices
+            if all(next_state.abilities.selected.values()):
+                next_state.phase = (
+                    self.engine.gambit.preparation_phase(next_state.gambit)
+                    if next_state.gambit is not None
+                    else "play"
+                )
+                if next_state.phase == "play":
+                    self.engine.evaluate_state(next_state)
+                if next_state.clock is not None:
+                    next_state.clock.turn_started_at = datetime.now(timezone.utc)
+            else:
+                next_state.abilities.active_selection_color = state.bot.human_color
+            explanation = "The Chass bot locked in its special abilities."
+        elif decision.action_kind == "draft":
+            if state.gambit is None or state.phase != "draft":
+                raise HTTPException(status_code=409, detail="Bot drafting is not active.")
+            payload = decision.payload or {}
+            try:
+                next_state = self.engine.gambit.shared_draft.apply(
+                    state,
+                    color,
+                    action=str(payload.get("action", "")),
+                    piece_type=(
+                        str(payload["pieceType"])
+                        if payload.get("pieceType") is not None
+                        else None
+                    ),
+                )
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+            explanation = (
+                "The Chass bot locked its drafted army."
+                if payload.get("action") == "pass"
+                else f"The Chass bot drafted {str(payload.get('pieceType', 'a piece')).title()}."
+            )
+        elif decision.action_kind == "deployment":
+            if state.gambit is None or state.phase != "deployment":
+                raise HTTPException(status_code=409, detail="Bot deployment is not active.")
+            try:
+                pieces = [
+                    DeploymentPiece.model_validate(piece)
+                    for piece in (decision.payload or {}).get("pieces", [])
+                ]
+            except (TypeError, ValueError) as error:
+                raise HTTPException(status_code=400, detail="Bot deployment is invalid.") from error
+            next_state = state.clone()
+            assert next_state.gambit is not None
+            next_state.gambit.deployments[color] = pieces
+            issues = self.engine.gambit.setup_issues(
+                next_state,
+                color,
+                require_complete=True,
+            )
+            if issues:
+                raise HTTPException(status_code=400, detail=issues[0])
+            try:
+                next_state = self.engine.gambit.mark_ready(
+                    next_state,
+                    color,
+                    mode="bot",
+                    helper=self.engine,
+                )
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+            self.engine.evaluate_state(next_state)
+            explanation = "The Chass bot locked in its hidden army."
+        else:
+            raise HTTPException(status_code=400, detail="Unknown bot action type.")
+
+        if fallback_from is not None:
+            explanation = (
+                f"Chass Engine safely took over after {fallback_from} became unavailable. "
+                f"{explanation}"
+            )
+            if len(next_state.history) > history_length:
+                next_state.history[-1].explanation = explanation
+
+        audit = (
+            MoveAudit.from_record(next_state.history[-1])
+            if len(next_state.history) > history_length
+            else None
+        )
+        return self._save(record, next_state, audit), explanation
 
     def move_bot_piece(
         self,
@@ -2532,7 +2746,7 @@ class GameService:
             gambit = game_state.gambit
             effective_viewer = (
                 viewer_color
-                if record.mode == "online"
+                if record.mode in {"online", "bot"}
                 else (
                     visible_deployment_color
                     if game_state.phase in {"lobby", "deployment", "handoff"}
@@ -2700,6 +2914,7 @@ class GameService:
         if (
             game_state.phase == "ability_selection"
             and ability_viewer in {"white", "black"}
+            and game_state.abilities.active_selection_color == ability_viewer
             and not game_state.abilities.selected[ability_viewer]
         ):
             ability_editable_color = ability_viewer
@@ -2890,9 +3105,7 @@ class GameService:
                     botColor=game_state.bot.bot_color,
                     status=(
                         "thinking"
-                        if game_state.phase == "play"
-                        and game_state.game_status not in FINISHED_STATUSES
-                        and game_state.current_player == game_state.bot.bot_color
+                        if bot_action_needed(game_state)
                         else "idle"
                     ),
                 )
