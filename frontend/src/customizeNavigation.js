@@ -56,7 +56,7 @@ const STATIC_SETTING_LINKS = [
     sectionId: "rulebook",
     category: "Rulebook",
     targetId: "rulebook-bots",
-    keywords: "stockfish bot classic chess computer opponent elo beginner learner developing intermediate advanced expert master",
+    keywords: "stockfish fairy bot classic chess static variant computer opponent elo beginner learner developing intermediate advanced expert master royal center check race 10x12",
   },
   {
     id: "setting-popular-formations",

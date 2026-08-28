@@ -342,6 +342,22 @@ def _compile_fairy_profile(state: GameState, castling: CastlingProfile) -> Analy
     )
 
 
+def select_fairy_profile(state: GameState) -> AnalysisProfileSelection:
+    """Compile the deterministic Fairy profile without applying engine preference."""
+    fairy_reason, castling = _fairy_reason(state)
+    if fairy_reason is not None or castling is None:
+        return AnalysisProfileSelection(
+            enabled=state.configuration.match_predictor_enabled,
+            eligible=False,
+            reason=fairy_reason or "This game cannot be represented as a static Fairy variant.",
+        )
+    return AnalysisProfileSelection(
+        enabled=state.configuration.match_predictor_enabled,
+        eligible=True,
+        profile=_compile_fairy_profile(state, castling),
+    )
+
+
 def select_analysis_profile(
     state: GameState,
     *,
@@ -359,13 +375,9 @@ def select_analysis_profile(
     if stockfish.eligible:
         return AnalysisProfileSelection(enabled=enabled, eligible=True, profile=STOCKFISH_PROFILE)
 
-    fairy_reason, castling = _fairy_reason(state)
-    if fairy_reason is None and castling is not None:
-        return AnalysisProfileSelection(
-            enabled=enabled,
-            eligible=True,
-            profile=_compile_fairy_profile(state, castling),
-        )
+    fairy = select_fairy_profile(state)
+    if fairy.eligible and fairy.profile is not None:
+        return fairy
     return AnalysisProfileSelection(
         enabled=enabled,
         eligible=True,

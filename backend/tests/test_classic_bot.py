@@ -21,7 +21,13 @@ def test_catalog_and_validation_publish_classic_bot_options(client):
     catalog = client.get("/game/catalog")
     assert catalog.status_code == 200
     profiles = catalog.json()["botProfiles"]
-    assert [profile["targetElo"] for profile in profiles] == [
+    stockfish_profiles = [
+        profile for profile in profiles if profile["engineId"] == "stockfish"
+    ]
+    fairy_profiles = [
+        profile for profile in profiles if profile["engineId"] == "fairy-stockfish"
+    ]
+    assert [profile["targetElo"] for profile in stockfish_profiles] == [
         500,
         800,
         1000,
@@ -30,11 +36,24 @@ def test_catalog_and_validation_publish_classic_bot_options(client):
         2000,
         2500,
     ]
+    assert [profile["targetElo"] for profile in fairy_profiles] == [500, 800, 1000]
     assert all(profile["estimated"] is True for profile in profiles)
 
     classic = client.post("/game/validate", json={})
     assert classic.status_code == 200
-    assert classic.json()["bot"] == {"eligible": True, "reason": None}
+    classic_bot = classic.json()["bot"]
+    assert classic_bot["eligible"] is True
+    assert classic_bot["status"] == "compatible"
+    assert classic_bot["engineId"] == "stockfish"
+    assert [profile["targetElo"] for profile in classic_bot["profiles"]] == [
+        500,
+        800,
+        1000,
+        1200,
+        1500,
+        2000,
+        2500,
+    ]
 
     custom = client.post(
         "/game/validate",
@@ -42,7 +61,8 @@ def test_catalog_and_validation_publish_classic_bot_options(client):
     )
     assert custom.status_code == 200
     assert custom.json()["bot"]["eligible"] is False
-    assert "8x8" in custom.json()["bot"]["reason"]
+    assert custom.json()["bot"]["engineId"] == "fairy-stockfish"
+    assert custom.json()["bot"]["status"] == "unavailable"
 
 
 def test_bot_game_persists_human_seat_and_rejects_custom_setups(client):
@@ -96,7 +116,7 @@ def test_bot_game_persists_human_seat_and_rejects_custom_setups(client):
         },
     )
     assert custom.status_code == 400
-    assert "8x8" in custom.json()["detail"]
+    assert "Fairy-Stockfish" in custom.json()["detail"]
 
     canonical_ui_payload = {
         "mode": "bot",

@@ -360,11 +360,21 @@ class BotView(BaseModel):
     targetElo: int
     label: str
     description: str
-    engineId: Literal["stockfish"] = "stockfish"
+    engineId: Literal["stockfish", "fairy-stockfish"] = "stockfish"
     engineName: str = "Stockfish 18"
     humanColor: Literal["white", "black"]
     botColor: Literal["white", "black"]
     status: Literal["idle", "thinking"] = "idle"
+
+
+class BotDifficultyView(BaseModel):
+    id: str
+    targetElo: int
+    label: str
+    description: str
+    engineId: Literal["stockfish", "fairy-stockfish"]
+    engineName: str
+    estimated: bool = True
 
 
 class GameResponse(BaseModel):
@@ -870,7 +880,13 @@ class RematchRequest(BaseModel):
 
 class BotCompatibilityView(BaseModel):
     eligible: bool
+    status: Literal["compatible", "incompatible", "verifying", "unavailable"] = (
+        "incompatible"
+    )
     reason: str | None = None
+    engineId: Literal["stockfish", "fairy-stockfish"] | None = None
+    engineName: str | None = None
+    profiles: list[BotDifficultyView] = Field(default_factory=list)
 
 
 class ConfigurationValidationResponse(BaseModel):

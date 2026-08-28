@@ -264,6 +264,24 @@ class MatchAnalysisService:
             self._parity_cache.popitem(last=False)
         return result
 
+    async def verify_fairy_profile(
+        self,
+        state: GameState,
+        profile: AnalysisProfile,
+    ) -> tuple[bool, str | None, str]:
+        """Verify one generated Fairy position against the authoritative rules."""
+        snapshot = state.clone()
+        self.rule_engine.evaluate_state(snapshot)
+        fen = analysis_position_fen(snapshot, profile)
+        position_hash = analysis_position_hash(snapshot, profile, fen)
+        compatible, reason = await self._verify_fairy_parity(
+            snapshot,
+            profile,
+            fen,
+            position_hash,
+        )
+        return compatible, reason, fen
+
     async def configuration_compatibility(
         self,
         state: GameState | None,

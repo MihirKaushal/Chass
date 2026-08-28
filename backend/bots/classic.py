@@ -16,17 +16,11 @@ from backend.analysis.classic import (
 )
 from backend.analysis.stockfish import EngineMoveCandidate, StockfishUciProvider
 from backend.bots.base import BotDecision, BotTurnContext
+from backend.bots.moves import encode_move_uci, legal_uci_moves
 from backend.bots.profiles import BotDifficultyProfile, get_bot_profile
 from backend.catalog import classic_layout
 from backend.models import GameState, Move
 from backend.rules import RuleEngine
-
-PROMOTION_TO_UCI = {
-    "queen": "q",
-    "rook": "r",
-    "bishop": "b",
-    "knight": "n",
-}
 
 
 @dataclass(frozen=True)
@@ -124,36 +118,8 @@ def classic_bot_eligibility(
     return ClassicBotEligibility(True)
 
 
-def _square_name(row: int, col: int) -> str:
-    return f"{chr(ord('a') + col)}{8 - row}"
-
-
 def move_to_uci(move: Move) -> str:
-    suffix = PROMOTION_TO_UCI.get(move.promotion or "", "")
-    return (
-        f"{_square_name(move.from_row, move.from_col)}"
-        f"{_square_name(move.to_row, move.to_col)}{suffix}"
-    )
-
-
-def _legal_uci_moves(state: GameState, rule_engine: RuleEngine) -> dict[str, Move]:
-    legal: dict[str, Move] = {}
-    for option in rule_engine.get_valid_moves_for_current_player(state):
-        piece = state.board.grid[option.from_row][option.from_col]
-        promotions: tuple[str | None, ...] = (None,)
-        if piece is not None and piece.type == "pawn" and option.to_row in {0, 7}:
-            promotions = ("queen", "rook", "bishop", "knight")
-        for promotion in promotions:
-            move = Move(
-                fromRow=option.from_row,
-                fromCol=option.from_col,
-                toRow=option.to_row,
-                toCol=option.to_col,
-                promotion=promotion,
-            )
-            if rule_engine.validate_move(state, move).is_valid:
-                legal[move_to_uci(move)] = move
-    return legal
+    return encode_move_uci(move, board_rows=8)
 
 
 def _candidate_score(candidate: EngineMoveCandidate) -> int:
@@ -200,8 +166,10 @@ class StockfishClassicBotEngine:
         eligibility = classic_bot_eligibility(state, require_initial_position=False)
         if not eligibility.eligible:
             raise RuntimeError(eligibility.reason or "This position is not bot-compatible.")
+        if profile.engine_id != self.engine_id:
+            raise RuntimeError("The selected difficulty does not belong to Stockfish 18.")
 
-        legal = _legal_uci_moves(state, self.rule_engine)
+        legal = legal_uci_moves(state, self.rule_engine)
         if not legal:
             raise RuntimeError("The bot has no legal move in this position.")
         fen = classic_position_fen(state)

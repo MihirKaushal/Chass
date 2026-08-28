@@ -22,10 +22,18 @@ from backend.analysis import (
     MatchAnalysisService,
     StockfishUciProvider,
 )
-from backend.bots import BotTurnScheduler, StockfishClassicBotEngine
+from backend.bots import (
+    BotTurnScheduler,
+    FairyStockfishBotEngine,
+    StockfishClassicBotEngine,
+    get_bot_profile,
+    select_bot_engine,
+    verify_bot_compatibility,
+)
 from backend.config import get_settings
 from backend.models.schemas import (
     AbilitySelectionRequest,
+    BotCompatibilityView,
     ConfigurationValidationResponse,
     CreateGameRequest,
     GambitDeploymentRequest,
@@ -73,21 +81,20 @@ stockfish_provider = StockfishUciProvider(
     startup_timeout_seconds=analysis_settings.stockfish_startup_timeout_seconds,
     startup_attempts=analysis_settings.stockfish_startup_attempts,
 )
+fairy_stockfish_provider = FairyStockfishUciProvider(
+    configured_path=analysis_settings.fairy_stockfish_path,
+    enabled=analysis_settings.match_predictor_engine_enabled,
+    movetime_ms=analysis_settings.fairy_stockfish_movetime_ms,
+    hash_mb=analysis_settings.fairy_stockfish_hash_mb,
+    threads=analysis_settings.fairy_stockfish_threads,
+    startup_timeout_seconds=analysis_settings.stockfish_startup_timeout_seconds,
+    startup_attempts=analysis_settings.stockfish_startup_attempts,
+    max_loaded_profiles=analysis_settings.fairy_stockfish_max_profiles,
+)
 match_analysis_service = MatchAnalysisService(
     stockfish_provider,
     rule_engine,
-    fairy_provider=FairyStockfishUciProvider(
-        configured_path=analysis_settings.fairy_stockfish_path,
-        enabled=analysis_settings.match_predictor_engine_enabled,
-        movetime_ms=analysis_settings.fairy_stockfish_movetime_ms,
-        hash_mb=analysis_settings.fairy_stockfish_hash_mb,
-        threads=analysis_settings.fairy_stockfish_threads,
-        startup_timeout_seconds=(
-            analysis_settings.stockfish_startup_timeout_seconds
-        ),
-        startup_attempts=analysis_settings.stockfish_startup_attempts,
-        max_loaded_profiles=analysis_settings.fairy_stockfish_max_profiles,
-    ),
+    fairy_provider=fairy_stockfish_provider,
     chass_provider=ChassAnalysisProvider(
         rule_engine,
         enabled=analysis_settings.match_predictor_engine_enabled,
@@ -95,6 +102,15 @@ match_analysis_service = MatchAnalysisService(
     ),
 )
 classic_bot_engine = StockfishClassicBotEngine(stockfish_provider, rule_engine)
+fairy_bot_engine = FairyStockfishBotEngine(
+    fairy_stockfish_provider,
+    rule_engine,
+    match_analysis_service,
+)
+bot_engines = {
+    classic_bot_engine.engine_id: classic_bot_engine,
+    fairy_bot_engine.engine_id: fairy_bot_engine,
+}
 
 
 def _bearer_token(authorization: str | None) -> str | None:
@@ -169,7 +185,11 @@ async def _run_bot_turn(game_id: str, expected_version: int) -> None:
             game_id,
             expected_version,
         )
-        decision = await classic_bot_engine.choose_action(context)
+        engine_id = context.state.bot.engine_id if context.state.bot is not None else ""
+        bot_engine = bot_engines.get(engine_id)
+        if bot_engine is None:
+            raise RuntimeError(f"No bot engine is registered for {engine_id or 'this game'}.")
+        decision = await bot_engine.choose_action(context)
         record, explanation = await run_in_threadpool(
             game_service.move_bot_piece,
             game_id,
@@ -242,6 +262,39 @@ async def _ensure_bot_turn(record: GameRecord) -> None:
 @router.post("/create", response_model=GameSessionResponse)
 async def create_game(payload: CreateGameRequest, request: Request) -> GameSessionResponse:
     rate_limiter.check(request, "create", limit=20, window_seconds=3600)
+    if payload.mode == "bot":
+        state = await run_in_threadpool(game_service.configuration_analysis_state, payload)
+        if state is not None:
+            selection = select_bot_engine(state)
+            try:
+                selected_profile = get_bot_profile(payload.bot.profileId if payload.bot else "")
+            except ValueError as error:
+                raise HTTPException(status_code=400, detail=str(error)) from error
+            if (
+                selection.eligible
+                and selection.engine_id is not None
+                and selected_profile.engine_id != selection.engine_id
+            ):
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Choose a {selection.engine_name or 'compatible'} difficulty for "
+                        "this configuration."
+                    ),
+                )
+            bot_compatibility = await verify_bot_compatibility(
+                state,
+                match_analysis_service,
+                verify=True,
+            )
+            if not bot_compatibility.eligible:
+                raise HTTPException(
+                    status_code=503 if bot_compatibility.status == "unavailable" else 400,
+                    detail=(
+                        bot_compatibility.reason
+                        or "This configuration cannot use a chess bot."
+                    ),
+                )
     response = await run_in_threadpool(game_service.create_game, payload)
     if response.game.mode == "bot":
         record = await run_in_threadpool(game_service.get_game, response.game.id)
@@ -257,11 +310,21 @@ async def validate_game_configuration(
     rate_limiter.check(request, "validate", limit=120, window_seconds=60)
     validation = await run_in_threadpool(game_service.validate_configuration, payload)
     state = await run_in_threadpool(game_service.configuration_analysis_state, payload)
+    bot_compatibility = await verify_bot_compatibility(
+        state,
+        match_analysis_service,
+        verify=validation.valid,
+    )
     compatibility = await match_analysis_service.configuration_compatibility(
         state,
         verify=validation.valid,
     )
-    return validation.model_copy(update={"matchPredictor": compatibility})
+    return validation.model_copy(
+        update={
+            "matchPredictor": compatibility,
+            "bot": BotCompatibilityView(**bot_compatibility.api_view()),
+        }
+    )
 
 
 @router.get("/catalog")

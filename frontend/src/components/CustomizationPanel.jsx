@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
-import { availableBotProfiles } from "../botGame";
+import { profilesForBotCompatibility } from "../botGame";
 import { boardPlacementRestriction } from "../customizeBoardPlacement";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
 import { customizeLaunchState } from "../customizeLaunchState";
@@ -996,16 +996,19 @@ function Rulebook({ catalog, draft, predictorProfile }) {
     "engine analysis probability parity legal moves terminal outcomes custom pieces abilities",
     predictorProfile,
   ];
-  const classicBotCopy = [
+  const chessBotCopy = [
     "Classic Chess Bots",
     "Play against Stockfish 18 at seven estimated strengths from 500 through 2500 Elo.",
     "Lower levels use controlled move variation. Stronger levels use Stockfish native strength limits.",
-    "Bots currently require an exact 8x8 Classic Chass configuration.",
+    "Fairy-Stockfish Bots",
+    "Verified static variants use three conservative estimated strengths from 500 through 1000 Elo.",
+    "Fairy supports standard pieces and movement on boards up to 10x12 with Checkmate, Royal Center, or Check Race.",
+    "Custom pieces, abilities, terrain, Affinity Squares, and Gambit require a future Chass bot.",
     "The Chass Rule Engine remains authoritative for legal moves, check, checkmate, history, and rematches.",
-    "computer opponent beginner learner developing intermediate advanced expert master",
+    "computer opponent beginner learner developing intermediate advanced expert master static variant parity",
   ];
   const showAnalysisEngines = matchesRulebookSearch(query, analysisEngineCopy);
-  const showClassicBots = matchesRulebookSearch(query, classicBotCopy);
+  const showChessBots = matchesRulebookSearch(query, chessBotCopy);
   const affinityCopy = [
     "Affinity Squares",
     `The board marks ${draft.customRules.affinitySquareCount} centered squares, divided equally between White and Black.`,
@@ -1054,7 +1057,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
     && matchesRulebookSearch(query, "Turns And Countdowns", countdownCopy);
   const resultCount = visiblePieces.length
     + Number(showAnalysisEngines)
-    + Number(showClassicBots)
+    + Number(showChessBots)
     + visibleVictoryModes.length
     + Number(showAffinity)
     + visibleAbilities.length
@@ -1128,12 +1131,17 @@ function Rulebook({ catalog, draft, predictorProfile }) {
       </RulebookSection>
 
       <RulebookSection id="rulebook-bots" title="Chess Bots" description="Computer opponents, estimated difficulty, and current compatibility." revealKey={revealKey}>
-        {showClassicBots ? (
-          <div className="predictor-reference-grid">
-            <article className="classic-bot-reference">
-              <header><strong>Classic Chess Bots</strong><span>Classic Only</span></header>
+        {showChessBots ? (
+          <div className="predictor-reference-grid bot-reference-grid">
+            <article>
+              <header><strong>Classic Chess Bots</strong><span>Stockfish 18</span></header>
               <p>Play against Stockfish 18 at seven estimated strengths from 500 through 2500 Elo. Lower levels use controlled move variation, while stronger levels use Stockfish's native strength limits.</p>
               <p>Bots currently require an exact 8x8 Classic Chass setup. Stockfish selects from Chass-approved moves, and the Rule Engine remains authoritative for legality, check, checkmate, history, and rematches.</p>
+            </article>
+            <article>
+              <header><strong>Static Variant Bots</strong><span>Fairy-Stockfish</span></header>
+              <p>Verified static variants offer conservative estimated levels of 500, 800, and 1000. These ratings describe relative difficulty and are not calibrated across every board or win condition.</p>
+              <p>Supported games use unchanged standard pieces and movement on boards up to 10x12 with Checkmate, Royal Center, or Check Race. Every starting position and bot turn must match Chass legal-move and terminal parity.</p>
             </article>
           </div>
         ) : <EmptyState className="rulebook-empty">No matching Chess Bots reference.</EmptyState>}
@@ -1783,12 +1791,18 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const botCompatibility = validation.requestKey === validationRequestKey
     ? validation.bot
     : null;
-  const botEligible = Boolean(configurationReady && botCompatibility?.eligible);
+  const botProfiles = profilesForBotCompatibility(catalog, botCompatibility);
+  const botEligible = Boolean(
+    configurationReady && botCompatibility?.eligible && botProfiles.length
+  );
   const botButtonDisabled = !configurationReady || Boolean(creatingMode);
   const openBotSetup = () => {
     if (!canLaunch) return;
     if (!botCompatibility?.eligible) {
-      setBotNotice("Bot play is currently available for exact Classic Chass games only.");
+      setBotNotice(
+        botCompatibility?.reason
+        || "This configuration is not supported by an available chess bot."
+      );
       window.clearTimeout(botNoticeTimerRef.current);
       botNoticeTimerRef.current = window.setTimeout(() => setBotNotice(""), 4200);
       return;
@@ -2196,7 +2210,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
       />
       <BotSetupDialog
         open={showBotSetup}
-        profiles={availableBotProfiles(catalog)}
+        profiles={botProfiles}
         loading={creatingMode === "bot"}
         error={error}
         onClose={() => setShowBotSetup(false)}

@@ -115,21 +115,22 @@ app.add_exception_handler(GoogleAuthError, _persistence_unavailable)
 
 @app.get("/health")
 def health() -> dict[str, object]:
+    def engine_status(provider) -> str:
+        if provider is None or not provider.enabled:
+            return "disabled"
+        return "ready" if provider.ready else "unavailable"
+
     response = {
         "status": "ok",
         "environment": settings.environment,
         "persistence": settings.persistence_backend,
         "matchPredictor": match_analysis_service.health_status(),
         "matchPredictorEngines": match_analysis_service.health_details(),
-        "classicBot": (
-            "ready"
-            if match_analysis_service.provider.ready
-            else (
-                "disabled"
-                if not match_analysis_service.provider.enabled
-                else "unavailable"
-            )
-        ),
+        "classicBot": engine_status(match_analysis_service.provider),
+        "botEngines": {
+            "stockfish": engine_status(match_analysis_service.provider),
+            "fairyStockfish": engine_status(match_analysis_service.fairy_provider),
+        },
     }
     predictor_reason = match_analysis_service.health_reason()
     if predictor_reason:
