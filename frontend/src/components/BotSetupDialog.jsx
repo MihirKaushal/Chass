@@ -8,6 +8,17 @@ function BotSetupDialog({ open, profiles = [], onClose, onStart, loading = false
   const engineId = defaultProfile?.engineId || "stockfish";
   const engineName = defaultProfile?.engineName || "Stockfish 18";
   const usesFairy = engineId === "fairy-stockfish";
+  const usesChass = engineId === "chass";
+  const eyebrow = usesChass
+    ? "Custom Variant Bot"
+    : usesFairy
+      ? "Static Variant Bot"
+      : "Classic Chass Bot";
+  const ratingNote = usesChass
+    ? "Chass ratings are conservative estimates. The bot understands the active rules, custom pieces, abilities, command powers, and setup phases, but remains experimental and weaker than Stockfish."
+    : usesFairy
+      ? "Fairy ratings are conservative estimates for static variants and are not calibrated across every board or win condition."
+      : "Ratings are estimates. Lower levels use controlled move variation; stronger levels use Stockfish's native strength limit.";
   const [profileId, setProfileId] = useState(defaultProfile?.id || "");
   const [humanColor, setHumanColor] = useState("white");
   const defaultProfileRef = useRef(null);
@@ -23,7 +34,7 @@ function BotSetupDialog({ open, profiles = [], onClose, onStart, loading = false
       open={open}
       onClose={loading ? () => {} : onClose}
       closeLabel="Close bot setup"
-      eyebrow={usesFairy ? "Static Variant Bot" : "Classic Chass Bot"}
+      eyebrow={eyebrow}
       title="Choose Your Opponent"
       description={`This configuration uses ${engineName}. Select an estimated strength and your side.`}
       className="bot-setup-dialog"
@@ -95,9 +106,7 @@ function BotSetupDialog({ open, profiles = [], onClose, onStart, loading = false
         </div>
       </fieldset>
       <p className="bot-rating-note">
-        {usesFairy
-          ? "Fairy ratings are conservative estimates for static variants and are not calibrated across every board or win condition."
-          : "Ratings are estimates. Lower levels use controlled move variation; stronger levels use Stockfish's native strength limit."}
+        {ratingNote}
       </p>
       {error ? <p className="bot-setup-error" role="alert">{error}</p> : null}
     </Dialog>

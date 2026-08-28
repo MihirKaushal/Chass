@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+from dataclasses import replace
 from typing import Annotated
 
 from fastapi import (
@@ -24,10 +25,11 @@ from backend.analysis import (
 )
 from backend.bots import (
     BotTurnScheduler,
+    ChassBotEngine,
     FairyStockfishBotEngine,
     StockfishClassicBotEngine,
+    bot_action_needed,
     get_bot_profile,
-    select_bot_engine,
     verify_bot_compatibility,
 )
 from backend.config import get_settings
@@ -64,7 +66,6 @@ from backend.repositories import (
     GameRecord,
 )
 from backend.rules import RuleEngine
-from backend.rules.variant_system import FINISHED_STATUSES
 from backend.services.game_service import GameService
 
 router = APIRouter(prefix="/game", tags=["game"])
@@ -107,9 +108,11 @@ fairy_bot_engine = FairyStockfishBotEngine(
     rule_engine,
     match_analysis_service,
 )
+chass_bot_engine = ChassBotEngine(rule_engine)
 bot_engines = {
     classic_bot_engine.engine_id: classic_bot_engine,
     fairy_bot_engine.engine_id: fairy_bot_engine,
+    chass_bot_engine.engine_id: chass_bot_engine,
 }
 
 
@@ -168,54 +171,79 @@ match_analysis_service.set_listener(_broadcast_match_analysis)
 
 
 def _bot_turn_needed(record: GameRecord) -> bool:
-    state = record.state
     return bool(
         record.mode == "bot"
-        and state.bot is not None
-        and state.phase == "play"
-        and state.game_status not in FINISHED_STATUSES
-        and state.current_player == state.bot.bot_color
+        and bot_action_needed(record.state)
     )
 
 
 async def _run_bot_turn(game_id: str, expected_version: int) -> None:
     try:
-        context = await run_in_threadpool(
-            game_service.bot_turn_context,
-            game_id,
-            expected_version,
-        )
-        engine_id = context.state.bot.engine_id if context.state.bot is not None else ""
-        bot_engine = bot_engines.get(engine_id)
-        if bot_engine is None:
-            raise RuntimeError(f"No bot engine is registered for {engine_id or 'this game'}.")
-        decision = await bot_engine.choose_action(context)
-        record, explanation = await run_in_threadpool(
-            game_service.move_bot_piece,
-            game_id,
-            decision.move,
-            expected_version,
-        )
-        viewer_color = record.state.bot.human_color if record.state.bot else None
-        response = game_service.serialize_game(
-            record,
-            last_explanation=explanation,
-            viewer_color=viewer_color,
-        )
-        serialized_views = {viewer_color: response}
-        await _broadcast_state(
-            record,
-            last_explanation=explanation,
-            serialized_views=serialized_views,
-        )
-        if response.phase == "finished":
+        current_version = expected_version
+        for _ in range(64):
+            context = await run_in_threadpool(
+                game_service.bot_turn_context,
+                game_id,
+                current_version,
+            )
+            engine_id = context.state.bot.engine_id if context.state.bot is not None else ""
+            bot_engine = bot_engines.get(engine_id)
+            if bot_engine is None:
+                raise RuntimeError(
+                    f"No bot engine is registered for {engine_id or 'this game'}."
+                )
+            try:
+                decision = await bot_engine.choose_action(context)
+            except Exception:
+                if engine_id == chass_bot_engine.engine_id:
+                    raise
+                fallback_profile_id = (
+                    "chass-500"
+                    if context.state.bot is not None
+                    and context.state.bot.target_elo <= 500
+                    else "chass-800"
+                )
+                logger.warning(
+                    "%s bot failed for %s; continuing with %s",
+                    engine_id or "External",
+                    game_id,
+                    fallback_profile_id,
+                    exc_info=True,
+                )
+                decision = await chass_bot_engine.choose_action(
+                    replace(context, profile_id=fallback_profile_id)
+                )
+            record, explanation = await run_in_threadpool(
+                game_service.apply_bot_decision,
+                game_id,
+                decision,
+                current_version,
+            )
+            viewer_color = record.state.bot.human_color if record.state.bot else None
+            response = game_service.serialize_game(
+                record,
+                last_explanation=explanation,
+                viewer_color=viewer_color,
+            )
+            serialized_views = {viewer_color: response}
             await _broadcast_state(
                 record,
-                event_type="game_ended",
                 last_explanation=explanation,
                 serialized_views=serialized_views,
             )
-        await match_analysis_service.request(record.state, record.version)
+            if response.phase == "finished":
+                await _broadcast_state(
+                    record,
+                    event_type="game_ended",
+                    last_explanation=explanation,
+                    serialized_views=serialized_views,
+                )
+            if not _bot_turn_needed(record):
+                if record.state.phase in {"play", "finished"}:
+                    await match_analysis_service.request(record.state, record.version)
+                return
+            current_version = record.version
+        raise RuntimeError("The bot exceeded the safe consecutive-action limit.")
     except asyncio.CancelledError:
         raise
     except HTTPException as error:
@@ -247,6 +275,8 @@ bot_turn_scheduler = BotTurnScheduler(_run_bot_turn)
 async def _ensure_bot_turn(record: GameRecord) -> None:
     if not _bot_turn_needed(record):
         return
+    if bot_turn_scheduler.is_scheduled(record.state.id):
+        return
     if bot_turn_scheduler.schedule(record.state.id, record.version):
         await socket_manager.broadcast(
             record.state.id,
@@ -265,23 +295,10 @@ async def create_game(payload: CreateGameRequest, request: Request) -> GameSessi
     if payload.mode == "bot":
         state = await run_in_threadpool(game_service.configuration_analysis_state, payload)
         if state is not None:
-            selection = select_bot_engine(state)
             try:
                 selected_profile = get_bot_profile(payload.bot.profileId if payload.bot else "")
             except ValueError as error:
                 raise HTTPException(status_code=400, detail=str(error)) from error
-            if (
-                selection.eligible
-                and selection.engine_id is not None
-                and selected_profile.engine_id != selection.engine_id
-            ):
-                raise HTTPException(
-                    status_code=400,
-                    detail=(
-                        f"Choose a {selection.engine_name or 'compatible'} difficulty for "
-                        "this configuration."
-                    ),
-                )
             bot_compatibility = await verify_bot_compatibility(
                 state,
                 match_analysis_service,
@@ -293,6 +310,14 @@ async def create_game(payload: CreateGameRequest, request: Request) -> GameSessi
                     detail=(
                         bot_compatibility.reason
                         or "This configuration cannot use a chess bot."
+                    ),
+                )
+            if selected_profile.engine_id != bot_compatibility.engine_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Choose a {bot_compatibility.engine_name or 'compatible'} "
+                        "difficulty for this configuration."
                     ),
                 )
     response = await run_in_threadpool(game_service.create_game, payload)
@@ -514,6 +539,10 @@ async def use_custom_action(
             last_explanation=explanation,
             serialized_views=serialized_views,
         )
+    if record.mode == "bot" and response.phase != "finished":
+        await _ensure_bot_turn(record)
+    else:
+        await match_analysis_service.request(record.state, record.version)
     return response
 
 
@@ -535,6 +564,7 @@ async def select_ability(
         viewer_color=viewer_color,
     )
     await _broadcast_state(record, serialized_views={viewer_color: response})
+    await _ensure_bot_turn(record)
     return response
 
 
@@ -728,6 +758,7 @@ async def update_gambit_draft(
         viewer_color=viewer_color,
     )
     await _broadcast_state(record, serialized_views={viewer_color: response})
+    await _ensure_bot_turn(record)
     return response
 
 
@@ -749,6 +780,7 @@ async def ready_gambit_deployment(
         viewer_color=viewer_color,
     )
     await _broadcast_state(record, serialized_views={viewer_color: response})
+    await _ensure_bot_turn(record)
     return response
 
 
@@ -813,6 +845,10 @@ async def use_command_power(
             last_explanation=explanation,
             serialized_views=serialized_views,
         )
+    if record.mode == "bot" and response.phase != "finished":
+        await _ensure_bot_turn(record)
+    else:
+        await match_analysis_service.request(record.state, record.version)
     return response
 
 

@@ -30,15 +30,32 @@ export const FALLBACK_FAIRY_BOT_PROFILES = [
   estimated: true,
 }));
 
+export const FALLBACK_CHASS_BOT_PROFILES = [
+  [500, "Variant Explorer", "Learns unusual pieces and powers"],
+  [800, "Variant Tactician", "Uses deeper custom-rule search"],
+].map(([targetElo, label, description]) => ({
+  id: `chass-${targetElo}`,
+  targetElo,
+  label,
+  description,
+  engineId: "chass",
+  engineName: "Chass Engine",
+  estimated: true,
+}));
+
+const FALLBACK_PROFILES_BY_ENGINE = {
+  stockfish: FALLBACK_BOT_PROFILES,
+  "fairy-stockfish": FALLBACK_FAIRY_BOT_PROFILES,
+  chass: FALLBACK_CHASS_BOT_PROFILES,
+};
+
 export function availableBotProfiles(catalog, engineId = "stockfish") {
   const catalogProfiles = catalog?.botProfiles || [];
   const matchingProfiles = catalogProfiles.filter(
     (profile) => profile.engineId === engineId
   );
   if (matchingProfiles.length) return matchingProfiles;
-  return engineId === "fairy-stockfish"
-    ? FALLBACK_FAIRY_BOT_PROFILES
-    : FALLBACK_BOT_PROFILES;
+  return FALLBACK_PROFILES_BY_ENGINE[engineId] || FALLBACK_BOT_PROFILES;
 }
 
 export function profilesForBotCompatibility(catalog, compatibility) {
@@ -83,10 +100,10 @@ export function sessionForPublicGame(gameId, game) {
 }
 
 export function botTurnIsPending(game) {
+  if (game?.mode !== "bot" || game.winner) return false;
+  if (game.bot?.status) return game.bot.status === "thinking";
   return Boolean(
-    game?.mode === "bot"
-    && game.bot?.botColor === game.currentPlayer
+    game.bot?.botColor === game.currentPlayer
     && game.phase === "play"
-    && !game.winner
   );
 }

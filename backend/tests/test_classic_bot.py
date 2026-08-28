@@ -27,6 +27,9 @@ def test_catalog_and_validation_publish_classic_bot_options(client):
     fairy_profiles = [
         profile for profile in profiles if profile["engineId"] == "fairy-stockfish"
     ]
+    chass_profiles = [
+        profile for profile in profiles if profile["engineId"] == "chass"
+    ]
     assert [profile["targetElo"] for profile in stockfish_profiles] == [
         500,
         800,
@@ -37,6 +40,7 @@ def test_catalog_and_validation_publish_classic_bot_options(client):
         2500,
     ]
     assert [profile["targetElo"] for profile in fairy_profiles] == [500, 800, 1000]
+    assert [profile["targetElo"] for profile in chass_profiles] == [500, 800]
     assert all(profile["estimated"] is True for profile in profiles)
 
     classic = client.post("/game/validate", json={})
@@ -60,12 +64,15 @@ def test_catalog_and_validation_publish_classic_bot_options(client):
         json={"boardRows": 10, "boardCols": 10},
     )
     assert custom.status_code == 200
-    assert custom.json()["bot"]["eligible"] is False
-    assert custom.json()["bot"]["engineId"] == "fairy-stockfish"
-    assert custom.json()["bot"]["status"] == "unavailable"
+    assert custom.json()["bot"]["eligible"] is True
+    assert custom.json()["bot"]["engineId"] == "chass"
+    assert custom.json()["bot"]["status"] == "compatible"
+    assert [
+        profile["targetElo"] for profile in custom.json()["bot"]["profiles"]
+    ] == [500, 800]
 
 
-def test_bot_game_persists_human_seat_and_rejects_custom_setups(client):
+def test_bot_game_persists_human_seat_and_routes_custom_setups(client):
     created = create_bot_game(client, profile="stockfish-500", color="white")
     assert created.status_code == 200, created.text
     session = created.json()
@@ -116,7 +123,21 @@ def test_bot_game_persists_human_seat_and_rejects_custom_setups(client):
         },
     )
     assert custom.status_code == 400
-    assert "Fairy-Stockfish" in custom.json()["detail"]
+    assert custom.json()["detail"] == (
+        "Choose a Chass Engine difficulty for this configuration."
+    )
+
+    custom_bot = client.post(
+        "/game/create",
+        json={
+            "mode": "bot",
+            "boardRows": 10,
+            "boardCols": 10,
+            "bot": {"profileId": "chass-500", "humanColor": "white"},
+        },
+    )
+    assert custom_bot.status_code == 200, custom_bot.text
+    assert custom_bot.json()["game"]["bot"]["engineId"] == "chass"
 
     canonical_ui_payload = {
         "mode": "bot",

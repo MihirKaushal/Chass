@@ -188,6 +188,79 @@ def test_fairy_bot_game_persists_engine_and_uses_realtime_scheduler(client, monk
     assert [move["player"] for move in latest["history"]] == ["white", "black"]
 
 
+def test_fairy_runtime_failure_atomically_switches_to_native_bot(client, monkeypatch):
+    from backend.routes import game as game_route
+
+    async def compatible(state, _service, *, verify):
+        assert state.board.rows == 10
+        assert verify is True
+        return BotCompatibility(
+            eligible=True,
+            status="compatible",
+            reason=None,
+            engine_id="fairy-stockfish",
+            engine_name="Fairy-Stockfish",
+            profiles=select_bot_engine(state).profiles,
+        )
+
+    async def parity_failure(_context):
+        raise RuntimeError("Fairy legal-move parity failed for this position.")
+
+    async def native_reply(context):
+        assert context.profile_id == "chass-800"
+        return BotDecision(
+            move=Move(fromRow=1, fromCol=4, toRow=2, toCol=4),
+            engine_id="chass",
+            engine_name="Chass Engine",
+            profile_id="chass-800",
+            target_elo=800,
+            elapsed_ms=1,
+        )
+
+    monkeypatch.setattr(game_route, "verify_bot_compatibility", compatible)
+    monkeypatch.setattr(game_route.fairy_bot_engine, "choose_action", parity_failure)
+    monkeypatch.setattr(game_route.chass_bot_engine, "choose_action", native_reply)
+
+    created = client.post(
+        "/game/create",
+        json={
+            "mode": "bot",
+            "boardRows": 10,
+            "boardCols": 10,
+            "bot": {"profileId": "fairy-stockfish-1000", "humanColor": "white"},
+        },
+    )
+    assert created.status_code == 200, created.text
+    game = created.json()["game"]
+
+    moved = client.post(
+        f"/game/{game['id']}/move",
+        json={
+            "fromRow": 8,
+            "fromCol": 4,
+            "toRow": 7,
+            "toCol": 4,
+            "expectedVersion": game["version"],
+        },
+    )
+    assert moved.status_code == 200, moved.text
+
+    deadline = time.monotonic() + 2
+    latest = moved.json()
+    while latest["version"] < 3 and time.monotonic() < deadline:
+        time.sleep(0.02)
+        latest = client.get(f"/game/{game['id']}").json()
+
+    assert latest["version"] == 3
+    assert latest["bot"]["engineId"] == "chass"
+    assert latest["bot"]["profileId"] == "chass-800"
+    assert latest["bot"]["targetElo"] == 800
+    assert latest["board"][2][4]["type"] == "pawn"
+    assert latest["lastMoveExplanation"].startswith(
+        "Chass Engine safely took over after Fairy-Stockfish became unavailable."
+    )
+
+
 FAIRY_BINARY = PROJECT_ROOT / ".stockfish" / "fairy-stockfish"
 
 

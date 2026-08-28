@@ -914,7 +914,11 @@ class GambitRuleSet:
         gambit = _require_gambit(state)
         if state.phase == "handoff":
             return None, []
-        color = viewer_color if mode == "online" else gambit.active_deployment_color
+        color = (
+            viewer_color
+            if mode in {"online", "bot"}
+            else gambit.active_deployment_color
+        )
         if color not in {"white", "black"}:
             return None, []
         return color, [piece.model_copy(deep=True) for piece in gambit.deployments[color]]

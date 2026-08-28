@@ -1,15 +1,15 @@
 # Chass!
 
 Chass! is a full-stack browser chess platform for classic games and configurable chess
-variants. It supports local two-player games, Stockfish and Fairy-Stockfish opponents, private link-or-code
-multiplayer, custom boards and pieces, modular rules, and real-time synchronization.
+variants. It supports local two-player games, three-engine computer opponents, private
+link-or-code multiplayer, custom boards and pieces, modular rules, and real-time synchronization.
 
 **Live site:** [https://playchass.vercel.app](https://playchass.vercel.app)
 
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
-- Seven Classic Stockfish bot levels and three static-variant Fairy bot levels
+- Auto-routed Stockfish, Fairy-Stockfish, and universal native Chass bots
 - Auto-routed Stockfish, Fairy-Stockfish, and native Chass Engine Match Analysis
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
@@ -66,7 +66,7 @@ React + Vite
 FastAPI
   |-- Game service
   |-- Modular rule engine
-  |-- Versioned bot router --> Stockfish 18 / Fairy-Stockfish
+  |-- Versioned bot router --> Stockfish 18 / Fairy-Stockfish / Chass Engine
   |-- Async analysis router --> Stockfish 18 / Fairy-Stockfish / Chass Engine
   v
 Repository adapters
@@ -98,8 +98,10 @@ version-checked before a WebSocket result can update the UI.
 Bot games keep move authority in the Chass Rule Engine. Stockfish and Fairy-Stockfish rank
 only Chass-approved legal moves, and every selection is validated again before the normal
 versioned move transaction commits it. Fairy games also repeat legal-move and terminal parity
-verification before every bot turn. One recoverable background task is allowed per game
-version, so refreshes and duplicate sockets cannot create duplicate bot turns.
+verification before every bot turn. All remaining valid configurations use the native Chass
+bot, including setup, custom actions, abilities, and command powers. One recoverable background
+task is allowed per game version, so refreshes and duplicate sockets cannot create duplicate
+bot turns.
 
 ## Project Structure
 
@@ -174,7 +176,7 @@ npm run build
 | `GET` | `/health` | Service health check |
 | `GET` | `/game/catalog` | Load pieces, abilities, victories, and presets |
 | `POST` | `/game/validate` | Validate a complete configuration and return incompatible options |
-| `POST` | `/game/create` | Create a local, online, or Classic bot game |
+| `POST` | `/game/create` | Create a local, online, or engine-routed bot game |
 | `POST` | `/game/join` | Join through an invitation |
 | `GET` | `/game/{id}` | Load game state |
 | `GET` | `/game/{id}/history` | Load an earlier page of move history |

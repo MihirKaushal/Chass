@@ -360,7 +360,7 @@ class BotView(BaseModel):
     targetElo: int
     label: str
     description: str
-    engineId: Literal["stockfish", "fairy-stockfish"] = "stockfish"
+    engineId: Literal["stockfish", "fairy-stockfish", "chass"] = "stockfish"
     engineName: str = "Stockfish 18"
     humanColor: Literal["white", "black"]
     botColor: Literal["white", "black"]
@@ -372,7 +372,7 @@ class BotDifficultyView(BaseModel):
     targetElo: int
     label: str
     description: str
-    engineId: Literal["stockfish", "fairy-stockfish"]
+    engineId: Literal["stockfish", "fairy-stockfish", "chass"]
     engineName: str
     estimated: bool = True
 
@@ -884,7 +884,7 @@ class BotCompatibilityView(BaseModel):
         "incompatible"
     )
     reason: str | None = None
-    engineId: Literal["stockfish", "fairy-stockfish"] | None = None
+    engineId: Literal["stockfish", "fairy-stockfish", "chass"] | None = None
     engineName: str | None = None
     profiles: list[BotDifficultyView] = Field(default_factory=list)
 

@@ -1003,9 +1003,11 @@ function Rulebook({ catalog, draft, predictorProfile }) {
     "Fairy-Stockfish Bots",
     "Verified static variants use three conservative estimated strengths from 500 through 1000 Elo.",
     "Fairy supports standard pieces and movement on boards up to 10x12 with Checkmate, Royal Center, or Check Race.",
-    "Custom pieces, abilities, terrain, Affinity Squares, and Gambit require a future Chass bot.",
+    "Chass Engine Bots",
+    "All remaining valid games use conservative estimated strengths of 500 and 800.",
+    "The native bot understands custom pieces, abilities, terrain, Affinity Squares, Gambit setup, command powers, and alternate win conditions.",
     "The Chass Rule Engine remains authoritative for legal moves, check, checkmate, history, and rematches.",
-    "computer opponent beginner learner developing intermediate advanced expert master static variant parity",
+    "computer opponent beginner learner developing intermediate advanced expert master static custom universal variant parity",
   ];
   const showAnalysisEngines = matchesRulebookSearch(query, analysisEngineCopy);
   const showChessBots = matchesRulebookSearch(query, chessBotCopy);
@@ -1136,12 +1138,18 @@ function Rulebook({ catalog, draft, predictorProfile }) {
             <article>
               <header><strong>Classic Chess Bots</strong><span>Stockfish 18</span></header>
               <p>Play against Stockfish 18 at seven estimated strengths from 500 through 2500 Elo. Lower levels use controlled move variation, while stronger levels use Stockfish's native strength limits.</p>
-              <p>Bots currently require an exact 8x8 Classic Chass setup. Stockfish selects from Chass-approved moves, and the Rule Engine remains authoritative for legality, check, checkmate, history, and rematches.</p>
+              <p>Stockfish is preferred for the exact 8x8 Classic Chass opening. It selects from Chass-approved moves, while the Rule Engine remains authoritative.</p>
             </article>
             <article>
               <header><strong>Static Variant Bots</strong><span>Fairy-Stockfish</span></header>
               <p>Verified static variants offer conservative estimated levels of 500, 800, and 1000. These ratings describe relative difficulty and are not calibrated across every board or win condition.</p>
               <p>Supported games use unchanged standard pieces and movement on boards up to 10x12 with Checkmate, Royal Center, or Check Race. Every starting position and bot turn must match Chass legal-move and terminal parity.</p>
+            </article>
+            <article>
+              <header><strong>Custom Variant Bots</strong><span>Chass Engine</span></header>
+              <p>Every other valid game offers experimental estimated levels of 500 and 800. The stronger profile searches more candidate actions and replies, but both remain intentionally below Stockfish strength.</p>
+              <p>The bot can build Gambit armies, draft pieces, choose abilities, and use legal custom-piece actions, special abilities, command powers, terrain, Affinity Squares, and alternate win conditions through the same Rule Engine as human players.</p>
+              <p>If an external bot becomes unavailable or loses rule parity during play, Chass Engine takes over through the same versioned game transaction so the match can continue.</p>
             </article>
           </div>
         ) : <EmptyState className="rulebook-empty">No matching Chess Bots reference.</EmptyState>}

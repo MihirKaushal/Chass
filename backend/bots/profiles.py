@@ -17,6 +17,12 @@ class BotDifficultyProfile:
     probe_nodes: int = 0
     rank_nodes: int = 0
     temperature_cp: float = 1.0
+    movetime_ms: int = 180
+    max_root_actions: int = 48
+    max_reply_actions: int = 18
+    max_quiescence_actions: int = 6
+    max_nodes: int = 256
+    action_temperature: float = 0.0
 
     def catalog_view(self) -> dict[str, object]:
         return {
@@ -153,9 +159,47 @@ FAIRY_BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
 )
 
 
+# Chass ratings describe relative difficulty only. The native evaluator is
+# intentionally conservative and remains much weaker than either Stockfish.
+CHASS_BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
+    BotDifficultyProfile(
+        id="chass-500",
+        target_elo=500,
+        label="Variant Explorer",
+        description="Learns unusual pieces and powers",
+        engine_id="chass",
+        engine_name="Chass Engine",
+        native_elo=False,
+        candidate_count=5,
+        movetime_ms=110,
+        max_root_actions=32,
+        max_reply_actions=10,
+        max_quiescence_actions=4,
+        max_nodes=128,
+        action_temperature=1.35,
+    ),
+    BotDifficultyProfile(
+        id="chass-800",
+        target_elo=800,
+        label="Variant Tactician",
+        description="Uses deeper custom-rule search",
+        engine_id="chass",
+        engine_name="Chass Engine",
+        native_elo=False,
+        candidate_count=1,
+        movetime_ms=260,
+        max_root_actions=56,
+        max_reply_actions=22,
+        max_quiescence_actions=8,
+        max_nodes=512,
+    ),
+)
+
+
 BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
     *STOCKFISH_BOT_PROFILES,
     *FAIRY_BOT_PROFILES,
+    *CHASS_BOT_PROFILES,
 )
 
 BOT_PROFILE_MAP = {profile.id: profile for profile in BOT_PROFILES}

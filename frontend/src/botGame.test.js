@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   FALLBACK_BOT_PROFILES,
+  FALLBACK_CHASS_BOT_PROFILES,
   FALLBACK_FAIRY_BOT_PROFILES,
   availableBotProfiles,
   botTurnIsPending,
@@ -29,10 +30,12 @@ test("Classic bot requests carry only canonical launch settings", () => {
 test("bot profiles fall back safely while an older catalog cache expires", () => {
   assert.equal(availableBotProfiles({})[1].targetElo, 800);
   assert.equal(availableBotProfiles({}, "fairy-stockfish")[2].targetElo, 1000);
+  assert.equal(availableBotProfiles({}, "chass")[1].targetElo, 800);
   const profiles = [{ id: "server-profile", engineId: "stockfish" }];
   assert.deepEqual(availableBotProfiles({ botProfiles: profiles }), profiles);
   assert.equal(FALLBACK_BOT_PROFILES.length, 7);
   assert.equal(FALLBACK_FAIRY_BOT_PROFILES.length, 3);
+  assert.equal(FALLBACK_CHASS_BOT_PROFILES.length, 2);
 });
 
 test("validated compatibility supplies only profiles for the selected engine", () => {
@@ -76,4 +79,14 @@ test("bot pending state follows the authoritative side to move", () => {
   assert.equal(botTurnIsPending(game), true);
   assert.equal(botTurnIsPending({ ...game, currentPlayer: "white" }), false);
   assert.equal(botTurnIsPending({ ...game, winner: "white" }), false);
+  assert.equal(botTurnIsPending({
+    mode: "bot",
+    phase: "ability_selection",
+    bot: { status: "thinking" },
+  }), true);
+  assert.equal(botTurnIsPending({
+    mode: "bot",
+    phase: "deployment",
+    bot: { status: "idle" },
+  }), false);
 });
