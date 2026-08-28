@@ -1581,8 +1581,27 @@ details[open] > summary > .disclosure-arrow {
 }
 
 .launch-actions {
-  display: flex;
+  min-width: 21rem;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
+}
+
+.launch-actions .bot-launch-button {
+  grid-column: 1 / -1;
+}
+
+.launch-actions .bot-launch-button.is-unavailable {
+  opacity: 0.58;
+}
+
+.launch-actions .bot-launch-button.is-unavailable:not(:disabled) {
+  cursor: pointer;
+}
+
+.studio-launch-bar .bot-launch-notice {
+  color: #ffe3a4;
+  font-weight: 700;
 }
 
 .launch-actions button.secondary {

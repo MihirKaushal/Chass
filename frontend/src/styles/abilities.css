@@ -634,7 +634,12 @@
 
   .launch-actions {
     width: 100%;
-    flex-direction: column;
+    min-width: 0;
+    grid-template-columns: 1fr;
+  }
+
+  .launch-actions .bot-launch-button {
+    grid-column: auto;
   }
 
   .launch-actions button {

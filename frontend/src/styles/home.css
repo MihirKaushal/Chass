@@ -219,6 +219,17 @@
   margin-top: 1rem;
 }
 
+.landing-secondary-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.landing-secondary-actions .ui-button {
+  min-width: 12rem;
+}
+
 .join-code-toggle {
   border: 1px solid rgba(43, 108, 176, 0.24);
   border-radius: var(--radius-control);

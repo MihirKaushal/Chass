@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 
 import { getCatalog, validateGameConfiguration } from "../api/gameApi";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
+import { availableBotProfiles } from "../botGame";
 import { boardPlacementRestriction } from "../customizeBoardPlacement";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
 import { customizeLaunchState } from "../customizeLaunchState";
@@ -44,6 +45,7 @@ import {
   parameterValueLabel,
 } from "../variantTuning";
 import GameBriefing from "./GameBriefing";
+import BotSetupDialog from "./BotSetupDialog";
 import PageSkeleton from "./PageSkeleton";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
@@ -1208,10 +1210,13 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const [pendingStartingSystem, setPendingStartingSystem] = useState(null);
   const [highlightedIssueSquares, setHighlightedIssueSquares] = useState([]);
   const [placementNotice, setPlacementNotice] = useState("");
+  const [showBotSetup, setShowBotSetup] = useState(false);
+  const [botNotice, setBotNotice] = useState("");
   const issueSquareTimerRef = useRef(null);
   const placementNoticeTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
-  const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, matchPredictor: null, requestKey: null });
+  const botNoticeTimerRef = useRef(null);
+  const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, matchPredictor: null, bot: null, requestKey: null });
   const validationRequest = useMemo(() => (draft ? buildRequest(draft) : null), [draft]);
   const validationRequestKey = useMemo(
     () => (validationRequest ? JSON.stringify(validationRequest) : null),
@@ -1306,7 +1311,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
         })
         .catch((requestError) => {
           if (!cancelled) {
-            setValidation({ status: "invalid", valid: false, errors: [requestError.message], warnings: [], disabledOptions: {}, matchPredictor: null, requestKey: null });
+            setValidation({ status: "invalid", valid: false, errors: [requestError.message], warnings: [], disabledOptions: {}, matchPredictor: null, bot: null, requestKey: null });
           }
         });
     }, 250);
@@ -1315,13 +1320,16 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
 
   useEffect(() => {
     setHighlightedIssueSquares([]);
+    setBotNotice("");
     window.clearTimeout(issueSquareTimerRef.current);
+    window.clearTimeout(botNoticeTimerRef.current);
   }, [validationRequestKey]);
 
   useEffect(() => () => {
     window.clearTimeout(issueSquareTimerRef.current);
     window.clearTimeout(placementNoticeTimerRef.current);
     window.clearTimeout(settingHighlightTimerRef.current);
+    window.clearTimeout(botNoticeTimerRef.current);
   }, []);
 
   const definitionMap = useMemo(
@@ -1720,10 +1728,13 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     });
   };
 
-  const create = async (mode) => {
+  const create = async (mode, botSelection = null) => {
     setCreatingMode(mode);
     setError("");
-    const request = buildRequest(draft, mode);
+    const request = {
+      ...buildRequest(draft, mode),
+      ...(botSelection ? { bot: botSelection } : {}),
+    };
     try {
       if (
         validation.status !== "valid" ||
@@ -1741,11 +1752,27 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     }
   };
 
-  const canLaunch =
+  const configurationReady =
     validation.status === "valid" &&
     validation.valid &&
-    validation.requestKey === validationRequestKey &&
-    !creatingMode;
+    validation.requestKey === validationRequestKey;
+  const canLaunch = configurationReady && !creatingMode;
+  const botCompatibility = validation.requestKey === validationRequestKey
+    ? validation.bot
+    : null;
+  const botEligible = Boolean(configurationReady && botCompatibility?.eligible);
+  const botButtonDisabled = !configurationReady || Boolean(creatingMode);
+  const openBotSetup = () => {
+    if (!canLaunch) return;
+    if (!botCompatibility?.eligible) {
+      setBotNotice("Bot play is currently available for exact Classic Chass games only.");
+      window.clearTimeout(botNoticeTimerRef.current);
+      botNoticeTimerRef.current = window.setTimeout(() => setBotNotice(""), 4200);
+      return;
+    }
+    setBotNotice("");
+    setShowBotSetup(true);
+  };
   const launchState = customizeLaunchState(validation, validationRequestKey);
   const briefingConfiguration = {
     presetId: draft.presetId,
@@ -2090,7 +2117,9 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
               ))}
             </div>
           ) : (
-            launchState.warning ? <small>{launchState.warning}</small> : null
+            botNotice
+              ? <small className="bot-launch-notice" role="status">{botNotice}</small>
+              : launchState.warning ? <small>{launchState.warning}</small> : null
           )}
         </div>
         <GameBriefing
@@ -2118,6 +2147,17 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
           >
             Create Online Game
           </Button>
+          <Button
+            variant={botEligible ? "primary" : "secondary"}
+            className={`bot-launch-button ${botEligible ? "" : "is-unavailable"}`.trim()}
+            disabled={botButtonDisabled}
+            aria-disabled={!botEligible}
+            loading={creatingMode === "bot"}
+            loadingLabel="Starting Bot Match..."
+            onClick={openBotSetup}
+          >
+            Play Against A Bot
+          </Button>
         </div>
       </section>
       {error ? <p className="studio-error">{error}</p> : null}
@@ -2130,6 +2170,14 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
           setPendingStartingSystem(null);
           if (mode) applyPopularMode(mode);
         }}
+      />
+      <BotSetupDialog
+        open={showBotSetup}
+        profiles={availableBotProfiles(catalog)}
+        loading={creatingMode === "bot"}
+        error={error}
+        onClose={() => setShowBotSetup(false)}
+        onStart={(selection) => create("bot", selection)}
       />
     </section>
   );
