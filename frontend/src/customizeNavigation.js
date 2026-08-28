@@ -51,6 +51,14 @@ const STATIC_SETTING_LINKS = [
     keywords: "stockfish fairy analysis automatic engine outcome estimate parity",
   },
   {
+    id: "setting-chess-bots",
+    label: "Chess Bots",
+    sectionId: "rulebook",
+    category: "Rulebook",
+    targetId: "rulebook-bots",
+    keywords: "stockfish bot classic chess computer opponent elo beginner learner developing intermediate advanced expert master",
+  },
+  {
     id: "setting-popular-formations",
     label: "Starting Layout Presets",
     sectionId: "studio-popular-modes",
