@@ -988,7 +988,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
     (!enabledOnly || draft.victory.mode === mode.id)
     && matchesRulebookSearch(query, mode)
   ));
-  const predictorCopy = [
+  const analysisEngineCopy = [
     "Match Analysis",
     "Stockfish 18",
     "Fairy-Stockfish",
@@ -996,7 +996,16 @@ function Rulebook({ catalog, draft, predictorProfile }) {
     "engine analysis probability parity legal moves terminal outcomes custom pieces abilities",
     predictorProfile,
   ];
-  const showPredictor = matchesRulebookSearch(query, predictorCopy);
+  const classicBotCopy = [
+    "Classic Chess Bots",
+    "Play against Stockfish 18 at seven estimated strengths from 500 through 2500 Elo.",
+    "Lower levels use controlled move variation. Stronger levels use Stockfish native strength limits.",
+    "Bots currently require an exact 8x8 Classic Chass configuration.",
+    "The Chass Rule Engine remains authoritative for legal moves, check, checkmate, history, and rematches.",
+    "computer opponent beginner learner developing intermediate advanced expert master",
+  ];
+  const showAnalysisEngines = matchesRulebookSearch(query, analysisEngineCopy);
+  const showClassicBots = matchesRulebookSearch(query, classicBotCopy);
   const affinityCopy = [
     "Affinity Squares",
     `The board marks ${draft.customRules.affinitySquareCount} centered squares, divided equally between White and Black.`,
@@ -1044,7 +1053,8 @@ function Rulebook({ catalog, draft, predictorProfile }) {
   const showCountdowns = (!enabledOnly || enabledTimedEntries)
     && matchesRulebookSearch(query, "Turns And Countdowns", countdownCopy);
   const resultCount = visiblePieces.length
-    + Number(showPredictor)
+    + Number(showAnalysisEngines)
+    + Number(showClassicBots)
     + visibleVictoryModes.length
     + Number(showAffinity)
     + visibleAbilities.length
@@ -1058,7 +1068,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
         <div className="rulebook-hero-copy">
           <span className="eyebrow">Complete Reference</span>
           <h2>The Chass Rulebook</h2>
-          <p>Detailed behavior for every built-in piece, win condition, ability, and Gambit system.</p>
+          <p>Detailed behavior for every engine, bot, piece, win condition, ability, and Gambit system.</p>
           <div className="rulebook-search-tools">
             <label className="rulebook-search">
               <span className="visually-hidden">Search the rulebook</span>
@@ -1066,7 +1076,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search pieces, rules, or abilities"
+                placeholder="Search engines, bots, pieces, rules, or abilities"
               />
               {query ? <button type="button" onClick={() => setQuery("")} aria-label="Clear rulebook search">Clear</button> : null}
             </label>
@@ -1083,6 +1093,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
         </div>
         <nav aria-label="Rulebook sections">
           <a href="#rulebook-match-analysis">Match Analysis</a>
+          <a href="#rulebook-bots">Chess Bots</a>
           <a href="#rulebook-pieces">Pieces</a>
           <a href="#rulebook-victory">Win Conditions</a>
           <a href="#rulebook-custom-rules">Custom Rules</a>
@@ -1092,7 +1103,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
       </header>
 
       <RulebookSection id="rulebook-match-analysis" title="Match Analysis" description="How Chass selects an engine and where each estimate is reliable." revealKey={revealKey}>
-        {showPredictor ? (
+        {showAnalysisEngines ? (
           <div className="predictor-reference-grid">
             <article className={predictorProfile?.engineId === "stockfish" ? "is-selected" : ""}>
               <header><strong>Stockfish 18</strong><span>Preferred</span></header>
@@ -1114,6 +1125,18 @@ function Rulebook({ catalog, draft, predictorProfile }) {
             </p>
           </div>
         ) : <EmptyState className="rulebook-empty">No matching Match Analysis reference.</EmptyState>}
+      </RulebookSection>
+
+      <RulebookSection id="rulebook-bots" title="Chess Bots" description="Computer opponents, estimated difficulty, and current compatibility." revealKey={revealKey}>
+        {showClassicBots ? (
+          <div className="predictor-reference-grid">
+            <article className="classic-bot-reference">
+              <header><strong>Classic Chess Bots</strong><span>Classic Only</span></header>
+              <p>Play against Stockfish 18 at seven estimated strengths from 500 through 2500 Elo. Lower levels use controlled move variation, while stronger levels use Stockfish's native strength limits.</p>
+              <p>Bots currently require an exact 8x8 Classic Chass setup. Stockfish selects from Chass-approved moves, and the Rule Engine remains authoritative for legality, check, checkmate, history, and rematches.</p>
+            </article>
+          </div>
+        ) : <EmptyState className="rulebook-empty">No matching Chess Bots reference.</EmptyState>}
       </RulebookSection>
 
       <RulebookSection id="rulebook-pieces" title="Piece Encyclopedia" description="Movement, value, and special behavior." revealKey={revealKey}>
