@@ -1,7 +1,7 @@
 # Chass!
 
 Chass! is a full-stack browser chess platform for classic games and configurable chess
-variants. It supports local two-player games, Stockfish opponents, private link-or-code
+variants. It supports local two-player games, Stockfish and Fairy-Stockfish opponents, private link-or-code
 multiplayer, custom boards and pieces, modular rules, and real-time synchronization.
 
 **Live site:** [https://playchass.vercel.app](https://playchass.vercel.app)
@@ -9,7 +9,7 @@ multiplayer, custom boards and pieces, modular rules, and real-time synchronizat
 ## Features
 
 - Classic chess movement, captures, turns, check, checkmate, and stalemate
-- Seven estimated Stockfish bot levels from 500 through 2500 Elo
+- Seven Classic Stockfish bot levels and three static-variant Fairy bot levels
 - Auto-routed Stockfish, Fairy-Stockfish, and native Chass Engine Match Analysis
 - Local hot-seat and private online multiplayer
 - Two-player restart approval for local and online matches
@@ -66,7 +66,7 @@ React + Vite
 FastAPI
   |-- Game service
   |-- Modular rule engine
-  |-- Versioned bot-turn coordinator --> Stockfish 18
+  |-- Versioned bot router --> Stockfish 18 / Fairy-Stockfish
   |-- Async analysis router --> Stockfish 18 / Fairy-Stockfish / Chass Engine
   v
 Repository adapters
@@ -95,9 +95,10 @@ progress, terrain, and live special resources with time-bounded alpha-beta and q
 search. Analysis runs after the move response, is cached by engine and full game state, and is
 version-checked before a WebSocket result can update the UI.
 
-Classic bot games keep move authority in the Chass Rule Engine. Stockfish ranks only
-Chass-approved legal moves, and every selection is validated again before the normal
-versioned move transaction commits it. One recoverable background task is allowed per game
+Bot games keep move authority in the Chass Rule Engine. Stockfish and Fairy-Stockfish rank
+only Chass-approved legal moves, and every selection is validated again before the normal
+versioned move transaction commits it. Fairy games also repeat legal-move and terminal parity
+verification before every bot turn. One recoverable background task is allowed per game
 version, so refreshes and duplicate sockets cannot create duplicate bot turns.
 
 ## Project Structure
@@ -105,7 +106,7 @@ version, so refreshes and duplicate sockets cannot create duplicate bot turns.
 ```text
 backend/
   analysis/        Engine routing, native evaluation/search, parity checks, FEN, and async service
-  bots/            Difficulty profiles, Classic move selection, and turn scheduling
+  bots/            Engine routing, difficulty profiles, safe move adapters, and scheduling
   models/          Domain models and API schemas
   repositories/    Firestore and SQL persistence adapters
   routes/          REST and WebSocket endpoints
@@ -242,8 +243,8 @@ See [Firebase Setup](docs/FIREBASE_SETUP.md) for the exact credential, migration
 security-rule, rollback, and verification steps.
 See [Match Analysis](docs/MATCH_ANALYSIS.md) for eligibility, architecture, tuning,
 deployment, and troubleshooting details.
-See [Classic Bots](docs/CLASSIC_BOTS.md) for difficulty profiles, safety boundaries, and
-future engine extension points.
+See [Chess Bots](docs/BOTS.md) for engine compatibility, difficulty profiles, safety
+boundaries, and future extension points.
 
 After Vercel deploys, set both Render values to the production frontend URL:
 

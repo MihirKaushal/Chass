@@ -15,8 +15,8 @@ from backend.analysis import synchronize_match_predictor_setting
 from backend.bots import (
     BotTurnContext,
     bot_profile_catalog,
-    classic_bot_eligibility,
     get_bot_profile,
+    select_bot_engine,
 )
 from backend.catalog import (
     VICTORY_MODES,
@@ -1022,11 +1022,19 @@ class GameService:
                 profile = get_bot_profile(request.bot.profileId)
             except ValueError as error:
                 raise HTTPException(status_code=400, detail=str(error)) from error
-            eligibility = classic_bot_eligibility(game_state)
-            if not eligibility.eligible:
+            selection = select_bot_engine(game_state)
+            if not selection.eligible:
                 raise HTTPException(
                     status_code=400,
-                    detail=eligibility.reason or "This configuration cannot use a bot yet.",
+                    detail=selection.reason or "This configuration cannot use a bot yet.",
+                )
+            if profile.engine_id != selection.engine_id:
+                raise HTTPException(
+                    status_code=400,
+                    detail=(
+                        f"Choose a {selection.engine_name or 'compatible'} difficulty for "
+                        "this configuration."
+                    ),
                 )
             human_color = (
                 choice(("white", "black"))
@@ -1038,6 +1046,7 @@ class GameService:
                 profile_id=profile.id,
                 target_elo=profile.target_elo,
                 label=profile.label,
+                engine_id=profile.engine_id,
                 human_color=human_color,
                 bot_color=bot_color,
             )
@@ -1202,17 +1211,36 @@ class GameService:
             ).as_dict()
         )
         state = self.configuration_analysis_state(request)
-        eligibility = (
-            classic_bot_eligibility(state)
-            if state is not None
-            else None
+        selection = select_bot_engine(state) if state is not None else None
+        directly_compatible = bool(
+            selection
+            and selection.eligible
+            and selection.engine_id == "stockfish"
         )
         response.bot = BotCompatibilityView(
-            eligible=bool(eligibility and eligibility.eligible),
+            eligible=directly_compatible,
+            status=(
+                "compatible"
+                if directly_compatible
+                else "verifying"
+                if selection and selection.eligible
+                else "incompatible"
+            ),
             reason=(
-                eligibility.reason
-                if eligibility is not None
-                else "Bots currently support a valid Classic Chass setup only."
+                "Stockfish 18 is available for the exact Classic Chass setup."
+                if directly_compatible
+                else "Fairy move parity must be verified before launching this bot."
+                if selection and selection.eligible
+                else selection.reason
+                if selection is not None
+                else "Finish a valid configuration before choosing a chess bot."
+            ),
+            engineId=selection.engine_id if selection and selection.eligible else None,
+            engineName=selection.engine_name if selection and selection.eligible else None,
+            profiles=(
+                [profile.catalog_view() for profile in selection.profiles]
+                if selection and selection.eligible
+                else []
             ),
         )
         return response
@@ -2857,7 +2885,7 @@ class GameService:
                     label=game_state.bot.label,
                     description=get_bot_profile(game_state.bot.profile_id).description,
                     engineId=game_state.bot.engine_id,
-                    engineName="Stockfish 18",
+                    engineName=get_bot_profile(game_state.bot.profile_id).engine_name,
                     humanColor=game_state.bot.human_color,
                     botColor=game_state.bot.bot_color,
                     status=(

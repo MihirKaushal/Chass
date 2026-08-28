@@ -13,6 +13,7 @@ from .profiles import (
     analysis_position_fen,
     analysis_position_hash,
     select_analysis_profile,
+    select_fairy_profile,
     synchronize_match_predictor_setting,
 )
 from .service import MatchAnalysisService
@@ -45,5 +46,6 @@ __all__ = [
     "chass_position_hash",
     "extract_position_factors",
     "select_analysis_profile",
+    "select_fairy_profile",
     "synchronize_match_predictor_setting",
 ]

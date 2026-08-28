@@ -9,6 +9,8 @@ class BotDifficultyProfile:
     target_elo: int
     label: str
     description: str
+    engine_id: str
+    engine_name: str
     native_elo: bool
     candidate_count: int = 1
     top_candidate_count: int = 1
@@ -22,20 +24,22 @@ class BotDifficultyProfile:
             "targetElo": self.target_elo,
             "label": self.label,
             "description": self.description,
-            "engineId": "stockfish",
-            "engineName": "Stockfish 18",
+            "engineId": self.engine_id,
+            "engineName": self.engine_name,
             "estimated": True,
         }
 
 
 # Stockfish 18's native UCI_Elo floor is 1320. Lower profiles use a
 # separately calibrated stochastic selector over Stockfish-ranked legal moves.
-BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
+STOCKFISH_BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
     BotDifficultyProfile(
         id="stockfish-500",
         target_elo=500,
         label="Beginner",
         description="Learning the basics",
+        engine_id="stockfish",
+        engine_name="Stockfish 18",
         native_elo=False,
         candidate_count=14,
         top_candidate_count=3,
@@ -48,6 +52,8 @@ BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
         target_elo=800,
         label="Learner",
         description="Sees simple tactics",
+        engine_id="stockfish",
+        engine_name="Stockfish 18",
         native_elo=False,
         candidate_count=12,
         top_candidate_count=4,
@@ -60,6 +66,8 @@ BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
         target_elo=1000,
         label="Developing",
         description="Plays sensible chess",
+        engine_id="stockfish",
+        engine_name="Stockfish 18",
         native_elo=False,
         candidate_count=10,
         top_candidate_count=4,
@@ -72,6 +80,8 @@ BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
         target_elo=1200,
         label="Intermediate",
         description="Usually finds solid moves",
+        engine_id="stockfish",
+        engine_name="Stockfish 18",
         native_elo=False,
         candidate_count=8,
         top_candidate_count=4,
@@ -84,6 +94,8 @@ BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
         target_elo=1500,
         label="Advanced",
         description="Strong club-level challenge",
+        engine_id="stockfish",
+        engine_name="Stockfish 18",
         native_elo=True,
     ),
     BotDifficultyProfile(
@@ -91,6 +103,8 @@ BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
         target_elo=2000,
         label="Expert",
         description="Punishes most mistakes",
+        engine_id="stockfish",
+        engine_name="Stockfish 18",
         native_elo=True,
     ),
     BotDifficultyProfile(
@@ -98,8 +112,50 @@ BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
         target_elo=2500,
         label="Master",
         description="Elite engine challenge",
+        engine_id="stockfish",
+        engine_name="Stockfish 18",
         native_elo=True,
     ),
+)
+
+
+# The pinned Fairy-Stockfish build exposes native UCI Elo limiting from 500,
+# but those ratings are not calibrated across generated Chass variants. Keep
+# the public range conservative until self-play data can validate higher levels.
+FAIRY_BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
+    BotDifficultyProfile(
+        id="fairy-stockfish-500",
+        target_elo=500,
+        label="Beginner",
+        description="Explores unfamiliar variants",
+        engine_id="fairy-stockfish",
+        engine_name="Fairy-Stockfish",
+        native_elo=True,
+    ),
+    BotDifficultyProfile(
+        id="fairy-stockfish-800",
+        target_elo=800,
+        label="Variant Learner",
+        description="Handles basic variant tactics",
+        engine_id="fairy-stockfish",
+        engine_name="Fairy-Stockfish",
+        native_elo=True,
+    ),
+    BotDifficultyProfile(
+        id="fairy-stockfish-1000",
+        target_elo=1000,
+        label="Variant Challenger",
+        description="A steadier static-variant opponent",
+        engine_id="fairy-stockfish",
+        engine_name="Fairy-Stockfish",
+        native_elo=True,
+    ),
+)
+
+
+BOT_PROFILES: tuple[BotDifficultyProfile, ...] = (
+    *STOCKFISH_BOT_PROFILES,
+    *FAIRY_BOT_PROFILES,
 )
 
 BOT_PROFILE_MAP = {profile.id: profile for profile in BOT_PROFILES}
@@ -114,3 +170,7 @@ def get_bot_profile(profile_id: str) -> BotDifficultyProfile:
 
 def bot_profile_catalog() -> list[dict[str, object]]:
     return [profile.catalog_view() for profile in BOT_PROFILES]
+
+
+def bot_profiles_for_engine(engine_id: str) -> tuple[BotDifficultyProfile, ...]:
+    return tuple(profile for profile in BOT_PROFILES if profile.engine_id == engine_id)

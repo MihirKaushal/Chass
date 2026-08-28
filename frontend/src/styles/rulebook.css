@@ -279,8 +279,11 @@
   box-shadow: inset 0 0 0 1px rgba(43, 108, 176, 0.1);
 }
 
-.predictor-reference-grid > .classic-bot-reference {
-  grid-column: 1 / -1;
+.bot-reference-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.bot-reference-grid > article {
   border-left-color: var(--accent);
   background: linear-gradient(135deg, rgba(99, 179, 237, 0.13), rgba(255, 255, 255, 0.54));
 }

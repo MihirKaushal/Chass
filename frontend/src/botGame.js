@@ -16,10 +16,34 @@ export const FALLBACK_BOT_PROFILES = [
   estimated: true,
 }));
 
-export function availableBotProfiles(catalog) {
-  return catalog?.botProfiles?.length
-    ? catalog.botProfiles
+export const FALLBACK_FAIRY_BOT_PROFILES = [
+  [500, "Beginner", "Explores unfamiliar variants"],
+  [800, "Variant Learner", "Handles basic variant tactics"],
+  [1000, "Variant Challenger", "A steadier static-variant opponent"],
+].map(([targetElo, label, description]) => ({
+  id: `fairy-stockfish-${targetElo}`,
+  targetElo,
+  label,
+  description,
+  engineId: "fairy-stockfish",
+  engineName: "Fairy-Stockfish",
+  estimated: true,
+}));
+
+export function availableBotProfiles(catalog, engineId = "stockfish") {
+  const catalogProfiles = catalog?.botProfiles || [];
+  const matchingProfiles = catalogProfiles.filter(
+    (profile) => profile.engineId === engineId
+  );
+  if (matchingProfiles.length) return matchingProfiles;
+  return engineId === "fairy-stockfish"
+    ? FALLBACK_FAIRY_BOT_PROFILES
     : FALLBACK_BOT_PROFILES;
+}
+
+export function profilesForBotCompatibility(catalog, compatibility) {
+  if (compatibility?.profiles?.length) return compatibility.profiles;
+  return availableBotProfiles(catalog, compatibility?.engineId || "stockfish");
 }
 
 export function buildClassicBotRequest({ profileId, humanColor = "white" }) {

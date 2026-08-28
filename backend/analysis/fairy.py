@@ -8,7 +8,12 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from backend.analysis.profiles import AnalysisProfile
-from backend.analysis.stockfish import EngineAnalysis, StockfishUciProvider, parse_uci_info
+from backend.analysis.stockfish import (
+    EngineAnalysis,
+    EngineMoveSearch,
+    StockfishUciProvider,
+    parse_uci_info,
+)
 
 _MOVE_PATTERN = re.compile(r"^([a-l])(10|[1-9])([a-l])(10|[1-9])(?:[a-z])?:\s+\d+$")
 
@@ -126,6 +131,30 @@ class FairyStockfishUciProvider(StockfishUciProvider):
                 raise RuntimeError(self.last_error or "Fairy-Stockfish is unavailable")
             await self._ensure_profile_locked(profile)
             return await self._search_locked(fen)
+
+    async def search_moves(
+        self,
+        fen: str,
+        profile: AnalysisProfile,
+        *,
+        search_moves: list[str],
+        multipv: int = 1,
+        nodes: int | None = None,
+        movetime_ms: int | None = None,
+        limit_strength_elo: int | None = None,
+    ) -> EngineMoveSearch:
+        async with self._lock:
+            if not await self._start_locked():
+                raise RuntimeError(self.last_error or "Fairy-Stockfish is unavailable")
+            await self._ensure_profile_locked(profile)
+            return await self._search_moves_locked(
+                fen,
+                search_moves=search_moves,
+                multipv=multipv,
+                nodes=nodes,
+                movetime_ms=movetime_ms,
+                limit_strength_elo=limit_strength_elo,
+            )
 
     async def _terminal_outcome_locked(self, fen: str, side_to_move: str) -> str | None:
         await self._write(f"position fen {fen}")

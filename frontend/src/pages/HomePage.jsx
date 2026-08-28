@@ -153,7 +153,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
       <SiteFooter />
       <BotSetupDialog
         open={showBotSetup}
-        profiles={availableBotProfiles(catalog)}
+        profiles={availableBotProfiles(catalog, "stockfish")}
         loading={creatingMode === "bot"}
         error={error}
         onClose={() => setShowBotSetup(false)}
