@@ -79,6 +79,22 @@ def test_native_bot_is_the_available_fallback_and_health_is_ready(client):
     assert client.get("/health").json()["botEngines"]["chass"] == "ready"
 
 
+def test_gambit_validation_routes_to_native_bot_before_hidden_deployment(client):
+    payload = simple_gambit_payload()
+    payload["mode"] = "local"
+    payload.pop("bot")
+    validated = client.post("/game/validate", json=payload)
+
+    assert validated.status_code == 200, validated.text
+    body = validated.json()
+    assert body["valid"] is True
+    assert body["bot"]["eligible"] is True
+    assert body["bot"]["status"] == "compatible"
+    assert body["bot"]["engineId"] == "chass"
+    assert [profile["targetElo"] for profile in body["bot"]["profiles"]] == [500, 800]
+    assert body["matchPredictor"]["eligible"] is False
+
+
 def test_native_bot_commits_a_rule_engine_reply_in_a_custom_board_game(client):
     created = client.post(
         "/game/create",
