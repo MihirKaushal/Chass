@@ -374,22 +374,27 @@ function GambitDeployment({
           </div>
         ) : null}
 
+        <div className="board-tool-readout">
+          <span>Board Tool</span>
+          <strong>
+            {selectedTool === GAMBIT_ERASER_TOOL
+              ? "Eraser selected"
+              : `${definitionMap.get(selectedTool)?.displayName || title(selectedTool)} selected`}
+          </strong>
+          <div className="board-editor-actions">
+            <button
+              type="button"
+              className="text-button"
+              disabled={!editable || actionLoading}
+              aria-pressed={selectedTool === GAMBIT_ERASER_TOOL}
+              onClick={() => setSelectedTool(GAMBIT_ERASER_TOOL)}
+            >
+              Use Eraser
+            </button>
+          </div>
+        </div>
+
         <div className="war-chest-grid">
-          <button
-            type="button"
-            className={`war-piece war-piece-eraser ${selectedTool === GAMBIT_ERASER_TOOL ? "selected" : ""}`}
-            disabled={!editable || actionLoading}
-            aria-pressed={selectedTool === GAMBIT_ERASER_TOOL}
-            title="Select the Eraser, then choose one of your deployed pieces to remove it."
-            onClick={() => setSelectedTool(GAMBIT_ERASER_TOOL)}
-          >
-            <span className="war-piece-symbol war-eraser-symbol" aria-hidden="true" />
-            <span className="war-piece-copy">
-              <strong>Eraser</strong>
-              <small>Remove a deployed piece</small>
-            </span>
-            <span className="war-piece-cap">Tool</span>
-          </button>
           {availablePieceTypes.map((pieceType) => {
             const definition = definitionMap.get(pieceType);
             const cost = gambit.config.piecePoints[pieceType] || 0;

@@ -2232,20 +2232,6 @@
   box-shadow: inset 0 0 0 2px rgba(43, 108, 176, 0.18);
 }
 
-.war-piece-eraser {
-  grid-column: 1 / -1;
-}
-
-.war-eraser-symbol {
-  width: 1.5rem;
-  height: 0.9rem;
-  margin-inline: 0.08rem;
-  border: 2px solid var(--deep);
-  border-radius: 4px;
-  background: linear-gradient(90deg, var(--accent-soft) 0 58%, var(--bg) 58% 100%);
-  transform: rotate(-28deg);
-}
-
 .war-piece-symbol {
   font-size: 1.65rem;
   line-height: 1;
