@@ -3,7 +3,7 @@ from __future__ import annotations
 import asyncio
 import time
 
-from backend.analysis.chass import RankedAction, SearchResult
+from backend.analysis.chass import ChassSearch, RankedAction, SearchResult
 from backend.analysis.chass.action_space import legal_turn_actions
 from backend.bots import BotTurnContext, ChassBotEngine
 from backend.models import BotState
@@ -95,6 +95,23 @@ def test_gambit_validation_routes_to_native_bot_before_hidden_deployment(client)
     assert body["matchPredictor"]["eligible"] is False
 
 
+def test_valid_configuration_uses_native_bot_when_preview_state_is_unavailable(
+    client,
+    monkeypatch,
+):
+    monkeypatch.setattr(game_service, "configuration_bot_state", lambda _request: None)
+
+    validated = client.post("/game/validate", json={"mode": "local"})
+
+    assert validated.status_code == 200, validated.text
+    body = validated.json()
+    assert body["valid"] is True
+    assert body["bot"]["eligible"] is True
+    assert body["bot"]["status"] == "compatible"
+    assert body["bot"]["engineId"] == "chass"
+    assert [profile["targetElo"] for profile in body["bot"]["profiles"]] == [500, 800]
+
+
 def test_native_bot_commits_a_rule_engine_reply_in_a_custom_board_game(client):
     created = client.post(
         "/game/create",
@@ -131,6 +148,36 @@ def test_native_bot_commits_a_rule_engine_reply_in_a_custom_board_game(client):
     assert latest["bot"]["status"] == "idle"
     assert latest["currentPlayer"] == "white"
     assert [record["player"] for record in latest["history"]] == ["white", "black"]
+
+
+def test_native_bot_moves_when_root_search_budget_expires(client, monkeypatch):
+    monkeypatch.setattr(
+        ChassSearch,
+        "_rank_root_actions",
+        lambda _self, _state, _actions, *, depth: ([], False),
+    )
+
+    created = client.post(
+        "/game/create",
+        json={
+            "mode": "bot",
+            "boardRows": 10,
+            "boardCols": 10,
+            "bot": {"profileId": "chass-500", "humanColor": "black"},
+        },
+    )
+    assert created.status_code == 200, created.text
+    game = created.json()["game"]
+
+    latest = wait_for_game(
+        client,
+        game["id"],
+        lambda value: value["version"] >= game["version"] + 1,
+    )
+
+    assert latest["currentPlayer"] == "black"
+    assert latest["bot"]["status"] == "idle"
+    assert [record["player"] for record in latest["history"]] == ["white"]
 
 
 def test_native_bot_completes_private_ability_selection(client):

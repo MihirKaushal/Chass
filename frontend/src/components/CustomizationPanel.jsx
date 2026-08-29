@@ -1251,6 +1251,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const [placementNotice, setPlacementNotice] = useState("");
   const [showBotSetup, setShowBotSetup] = useState(false);
   const [botNotice, setBotNotice] = useState("");
+  const [botCompatibilityChecking, setBotCompatibilityChecking] = useState(false);
   const issueSquareTimerRef = useRef(null);
   const placementNoticeTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
@@ -1261,6 +1262,8 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     () => (validationRequest ? JSON.stringify(validationRequest) : null),
     [validationRequest]
   );
+  const validationRequestKeyRef = useRef(validationRequestKey);
+  validationRequestKeyRef.current = validationRequestKey;
   const predictorProfile = validation.requestKey === validationRequestKey
     ? validation.matchPredictor
     : null;
@@ -1803,12 +1806,36 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const botEligible = Boolean(
     configurationReady && botCompatibility?.eligible && botProfiles.length
   );
-  const botButtonDisabled = !configurationReady || Boolean(creatingMode);
-  const openBotSetup = () => {
+  const botButtonDisabled =
+    !configurationReady || Boolean(creatingMode) || botCompatibilityChecking;
+  const openBotSetup = async () => {
     if (!canLaunch) return;
-    if (!botCompatibility?.eligible) {
+    let currentCompatibility = botCompatibility;
+    if (!currentCompatibility?.eligible && validationRequest) {
+      const requestKey = validationRequestKey;
+      setBotCompatibilityChecking(true);
+      setBotNotice("Checking bot compatibility...");
+      try {
+        const result = await validateGameConfiguration(validationRequest);
+        if (validationRequestKeyRef.current !== requestKey) return;
+        setValidation({
+          status: result.valid ? "valid" : "invalid",
+          ...result,
+          requestKey,
+        });
+        currentCompatibility = result.bot;
+      } catch (requestError) {
+        if (validationRequestKeyRef.current === requestKey) {
+          setBotNotice(requestError.message);
+        }
+        return;
+      } finally {
+        setBotCompatibilityChecking(false);
+      }
+    }
+    if (!currentCompatibility?.eligible) {
       setBotNotice(
-        botCompatibility?.reason
+        currentCompatibility?.reason
         || "This configuration is not supported by an available chess bot."
       );
       window.clearTimeout(botNoticeTimerRef.current);
@@ -2197,8 +2224,8 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             className={`bot-launch-button ${botEligible ? "" : "is-unavailable"}`.trim()}
             disabled={botButtonDisabled}
             aria-disabled={!botEligible}
-            loading={creatingMode === "bot"}
-            loadingLabel="Starting Bot Match..."
+            loading={creatingMode === "bot" || botCompatibilityChecking}
+            loadingLabel={botCompatibilityChecking ? "Checking Bot..." : "Starting Bot Match..."}
             onClick={openBotSetup}
           >
             Play Against A Bot

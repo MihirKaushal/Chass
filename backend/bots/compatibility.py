@@ -90,8 +90,13 @@ async def verify_bot_compatibility(
     analysis_service: MatchAnalysisService,
     *,
     verify: bool,
+    fallback_to_chass: bool = False,
 ) -> BotCompatibility:
     if state is None:
+        if fallback_to_chass:
+            return _chass_compatibility(
+                "This valid custom configuration will use Chass Engine."
+            )
         return BotCompatibility(
             eligible=False,
             status="incompatible",

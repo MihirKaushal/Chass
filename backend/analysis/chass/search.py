@@ -206,6 +206,26 @@ class ChassSearch:
             ),
         )
 
+    @classmethod
+    def _fallback_rankings(
+        cls,
+        state: GameState,
+        actions: list[ChassAction],
+        static_score: float,
+    ) -> list[RankedAction]:
+        """Keep legal root actions usable when a slow host exhausts the search budget."""
+        direction = 1.0 if state.current_player == "white" else -1.0
+        return cls._ordered_rankings(
+            state,
+            [
+                RankedAction(
+                    action=action,
+                    score=static_score + (direction * action.ordering_score * 0.001),
+                )
+                for action in actions
+            ],
+        )
+
     def _rank_root_actions(
         self,
         state: GameState,
@@ -286,7 +306,17 @@ class ChassSearch:
 
         rankings, completed = self._rank_root_actions(state, actions, depth=1)
         if not rankings:
-            return SearchResult(static, depth=0, nodes=self._nodes)
+            # Legal-action generation can consume the full time allowance on a
+            # throttled free-tier host. Analysis may remain static, but callers
+            # such as the bot still need a guaranteed legal action to play.
+            fallback = self._fallback_rankings(state, actions, static)
+            return SearchResult(
+                static,
+                depth=0,
+                nodes=self._nodes,
+                best_action=fallback[0].action,
+                ranked_actions=tuple(fallback),
+            )
 
         completed_depth = 1
         remaining_fraction = max(

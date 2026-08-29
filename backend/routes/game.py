@@ -343,6 +343,7 @@ async def validate_game_configuration(
         bot_state,
         match_analysis_service,
         verify=validation.valid,
+        fallback_to_chass=validation.valid,
     )
     compatibility = await match_analysis_service.configuration_compatibility(
         analysis_state,
