@@ -112,9 +112,10 @@ def test_fairy_bot_searches_only_chass_legal_moves_and_revalidates_choice():
 def test_fairy_bot_game_persists_engine_and_uses_realtime_scheduler(client, monkeypatch):
     from backend.routes import game as game_route
 
-    async def compatible(state, _service, *, verify):
+    async def compatible(state, _service, *, verify, fallback_to_chass=False):
         assert state.board.rows == 10
         assert verify is True
+        assert isinstance(fallback_to_chass, bool)
         return BotCompatibility(
             eligible=True,
             status="compatible",
@@ -191,9 +192,10 @@ def test_fairy_bot_game_persists_engine_and_uses_realtime_scheduler(client, monk
 def test_fairy_runtime_failure_atomically_switches_to_native_bot(client, monkeypatch):
     from backend.routes import game as game_route
 
-    async def compatible(state, _service, *, verify):
+    async def compatible(state, _service, *, verify, fallback_to_chass=False):
         assert state.board.rows == 10
         assert verify is True
+        assert isinstance(fallback_to_chass, bool)
         return BotCompatibility(
             eligible=True,
             status="compatible",

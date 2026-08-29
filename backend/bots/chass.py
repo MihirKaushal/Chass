@@ -75,7 +75,7 @@ class ChassBotEngine:
             profile,
             state.current_player,
             rng,
-        )
+        ) or search.best_action
         if action is None:
             raise RuntimeError("The Chass bot has no legal action in this position.")
 

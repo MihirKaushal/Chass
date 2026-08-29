@@ -396,6 +396,36 @@ def test_search_detects_an_authoritative_checkmate_in_one(client):
     assert result.white_share == 1
 
 
+def test_search_keeps_legal_actions_when_root_budget_is_exhausted(
+    client,
+    monkeypatch,
+):
+    state = _default_state(client)
+    engine = RuleEngine()
+    expected_actions = legal_turn_actions(state, engine, limit=32)
+    assert expected_actions
+
+    monkeypatch.setattr(
+        ChassSearch,
+        "_rank_root_actions",
+        lambda _self, _state, _actions, *, depth: ([], False),
+    )
+
+    result = ChassSearch(
+        engine,
+        ChassEvaluator(engine),
+        max_root_actions=32,
+    ).analyze(state)
+
+    assert result.depth == 0
+    assert result.best_action is not None
+    assert result.ranked_actions
+    assert {item.action.key for item in result.ranked_actions} == {
+        action.key for action in expected_actions
+    }
+    assert result.best_action == result.ranked_actions[0].action
+
+
 def test_every_finished_result_without_a_winner_is_an_analysis_draw(client):
     state = _minimal_state(client)
     state.phase = "finished"
