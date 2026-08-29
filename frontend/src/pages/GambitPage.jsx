@@ -15,6 +15,10 @@ import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 import PieceGlyph from "../components/PieceGlyph";
 import ResponsivePlayLayout from "../components/ResponsivePlayLayout";
 import Button from "../components/ui/Button";
+import {
+  GAMBIT_ERASER_TOOL,
+  gambitPieceAvailability,
+} from "../gambitDeployment";
 import { actionsForGlobalSelection } from "../specialActionSelection";
 
 
@@ -213,7 +217,7 @@ function GambitDeployment({
   const gambit = game.gambit;
   const color = gambit.viewerColor || gambit.editableColor || "white";
   const editable = Boolean(gambit.editableColor);
-  const [selectedPiece, setSelectedPiece] = useState("king");
+  const [selectedTool, setSelectedTool] = useState("king");
   const definitionMap = useMemo(
     () => new Map(game.pieceDefinitions.map((definition) => [definition.type, definition])),
     [game.pieceDefinitions]
@@ -243,6 +247,47 @@ function GambitDeployment({
   const summary = gambit.setupSummary;
   const counts = summary?.counts || {};
   const draftedCounts = gambit.draftSummary?.[color]?.counts || {};
+  const pieceAvailability = useMemo(() => new Map(
+    availablePieceTypes.map((pieceType) => {
+      const cap = gambit.config.draftEnabled
+        ? (draftedCounts[pieceType] || 0)
+        : (gambit.config.pieceCaps[pieceType] || 0);
+      return [pieceType, gambitPieceAvailability({
+        pieceType,
+        cost: gambit.config.piecePoints[pieceType] || 0,
+        pointsRemaining: summary?.pointsRemaining ?? gambit.config.budget,
+        pieceCount: summary?.pieceCount ?? 0,
+        maxPieces: gambit.config.maxPieces,
+        placedCount: counts[pieceType] || 0,
+        pieceCap: cap,
+        draftEnabled: gambit.config.draftEnabled,
+      })];
+    })
+  ), [
+    availablePieceTypes,
+    counts,
+    draftedCounts,
+    gambit.config.budget,
+    gambit.config.draftEnabled,
+    gambit.config.maxPieces,
+    gambit.config.pieceCaps,
+    gambit.config.piecePoints,
+    summary?.pieceCount,
+    summary?.pointsRemaining,
+  ]);
+
+  useEffect(() => {
+    if (selectedTool === GAMBIT_ERASER_TOOL) {
+      return;
+    }
+    if (pieceAvailability.get(selectedTool)?.available) {
+      return;
+    }
+    const nextPiece = availablePieceTypes.find(
+      (pieceType) => pieceAvailability.get(pieceType)?.available
+    );
+    setSelectedTool(nextPiece || GAMBIT_ERASER_TOOL);
+  }, [availablePieceTypes, pieceAvailability, selectedTool]);
 
   const handleSquare = (row, col) => {
     if (!editable || actionLoading || !ownRows.includes(row)) {
@@ -252,11 +297,16 @@ function GambitDeployment({
     if (piece?.color === "neutral") {
       return;
     }
-    if (piece) {
-      onDeploymentChange({ action: "remove", row, col });
+    if (selectedTool === GAMBIT_ERASER_TOOL) {
+      if (piece) {
+        onDeploymentChange({ action: "remove", row, col });
+      }
       return;
     }
-    onDeploymentChange({ action: "place", row, col, pieceType: selectedPiece });
+    if (piece || !pieceAvailability.get(selectedTool)?.available) {
+      return;
+    }
+    onDeploymentChange({ action: "place", row, col, pieceType: selectedTool });
   };
 
   return (
@@ -267,8 +317,8 @@ function GambitDeployment({
             <span className="eyebrow">Hidden deployment</span>
             <h1>{title(color)} War Room</h1>
             <p>
-              Select a piece, then place it inside your highlighted home ranks. Click a
-              deployed piece to remove it.
+              Select a piece, then place it inside your highlighted home ranks. Use the
+              Eraser to remove a deployed piece.
             </p>
           </div>
           <DeploymentStatus game={game} />
@@ -325,21 +375,42 @@ function GambitDeployment({
         ) : null}
 
         <div className="war-chest-grid">
+          <button
+            type="button"
+            className={`war-piece war-piece-eraser ${selectedTool === GAMBIT_ERASER_TOOL ? "selected" : ""}`}
+            disabled={!editable || actionLoading}
+            aria-pressed={selectedTool === GAMBIT_ERASER_TOOL}
+            title="Select the Eraser, then choose one of your deployed pieces to remove it."
+            onClick={() => setSelectedTool(GAMBIT_ERASER_TOOL)}
+          >
+            <span className="war-piece-symbol war-eraser-symbol" aria-hidden="true" />
+            <span className="war-piece-copy">
+              <strong>Eraser</strong>
+              <small>Remove a deployed piece</small>
+            </span>
+            <span className="war-piece-cap">Tool</span>
+          </button>
           {availablePieceTypes.map((pieceType) => {
             const definition = definitionMap.get(pieceType);
-            const cost = gambit.config.piecePoints[pieceType];
+            const cost = gambit.config.piecePoints[pieceType] || 0;
             const cap = gambit.config.draftEnabled
               ? (draftedCounts[pieceType] || 0)
-              : gambit.config.pieceCaps[pieceType];
+              : (gambit.config.pieceCaps[pieceType] || 0);
             const count = counts[pieceType] || 0;
-            const atCap = count >= cap;
+            const availability = pieceAvailability.get(pieceType);
+            const displayName = definition?.displayName || title(pieceType);
+            const priceLabel = cost === 0 ? "Free" : `${cost} point${cost === 1 ? "" : "s"}`;
             return (
               <button
                 type="button"
                 key={pieceType}
-                className={`war-piece ${selectedPiece === pieceType ? "selected" : ""}`}
-                disabled={!editable || actionLoading || atCap}
-                onClick={() => setSelectedPiece(pieceType)}
+                className={`war-piece ${selectedTool === pieceType ? "selected" : ""}`}
+                disabled={!editable || actionLoading || !availability?.available}
+                aria-pressed={selectedTool === pieceType}
+                title={availability?.available
+                  ? `Select ${displayName} for ${priceLabel.toLowerCase()}.`
+                  : availability?.reason}
+                onClick={() => setSelectedTool(pieceType)}
               >
                 <span className="war-piece-symbol">
                   <PieceGlyph
@@ -349,8 +420,11 @@ function GambitDeployment({
                   />
                 </span>
                 <span className="war-piece-copy">
-                  <strong>{definition?.displayName || title(pieceType)}</strong>
-                  <small>{cost === 0 ? "Free" : `${cost} point${cost === 1 ? "" : "s"}`}</small>
+                  <strong>{displayName}</strong>
+                  <small>
+                    {priceLabel}
+                    {!availability?.available ? <em>{availability?.label}</em> : null}
+                  </small>
                 </span>
                 <span className="war-piece-cap">{count}/{cap}</span>
               </button>
