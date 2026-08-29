@@ -381,17 +381,6 @@ function GambitDeployment({
               ? "Eraser selected"
               : `${definitionMap.get(selectedTool)?.displayName || title(selectedTool)} selected`}
           </strong>
-          <div className="board-editor-actions">
-            <button
-              type="button"
-              className="text-button"
-              disabled={!editable || actionLoading}
-              aria-pressed={selectedTool === GAMBIT_ERASER_TOOL}
-              onClick={() => setSelectedTool(GAMBIT_ERASER_TOOL)}
-            >
-              Use Eraser
-            </button>
-          </div>
         </div>
 
         <div className="war-chest-grid">
@@ -473,6 +462,15 @@ function GambitDeployment({
           </Button>
           <Button
             variant="secondary"
+            disabled={!editable || actionLoading}
+            aria-pressed={selectedTool === GAMBIT_ERASER_TOOL}
+            onClick={() => setSelectedTool(GAMBIT_ERASER_TOOL)}
+          >
+            Use Eraser
+          </Button>
+          <Button
+            variant="danger"
+            className="clear-army-button"
             disabled={!editable || actionLoading || !summary?.pieceCount}
             onClick={() => onDeploymentChange({ action: "clear" })}
           >

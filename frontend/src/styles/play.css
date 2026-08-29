@@ -2314,7 +2314,7 @@
 
 .deployment-actions {
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 0.45rem;
   margin-top: 0.8rem;
 }
@@ -2335,7 +2335,13 @@
   background: rgba(43, 108, 176, 0.13);
 }
 
+.deployment-actions .clear-army-button {
+  color: white;
+  background: var(--danger);
+}
+
 .lock-army-button {
+  grid-column: 1 / -1;
   background: var(--gambit-ink) !important;
 }
 
