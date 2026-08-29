@@ -293,7 +293,7 @@ async def _ensure_bot_turn(record: GameRecord) -> None:
 async def create_game(payload: CreateGameRequest, request: Request) -> GameSessionResponse:
     rate_limiter.check(request, "create", limit=20, window_seconds=3600)
     if payload.mode == "bot":
-        state = await run_in_threadpool(game_service.configuration_analysis_state, payload)
+        state = await run_in_threadpool(game_service.configuration_bot_state, payload)
         if state is not None:
             try:
                 selected_profile = get_bot_profile(payload.bot.profileId if payload.bot else "")
@@ -334,14 +334,18 @@ async def validate_game_configuration(
 ) -> ConfigurationValidationResponse:
     rate_limiter.check(request, "validate", limit=120, window_seconds=60)
     validation = await run_in_threadpool(game_service.validate_configuration, payload)
-    state = await run_in_threadpool(game_service.configuration_analysis_state, payload)
+    bot_state = await run_in_threadpool(game_service.configuration_bot_state, payload)
+    analysis_state = await run_in_threadpool(
+        game_service.configuration_analysis_state,
+        payload,
+    )
     bot_compatibility = await verify_bot_compatibility(
-        state,
+        bot_state,
         match_analysis_service,
         verify=validation.valid,
     )
     compatibility = await match_analysis_service.configuration_compatibility(
-        state,
+        analysis_state,
         verify=validation.valid,
     )
     return validation.model_copy(

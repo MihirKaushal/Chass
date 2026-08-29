@@ -681,13 +681,17 @@ def _starting_state_for_configuration_validation(
     engine: RuleEngine,
     *,
     rule_settings: list[RuleSetting] | None = None,
+    include_gambit_setup: bool = False,
 ) -> GameState | None:
     configuration, piece_definitions, gambit_state = _configuration_from_request(
         request,
         piece_catalog,
     )
-    if gambit_state is not None or request.variant == "gambit":
+    is_gambit = gambit_state is not None or request.variant == "gambit"
+    if is_gambit and not include_gambit_setup:
         return None
+    if is_gambit and gambit_state is None:
+        gambit_state = GambitState()
 
     if configuration.victory.mode in {"point_race", "king_capture", "royal_score"}:
         piece_definitions["king"].points = configuration.victory.king_points
@@ -703,14 +707,23 @@ def _starting_state_for_configuration_validation(
     )
     return GameState(
         id="configuration-validation",
-        board=_configured_board(
-            request.boardRows,
-            request.boardCols,
-            piece_definitions,
-            configuration,
+        board=(
+            _empty_board(request.boardRows, request.boardCols)
+            if is_gambit
+            else _configured_board(
+                request.boardRows,
+                request.boardCols,
+                piece_definitions,
+                configuration,
+            )
         ),
-        variant="classic",
-        phase="play",
+        variant="gambit" if is_gambit else "classic",
+        phase=(
+            engine.gambit.preparation_phase(gambit_state)
+            if gambit_state is not None
+            else "play"
+        ),
+        gambit=gambit_state,
         current_player="white",
         rules=rules,
         piece_definitions=piece_definitions,
@@ -1218,7 +1231,7 @@ class GameService:
                 piece_catalog,
             ).as_dict()
         )
-        state = self.configuration_analysis_state(request)
+        state = self.configuration_bot_state(request)
         selection = select_bot_engine(state) if state is not None else None
         directly_compatible = bool(
             selection
@@ -1268,6 +1281,21 @@ class GameService:
                 request,
                 piece_catalog,
                 self.engine,
+            )
+        except (HTTPException, KeyError, ValueError):
+            return None
+
+    def configuration_bot_state(
+        self,
+        request: CreateGameRequest,
+    ) -> GameState | None:
+        piece_catalog = _piece_catalog_for_request(request)
+        try:
+            return _starting_state_for_configuration_validation(
+                request,
+                piece_catalog,
+                self.engine,
+                include_gambit_setup=True,
             )
         except (HTTPException, KeyError, ValueError):
             return None
