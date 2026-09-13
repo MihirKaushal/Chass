@@ -9,6 +9,24 @@ import SiteFooter from "../components/SiteFooter";
 import Button from "../components/ui/Button";
 
 
+function RoomIcon({ type }) {
+  if (type === "local") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+        <rect x="3" y="4" width="18" height="13" rx="2" />
+        <path d="M8 21h8M12 17v4" />
+      </svg>
+    );
+  }
+
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <circle cx="12" cy="12" r="9" />
+      <path d="M3 12h18M12 3c2.4 2.5 3.7 5.5 3.7 9S14.4 18.5 12 21M12 3C9.6 5.5 8.3 8.5 8.3 12s1.3 6.5 3.7 9" />
+    </svg>
+  );
+}
+
 function HomePage({ onCreate, onCustomize, onJoinCode }) {
   const [creatingMode, setCreatingMode] = useState("");
   const [showCodeEntry, setShowCodeEntry] = useState(false);
@@ -75,76 +93,79 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
 
           <div className="mode-choice-grid">
             <article className="mode-choice-card">
-              <h2>Same Device</h2>
-              <p>Pass one screen between players. No account or invite required.</p>
-              <Button
-                disabled={Boolean(creatingMode)}
-                loading={creatingMode === "local"}
-                loadingLabel="Preparing Board..."
-                onClick={() => start("local")}
-              >
-                Start Local Game
-              </Button>
+              <header className="mode-choice-heading">
+                <span className="mode-choice-icon"><RoomIcon type="local" /></span>
+                <h2>Local Room</h2>
+              </header>
+              <p>Pass one screen between players. No invite required.</p>
+              <div className="mode-choice-actions">
+                <Button
+                  disabled={Boolean(creatingMode)}
+                  loading={creatingMode === "local"}
+                  loadingLabel="Preparing Board..."
+                  onClick={() => start("local")}
+                >
+                  Start Local Game
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowBotSetup(true);
+                    setError("");
+                  }}
+                >
+                  Play Against A Bot
+                </Button>
+              </div>
             </article>
 
             <article className="mode-choice-card featured">
-              <h2>Invite a Friend</h2>
+              <header className="mode-choice-heading">
+                <span className="mode-choice-icon"><RoomIcon type="online" /></span>
+                <h2>Online Room</h2>
+              </header>
               <p>Create a private link and play from two browsers, anywhere.</p>
-              <Button
-                disabled={Boolean(creatingMode)}
-                loading={creatingMode === "online"}
-                loadingLabel="Opening Room..."
-                onClick={() => start("online")}
-              >
-                Create Online Game
-              </Button>
+              <div className="mode-choice-actions">
+                <Button
+                  disabled={Boolean(creatingMode)}
+                  loading={creatingMode === "online"}
+                  loadingLabel="Opening Room..."
+                  onClick={() => start("online")}
+                >
+                  Create Online Game
+                </Button>
+                <Button
+                  variant="secondary"
+                  onClick={() => {
+                    setShowCodeEntry((current) => !current);
+                    setError("");
+                  }}
+                >
+                  Enter Invite Code
+                </Button>
+              </div>
+              {showCodeEntry ? (
+                <form className="invite-code-form" onSubmit={joinWithCode}>
+                  <label htmlFor="invite-code">Invite Code</label>
+                  <div>
+                    <input
+                      id="invite-code"
+                      type="text"
+                      value={inviteCode}
+                      autoFocus
+                      autoComplete="off"
+                      inputMode="text"
+                      maxLength="9"
+                      placeholder="ABCD1234"
+                      onChange={(event) => setInviteCode(
+                        event.target.value.replace(/[^a-z0-9-]/gi, "").toUpperCase()
+                      )}
+                    />
+                    <Button type="submit">Join Game</Button>
+                  </div>
+                </form>
+              ) : null}
             </article>
-          </div>
-
-          <div className="join-code-entry">
-            <div className="landing-secondary-actions">
-              <Button
-                variant="secondary"
-                className="play-bot-toggle"
-                onClick={() => {
-                  setShowBotSetup(true);
-                  setError("");
-                }}
-              >
-                Play Against A Bot
-              </Button>
-              <Button
-                variant="secondary"
-                className="join-code-toggle"
-                onClick={() => {
-                  setShowCodeEntry((current) => !current);
-                  setError("");
-                }}
-              >
-                Enter Invite Code
-              </Button>
-            </div>
-            {showCodeEntry ? (
-              <form onSubmit={joinWithCode}>
-                <label htmlFor="invite-code">Invite Code</label>
-                <div>
-                  <input
-                    id="invite-code"
-                    type="text"
-                    value={inviteCode}
-                    autoFocus
-                    autoComplete="off"
-                    inputMode="text"
-                    maxLength="9"
-                    placeholder="ABCD1234"
-                    onChange={(event) => setInviteCode(
-                      event.target.value.replace(/[^a-z0-9-]/gi, "").toUpperCase()
-                    )}
-                  />
-                  <Button type="submit">Join Game</Button>
-                </div>
-              </form>
-            ) : null}
           </div>
 
           {error ? <p className="landing-error">{error}</p> : null}

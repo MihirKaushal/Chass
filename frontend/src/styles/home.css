@@ -158,8 +158,43 @@
   border-color: var(--deep);
 }
 
+.mode-choice-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.55rem;
+}
+
+.mode-choice-icon {
+  width: 44px;
+  height: 44px;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  color: var(--accent);
+  border: 1px solid rgba(43, 108, 176, 0.24);
+  border-radius: 12px;
+  background: rgba(99, 179, 237, 0.14);
+}
+
+.mode-choice-icon svg {
+  width: 25px;
+  height: 25px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.mode-choice-card.featured .mode-choice-icon {
+  color: var(--accent-soft);
+  border-color: rgba(99, 179, 237, 0.38);
+  background: rgba(99, 179, 237, 0.12);
+}
+
 .mode-choice-card h2 {
-  margin: 0.6rem 0 0.35rem;
+  margin: 0;
   font-size: 1.65rem;
 }
 
@@ -181,14 +216,27 @@
   gap: 0.35rem;
 }
 
-.mode-choice-card button {
-  width: 100%;
+.mode-choice-actions {
+  display: grid;
+  gap: 0.55rem;
   margin-top: auto;
+  padding-top: 1.2rem;
 }
 
-.mode-choice-card.featured button {
+.mode-choice-actions button {
+  width: 100%;
+}
+
+.mode-choice-card.featured .mode-choice-actions .ui-button--primary,
+.mode-choice-card.featured .invite-code-form .ui-button--primary {
   color: var(--deep);
   background: var(--accent-soft);
+}
+
+.mode-choice-card.featured .mode-choice-actions .ui-button--secondary {
+  color: #f7fbff;
+  border-color: rgba(99, 179, 237, 0.42);
+  background: rgba(255, 255, 255, 0.08);
 }
 
 .landing-error {
@@ -210,61 +258,32 @@
   font-size: 0.75rem;
 }
 
-.join-code-entry {
-  position: relative;
-  z-index: 1;
-  display: grid;
-  justify-items: center;
-  gap: 0.6rem;
-  margin-top: 1rem;
-}
-
-.landing-secondary-actions {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 0.65rem;
-}
-
-.landing-secondary-actions .ui-button {
-  min-width: 12rem;
-}
-
-.join-code-toggle {
-  border: 1px solid rgba(43, 108, 176, 0.24);
-  border-radius: var(--radius-control);
-  padding: 0.58rem 1rem;
-  color: var(--deep);
-  background: rgba(43, 108, 176, 0.12);
-  cursor: pointer;
-  font-weight: 700;
-}
-
-.join-code-entry form {
-  width: min(430px, 100%);
+.invite-code-form {
+  width: 100%;
   display: grid;
   gap: 0.3rem;
+  margin-top: 0.65rem;
   padding: 0.8rem;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid rgba(99, 179, 237, 0.28);
   border-radius: var(--radius-md);
-  background: rgba(255, 255, 255, 0.48);
+  background: rgba(255, 255, 255, 0.08);
 }
 
-.join-code-entry form > label {
-  color: var(--ink-muted);
+.invite-code-form > label {
+  color: rgba(247, 251, 255, 0.76);
   font-size: 0.68rem;
   font-weight: 700;
 }
 
-.join-code-entry form > div {
+.invite-code-form > div {
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.45rem;
 }
 
-.join-code-entry input {
+.invite-code-form input {
   min-width: 0;
-  border: 1px solid rgba(26, 54, 93, 0.3);
+  border: 1px solid rgba(99, 179, 237, 0.42);
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.65rem;
   color: var(--deep);
@@ -275,7 +294,7 @@
   text-transform: uppercase;
 }
 
-.join-code-entry form button {
+.invite-code-form button {
   border: 0;
   border-radius: var(--radius-sm);
   padding: 0.55rem 0.8rem;
