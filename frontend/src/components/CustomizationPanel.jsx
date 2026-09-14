@@ -2179,11 +2179,15 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
                     .map((piece) => {
                       const isKing = piece.type === "king";
                       return (
-                        <label key={piece.type}>
-                          <span>{piece.name}<small>{isKing ? "Required" : `Up to ${numericBounds.pieceCapMaximum}`}</small></span>
+                        <label
+                          key={piece.type}
+                          className={isKing ? "is-required-piece" : undefined}
+                        >
+                          <span>{piece.name}<small>{isKing ? "Exactly one required" : `Up to ${numericBounds.pieceCapMaximum}`}</small></span>
                           <input
                             type="number"
                             aria-label={`Maximum ${piece.name} per army`}
+                            title={isKing ? "Every army must contain exactly one King." : undefined}
                             min="1"
                             max={isKing ? 1 : numericBounds.pieceCapMaximum}
                             step="1"
