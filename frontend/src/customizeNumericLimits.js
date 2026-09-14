@@ -52,6 +52,14 @@ export function clampEvenWholeNumber(value, minimum, maximum) {
   return Math.max(minimum, Math.min(maximum, even));
 }
 
+export function defaultGambitPieceCap(pieceType, maxPieces = 16) {
+  if (pieceType === "king") return 1;
+  if (pieceType === "barricade") return 0;
+
+  const preferred = pieceType === "pawn" ? 15 : pieceType === "queen" ? 2 : 3;
+  return Math.min(preferred, Math.max(0, Math.trunc(Number(maxPieces)) - 1));
+}
+
 export function customizeNumericBounds(draft = {}, suppliedLimits = {}) {
   const limits = resolvedLimits(suppliedLimits);
   const boardRows = clampWholeNumber(
@@ -190,7 +198,8 @@ export function normalizeCustomizeNumbers(draft, suppliedLimits = {}) {
       return [
         pieceType,
         clampWholeNumber(
-          draft.pieceCaps?.[pieceType] ?? pieceCapMaximum,
+          draft.pieceCaps?.[pieceType]
+            ?? defaultGambitPieceCap(pieceType, maxPieces),
           minimum,
           pieceCapMaximum
         ),

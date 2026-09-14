@@ -6,6 +6,8 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from backend.configuration_limits import default_gambit_piece_cap
+
 Color = Literal["white", "black"]
 PieceColor = Literal["white", "black", "neutral"]
 MoveMode = Literal["move", "capture", "both"]
@@ -398,12 +400,8 @@ class GambitConfig(BaseModel):
     )
     piece_caps: dict[str, int] = Field(
         default_factory=lambda: {
-            "pawn": 12,
-            "knight": 4,
-            "bishop": 4,
-            "rook": 4,
-            "queen": 2,
-            "king": 1,
+            piece_type: default_gambit_piece_cap(piece_type)
+            for piece_type in ("pawn", "knight", "bishop", "rook", "queen", "king")
         }
     )
     power_costs: dict[str, int] = Field(

@@ -3,7 +3,7 @@ from __future__ import annotations
 import pytest
 
 from backend.catalog import POPULAR_PRESETS, adaptive_back_rank, catalog_payload, classic_layout
-from backend.configuration_limits import customization_limits
+from backend.configuration_limits import customization_limits, default_gambit_piece_cap
 
 
 @pytest.mark.parametrize("cols", range(4, 17))
@@ -54,6 +54,26 @@ def test_gambit_starting_systems_leave_affinity_as_an_opt_in_rule():
         mode.get("customRules", {}).get("affinityEnabled", False) is False
         for mode in gambit_modes.values()
     )
+
+
+@pytest.mark.parametrize(
+    ("piece_type", "expected"),
+    [
+        ("pawn", 15),
+        ("queen", 2),
+        ("rook", 3),
+        ("elephant", 3),
+        ("king", 1),
+        ("barricade", 0),
+    ],
+)
+def test_gambit_piece_caps_have_compact_defaults(piece_type: str, expected: int):
+    assert default_gambit_piece_cap(piece_type) == expected
+
+
+def test_gambit_piece_cap_defaults_reserve_the_king_slot():
+    assert default_gambit_piece_cap("pawn", max_pieces=4) == 3
+    assert default_gambit_piece_cap("elephant", max_pieces=3) == 2
 
 
 def test_configured_catalog_copy_pluralizes_descriptive_counts():

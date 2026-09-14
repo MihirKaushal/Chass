@@ -632,6 +632,34 @@ def test_explicit_queen_cap_overrides_the_legacy_queen_limit(client):
     assert response.json()["game"]["gambit"]["config"]["pieceCaps"]["queen"] == 3
 
 
+def test_gambit_api_uses_compact_piece_cap_defaults(client):
+    payload = draft_gambit_payload()
+    configuration = payload["configuration"]
+    configuration["enabledPieces"] = ["pawn", "rook", "queen", "king"]
+    configuration["piecePoints"]["pawn"] = 1
+    gambit = configuration["gambit"]
+    gambit.update(
+        {
+            "draftEnabled": False,
+            "budget": 39,
+            "maxPieces": 16,
+            "maxQueens": 2,
+            "pieceCaps": {},
+        }
+    )
+
+    response = client.post("/game/create", json=payload)
+
+    assert response.status_code == 200, response.text
+    assert response.json()["game"]["gambit"]["config"]["pieceCaps"] == {
+        "pawn": 15,
+        "rook": 3,
+        "queen": 2,
+        "king": 1,
+        "barricade": 0,
+    }
+
+
 def test_affinity_gambit_rejects_center_square_deployment(client):
     payload = {
         "mode": "local",
