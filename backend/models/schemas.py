@@ -577,6 +577,18 @@ class GambitConfigPayload(BaseModel):
     def validate_piece_caps(self) -> "GambitConfigPayload":
         if any(value < GAMBIT_PIECE_CAP_MIN for value in self.pieceCaps.values()):
             raise ValueError("Piece limits cannot be negative")
+        if self.pieceCaps.get("king", 1) != 1:
+            raise ValueError("The King limit must be exactly one")
+        non_king_maximum = max(0, self.maxPieces - 1)
+        for piece_type, value in self.pieceCaps.items():
+            if piece_type in {"king", "barricade"}:
+                continue
+            if value < 1:
+                raise ValueError("Enabled army piece limits must be at least one")
+            if value > non_king_maximum:
+                raise ValueError(
+                    "Army piece limits must leave one slot for the required King"
+                )
         if any(value < DRAFT_POOL_COUNT_MIN for value in self.draftPool.values()):
             raise ValueError("Draft pool counts cannot be negative")
         if any(value > DRAFT_POOL_COUNT_MAX for value in self.draftPool.values()):

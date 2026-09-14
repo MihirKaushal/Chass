@@ -346,10 +346,10 @@ class ConfigurationRuleEngine:
             result.errors.append("Private setup rows cannot cross the board midpoint.")
         if gambit.maxPieces > gambit.setupRows * request.boardCols:
             result.errors.append("Deployment rows do not have enough squares for the army cap.")
-        if gambit.maxQueens > max(0, gambit.maxPieces - 1):
-            result.errors.append("The Queen limit must leave one army slot for the King.")
 
         enabled = set(payload.enabledPieces) - {"barricade"}
+        non_king_types = enabled - {"king"}
+        non_king_cap = max(0, gambit.maxPieces - 1)
         points = {
             piece_type: int(
                 payload.piecePoints.get(piece_type, pieces[piece_type].points) or 0
@@ -358,13 +358,22 @@ class ConfigurationRuleEngine:
             if piece_type in pieces
         }
         caps = {
-            piece_type: int(gambit.pieceCaps.get(piece_type, gambit.maxPieces))
+            piece_type: int(gambit.pieceCaps.get(piece_type, non_king_cap))
             for piece_type in enabled
         }
         caps["king"] = 1
-        caps["queen"] = gambit.maxQueens
-        if any(cap > gambit.maxPieces for cap in caps.values()):
-            result.errors.append("A piece limit cannot exceed the complete army cap.")
+        if "queen" in enabled:
+            caps["queen"] = int(gambit.pieceCaps.get("queen", gambit.maxQueens))
+        if non_king_types and non_king_cap < 1:
+            result.errors.append(
+                "Maximum Pieces must leave room for the King and at least one other piece."
+            )
+        elif any(caps[piece_type] < 1 for piece_type in non_king_types):
+            result.errors.append("Enabled army piece limits must be at least one.")
+        if any(caps[piece_type] > non_king_cap for piece_type in non_king_types):
+            result.errors.append(
+                "Army piece limits must leave one slot for the required King."
+            )
         if points.get("king", 0) > gambit.budget:
             result.errors.append(
                 "The Gambit point limit must be high enough to include the required King."

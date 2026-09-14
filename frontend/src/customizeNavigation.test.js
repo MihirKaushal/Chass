@@ -80,6 +80,11 @@ test("customize search returns direct setting and catalog destinations", () => {
   assert.equal(analysis.category, "Rulebook");
   assert.equal(analysis.targetId, "rulebook-match-analysis");
 
+  const pieceLimits = matchingCustomizeResults("army piece limits", catalog)[0];
+  assert.equal(pieceLimits.label, "Army Piece Limits");
+  assert.equal(pieceLimits.category, "Chass Gambit Settings");
+  assert.equal(pieceLimits.targetId, "customize-gambit-piece-limits");
+
   const bots = matchingCustomizeResults("chess bot", catalog)[0];
   assert.equal(bots.label, "Chess Bots");
   assert.equal(bots.category, "Rulebook");

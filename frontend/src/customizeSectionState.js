@@ -39,7 +39,6 @@ function sectionSnapshot(draft, sectionId) {
         enabledPieces: [...(draft.enabledPieces || [])].sort(),
         pieceParameters: draft.pieceParameters,
         pointValues: draft.pointValues,
-        pieceCaps: draft.pieceCaps,
         barricadeCount: draft.barricadeCount,
         placements: orderedPlacements(draft.placements),
       };
@@ -60,7 +59,7 @@ function sectionSnapshot(draft, sectionId) {
         : { enabled: false };
     case "studio-gambit":
       return draft.gambit?.enabled
-        ? draft.gambit
+        ? { gambit: draft.gambit, pieceCaps: draft.pieceCaps }
         : { enabled: false };
     default:
       return null;

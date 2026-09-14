@@ -28,7 +28,7 @@ const FALLBACK_LIMITS = Object.freeze({
   gambitSetupRowsMin: 1,
   gambitSetupRowsMax: 8,
   gambitMaxQueensMin: 0,
-  gambitMaxQueensMax: 32,
+  gambitMaxQueensMax: 127,
   pieceCapMin: 0,
   draftPoolCountMin: 0,
   draftPoolCountMax: 256,
@@ -73,18 +73,25 @@ export function customizeNumericBounds(draft = {}, suppliedLimits = {}) {
     limits.gambitSetupRowsMin,
     setupRowsMaximum
   );
+  const hasEnabledNonKingPiece = (draft.enabledPieces || []).some(
+    (pieceType) => !["king", "barricade"].includes(pieceType)
+  );
+  const maxPiecesMinimum = hasEnabledNonKingPiece
+    ? Math.max(limits.gambitMaxPiecesMin, 2)
+    : limits.gambitMaxPiecesMin;
   const maxPiecesMaximum = Math.max(
-    limits.gambitMaxPiecesMin,
+    maxPiecesMinimum,
     Math.min(limits.gambitMaxPiecesMax, setupRows * boardCols)
   );
   const maxPieces = clampWholeNumber(
     draft.gambit?.maxPieces ?? 16,
-    limits.gambitMaxPiecesMin,
+    maxPiecesMinimum,
     maxPiecesMaximum
   );
+  const pieceCapMaximum = Math.max(1, maxPieces - 1);
   const maxQueensMaximum = Math.max(
     limits.gambitMaxQueensMin,
-    Math.min(limits.gambitMaxQueensMax, maxPieces - 1)
+    Math.min(limits.gambitMaxQueensMax, pieceCapMaximum)
   );
   const enabledAbilityCount = new Set(draft.specialAbilities?.allowed || []).size;
   const abilityCountMaximum = Math.max(
@@ -130,9 +137,11 @@ export function customizeNumericBounds(draft = {}, suppliedLimits = {}) {
     affinityControlRequiredMaximum,
     gambitBudgetMinimum: Math.max(limits.gambitBudgetMin, kingPoints),
     gambitSetupRowsMaximum: setupRowsMaximum,
+    gambitMaxPiecesMinimum: maxPiecesMinimum,
     gambitMaxPiecesMaximum: maxPiecesMaximum,
     gambitMaxQueensMaximum: maxQueensMaximum,
-    pieceCapMaximum: maxPieces,
+    pieceCapMinimum: 1,
+    pieceCapMaximum,
     draftPoolCountMaximum: Math.min(
       limits.draftPoolCountMax,
       maxPieces * 2
@@ -164,31 +173,51 @@ export function normalizeCustomizeNumbers(draft, suppliedLimits = {}) {
   );
   const maxPieces = clampWholeNumber(
     draft.gambit?.maxPieces,
-    limits.gambitMaxPiecesMin,
+    initialBounds.gambitMaxPiecesMinimum,
     initialBounds.gambitMaxPiecesMaximum
+  );
+  const pieceCapMaximum = Math.max(1, maxPieces - 1);
+  const enabledPieceTypes = new Set(draft.enabledPieces || []);
+  const pieceCapKeys = new Set([
+    ...Object.keys(draft.pieceCaps || {}),
+    ...enabledPieceTypes,
+  ]);
+  const pieceCaps = Object.fromEntries(
+    [...pieceCapKeys].map((pieceType) => {
+      if (pieceType === "king") return [pieceType, 1];
+      if (pieceType === "barricade") return [pieceType, 0];
+      const minimum = enabledPieceTypes.has(pieceType) ? 1 : limits.pieceCapMin;
+      return [
+        pieceType,
+        clampWholeNumber(
+          draft.pieceCaps?.[pieceType] ?? pieceCapMaximum,
+          minimum,
+          pieceCapMaximum
+        ),
+      ];
+    })
   );
   const maxQueensMaximum = Math.max(
     limits.gambitMaxQueensMin,
-    Math.min(limits.gambitMaxQueensMax, maxPieces - 1)
+    Math.min(limits.gambitMaxQueensMax, pieceCapMaximum)
   );
-  const maxQueens = clampWholeNumber(
-    draft.gambit?.maxQueens,
-    limits.gambitMaxQueensMin,
-    maxQueensMaximum
-  );
+  const maxQueens = enabledPieceTypes.has("queen")
+    ? pieceCaps.queen
+    : clampWholeNumber(
+      draft.gambit?.maxQueens,
+      limits.gambitMaxQueensMin,
+      maxQueensMaximum
+    );
   const draftPoolMaximum = Math.min(limits.draftPoolCountMax, maxPieces * 2);
-  const pieceCaps = boundedRecord(
-    draft.pieceCaps,
-    limits.pieceCapMin,
-    maxPieces
-  );
   const draftPool = boundedRecord(
     draft.gambit?.draftPool,
     limits.draftPoolCountMin,
     draftPoolMaximum
   );
   pieceCaps.king = 1;
-  pieceCaps.queen = maxQueens;
+  if (enabledPieceTypes.has("barricade") || Object.hasOwn(pieceCaps, "barricade")) {
+    pieceCaps.barricade = 0;
+  }
   draftPool.king = 2;
   const affinitySquareCount = clampEvenWholeNumber(
     draft.customRules?.affinitySquareCount ?? 4,

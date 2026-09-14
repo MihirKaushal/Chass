@@ -131,12 +131,12 @@ const STATIC_SETTING_LINKS = [
     keywords: "deployment home rows private setup",
   },
   {
-    id: "setting-gambit-queens",
-    label: "Maximum Queens",
+    id: "setting-gambit-piece-limits",
+    label: "Army Piece Limits",
     sectionId: "studio-gambit",
     category: "Chass Gambit Settings",
-    targetId: "customize-gambit-settings",
-    keywords: "queen army limit cap",
+    targetId: "customize-gambit-piece-limits",
+    keywords: "maximum per army piece limits caps king queen rook bishop knight pawn custom pieces",
   },
   {
     id: "setting-shared-draft",
