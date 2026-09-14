@@ -33,6 +33,27 @@ GAMBIT_PIECE_CAP_MIN = 0
 DRAFT_POOL_COUNT_MIN = 0
 DRAFT_POOL_COUNT_MAX = 256
 
+GAMBIT_DEFAULT_PAWN_CAP = 15
+GAMBIT_DEFAULT_QUEEN_CAP = 2
+GAMBIT_DEFAULT_OTHER_PIECE_CAP = 3
+
+
+def default_gambit_piece_cap(piece_type: str, max_pieces: int = 16) -> int:
+    """Return the bounded default army limit for a Gambit piece type."""
+    if piece_type == "king":
+        return 1
+    if piece_type == "barricade":
+        return 0
+
+    preferred = (
+        GAMBIT_DEFAULT_PAWN_CAP
+        if piece_type == "pawn"
+        else GAMBIT_DEFAULT_QUEEN_CAP
+        if piece_type == "queen"
+        else GAMBIT_DEFAULT_OTHER_PIECE_CAP
+    )
+    return min(preferred, max(0, max_pieces - 1))
+
 
 def customization_limits() -> dict[str, int]:
     return {

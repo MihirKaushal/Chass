@@ -36,6 +36,7 @@ from backend.catalog import (
     build_default_piece_definitions as build_catalog_default_piece_definitions,
 )
 from backend.config import get_settings
+from backend.configuration_limits import default_gambit_piece_cap
 from backend.models import (
     AbilityState,
     AffinityState,
@@ -563,9 +564,12 @@ def _configuration_from_request(
             for piece_type in payload.enabledPieces
             if piece_type != "barricade"
         }
-        default_army_cap = max(0, payload.gambit.maxPieces - 1)
         default_caps = {
-            piece_type: default_army_cap for piece_type in payload.enabledPieces
+            piece_type: default_gambit_piece_cap(
+                piece_type,
+                payload.gambit.maxPieces,
+            )
+            for piece_type in payload.enabledPieces
         }
         default_caps["king"] = 1
         default_caps["queen"] = payload.gambit.maxQueens

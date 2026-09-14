@@ -10,6 +10,7 @@ from backend.catalog import (
     normalize_ability_parameters,
     normalize_piece_parameters,
 )
+from backend.configuration_limits import default_gambit_piece_cap
 from backend.models import GameState, PieceDefinition
 from backend.models.schemas import CreateGameRequest
 from backend.rules.base import MovementHelper
@@ -358,7 +359,12 @@ class ConfigurationRuleEngine:
             if piece_type in pieces
         }
         caps = {
-            piece_type: int(gambit.pieceCaps.get(piece_type, non_king_cap))
+            piece_type: int(
+                gambit.pieceCaps.get(
+                    piece_type,
+                    default_gambit_piece_cap(piece_type, gambit.maxPieces),
+                )
+            )
             for piece_type in enabled
         }
         caps["king"] = 1

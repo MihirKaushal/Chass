@@ -14,6 +14,7 @@ import {
   clampEvenWholeNumber,
   clampWholeNumber,
   customizeNumericBounds,
+  defaultGambitPieceCap,
   normalizeCustomizeNumbers,
 } from "../customizeNumericLimits";
 import { PIECE_FILTERS, visibleCustomizePieces } from "../customizePieces";
@@ -173,11 +174,7 @@ function defaultDraft(catalog) {
   const draftPool = {};
   catalog.pieces.forEach((piece) => {
     pointValues[piece.type] = Math.max(0, piece.points ?? 0);
-    pieceCaps[piece.type] = piece.type === "king"
-      ? 1
-      : piece.type === "barricade"
-        ? 0
-        : piece.type === "queen" ? 2 : 15;
+    pieceCaps[piece.type] = defaultGambitPieceCap(piece.type);
     draftPool[piece.type] = piece.type === "barricade"
       ? 0
       : (DEFAULT_DRAFT_POOL[piece.type] ?? 2);
