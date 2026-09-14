@@ -1252,7 +1252,8 @@ function App() {
     const session = sessionFromResponse(response);
     saveGameSession(response.game.id, session);
     bootstrapGamesRef.current.set(response.game.id, response.game);
-    navigate(`/game/${response.game.id}`);
+    // A successful launch intentionally consumes the Customize draft.
+    navigate(`/game/${response.game.id}`, { bypassBlocker: true });
   };
 
   const handleJoin = async (inviteToken) => {
