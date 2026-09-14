@@ -78,6 +78,11 @@ export function evaluationLabel(
     const winner = evaluation.immediateWinner === "white" ? "White" : "Black";
     return `${winner} can win this turn`;
   }
+  if (evaluation.advantageScore != null) {
+    const advantage = Number(evaluation.advantageScore);
+    if (!Number.isFinite(advantage) || Math.abs(advantage) < 0.005) return "Even";
+    return `${advantage > 0 ? "+" : ""}${advantage.toFixed(2)} ${advantage > 0 ? "White" : "Black"} edge`;
+  }
   if (evaluation.centipawns == null) return "Balanced position";
   const pawns = evaluation.centipawns / 100;
   if (Math.abs(pawns) < 0.005) return "Even";
