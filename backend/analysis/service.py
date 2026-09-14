@@ -462,9 +462,9 @@ class MatchAnalysisService:
         chass_result = await self.chass_provider.analyze(state)
         terminal_outcome = self._terminal_outcome(state)
         outcome = terminal_outcome or MatchOutcomeView(
-            whiteWin=chass_result.white_share,
+            whiteWin=chass_result.white_advantage_share,
             draw=0,
-            blackWin=1 - chass_result.white_share,
+            blackWin=1 - chass_result.white_advantage_share,
         )
         return MatchAnalysisView(
             gameId=state.id,
@@ -479,11 +479,12 @@ class MatchAnalysisService:
             gameVersion=version,
             positionHash=position_hash,
             evaluation=MatchEvaluationView(
-                centipawns=round(chass_result.score * 100),
+                advantageScore=round(chass_result.score, 2),
                 mateIn=chass_result.mate_in,
                 immediateWinner=chass_result.immediate_winner,
             ),
             outcome=outcome,
+            outcomeKind="result" if terminal_outcome is not None else "advantage_share",
             factors=chass_result.factors,
             engineVersion=chass_result.engine_version,
             modelVersion=chass_result.model_version,

@@ -304,6 +304,7 @@ class RematchView(BaseModel):
 
 class MatchEvaluationView(BaseModel):
     centipawns: int | None = None
+    advantageScore: float | None = None
     mateIn: int | None = None
     immediateWinner: Literal["white", "black"] | None = None
     perspective: Literal["white"] = "white"
@@ -334,6 +335,9 @@ class MatchAnalysisView(BaseModel):
     positionHash: str | None = None
     evaluation: MatchEvaluationView | None = None
     outcome: MatchOutcomeView | None = None
+    outcomeKind: Literal["win_probability", "advantage_share", "result"] = (
+        "win_probability"
+    )
     factors: list[PositionFactorView] = Field(default_factory=list)
     engineId: Literal["stockfish", "fairy-stockfish", "chass"] | None = None
     engineName: str | None = None

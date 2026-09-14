@@ -29,6 +29,19 @@ function MatchPredictor({
     moveCount,
     { calibrateOpening, mateIn: analysis?.evaluation?.mateIn }
   );
+  const outcomeKind = analysis?.outcomeKind || "win_probability";
+  const outcomeLabel = outcomeKind === "advantage_share"
+    ? "Estimated position advantage"
+    : outcomeKind === "result"
+      ? "Final result"
+      : analysis?.calibrated
+        ? "Estimated winning chances"
+        : "Engine outcome estimate";
+  const outcomeAriaLabel = outcomeKind === "advantage_share"
+    ? "advantage share"
+    : outcomeKind === "result"
+      ? "result share"
+      : "estimated winning chance";
   const loading = refreshing || !analysis || analysis.status === "analyzing";
 
   return (
@@ -61,10 +74,11 @@ function MatchPredictor({
         </div>
       ) : percentages ? (
         <>
+          <p className="outcome-kind-label">{outcomeLabel}</p>
           <div
             className="outcome-track"
             role="img"
-            aria-label={`White ${percentages.white} percent, Black ${percentages.black} percent`}
+            aria-label={`White ${outcomeAriaLabel} ${percentages.white} percent, Black ${outcomeAriaLabel} ${percentages.black} percent`}
           >
             <span className="outcome-white" style={{ width: `${percentages.white}%` }} />
             <span className="outcome-black" style={{ width: `${percentages.black}%` }} />

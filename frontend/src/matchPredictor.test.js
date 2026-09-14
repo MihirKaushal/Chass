@@ -105,6 +105,21 @@ test("opening evaluation stays neutral until the first move", () => {
   );
 });
 
+test("Chass evaluations are labeled as an advantage index rather than pawn units", () => {
+  assert.equal(
+    evaluationLabel({ evaluation: { advantageScore: 0.55 } }, 4),
+    "+0.55 White edge"
+  );
+  assert.equal(
+    evaluationLabel({ evaluation: { advantageScore: -1.2 } }, 4),
+    "-1.20 Black edge"
+  );
+  assert.equal(
+    evaluationLabel({ evaluation: { advantageScore: 0 } }, 4),
+    "Even"
+  );
+});
+
 test("mate evaluation identifies the winning side and distance", () => {
   assert.equal(
     evaluationLabel({ evaluation: { mateIn: -1 } }, 12),

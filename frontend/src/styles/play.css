@@ -1011,6 +1011,16 @@
   box-shadow: 0 4px 12px rgba(26, 54, 93, 0.14);
 }
 
+.outcome-kind-label {
+  margin: 0 0 0.28rem;
+  color: rgba(26, 54, 93, 0.66);
+  font-family: var(--font-mono);
+  font-size: 0.54rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
 .outcome-track > span {
   min-width: 0;
   transition: width 320ms ease;

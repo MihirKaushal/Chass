@@ -1127,7 +1127,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
             <article className={predictorProfile?.engineId === "chass" ? "is-selected" : ""}>
               <header><strong>Chass Engine</strong><span>Universal</span></header>
               <p><b>Strengths:</b> Evaluates every valid Chass configuration through the same Rule Engine used for gameplay, including custom-piece settings, abilities, terrain, Affinity, runtime effects, and alternate win conditions.</p>
-              <p><b>Limits:</b> Its handcrafted evaluation and time-bounded search are experimental. It is weaker than Stockfish, is not trained on self-play data, and does not provide calibrated probabilities.</p>
+              <p><b>Limits:</b> Its handcrafted evaluation and time-bounded search are experimental. It is weaker than Stockfish and is not trained on self-play data, so Chass reports a position-advantage share rather than a win probability.</p>
             </article>
             <p className="predictor-reference-current">
               Current configuration: <strong>{predictorProfile?.engineName || "No compatible engine"}</strong>. {predictorProfile?.accuracy || predictorProfile?.reason || "Finish configuring the game to see automatic engine selection."}

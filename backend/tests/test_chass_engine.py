@@ -434,7 +434,7 @@ def test_search_detects_an_authoritative_checkmate_in_one(client):
 
     assert result.immediate_winner == "white"
     assert result.mate_in == 1
-    assert result.white_share == 1
+    assert result.white_advantage_share == 1
 
 
 def test_search_detects_mate_before_high_volume_special_actions_are_truncated(client):
@@ -576,6 +576,10 @@ def test_custom_profile_service_returns_cached_native_analysis(client):
     assert ready.engineId == "chass"
     assert ready.modelVersion == MODEL_VERSION
     assert ready.outcome is not None and ready.outcome.draw == 0
+    assert ready.outcomeKind == "advantage_share"
+    assert ready.evaluation is not None
+    assert ready.evaluation.advantageScore is not None
+    assert ready.evaluation.centipawns is None
     assert ready.factors
     assert cached.positionHash == ready.positionHash
     assert cached.gameVersion == 5

@@ -40,7 +40,7 @@ class ChassAnalysisProvider:
         return None
 
     @staticmethod
-    def _white_share(score: float, state: GameState) -> float:
+    def _white_advantage_share(score: float, state: GameState) -> float:
         area = state.board.rows * state.board.cols
         confidence = 0.84 if area <= 100 else (0.78 if area <= 144 else 0.72)
         logistic = 1 / (1 + math.exp(-max(-20.0, min(20.0, score)) / 2.6))
@@ -56,15 +56,15 @@ class ChassAnalysisProvider:
         ).analyze(state, static_score=detailed.score)
         score = search.score if search.depth > 0 else detailed.score
         if search.immediate_winner == "white":
-            white_share = 1.0 if search.mate_in == 1 else 0.99
+            white_advantage_share = 1.0 if search.mate_in == 1 else 0.99
         elif search.immediate_winner == "black":
-            white_share = 0.0 if search.mate_in == -1 else 0.01
+            white_advantage_share = 0.0 if search.mate_in == -1 else 0.01
         else:
-            white_share = self._white_share(score, state)
+            white_advantage_share = self._white_advantage_share(score, state)
         elapsed_ms = round((perf_counter() - started) * 1000)
         return ChassEngineResult(
             score=score,
-            white_share=white_share,
+            white_advantage_share=white_advantage_share,
             mate_in=search.mate_in,
             factors=detailed.factors,
             depth=search.depth,

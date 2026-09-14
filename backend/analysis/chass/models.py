@@ -8,7 +8,7 @@ from backend.models.schemas import PositionFactorView
 @dataclass(frozen=True)
 class ChassEngineResult:
     score: float
-    white_share: float
+    white_advantage_share: float
     mate_in: int | None
     factors: tuple[PositionFactorView, ...]
     depth: int
