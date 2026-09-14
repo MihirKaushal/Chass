@@ -334,6 +334,8 @@ def test_configuration_validation_disables_incompatible_horde_rules(client):
     result = invalid.json()
     assert result["valid"] is False
     assert "checkmate" in result["disabledOptions"]["victoryModes"]
+    assert "center_dominion" in result["disabledOptions"]["victoryModes"]
+    assert "royal_center" in result["disabledOptions"]["victoryModes"]
     assert any("elimination" in error.lower() for error in result["errors"])
 
     payload["configuration"]["victory"] = {"mode": "elimination"}

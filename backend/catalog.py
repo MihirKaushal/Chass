@@ -1471,6 +1471,14 @@ FORMATION_PRESETS: list[dict[str, Any]] = [
             "checkmate": "Horde is decided by army elimination, not checkmate.",
             "timed": "The built-in timed rule also uses checkmate and is unavailable for Horde.",
             "royal_score": "Royal Score depends on checkmate and is unavailable for Horde.",
+            "center_dominion": (
+                "Horde begins with pieces on the center objective, so Center Dominion "
+                "is unavailable for this layout."
+            ),
+            "royal_center": (
+                "Horde begins with pieces on the royal objective, so Royal Center "
+                "is unavailable for this layout."
+            ),
         },
         "disabledAbilities": {
             "getaway": "White begins without a Queen.",
