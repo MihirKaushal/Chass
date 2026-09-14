@@ -59,6 +59,20 @@ test("the play-only Match Analysis preference does not modify Custom Rules", () 
   assert.equal(sectionIsModified(changed, baseline, "studio-custom-rules"), false);
 });
 
+test("army piece limits belong to Chass Gambit Settings", () => {
+  const baseline = {
+    ...classicDraft(),
+    gambit: { enabled: true, budget: 39, maxPieces: 16 },
+  };
+  const changed = {
+    ...baseline,
+    pieceCaps: { ...baseline.pieceCaps, pawn: 12 },
+  };
+
+  assert.equal(sectionIsModified(changed, baseline, "studio-gambit"), true);
+  assert.equal(sectionIsModified(changed, baseline, "studio-pieces"), false);
+});
+
 test("validation errors are counted against their owning sections", () => {
   const baseline = classicDraft();
   const statuses = configurationSectionStatuses(baseline, baseline, [

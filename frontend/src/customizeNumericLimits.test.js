@@ -71,13 +71,16 @@ test("numeric bounds adapt Gambit limits to deployment space", () => {
 
   assert.equal(bounds.gambitSetupRowsMaximum, 3);
   assert.equal(bounds.gambitMaxPiecesMaximum, 15);
+  assert.equal(bounds.gambitMaxPiecesMinimum, 2);
   assert.equal(bounds.gambitMaxQueensMaximum, 14);
+  assert.equal(bounds.pieceCapMinimum, 1);
+  assert.equal(bounds.pieceCapMaximum, 14);
   assert.equal(bounds.draftPoolCountMaximum, 30);
   assert.equal(bounds.affinitySquareCountMaximum, 10);
   assert.equal(bounds.affinityControlRequiredMaximum, 2);
 });
 
-test("numeric normalization enforces linked limits and preserves meaningful zeroes", () => {
+test("numeric normalization enforces linked limits and preserves permitted zeroes", () => {
   const normalized = normalizeCustomizeNumbers(draft({
     boardRows: 6,
     boardCols: 5,
@@ -112,7 +115,8 @@ test("numeric normalization enforces linked limits and preserves meaningful zero
 
   assert.equal(normalized.barricadeCount, 2);
   assert.equal(normalized.pointValues.queen, 0);
-  assert.equal(normalized.pieceCaps.rook, 0);
+  assert.equal(normalized.pieceCaps.rook, 1);
+  assert.equal(normalized.pieceCaps.barricade, 0);
   assert.equal(normalized.victory.targetPoints, 100000);
   assert.equal(normalized.victory.timeSeconds, 60);
   assert.equal(normalized.victory.kingPoints, 7);
@@ -147,7 +151,27 @@ test("global schema ceilings still apply on the largest board", () => {
   }));
 
   assert.equal(bounds.gambitMaxPiecesMaximum, 128);
-  assert.equal(bounds.gambitMaxQueensMaximum, 32);
+  assert.equal(bounds.gambitMaxQueensMaximum, 127);
+  assert.equal(bounds.pieceCapMaximum, 127);
   assert.equal(bounds.draftPoolCountMaximum, 256);
   assert.equal(bounds.affinitySquareCountMaximum, 32);
+});
+
+test("every enabled army piece reserves the required King slot", () => {
+  const normalized = normalizeCustomizeNumbers(draft({
+    enabledPieces: ["king", "queen", "rook"],
+    pieceCaps: { king: 8, queen: 12, rook: 0 },
+    gambit: {
+      budget: 39,
+      maxPieces: 5,
+      setupRows: 2,
+      maxQueens: 12,
+      draftPool: {},
+    },
+  }));
+
+  assert.equal(normalized.pieceCaps.king, 1);
+  assert.equal(normalized.pieceCaps.queen, 4);
+  assert.equal(normalized.pieceCaps.rook, 1);
+  assert.equal(normalized.gambit.maxQueens, 4);
 });

@@ -173,7 +173,11 @@ function defaultDraft(catalog) {
   const draftPool = {};
   catalog.pieces.forEach((piece) => {
     pointValues[piece.type] = Math.max(0, piece.points ?? 0);
-    pieceCaps[piece.type] = piece.type === "king" ? 1 : piece.type === "queen" ? 2 : 16;
+    pieceCaps[piece.type] = piece.type === "king"
+      ? 1
+      : piece.type === "barricade"
+        ? 0
+        : piece.type === "queen" ? 2 : 15;
     draftPool[piece.type] = piece.type === "barricade"
       ? 0
       : (DEFAULT_DRAFT_POOL[piece.type] ?? 2);
@@ -418,11 +422,14 @@ function buildRequest(draft, mode = "local") {
       specialAbilities: draft.specialAbilities,
       gambit: {
         ...draft.gambit,
+        maxQueens: Number(draft.pieceCaps.queen ?? draft.gambit.maxQueens ?? 0),
         pieceCaps: Object.fromEntries(
-          draft.enabledPieces.map((type) => [
-            type,
-            Number(draft.pieceCaps[type] ?? draft.gambit.maxPieces),
-          ])
+          draft.enabledPieces
+            .filter((type) => type !== "barricade")
+            .map((type) => [
+              type,
+              Number(draft.pieceCaps[type] ?? draft.gambit.maxPieces - 1),
+            ])
         ),
         draftPool: Object.fromEntries(
           draft.enabledPieces
@@ -1698,7 +1705,6 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
           enabledPieces: cloneDraft(configurationBaseline.enabledPieces),
           pieceParameters: cloneDraft(configurationBaseline.pieceParameters),
           pointValues: cloneDraft(configurationBaseline.pointValues),
-          pieceCaps: cloneDraft(configurationBaseline.pieceCaps),
           barricadeCount: Math.min(
             configurationBaseline.barricadeCount,
             Math.max(1, Math.floor(current.boardCols / 2))
@@ -1757,10 +1763,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
         next = {
           ...current,
           gambit: resetGambit,
-          pieceCaps: {
-            ...current.pieceCaps,
-            queen: resetGambit.maxQueens,
-          },
+          pieceCaps: cloneDraft(configurationBaseline.pieceCaps || {}),
         };
       }
       return reconcileDraftIdentity(
@@ -2050,7 +2053,6 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
                     />
                     <div className="piece-config-fields">
                       <label>Point Value<input type="number" min={numericBounds.pointMin} max={numericBounds.pointMax} step="1" disabled={!enabled} value={draft.pointValues[piece.type]} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers(updatePiecePointValue(current, piece.type, event.target.value, numericBounds.pointMax), catalog.limits))} /></label>
-                      {draft.gambit.enabled && piece.type !== "barricade" ? <label>Army Limit<input type="number" min={piece.type === "king" ? 1 : numericBounds.pieceCapMin} max={numericBounds.pieceCapMaximum} step="1" disabled={!enabled || piece.type === "king"} value={draft.pieceCaps[piece.type]} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", pieceCaps: { ...current.pieceCaps, [piece.type]: clampWholeNumber(event.target.value, numericBounds.pieceCapMin, numericBounds.pieceCapMaximum) } }))} /></label> : null}
                       {draft.gambit.enabled && draft.gambit.draftEnabled && piece.type !== "barricade" ? <label>{piece.type === "king" ? "Starting Kings" : "Shared Draft Pool"}<input type="number" min={piece.type === "king" ? 2 : numericBounds.draftPoolCountMin} max={numericBounds.draftPoolCountMaximum} step="1" disabled={!enabled || piece.type === "king"} value={draft.gambit.draftPool[piece.type] ?? 0} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", gambit: { ...current.gambit, draftPool: { ...current.gambit.draftPool, [piece.type]: clampWholeNumber(event.target.value, numericBounds.draftPoolCountMin, numericBounds.draftPoolCountMaximum) } } }))} /><small>{piece.type === "king" ? "One King is automatically assigned to each army." : "Total copies available to both players."}</small></label> : null}
                       {enabled && piece.type === "barricade" ? <label>Starting Walls<input type="number" min={numericBounds.barricadeCountMinimum} max={numericBounds.barricadeCountMaximum} step="1" value={draft.barricadeCount} onChange={(event) => setDraft((current) => ({ ...current, presetId: "custom", barricadeCount: clampWholeNumber(event.target.value, numericBounds.barricadeCountMinimum, numericBounds.barricadeCountMaximum) }))} /></label> : null}
                     </div>
@@ -2167,9 +2169,51 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             <Toggle checked={draft.gambit.enabled} onChange={(enabled) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: enabled ? "gambit" : "custom", formationId: enabled ? "classic" : "custom", gambit: { ...current.gambit, enabled, draftEnabled: enabled ? current.gambit.draftEnabled : false } }, catalog.limits))} label="Enable Chass Gambit" description="Each player builds an army in their closest home rows without exceeding the point limit." />
             {draft.gambit.enabled ? <div className="gambit-settings-grid" data-setting-key="gambit-settings" id="customize-gambit-settings">
               <label>Maximum Points<input type="number" min={numericBounds.gambitBudgetMinimum} max={numericBounds.gambitBudgetMax} step="1" value={draft.gambit.budget} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: "custom", gambit: { ...current.gambit, budget: event.target.value } }, catalog.limits))} /><small>Players may spend less. The limit must cover the required King.</small></label>
-              <label>Maximum Pieces<input type="number" min={numericBounds.gambitMaxPiecesMin} max={numericBounds.gambitMaxPiecesMaximum} step="1" value={draft.gambit.maxPieces} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: "custom", gambit: { ...current.gambit, maxPieces: event.target.value } }, catalog.limits))} /><small>Includes the required King. Current setup space supports up to {numericBounds.gambitMaxPiecesMaximum}.</small></label>
+              <label>Maximum Pieces<input type="number" min={numericBounds.gambitMaxPiecesMinimum} max={numericBounds.gambitMaxPiecesMaximum} step="1" value={draft.gambit.maxPieces} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: "custom", gambit: { ...current.gambit, maxPieces: event.target.value } }, catalog.limits))} /><small>Includes the required King. Current setup space supports up to {numericBounds.gambitMaxPiecesMaximum}.</small></label>
               <label>Private Setup Rows<input type="number" min={numericBounds.gambitSetupRowsMin} max={numericBounds.gambitSetupRowsMaximum} step="1" value={draft.gambit.setupRows} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: "custom", gambit: { ...current.gambit, setupRows: event.target.value } }, catalog.limits))} /><small>Rows nearest each player that they may edit.</small></label>
-              <label>Maximum Queens<input type="number" min={numericBounds.gambitMaxQueensMin} max={numericBounds.gambitMaxQueensMaximum} step="1" value={draft.gambit.maxQueens} onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: "custom", gambit: { ...current.gambit, maxQueens: event.target.value } }, catalog.limits))} /><small>Reserves one army slot for the King. The current maximum is {numericBounds.gambitMaxQueensMaximum}.</small></label>
+              <fieldset className="gambit-piece-limits" data-setting-key="gambit-piece-limits" id="customize-gambit-piece-limits">
+                <legend>Maximum Per Army</legend>
+                <div className="gambit-piece-limit-grid">
+                  {catalog.pieces
+                    .filter((piece) => (
+                      draft.enabledPieces.includes(piece.type)
+                      && piece.type !== "barricade"
+                    ))
+                    .map((piece) => {
+                      const isKing = piece.type === "king";
+                      return (
+                        <label key={piece.type}>
+                          <span>{piece.name}<small>{isKing ? "Required" : `Up to ${numericBounds.pieceCapMaximum}`}</small></span>
+                          <input
+                            type="number"
+                            aria-label={`Maximum ${piece.name} per army`}
+                            min="1"
+                            max={isKing ? 1 : numericBounds.pieceCapMaximum}
+                            step="1"
+                            disabled={isKing}
+                            value={isKing
+                              ? 1
+                              : draft.pieceCaps[piece.type]
+                                ?? numericBounds.pieceCapMinimum}
+                            onChange={(event) => setDraft((current) => normalizeCustomizeNumbers({
+                              ...current,
+                              presetId: "custom",
+                              pieceCaps: {
+                                ...current.pieceCaps,
+                                [piece.type]: clampWholeNumber(
+                                  event.target.value,
+                                  numericBounds.pieceCapMinimum,
+                                  numericBounds.pieceCapMaximum
+                                ),
+                              },
+                            }, catalog.limits))}
+                          />
+                        </label>
+                      );
+                    })}
+                </div>
+                <small>Every enabled piece has at least one available slot. The King is fixed at one; neutral Barricades are configured under Pieces.</small>
+              </fieldset>
               <Toggle checked={draft.gambit.draftEnabled} onChange={(draftEnabled) => setDraft((current) => normalizeCustomizeNumbers({ ...current, presetId: draftEnabled ? "draft_gambit" : "custom", gambit: { ...current.gambit, draftEnabled, draftPool: { ...current.gambit.draftPool, king: 2 } } }, catalog.limits))} label="Enable Shared Draft" description="Alternate public picks from one shared pool before each player privately arranges their drafted army." />
             </div> : null}
           </CollapsibleStudioSection>

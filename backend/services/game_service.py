@@ -563,15 +563,15 @@ def _configuration_from_request(
             for piece_type in payload.enabledPieces
             if piece_type != "barricade"
         }
+        default_army_cap = max(0, payload.gambit.maxPieces - 1)
         default_caps = {
-            piece_type: payload.gambit.maxPieces for piece_type in payload.enabledPieces
+            piece_type: default_army_cap for piece_type in payload.enabledPieces
         }
         default_caps["king"] = 1
         default_caps["queen"] = payload.gambit.maxQueens
         default_caps["barricade"] = 0
         default_caps.update(payload.gambit.pieceCaps)
         default_caps["king"] = 1
-        default_caps["queen"] = payload.gambit.maxQueens
         default_caps["barricade"] = 0
         gambit.config.piece_caps = default_caps
         draft_pool = build_default_draft_pool(enabled_types)

@@ -614,6 +614,24 @@ def test_gambit_composition_rules_reject_invalid_armies(client):
     assert "exactly one King" in incomplete.json()["detail"]
 
 
+def test_explicit_queen_cap_overrides_the_legacy_queen_limit(client):
+    payload = draft_gambit_payload()
+    gambit = payload["configuration"]["gambit"]
+    gambit.update(
+        {
+            "draftEnabled": False,
+            "maxPieces": 4,
+            "maxQueens": 1,
+            "pieceCaps": {"rook": 3, "queen": 3, "king": 1},
+        }
+    )
+
+    response = client.post("/game/create", json=payload)
+
+    assert response.status_code == 200, response.text
+    assert response.json()["game"]["gambit"]["config"]["pieceCaps"]["queen"] == 3
+
+
 def test_affinity_gambit_rejects_center_square_deployment(client):
     payload = {
         "mode": "local",

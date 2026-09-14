@@ -1389,6 +1389,61 @@ details[open] > summary > .disclosure-arrow {
   line-height: 1.35;
 }
 
+.gambit-piece-limits {
+  min-width: 0;
+  grid-column: 1 / -1;
+  margin: 0;
+  padding: 0.72rem;
+  border: 1px solid rgba(184, 121, 24, 0.2);
+  border-radius: var(--radius-control);
+  background: rgba(255, 255, 255, 0.34);
+}
+
+.gambit-piece-limits legend {
+  padding: 0 0.3rem;
+  color: var(--deep);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.gambit-piece-limit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  gap: 0.42rem;
+  margin-bottom: 0.55rem;
+}
+
+.gambit-piece-limit-grid label {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 62px;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.45rem 0.5rem;
+  border: 1px solid rgba(26, 54, 93, 0.12);
+  border-radius: var(--radius-sm);
+  background: rgba(245, 230, 202, 0.48);
+}
+
+.gambit-piece-limit-grid label > span {
+  min-width: 0;
+  display: grid;
+  color: var(--deep);
+  font-size: 0.72rem;
+  font-weight: 750;
+}
+
+.gambit-piece-limit-grid label > span small {
+  font-family: var(--font-mono);
+  font-size: 0.56rem;
+  font-weight: 500;
+}
+
+.gambit-piece-limit-grid input {
+  padding: 0.42rem;
+  text-align: center;
+}
+
 .studio-toggle {
   display: grid;
   grid-template-columns: auto auto 1fr;

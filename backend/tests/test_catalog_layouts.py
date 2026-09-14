@@ -72,7 +72,7 @@ def test_catalog_exposes_the_customize_numeric_limits():
     assert limits["commandPointCapMin"] == 1
     assert limits["timeSecondsMin"] == 60
     assert limits["gambitMaxPiecesMax"] == 128
-    assert limits["gambitMaxQueensMax"] == 32
+    assert limits["gambitMaxQueensMax"] == 127
     assert limits["draftPoolCountMax"] == 256
 
 
