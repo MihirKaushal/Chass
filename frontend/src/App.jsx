@@ -190,6 +190,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [game, setGame] = useState(initialGame);
   const gameRef = useRef(initialGame);
   const [catalog, setCatalog] = useState(null);
+  const [catalogError, setCatalogError] = useState("");
+  const [catalogRetryKey, setCatalogRetryKey] = useState(0);
   const [selectedSquare, setSelectedSquare] = useState(null);
   const [pendingPromotion, setPendingPromotion] = useState(null);
   const [pendingMove, setPendingMove] = useState(null);
@@ -238,8 +240,21 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   );
 
   useEffect(() => {
-    getCatalog().then(setCatalog).catch(() => {});
-  }, []);
+    let cancelled = false;
+    setCatalogError("");
+    getCatalog()
+      .then((payload) => {
+        if (cancelled) return;
+        setCatalog(payload);
+      })
+      .catch((requestError) => {
+        if (cancelled) return;
+        setCatalogError(requestError.message);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [catalogRetryKey]);
 
   const applyIncomingGame = useCallback(
     (incoming) => {
@@ -1029,6 +1044,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         <AbilitySelectionPage
           game={game}
           catalog={catalog}
+          catalogError={catalogError}
+          onRetryCatalog={() => setCatalogRetryKey((current) => current + 1)}
           onSelect={handleAbilitySelection}
           actionLoading={actionLoading}
         />

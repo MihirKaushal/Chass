@@ -7,7 +7,14 @@ function title(value) {
   return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
 }
 
-function AbilitySelectionPage({ game, catalog, onSelect, actionLoading }) {
+function AbilitySelectionPage({
+  game,
+  catalog,
+  catalogError,
+  onRetryCatalog,
+  onSelect,
+  actionLoading,
+}) {
   const color = game.abilities.editableColor || "white";
   const allowed = new Set(game.abilities.allowed);
   const abilityParameters = game.configuration?.specialAbilities?.parameters || {};
@@ -48,24 +55,36 @@ function AbilitySelectionPage({ game, catalog, onSelect, actionLoading }) {
         {!game.ready && game.mode === "online" ? (
           <p className="ability-waiting">Waiting for the second player to join the room.</p>
         ) : null}
-        <div className="ability-selection-grid">
-          {abilities.map((ability) => (
-            <button
-              type="button"
-              key={ability.id}
-              className={choices.includes(ability.id) ? "selected" : ""}
-              disabled={actionLoading || !game.ready || !game.abilities.editableColor}
-              onClick={() => toggleChoice(ability.id)}
-            >
-              <i>{ability.icon}</i>
-              <span><strong>{ability.name}</strong><small>{ability.summary}</small></span>
-              <b>{choices.includes(ability.id) ? "Selected" : "Choose"}</b>
-            </button>
-          ))}
-        </div>
-        {game.abilities.viewerSelection?.length ? (
-          <p className="ability-locked">Your loadout is locked. Waiting for the other player.</p>
+        {!catalog ? (
+          <div className="ability-catalog-state" role={catalogError ? "alert" : "status"}>
+            <strong>{catalogError ? "Ability Reference Unavailable" : "Loading Abilities"}</strong>
+            <p>{catalogError || "Loading the allowed abilities for this game."}</p>
+            {catalogError ? (
+              <Button variant="secondary" onClick={onRetryCatalog}>
+                Retry Ability Reference
+              </Button>
+            ) : null}
+          </div>
         ) : (
+          <div className="ability-selection-grid">
+            {abilities.map((ability) => (
+              <button
+                type="button"
+                key={ability.id}
+                className={choices.includes(ability.id) ? "selected" : ""}
+                disabled={actionLoading || !game.ready || !game.abilities.editableColor}
+                onClick={() => toggleChoice(ability.id)}
+              >
+                <i>{ability.icon}</i>
+                <span><strong>{ability.name}</strong><small>{ability.summary}</small></span>
+                <b>{choices.includes(ability.id) ? "Selected" : "Choose"}</b>
+              </button>
+            ))}
+          </div>
+        )}
+        {catalog && game.abilities.viewerSelection?.length ? (
+          <p className="ability-locked">Your loadout is locked. Waiting for the other player.</p>
+        ) : catalog ? (
           <Button
             className="ability-lock-button"
             disabled={!game.ready || !game.abilities.editableColor || choices.length !== maxChoices}
@@ -75,7 +94,7 @@ function AbilitySelectionPage({ game, catalog, onSelect, actionLoading }) {
           >
             Lock {choices.length} / {maxChoices}
           </Button>
-        )}
+        ) : null}
       </section>
     </main>
   );
