@@ -11,9 +11,9 @@ from backend.analysis.chass import (
     ChassEvaluator,
     chass_position_hash,
 )
-from backend.analysis.chass.action_space import legal_turn_actions
+from backend.analysis.chass.action_space import legal_turn_actions, select_search_actions
 from backend.analysis.chass.evaluator import intrinsic_piece_value
-from backend.analysis.chass.search import ChassSearch
+from backend.analysis.chass.search import ChassSearch, RankedAction
 from backend.analysis.chass.weights import (
     ABILITY_PARAMETER_COVERAGE,
     MODEL_VERSION,
@@ -376,6 +376,24 @@ def test_action_space_includes_moves_special_actions_and_affinity_powers(client)
     assert "scorch" in custom_types
 
 
+def test_bounded_action_space_reserves_moves_and_each_mechanic_family(client):
+    state = _default_state(client)
+    state.configuration.custom_rules.affinity_enabled = True
+    state.affinity.command_points["white"] = 3
+    state.configuration.special_abilities.enabled = True
+    state.configuration.special_abilities.allowed = ["scorch"]
+    state.abilities.selected["white"] = ["scorch"]
+    actions = legal_turn_actions(state, RuleEngine())
+
+    bounded = select_search_actions(actions, limit=12)
+    families = {action.search_family for action in bounded}
+
+    assert len(bounded) == 12
+    assert sum(action.kind == "move" for action in bounded) >= 6
+    assert "custom:scorch" in families
+    assert any(family.startswith("command:") for family in families)
+
+
 def test_search_detects_an_authoritative_checkmate_in_one(client):
     state = _minimal_state(client)
     state.board.grid = [
@@ -394,6 +412,51 @@ def test_search_detects_an_authoritative_checkmate_in_one(client):
     assert result.immediate_winner == "white"
     assert result.mate_in == 1
     assert result.white_share == 1
+
+
+def test_search_detects_mate_before_high_volume_special_actions_are_truncated(client):
+    state = _minimal_state(client)
+    state.board.grid = [
+        [None for _ in range(state.board.cols)] for _ in range(state.board.rows)
+    ]
+    state.board.grid[0][0] = _piece(state, "king", "black")
+    state.board.grid[2][2] = _piece(state, "king", "white")
+    state.board.grid[2][1] = _piece(state, "queen", "white")
+    state.configuration.special_abilities.enabled = True
+    state.configuration.special_abilities.allowed = ["scorch"]
+    state.abilities.selected["white"] = ["scorch"]
+    engine = RuleEngine()
+    engine.evaluate_state(state)
+
+    actions = legal_turn_actions(state, engine)
+    assert len(actions) > 48
+    result = ChassSearch(
+        engine,
+        ChassEvaluator(engine),
+        movetime_ms=50,
+        max_root_actions=48,
+    ).analyze(state)
+
+    assert result.immediate_winner == "white"
+    assert result.mate_in == 1
+    assert result.best_action is not None
+    assert result.best_action.kind == "move"
+
+
+def test_partial_root_pass_is_not_reported_as_completed_depth(client, monkeypatch):
+    state = _default_state(client)
+    engine = RuleEngine()
+
+    def partial(_self, current, actions, *, depth):
+        assert depth == 1
+        return [RankedAction(action=actions[0], score=4.2)], False
+
+    monkeypatch.setattr(ChassSearch, "_rank_root_actions", partial)
+    result = ChassSearch(engine, ChassEvaluator(engine)).analyze(state)
+
+    assert result.depth == 0
+    assert result.score == ChassEvaluator(engine).evaluate(state, detailed=False).score
+    assert result.ranked_actions
 
 
 def test_search_keeps_legal_actions_when_root_budget_is_exhausted(

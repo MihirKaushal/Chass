@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from collections import defaultdict
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Literal
 
@@ -77,6 +79,16 @@ class ChassAction:
                 evolve_to=self.evolve_to,
             )
         raise ValueError("Incomplete Chass analysis action")
+
+    @property
+    def search_family(self) -> str:
+        """Group equivalent mechanics so one action type cannot crowd out the rest."""
+        if self.kind == "move":
+            return "move"
+        if self.kind == "custom":
+            action_type = (self.payload or {}).get("actionType", "custom")
+            return f"custom:{action_type}"
+        return f"command:{self.power or 'command'}"
 
 
 def _capture_hint(option: MoveOption, color: str) -> float:
@@ -267,5 +279,72 @@ def legal_turn_actions(
         *_custom_actions(state, color, engine),
         *_command_actions(state, color, engine),
     ]
-    actions.sort(key=lambda action: (-action.ordering_score, action.key))
-    return actions if limit is None else actions[: max(0, limit)]
+    return select_search_actions(actions, limit=limit)
+
+
+def select_search_actions(
+    actions: list[ChassAction],
+    *,
+    limit: int | None,
+    priorities: Mapping[str, float] | None = None,
+) -> list[ChassAction]:
+    """Return a deterministic, mechanic-balanced subset for bounded search.
+
+    Ordinary moves receive at least half of a mixed candidate budget. Remaining
+    slots are shared round-robin across each custom action and command family.
+    This prevents high-volume mechanics such as Scorch from hiding every board
+    move while preserving representative actions from enabled mechanics.
+    """
+
+    def priority(action: ChassAction) -> float:
+        if priorities is None:
+            return action.ordering_score
+        return priorities.get(action.key, action.ordering_score)
+
+    ordered = sorted(actions, key=lambda action: (-priority(action), action.key))
+    if limit is None or len(ordered) <= max(0, limit):
+        return ordered
+    bounded_limit = max(0, limit)
+    if bounded_limit == 0:
+        return []
+
+    moves = [action for action in ordered if action.kind == "move"]
+    mechanic_groups: dict[str, list[ChassAction]] = defaultdict(list)
+    for action in ordered:
+        if action.kind != "move":
+            mechanic_groups[action.search_family].append(action)
+
+    selected: list[ChassAction] = []
+    selected_keys: set[str] = set()
+
+    def add(action: ChassAction) -> None:
+        if action.key in selected_keys or len(selected) >= bounded_limit:
+            return
+        selected.append(action)
+        selected_keys.add(action.key)
+
+    if moves:
+        move_slots = bounded_limit if not mechanic_groups else max(1, bounded_limit // 2)
+        for action in moves[:move_slots]:
+            add(action)
+
+    groups = [mechanic_groups[key] for key in sorted(mechanic_groups)]
+    group_index = 0
+    while groups and len(selected) < bounded_limit:
+        next_groups: list[list[ChassAction]] = []
+        for group in groups:
+            if group_index < len(group):
+                add(group[group_index])
+            if group_index + 1 < len(group):
+                next_groups.append(group)
+            if len(selected) >= bounded_limit:
+                break
+        groups = next_groups
+        group_index += 1
+
+    for action in ordered:
+        add(action)
+        if len(selected) >= bounded_limit:
+            break
+
+    return sorted(selected, key=lambda action: (-priority(action), action.key))

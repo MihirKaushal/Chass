@@ -6,7 +6,7 @@ from time import perf_counter
 from backend.models import GameState
 from backend.rules import RuleEngine
 
-from .action_space import ChassAction, legal_turn_actions
+from .action_space import ChassAction, legal_turn_actions, select_search_actions
 from .evaluator import ChassEvaluator, chass_position_hash
 
 
@@ -55,6 +55,7 @@ class ChassSearch:
         self._deadline = 0.0
         self._nodes = 0
         self._table: dict[tuple[str, int], float] = {}
+        self._prepared_root_children: dict[str, GameState] = {}
 
     @staticmethod
     def _terminal_score(state: GameState) -> float | None:
@@ -114,7 +115,7 @@ class ChassSearch:
         actions = legal_turn_actions(
             state,
             self.engine,
-            limit=self.max_quiescence_actions,
+            limit=None if in_check else self.max_quiescence_actions,
         )
         if not in_check:
             actions = [action for action in actions if action.ordering_score >= 4.0]
@@ -163,7 +164,7 @@ class ChassSearch:
         actions = legal_turn_actions(
             state,
             self.engine,
-            limit=self.max_reply_actions,
+            limit=None if state.game_status == "check" else self.max_reply_actions,
         )
         if not actions:
             value = self.evaluator.evaluate(state, detailed=False).score
@@ -236,7 +237,12 @@ class ChassSearch:
         rankings: list[RankedAction] = []
         for action in actions:
             try:
-                child = self._apply(state, action)
+                self._check_budget()
+                child = self._prepared_root_children.get(action.key)
+                if child is None:
+                    child = self._apply(state, action)
+                else:
+                    self._nodes += 1
                 if child is None:
                     continue
                 terminal_score = self._terminal_score(child)
@@ -275,6 +281,45 @@ class ChassSearch:
             )
         return self._ordered_rankings(state, rankings), True
 
+    def _prepare_root_actions(
+        self,
+        state: GameState,
+        actions: list[ChassAction],
+    ) -> tuple[list[ChassAction], list[RankedAction], dict[str, float]]:
+        """Screen every root action for immediate outcomes before truncation."""
+        valid_actions: list[ChassAction] = []
+        immediate_wins: list[RankedAction] = []
+        priorities: dict[str, float] = {}
+        self._prepared_root_children.clear()
+        for action in actions:
+            try:
+                child = action.apply(state, self.engine)
+            except ValueError:
+                continue
+            valid_actions.append(action)
+            self._prepared_root_children[action.key] = child
+            priority = action.ordering_score
+            if child.game_status == "check":
+                priority += 25.0
+            if child.winner == state.current_player:
+                terminal_score = self._terminal_score(child)
+                mate_in = None
+                if child.result is not None and child.result.reason_code == "checkmate":
+                    mate_in = 1 if state.current_player == "white" else -1
+                immediate_wins.append(
+                    RankedAction(
+                        action=action,
+                        score=terminal_score if terminal_score is not None else 0.0,
+                        immediate_winner=state.current_player,
+                        mate_in=mate_in,
+                    )
+                )
+                priority += 1_000.0
+            elif child.winner is not None:
+                priority -= 1_000.0
+            priorities[action.key] = priority
+        return valid_actions, self._ordered_rankings(state, immediate_wins), priorities
+
     def analyze(
         self,
         state: GameState,
@@ -290,25 +335,45 @@ class ChassSearch:
         if terminal is not None:
             return SearchResult(terminal, depth=0, nodes=0)
 
-        self._deadline = perf_counter() + (self.movetime_ms / 1000)
         self._nodes = 0
         self._table.clear()
         try:
-            actions = legal_turn_actions(
+            all_actions = legal_turn_actions(state, self.engine)
+            valid_actions, immediate_wins, priorities = self._prepare_root_actions(
                 state,
-                self.engine,
-                limit=self.max_root_actions,
+                all_actions,
             )
         except Exception:
             return SearchResult(static, depth=0, nodes=0)
-        if not actions:
+        if not valid_actions:
             return SearchResult(static, depth=0, nodes=0)
 
+        if immediate_wins:
+            best = immediate_wins[0]
+            return SearchResult(
+                score=best.score,
+                depth=1,
+                nodes=0,
+                mate_in=best.mate_in,
+                immediate_winner=best.immediate_winner,
+                best_action=best.action,
+                ranked_actions=tuple(immediate_wins),
+            )
+
+        actions = select_search_actions(
+            valid_actions,
+            limit=None if state.game_status == "check" else self.max_root_actions,
+            priorities=priorities,
+        )
+        # Move time is a search budget. Authoritative action generation and
+        # terminal screening happen first, so they cannot consume the entire
+        # allowance before a single candidate is considered.
+        self._deadline = perf_counter() + (self.movetime_ms / 1000)
+
         rankings, completed = self._rank_root_actions(state, actions, depth=1)
-        if not rankings:
-            # Legal-action generation can consume the full time allowance on a
-            # throttled free-tier host. Analysis may remain static, but callers
-            # such as the bot still need a guaranteed legal action to play.
+        if not completed:
+            # Partial root results are biased by ordering. Keep a legal bot
+            # action, but do not report that subset as a completed depth.
             fallback = self._fallback_rankings(state, actions, static)
             return SearchResult(
                 static,
@@ -317,6 +382,9 @@ class ChassSearch:
                 best_action=fallback[0].action,
                 ranked_actions=tuple(fallback),
             )
+
+        if not rankings:
+            return SearchResult(static, depth=0, nodes=self._nodes)
 
         completed_depth = 1
         remaining_fraction = max(
