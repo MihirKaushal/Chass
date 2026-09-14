@@ -6,6 +6,7 @@ import SiteFooter from "../components/SiteFooter";
 import Button from "../components/ui/Button";
 import Dialog from "../components/ui/Dialog";
 import { shouldConfirmDiscardingCustomization } from "../leaveGameGuard";
+import { navigate, useNavigationBlocker } from "../routing";
 
 function LeaveCustomizeConfirmation({ open, onCancel, onConfirm }) {
   return (
@@ -14,14 +15,14 @@ function LeaveCustomizeConfirmation({ open, onCancel, onConfirm }) {
       onClose={onCancel}
       closeLabel="Close leave Customize confirmation"
       eyebrow="Unsaved Configuration"
-      title="Leave Customize?"
-      description="Your custom game settings will be lost if you return home before starting a game."
+      title="Leave Game Customizer?"
+      description="Your custom game settings will be lost if you leave this page before starting a game."
       actions={(
         <>
           <Button variant="secondary" onClick={onCancel}>
             Keep Editing
           </Button>
-          <Button variant="danger" onClick={onConfirm}>Leave And Go Home</Button>
+          <Button variant="danger" onClick={onConfirm}>Leave Game Customizer</Button>
         </>
       )}
     />
@@ -31,9 +32,21 @@ function LeaveCustomizeConfirmation({ open, onCancel, onConfirm }) {
 function CustomizePage({ onCreate, onHome, initialPreset = "" }) {
   const [configurationModified, setConfigurationModified] = useState(false);
   const [confirmingLeave, setConfirmingLeave] = useState(false);
+  const [pendingLeaveDestination, setPendingLeaveDestination] = useState("/");
+
+  useNavigationBlocker(
+    (destination) => {
+      if (!shouldConfirmDiscardingCustomization(configurationModified)) return true;
+      setPendingLeaveDestination(destination);
+      setConfirmingLeave(true);
+      return false;
+    },
+    shouldConfirmDiscardingCustomization(configurationModified)
+  );
 
   const requestHome = () => {
     if (shouldConfirmDiscardingCustomization(configurationModified)) {
+      setPendingLeaveDestination("/");
       setConfirmingLeave(true);
       return;
     }
@@ -54,7 +67,10 @@ function CustomizePage({ onCreate, onHome, initialPreset = "" }) {
       <LeaveCustomizeConfirmation
         open={confirmingLeave}
         onCancel={() => setConfirmingLeave(false)}
-        onConfirm={onHome}
+        onConfirm={() => {
+          setConfirmingLeave(false);
+          navigate(pendingLeaveDestination, { bypassBlocker: true });
+        }}
       />
     </div>
   );

@@ -48,7 +48,7 @@ import HomePage from "./pages/HomePage";
 import JoinPage from "./pages/JoinPage";
 import PlayPage from "./pages/PlayPage";
 import AbilitySelectionPage, { AbilityHandoffPage } from "./pages/AbilitySelectionPage";
-import { navigate, useRoute } from "./routing";
+import { navigate, useNavigationBlocker, useRoute } from "./routing";
 
 
 const FINISHED_STATUSES = new Set([
@@ -227,6 +227,15 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
   const handledAnalysisRetryRef = useRef(0);
   const reconnectInviteRequestRef = useRef("");
+
+  useNavigationBlocker(
+    (destination) => {
+      if (!shouldConfirmGameNavigation(gameRef.current)) return true;
+      setPendingLeaveDestination(destination);
+      return false;
+    },
+    shouldConfirmGameNavigation(game)
+  );
 
   useEffect(() => {
     getCatalog().then(setCatalog).catch(() => {});
@@ -1137,7 +1146,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
                 onClick={() => {
                   const destination = pendingLeaveDestination;
                   setPendingLeaveDestination(null);
-                  navigate(destination);
+                  navigate(destination, { bypassBlocker: true });
                 }}
               >
                 {pendingLeaveDestination === "/" ? "Leave And Go Home" : "Leave And Customize"}
