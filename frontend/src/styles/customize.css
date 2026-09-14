@@ -1444,6 +1444,23 @@ details[open] > summary > .disclosure-arrow {
   text-align: center;
 }
 
+.gambit-piece-limit-grid .is-required-piece {
+  border-color: rgba(26, 54, 93, 0.1);
+  background: rgba(26, 54, 93, 0.07);
+}
+
+.gambit-piece-limit-grid .is-required-piece > span {
+  color: rgba(26, 54, 93, 0.58);
+}
+
+.gambit-piece-limit-grid .is-required-piece input:disabled {
+  color: rgba(26, 54, 93, 0.56);
+  border-color: rgba(26, 54, 93, 0.12);
+  background: rgba(234, 216, 181, 0.48);
+  cursor: not-allowed;
+  opacity: 0.82;
+}
+
 .studio-toggle {
   display: grid;
   grid-template-columns: auto auto 1fr;
