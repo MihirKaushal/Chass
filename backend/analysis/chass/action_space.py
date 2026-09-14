@@ -90,6 +90,18 @@ class ChassAction:
             return f"custom:{action_type}"
         return f"command:{self.power or 'command'}"
 
+    def needs_terminal_prescreen(self, state: GameState) -> bool:
+        """Return whether this action can immediately decide the current game."""
+        if self.kind != "custom":
+            return True
+        action_type = (self.payload or {}).get("actionType")
+        if action_type != "scorch":
+            return True
+        # Scorch neither moves nor captures a piece. Only Center Dominion can
+        # end during its turn-completion bookkeeping, so ordinary Scorch
+        # targets can wait for the bounded search instead of all being cloned.
+        return state.configuration.victory.mode == "center_dominion"
+
 
 def _capture_hint(option: MoveOption, color: str) -> float:
     score = 0.0

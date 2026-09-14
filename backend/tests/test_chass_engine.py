@@ -417,6 +417,22 @@ def test_bounded_action_space_reserves_moves_and_each_mechanic_family(client):
     assert any(family.startswith("command:") for family in families)
 
 
+def test_scorch_skips_terminal_prescreen_unless_turn_bookkeeping_can_end_game(client):
+    state = _default_state(client)
+    state.configuration.special_abilities.enabled = True
+    state.configuration.special_abilities.allowed = ["scorch"]
+    state.abilities.selected["white"] = ["scorch"]
+    scorch = next(
+        action
+        for action in legal_turn_actions(state, RuleEngine())
+        if action.search_family == "custom:scorch"
+    )
+
+    assert scorch.needs_terminal_prescreen(state) is False
+    state.configuration.victory.mode = "center_dominion"
+    assert scorch.needs_terminal_prescreen(state) is True
+
+
 def test_search_detects_an_authoritative_checkmate_in_one(client):
     state = _minimal_state(client)
     state.board.grid = [
