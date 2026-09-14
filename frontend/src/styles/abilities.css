@@ -494,9 +494,8 @@
   }
 
   .play-panel-dock {
-    position: sticky;
+    position: relative;
     z-index: 35;
-    bottom: max(0.55rem, env(safe-area-inset-bottom));
     order: 2;
     width: min(520px, calc(100% - 1rem));
     display: grid;
