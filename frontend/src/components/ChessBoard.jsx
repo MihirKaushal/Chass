@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { boardFileLabel, boardSquareLabel } from "../boardGeometry";
+import { pieceTapIntent } from "../pieceTap";
 import { boardActionsWithStandardMovePriority } from "../specialActionSelection";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
@@ -218,38 +219,33 @@ function ChessBoard({
 
   const handleSquareClick = (row, col, piece, details, clickCount) => {
     if (!interactive) return;
-    if (pieceDetailsMode !== "double-tap" || !piece) {
-      const pending = pendingPieceTapRef.current;
-      if (pending) {
-        window.clearTimeout(pending.timer);
-        pendingPieceTapRef.current = null;
-        activateSquare(pending.row, pending.col);
-        window.setTimeout(() => activateSquare(row, col), 0);
-      } else {
-        activateSquare(row, col);
-      }
-      return;
-    }
-
     const squareKey = `${row}-${col}`;
     const pending = pendingPieceTapRef.current;
-    if (clickCount >= 2 || pending?.key === squareKey) {
+    const intent = pieceTapIntent({
+      detailsMode: pieceDetailsMode,
+      hasPiece: Boolean(piece),
+      clickCount,
+      squareKey,
+      pendingSquareKey: pending?.key,
+    });
+    if (intent === "details") {
       showPieceDetails(squareKey, details);
       return;
     }
     if (pending) {
       window.clearTimeout(pending.timer);
       pendingPieceTapRef.current = null;
-      activateSquare(pending.row, pending.col);
     }
 
     setHoveredPiece(null);
+    activateSquare(row, col);
+    if (pieceDetailsMode !== "double-tap" || !piece) return;
+
     const timer = window.setTimeout(() => {
       if (pendingPieceTapRef.current?.timer !== timer) return;
       pendingPieceTapRef.current = null;
-      activateSquare(row, col);
     }, DOUBLE_TAP_WINDOW_MS);
-    pendingPieceTapRef.current = { key: squareKey, row, col, timer };
+    pendingPieceTapRef.current = { key: squareKey, timer };
   };
 
   return (
