@@ -917,6 +917,8 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
 
         token = authentication.get("token")
         authorized = await run_in_threadpool(game_service.authorize, game_id, token)
+    except WebSocketDisconnect:
+        return
     except HTTPException as error:
         await socket_manager.send(
             websocket,

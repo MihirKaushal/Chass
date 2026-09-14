@@ -488,6 +488,13 @@ def test_websocket_authenticates_before_joining_room(client):
         assert presence["connected"]["white"] is True
 
 
+def test_websocket_can_disconnect_before_authentication(client):
+    created = create_online_game(client)
+
+    with client.websocket_connect(f"/game/ws/{created['game']['id']}"):
+        pass
+
+
 def test_successful_move_refreshes_idle_expiration(client):
     created = client.post("/game/create", json={"mode": "local"}).json()
     game_id = created["game"]["id"]
