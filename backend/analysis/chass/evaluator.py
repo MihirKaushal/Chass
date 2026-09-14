@@ -42,11 +42,28 @@ def opposing(color: str) -> str:
     return "black" if color == "white" else "white"
 
 
+def _stable_clock_hash_payload(payload: dict[str, Any]) -> None:
+    clock = payload.get("clock")
+    if not isinstance(clock, dict):
+        return
+    clock.pop("turn_started_at", None)
+    initial = max(1.0, float(clock.get("initial_seconds", 1)))
+    bucket_seconds = max(1.0, min(30.0, initial / 40.0))
+    remaining = clock.get("remaining_seconds")
+    if isinstance(remaining, dict):
+        clock["remaining_seconds"] = {
+            color: math.ceil(max(0.0, float(seconds)) / bucket_seconds)
+            for color, seconds in remaining.items()
+        }
+    clock["pressure_bucket_seconds"] = round(bucket_seconds, 3)
+
+
 def chass_position_hash(state: GameState) -> str:
     payload = state.model_dump(
         mode="json",
         exclude={"id", "rematch"},
     )
+    _stable_clock_hash_payload(payload)
     encoded = json.dumps(
         {"model": MODEL_VERSION, "state": payload},
         sort_keys=True,

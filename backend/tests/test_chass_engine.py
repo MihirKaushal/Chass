@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import math
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 
 import pytest
 
@@ -306,6 +306,29 @@ def test_position_hash_tracks_rule_parameters_runtime_and_model_version(client):
 
     assert MODEL_VERSION.startswith("chass-hce-")
     assert len({baseline, configured, runtime}) == 3
+
+
+def test_position_hash_buckets_live_clock_refreshes_without_ignoring_time_pressure(client):
+    state = _default_state(client)
+    state.configuration.victory.mode = "timed"
+    state.clock = ClockState(
+        initial_seconds=600,
+        remaining_seconds={"white": 599.8, "black": 600},
+        active_color="white",
+        turn_started_at=datetime.now(timezone.utc),
+    )
+    engine = RuleEngine()
+    baseline = chass_position_hash(state)
+
+    state.clock.turn_started_at -= timedelta(milliseconds=400)
+    engine.refresh_clock(state)
+    refreshed = chass_position_hash(state)
+
+    state.clock.remaining_seconds["white"] -= 20
+    lower_time = chass_position_hash(state)
+
+    assert refreshed == baseline
+    assert lower_time != baseline
 
 
 def test_affinity_threshold_changes_partial_control_value(client):
