@@ -44,6 +44,18 @@ def test_popular_presets_do_not_duplicate_victory_modes():
     ]
 
 
+def test_gambit_starting_systems_leave_affinity_as_an_opt_in_rule():
+    gambit_modes = {
+        mode["id"]: mode for mode in POPULAR_PRESETS if "gambit" in mode["id"]
+    }
+
+    assert set(gambit_modes) == {"gambit", "draft_gambit"}
+    assert all(
+        mode.get("customRules", {}).get("affinityEnabled", False) is False
+        for mode in gambit_modes.values()
+    )
+
+
 def test_configured_catalog_copy_pluralizes_descriptive_counts():
     pieces = {piece["type"]: piece for piece in catalog_payload()["pieces"]}
 
