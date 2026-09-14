@@ -292,6 +292,10 @@ class ChassSearch:
         priorities: dict[str, float] = {}
         self._prepared_root_children.clear()
         for action in actions:
+            if not action.needs_terminal_prescreen(state):
+                valid_actions.append(action)
+                priorities[action.key] = action.ordering_score
+                continue
             try:
                 child = action.apply(state, self.engine)
             except ValueError:
