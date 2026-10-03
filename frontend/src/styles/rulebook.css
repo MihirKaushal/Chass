@@ -64,7 +64,7 @@
 
 .rulebook-overview-tools {
   align-items: flex-end;
-  padding-top: 0;
+  padding-top: clamp(0.75rem, 1.5vw, 1rem);
 }
 
 .rulebook-search-column {
