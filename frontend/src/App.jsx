@@ -47,6 +47,7 @@ import GambitPage from "./pages/GambitPage";
 import HomePage from "./pages/HomePage";
 import JoinPage from "./pages/JoinPage";
 import PlayPage from "./pages/PlayPage";
+import RulebookPage from "./pages/RulebookPage";
 import AbilitySelectionPage, { AbilityHandoffPage } from "./pages/AbilitySelectionPage";
 import { navigate, useNavigationBlocker, useRoute } from "./routing";
 
@@ -1291,6 +1292,15 @@ function App() {
         onCreate={handleCreate}
         onHome={() => navigate("/")}
         initialPreset={route.preset}
+      />
+    );
+  }
+
+  if (route.name === "rulebook") {
+    return (
+      <RulebookPage
+        onHome={() => navigate("/")}
+        onCustomize={() => navigate("/customize")}
       />
     );
   }

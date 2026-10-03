@@ -78,7 +78,7 @@ test("customize search returns direct setting and catalog destinations", () => {
   const analysis = matchingCustomizeResults("match analysis", catalog)[0];
   assert.equal(analysis.label, "Match Analysis");
   assert.equal(analysis.category, "Rulebook");
-  assert.equal(analysis.targetId, "rulebook-match-analysis");
+  assert.equal(analysis.targetId, "rulebook");
 
   const pieceLimits = matchingCustomizeResults("army piece limits", catalog)[0];
   assert.equal(pieceLimits.label, "Army Piece Limits");
@@ -88,7 +88,7 @@ test("customize search returns direct setting and catalog destinations", () => {
   const bots = matchingCustomizeResults("chess bot", catalog)[0];
   assert.equal(bots.label, "Chess Bots");
   assert.equal(bots.category, "Rulebook");
-  assert.equal(bots.targetId, "rulebook-bots");
+  assert.equal(bots.targetId, "rulebook");
 });
 
 test("broad reference searches still navigate to the Rulebook section", () => {

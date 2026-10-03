@@ -67,6 +67,22 @@ function CustomizeSkeleton() {
   );
 }
 
+function RulebookSkeleton() {
+  return (
+    <section className="skeleton-rulebook-body" aria-hidden="true">
+      <div className="skeleton-rulebook-hero">
+        <div><SkeletonLine size="short" /><SkeletonLine size="long" /><SkeletonLine size="medium" /></div>
+        <span className="skeleton-block skeleton-rulebook-search" />
+      </div>
+      <div className="skeleton-rulebook-grid">
+        <SkeletonPanel rows={4} />
+        <SkeletonPanel rows={4} />
+        <SkeletonPanel rows={5} />
+      </div>
+    </section>
+  );
+}
+
 function PageSkeleton({ variant = "play", embedded = false }) {
   return (
     <div
@@ -77,7 +93,11 @@ function PageSkeleton({ variant = "play", embedded = false }) {
     >
       <span className="visually-hidden">Loading Chass</span>
       {!embedded ? <SkeletonNavigation /> : null}
-      {variant === "customize" ? <CustomizeSkeleton /> : <PlaySkeleton />}
+      {variant === "customize"
+        ? <CustomizeSkeleton />
+        : variant === "rulebook"
+          ? <RulebookSkeleton />
+          : <PlaySkeleton />}
       {!embedded ? <span className="skeleton-block skeleton-footer-line" aria-hidden="true" /> : null}
     </div>
   );

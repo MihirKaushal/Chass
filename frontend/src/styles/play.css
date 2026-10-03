@@ -2722,7 +2722,7 @@
     justify-self: stretch;
   }
 
-  .tab-nav button {
+  .tab-nav :is(button, a) {
     flex: 1;
   }
 

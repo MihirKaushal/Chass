@@ -12,14 +12,18 @@ function navigationAllowed(path) {
 }
 
 
-function routeFromPath(pathname) {
+export function routeFromPath(pathname, search = "") {
   if (/^\/gambit\/?$/.test(pathname)) {
     return { name: "customize", preset: "gambit" };
   }
 
   if (/^\/customize\/?$/.test(pathname)) {
-    const preset = new URLSearchParams(window.location.search).get("preset") || "";
+    const preset = new URLSearchParams(search).get("preset") || "";
     return { name: "customize", preset };
+  }
+
+  if (/^\/rulebook\/?$/.test(pathname)) {
+    return { name: "rulebook" };
   }
 
   const joinMatch = pathname.match(/^\/join\/([^/]+)\/?$/);
@@ -69,7 +73,10 @@ export function useNavigationBlocker(blocker, enabled) {
 }
 
 export function useRoute() {
-  const [route, setRoute] = useState(() => routeFromPath(window.location.pathname));
+  const [route, setRoute] = useState(() => routeFromPath(
+    window.location.pathname,
+    window.location.search
+  ));
   const acceptedLocationRef = useRef(currentLocation());
 
   useEffect(() => {
@@ -83,7 +90,7 @@ export function useRoute() {
         }
       }
       acceptedLocationRef.current = nextLocation;
-      setRoute(routeFromPath(window.location.pathname));
+      setRoute(routeFromPath(window.location.pathname, window.location.search));
     };
     window.addEventListener("popstate", handleLocationChange);
     return () => window.removeEventListener("popstate", handleLocationChange);

@@ -47,7 +47,7 @@ const STATIC_SETTING_LINKS = [
     label: "Match Analysis",
     sectionId: "rulebook",
     category: "Rulebook",
-    targetId: "rulebook-match-analysis",
+    targetId: "rulebook",
     keywords: "stockfish fairy analysis automatic engine outcome estimate parity",
   },
   {
@@ -55,7 +55,7 @@ const STATIC_SETTING_LINKS = [
     label: "Chess Bots",
     sectionId: "rulebook",
     category: "Rulebook",
-    targetId: "rulebook-bots",
+    targetId: "rulebook",
     keywords: "stockfish fairy chass engine bot classic chess custom static universal variant computer opponent elo beginner learner developing intermediate advanced expert master royal center check race gambit abilities custom pieces 10x12",
   },
   {
