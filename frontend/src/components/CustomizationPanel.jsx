@@ -973,7 +973,7 @@ function RulebookSection({
   );
 }
 
-function Rulebook({ catalog, draft, predictorProfile }) {
+function Rulebook({ catalog, draft, predictorProfile, open, onOpenChange }) {
   const [query, setQuery] = useState("");
   const [enabledOnly, setEnabledOnly] = useState(false);
   const effectivePieces = catalog.pieces.map((piece) => effectiveCatalogEntry(
@@ -1072,12 +1072,23 @@ function Rulebook({ catalog, draft, predictorProfile }) {
   const revealKey = query || (enabledOnly ? "enabled" : "");
 
   return (
-    <section className="rulebook" id="rulebook">
-      <header className="rulebook-hero">
+    <Disclosure
+      className="rulebook rulebook-overview"
+      id="rulebook"
+      open={open}
+      onToggle={(event) => onOpenChange(event.currentTarget.open)}
+      summary={(
         <div className="rulebook-hero-copy">
           <span className="eyebrow">Complete Reference</span>
           <h2>The Chass Rulebook</h2>
           <p>Detailed behavior for every engine, bot, piece, win condition, ability, and Gambit system.</p>
+        </div>
+      )}
+      summaryClassName="rulebook-hero rulebook-overview-summary"
+      bodyClassName="rulebook-overview-body"
+    >
+      <header className="rulebook-hero rulebook-overview-tools">
+        <div className="rulebook-search-column">
           <div className="rulebook-search-tools">
             <label className="rulebook-search">
               <span className="visually-hidden">Search the rulebook</span>
@@ -1233,7 +1244,7 @@ function Rulebook({ catalog, draft, predictorProfile }) {
           ? <p>{countdownCopy}</p>
           : <EmptyState className="rulebook-empty">No matching countdown rules in this configuration.</EmptyState>}
       </RulebookSection>
-    </section>
+    </Disclosure>
   );
 }
 
@@ -1250,6 +1261,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const [sectionQuery, setSectionQuery] = useState("");
   const [pieceFilter, setPieceFilter] = useState("all");
   const [openSections, setOpenSections] = useState(initialSectionVisibility);
+  const [rulebookOpen, setRulebookOpen] = useState(false);
   const [pendingStartingSystem, setPendingStartingSystem] = useState(null);
   const [highlightedIssueSquares, setHighlightedIssueSquares] = useState([]);
   const [placementNotice, setPlacementNotice] = useState("");
@@ -1639,6 +1651,10 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   };
 
   const setSectionOpen = (sectionId, open) => {
+    if (sectionId === "rulebook") {
+      setRulebookOpen(open);
+      return;
+    }
     if (!CONFIGURATION_SECTION_IDS.includes(sectionId)) return;
     setOpenSections((current) => (
       current[sectionId] === open ? current : { ...current, [sectionId]: open }
@@ -1649,6 +1665,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     setOpenSections(Object.fromEntries(
       CONFIGURATION_SECTION_IDS.map((sectionId) => [sectionId, open])
     ));
+    setRulebookOpen(open);
   };
 
   const resetStudioSection = (sectionId) => {
@@ -2278,7 +2295,13 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
         </div>
       </section>
       {error ? <p className="studio-error">{error}</p> : null}
-      <Rulebook catalog={catalog} draft={draft} predictorProfile={predictorProfile} />
+      <Rulebook
+        catalog={catalog}
+        draft={draft}
+        predictorProfile={predictorProfile}
+        open={rulebookOpen}
+        onOpenChange={setRulebookOpen}
+      />
       <StartingSystemConfirmation
         mode={pendingStartingSystem}
         onCancel={() => setPendingStartingSystem(null)}
