@@ -233,7 +233,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const reconnectInviteRequestRef = useRef("");
   const gameSounds = useGameSounds(
     game,
-    session?.color || game?.bot?.humanColor || null
+    session?.color || game?.bot?.humanColor || null,
+    pendingMove
   );
 
   useNavigationBlocker(

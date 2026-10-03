@@ -4,7 +4,9 @@ import {
   DEFAULT_SOUND_VOLUME,
   SOUND_ASSETS,
   clampSoundVolume,
+  confirmsOptimisticMove,
   gameSoundSnapshot,
+  optimisticMoveSoundToken,
   readSoundPreferences,
   soundForGameTransition,
   writeSoundPreferences,
@@ -23,16 +25,19 @@ function createAudioElements() {
   return Object.fromEntries(Object.entries(SOUND_ASSETS).map(([name, source]) => {
     const audio = new globalThis.Audio(source);
     audio.preload = "auto";
+    audio.load?.();
     return [name, audio];
   }));
 }
 
-export default function useGameSounds(game, playerColor) {
+export default function useGameSounds(game, playerColor, pendingMove = null) {
   const [preferences, setPreferences] = useState(() => (
     readSoundPreferences(browserStorage())
   ));
   const audioElementsRef = useRef({});
   const gameSnapshotRef = useRef(null);
+  const optimisticMoveSoundRef = useRef(null);
+  const lastOptimisticMoveKeyRef = useRef("");
 
   useEffect(() => {
     audioElementsRef.current = createAudioElements();
@@ -69,10 +74,40 @@ export default function useGameSounds(game, playerColor) {
 
   useEffect(() => {
     const currentSnapshot = gameSoundSnapshot(game, playerColor);
-    const sound = soundForGameTransition(gameSnapshotRef.current, currentSnapshot);
+    const previousSnapshot = gameSnapshotRef.current;
+    let sound = soundForGameTransition(previousSnapshot, currentSnapshot);
+    let optimisticToken = optimisticMoveSoundRef.current;
+
+    const optimisticMoveConfirmed = confirmsOptimisticMove(
+      optimisticToken,
+      previousSnapshot,
+      currentSnapshot
+    );
+    if (optimisticMoveConfirmed) {
+      if (sound === "move") sound = null;
+      optimisticToken = null;
+    }
+
     gameSnapshotRef.current = currentSnapshot;
     if (sound) playSound(sound);
-  }, [game, playerColor, playSound]);
+
+    const pendingKey = pendingMove?.id == null || !currentSnapshot
+      ? ""
+      : `${currentSnapshot.gameId}:${pendingMove.id}`;
+    if (pendingKey && pendingKey !== lastOptimisticMoveKeyRef.current) {
+      const nextToken = optimisticMoveSoundToken(currentSnapshot, pendingMove);
+      lastOptimisticMoveKeyRef.current = pendingKey;
+      if (nextToken) {
+        optimisticToken = nextToken;
+        playSound("move");
+      }
+    } else if (!pendingMove && optimisticToken && !optimisticMoveConfirmed) {
+      // A rejected or interrupted optimistic move must not suppress a later move.
+      optimisticToken = null;
+    }
+
+    optimisticMoveSoundRef.current = optimisticToken;
+  }, [game, pendingMove, playerColor, playSound]);
 
   const setVolume = useCallback((value) => {
     const volume = clampSoundVolume(value);

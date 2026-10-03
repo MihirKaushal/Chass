@@ -51,6 +51,18 @@ export function isMovementActionType(actionType) {
   return MOVEMENT_ACTION_TYPES.has(actionType || "move");
 }
 
+function movementSignature(actionType, player, from, to) {
+  if (!isMovementActionType(actionType) || !from || !to) return null;
+  return [
+    actionType || "move",
+    player || "unknown",
+    from.row,
+    from.col,
+    to.row,
+    to.col,
+  ].join(":");
+}
+
 export function gameSoundSnapshot(game, playerColor = null) {
   if (!game?.id) return null;
   const history = Array.isArray(game.history) ? game.history : [];
@@ -60,10 +72,56 @@ export function gameSoundSnapshot(game, playerColor = null) {
     gameId: game.id,
     mode: game.mode,
     playerColor,
+    currentPlayer: game.currentPlayer || null,
+    version: Number(game.version) || 0,
     winner: game.winner || null,
     moveCount: Number(game.historyPagination?.totalMoves ?? history.length) || 0,
     lastActionType: lastRecord?.actionType || (history.length ? "move" : null),
+    lastMovementSignature: movementSignature(
+      lastRecord?.actionType || (lastRecord ? "move" : null),
+      lastRecord?.player,
+      lastRecord?.from,
+      lastRecord?.to
+    ),
   };
+}
+
+export function optimisticMoveSoundToken(snapshot, pendingMove) {
+  if (!snapshot || pendingMove?.id == null || !pendingMove.move) return null;
+  if (
+    pendingMove.baseVersion != null
+    && snapshot.version !== Number(pendingMove.baseVersion)
+  ) {
+    return null;
+  }
+
+  const signature = movementSignature(
+    "move",
+    snapshot.currentPlayer,
+    pendingMove.move.from,
+    pendingMove.move.to
+  );
+  if (!signature) return null;
+
+  return {
+    gameId: snapshot.gameId,
+    pendingId: pendingMove.id,
+    baseMoveCount: snapshot.moveCount,
+    signature,
+  };
+}
+
+export function confirmsOptimisticMove(token, previous, current) {
+  return Boolean(
+    token
+    && previous
+    && current
+    && token.gameId === current.gameId
+    && previous.gameId === current.gameId
+    && current.moveCount > token.baseMoveCount
+    && current.moveCount > previous.moveCount
+    && current.lastMovementSignature === token.signature
+  );
 }
 
 export function outcomeSoundForSnapshot(snapshot) {
