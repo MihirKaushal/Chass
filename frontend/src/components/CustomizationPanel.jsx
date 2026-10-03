@@ -950,7 +950,6 @@ function RulebookLauncher() {
             Open Rulebook
             <NewTabIcon />
           </a>
-          <small>Opens in a new tab</small>
         </div>
       </div>
     </section>
