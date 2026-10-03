@@ -40,6 +40,7 @@ import {
 } from "./gameSession";
 import { onlineInviteState } from "./onlineInviteState";
 import useGameSocket from "./hooks/useGameSocket";
+import useGameSounds from "./hooks/useGameSounds";
 import { shouldConfirmGameNavigation } from "./leaveGameGuard";
 import { analysisMatchesGame } from "./matchPredictor";
 import CustomizePage from "./pages/CustomizePage";
@@ -230,6 +231,10 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
   const handledAnalysisRetryRef = useRef(0);
   const reconnectInviteRequestRef = useRef("");
+  const gameSounds = useGameSounds(
+    game,
+    session?.color || game?.bot?.humanColor || null
+  );
 
   useNavigationBlocker(
     (destination) => {
@@ -1004,6 +1009,10 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         variant={game.variant}
         phase={game.phase}
         bot={game.bot}
+        soundVolume={gameSounds.volume}
+        soundMuted={gameSounds.muted}
+        onSoundVolumeChange={gameSounds.setVolume}
+        onToggleSoundMuted={gameSounds.toggleMuted}
       />
 
       {game.mode === "online" ? (
