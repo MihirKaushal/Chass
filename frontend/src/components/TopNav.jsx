@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { onlinePlayerStatus, onlinePlayerSummary, roomLabel } from "../playHeader";
+import NewTabIcon from "./NewTabIcon";
 import Button from "./ui/Button";
 import StatusBadge from "./ui/StatusBadge";
 
@@ -107,6 +108,16 @@ function TopNav({
         <button type="button" className="tab site-nav-button" onClick={onCustomize}>
           Customize
         </button>
+        <a
+          className="tab site-nav-button new-tab-link"
+          href="/rulebook"
+          target="_blank"
+          rel="noopener noreferrer"
+          aria-label="Open the Chass Rulebook in a new tab"
+        >
+          Rulebook
+          <NewTabIcon />
+        </a>
       </nav>
 
       <div className="game-hud">

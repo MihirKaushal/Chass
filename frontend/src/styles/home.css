@@ -79,23 +79,31 @@
   background: rgba(255, 255, 255, 0.48);
 }
 
-.landing-mode-nav button {
+.landing-mode-nav > :is(button, a, span) {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.36rem;
   border: 0;
   border-radius: var(--radius-pill);
   padding: 0.48rem 0.95rem;
   color: var(--deep);
   background: transparent;
   font-weight: 700;
+  text-decoration: none;
+}
+
+.landing-mode-nav > :is(button, a) {
   cursor: pointer;
 }
 
-.landing-mode-nav button.active {
+.landing-mode-nav > .active {
   color: white;
   background: var(--accent);
 }
 
-.landing-mode-nav button.active:hover,
-.landing-mode-nav button.active:focus-visible {
+.landing-mode-nav > .active:hover,
+.landing-mode-nav > .active:focus-visible {
   color: white;
   background: #245f9e;
 }
