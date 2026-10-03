@@ -4,8 +4,10 @@ import test from "node:test";
 import {
   DEFAULT_SOUND_VOLUME,
   SOUND_PREFERENCE_STORAGE_KEY,
+  confirmsOptimisticMove,
   gameSoundSnapshot,
   normalizeSoundPreferences,
+  optimisticMoveSoundToken,
   outcomeSoundForSnapshot,
   readSoundPreferences,
   soundForGameTransition,
@@ -115,4 +117,72 @@ test("a decisive result takes precedence over the final move sound", () => {
   };
 
   assert.equal(soundForGameTransition(previous, finished), "lose");
+});
+
+test("optimistic move audio identifies the exact visible move", () => {
+  const snapshot = gameSoundSnapshot({
+    id: "game-1",
+    mode: "online",
+    version: 4,
+    currentPlayer: "white",
+    history: [],
+  });
+  const pendingMove = {
+    id: 7,
+    baseVersion: 4,
+    move: {
+      from: { row: 6, col: 4 },
+      to: { row: 4, col: 4 },
+    },
+  };
+
+  assert.deepEqual(optimisticMoveSoundToken(snapshot, pendingMove), {
+    gameId: "game-1",
+    pendingId: 7,
+    baseMoveCount: 0,
+    signature: "move:white:6:4:4:4",
+  });
+  assert.equal(
+    optimisticMoveSoundToken({ ...snapshot, version: 5 }, pendingMove),
+    null
+  );
+});
+
+test("only the matching backend move consumes optimistic move audio", () => {
+  const previous = gameSoundSnapshot({
+    id: "game-1",
+    mode: "online",
+    version: 4,
+    currentPlayer: "white",
+    history: [],
+  });
+  const token = optimisticMoveSoundToken(previous, {
+    id: 7,
+    baseVersion: 4,
+    move: {
+      from: { row: 6, col: 4 },
+      to: { row: 4, col: 4 },
+    },
+  });
+  const confirmed = gameSoundSnapshot({
+    id: "game-1",
+    mode: "online",
+    version: 5,
+    currentPlayer: "black",
+    history: [{
+      moveNumber: 1,
+      actionType: "move",
+      player: "white",
+      from: { row: 6, col: 4 },
+      to: { row: 4, col: 4 },
+    }],
+  });
+  const differentMove = {
+    ...confirmed,
+    lastMovementSignature: "move:white:6:3:4:3",
+  };
+
+  assert.equal(confirmsOptimisticMove(token, previous, confirmed), true);
+  assert.equal(confirmsOptimisticMove(token, previous, differentMove), false);
+  assert.equal(confirmsOptimisticMove(token, confirmed, confirmed), false);
 });
