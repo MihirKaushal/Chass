@@ -9,6 +9,24 @@ function title(value) {
   return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
 }
 
+function VolumeIcon({ muted, volume }) {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+      <path d="M5 9v6h4l5 4V5L9 9H5Z" />
+      {muted || volume === 0 ? (
+        <>
+          <path d="m17 9 5 5M22 9l-5 5" />
+        </>
+      ) : (
+        <>
+          <path d="M17 9.5a4 4 0 0 1 0 5" />
+          {volume > 0.45 ? <path d="M19.5 7a7.5 7.5 0 0 1 0 10" /> : null}
+        </>
+      )}
+    </svg>
+  );
+}
+
 function TopNav({
   onReset,
   onHome,
@@ -30,11 +48,16 @@ function TopNav({
   variant,
   phase,
   bot,
+  soundVolume = 0.7,
+  soundMuted = false,
+  onSoundVolumeChange,
+  onToggleSoundMuted,
 }) {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const settingsRef = useRef(null);
   const settingsTriggerRef = useRef(null);
   const onlineStatus = onlinePlayerStatus(playerColor, presence, gameReady);
+  const volumePercentage = Math.round(soundVolume * 100);
   const statusLabel =
     phase === "lobby"
       ? "Waiting For Player"
@@ -78,6 +101,7 @@ function TopNav({
   };
 
   const handleMenuKeyDown = (event) => {
+    if (event.target.matches('input[type="range"]')) return;
     if (!["ArrowDown", "ArrowUp", "Home", "End"].includes(event.key)) return;
     const items = [...event.currentTarget.querySelectorAll('[role^="menuitem"]:not(:disabled)')];
     if (!items.length) return;
@@ -223,6 +247,36 @@ function TopNav({
                   : variant === "gambit" ? "Request New Setup" : "Request Restart"}
               </Button>
             ) : null}
+            <div className={`play-volume-control ${soundMuted ? "is-muted" : ""}`.trim()}>
+              <button
+                type="button"
+                className="sound-mute-button"
+                role="menuitemcheckbox"
+                aria-checked={soundMuted}
+                aria-label={soundMuted ? "Unmute game sounds" : "Mute game sounds"}
+                title={soundMuted ? "Unmute game sounds" : "Mute game sounds"}
+                onClick={onToggleSoundMuted}
+              >
+                <VolumeIcon muted={soundMuted} volume={soundVolume} />
+              </button>
+              <label className="sound-volume-field">
+                <span>
+                  <b>Volume</b>
+                  <output>{soundMuted ? "Muted" : `${volumePercentage}%`}</output>
+                </span>
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="1"
+                  value={volumePercentage}
+                  style={{ "--sound-volume": `${volumePercentage}%` }}
+                  aria-label="Game sound volume"
+                  aria-valuetext={soundMuted ? `Muted at ${volumePercentage}%` : `${volumePercentage}%`}
+                  onChange={(event) => onSoundVolumeChange(Number(event.target.value) / 100)}
+                />
+              </label>
+            </div>
           </div>
         ) : null}
       </div>
