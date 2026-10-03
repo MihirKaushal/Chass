@@ -1078,11 +1078,16 @@ function Rulebook({ catalog, draft, predictorProfile, open, onOpenChange }) {
       open={open}
       onToggle={(event) => onOpenChange(event.currentTarget.open)}
       summary={(
-        <div className="rulebook-hero-copy">
-          <span className="eyebrow">Complete Reference</span>
-          <h2>The Chass Rulebook</h2>
-          <p>Detailed behavior for every engine, bot, piece, win condition, ability, and Gambit system.</p>
-        </div>
+        <>
+          <div className="rulebook-hero-copy">
+            <span className="eyebrow">Complete Reference</span>
+            <h2>The Chass Rulebook</h2>
+            <p>Detailed behavior for every engine, bot, piece, win condition, ability, and Gambit system.</p>
+          </div>
+          <span className="rulebook-overview-state">
+            {open ? "Collapse Rulebook" : "Expand Rulebook"}
+          </span>
+        </>
       )}
       summaryClassName="rulebook-hero rulebook-overview-summary"
       bodyClassName="rulebook-overview-body"
