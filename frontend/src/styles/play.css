@@ -1401,7 +1401,7 @@
 
 .effect-metadata div,
 .effect-live-status,
-.ability-owner-statuses > div {
+.effect-owner-statuses > div {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1433,20 +1433,52 @@
   white-space: nowrap;
 }
 
-.ability-owner-statuses {
+.effect-owner-statuses {
   display: grid;
   gap: 0.25rem;
 }
 
 .ability-owner-statuses > div {
   display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.25fr) auto;
 }
 
-.ability-owner-statuses span {
+.piece-owner-statuses > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+}
+
+.effect-owner-statuses > div {
+  border-left: 2px solid transparent;
+}
+
+.effect-owner-statuses > div.is-self {
+  border-left-color: var(--accent);
+  background: rgba(99, 179, 237, 0.12);
+}
+
+.effect-owner-statuses > div.is-opponent {
+  border-left-color: var(--deep);
+}
+
+.effect-owner-statuses > div.is-neutral {
+  border-left-color: rgba(26, 54, 93, 0.38);
+  background: rgba(26, 54, 93, 0.045);
+}
+
+.effect-owner-statuses strong {
+  color: var(--deep);
+  font-size: 0.58rem;
+}
+
+.effect-owner-statuses span {
   color: var(--accent);
   font-weight: 700;
   text-align: center;
+}
+
+.piece-owner-statuses span {
+  text-align: right;
 }
 
 .ability-owner-statuses small {

@@ -5,6 +5,11 @@ import {
   CLOCK_RENDER_INTERVAL_MS,
   clockRemainingByColor,
 } from "../gameClock";
+import {
+  effectOwnerDescriptor,
+  effectPerspectiveColor,
+  pieceCountsByOwner,
+} from "../effectOwnership";
 import { necromancyPurchaseOptions } from "../specialActionSelection";
 import { specialRulePresentation } from "../specialRulePresentation";
 import { effectiveCatalogEntry } from "../variantTuning";
@@ -150,7 +155,7 @@ function CapturedPieces({ capturedPieces }) {
   );
 }
 
-function CountdownPanel({ countdowns = [] }) {
+function CountdownPanel({ countdowns = [], gameMode, perspectiveColor }) {
   if (!countdowns.length) return null;
   return (
     <section className="panel-section countdown-panel">
@@ -159,9 +164,14 @@ function CountdownPanel({ countdowns = [] }) {
         {["white", "black"].map((color) => {
           const items = countdowns.filter((item) => item.owner === color);
           if (!items.length) return null;
+          const descriptor = effectOwnerDescriptor(
+            color,
+            perspectiveColor,
+            gameMode
+          );
           return (
-            <div key={color}>
-              <h4>{title(color)}</h4>
+            <div className={`is-${descriptor.relation}`} key={color}>
+              <h4>{descriptor.label}</h4>
               {items.map((item) => (
                 <article key={item.id}>
                   <i>{item.icon}</i>
@@ -338,7 +348,7 @@ function SpecialRulesDisclosure({ game, children = null }) {
   );
 }
 
-function CustomPiecesDisclosure({ game }) {
+function CustomPiecesDisclosure({ game, perspectiveColor }) {
   const enabledTypes = new Set(game.configuration?.enabledPieces || []);
   const customPieces = (game.pieceDefinitions || []).filter(
     (piece) => piece.isCustom && enabledTypes.has(piece.type)
@@ -353,6 +363,10 @@ function CustomPiecesDisclosure({ game }) {
     >
       <div className="effect-disclosure-list">
         {customPieces.map((piece) => {
+          const ownerCounts = pieceCountsByOwner(game.board, piece.type);
+          const owners = piece.type === "barricade"
+            ? ["neutral"]
+            : ["white", "black"];
           const pieceIds = new Set(
             boardPieces.filter((boardPiece) => boardPiece.type === piece.type).map((boardPiece) => boardPiece.pieceId)
           );
@@ -369,9 +383,30 @@ function CustomPiecesDisclosure({ game }) {
               <p>{piece.description}</p>
               <small className="effect-movement"><b>Movement</b>{piece.movement}</small>
               {rules.length ? <small className="effect-rule-copy"><b>Behavior</b>{rules.join(" · ")}</small> : null}
+              <div className="effect-owner-statuses piece-owner-statuses">
+                {owners.map((owner) => {
+                  const descriptor = effectOwnerDescriptor(
+                    owner,
+                    perspectiveColor,
+                    game.mode
+                  );
+                  return (
+                    <div className={`is-${descriptor.relation}`} key={owner}>
+                      <strong>{descriptor.label}</strong>
+                      <span>{ownerCounts[owner]} on board</span>
+                    </div>
+                  );
+                })}
+              </div>
               {countdowns.map((countdown) => (
                 <div className="effect-live-status" key={countdown.id}>
-                  <span>{title(countdown.owner)}: {countdown.label}</span>
+                  <span>
+                    {effectOwnerDescriptor(
+                      countdown.owner,
+                      perspectiveColor,
+                      game.mode
+                    ).label}: {countdown.label}
+                  </span>
                   <b>{countdown.remainingTurns} {countdown.unit || "turn"}{countdown.remainingTurns === 1 ? "" : "s"}</b>
                 </div>
               ))}
@@ -383,7 +418,13 @@ function CustomPiecesDisclosure({ game }) {
   );
 }
 
-function SpecialAbilitiesDisclosure({ abilities, catalog, parameters }) {
+function SpecialAbilitiesDisclosure({
+  abilities,
+  catalog,
+  gameMode,
+  parameters,
+  perspectiveColor,
+}) {
   const selected = abilities?.selected || {};
   const abilityIds = [...new Set(
     Object.values(selected).flatMap((items) => Array.isArray(items) ? items : []).filter((abilityId) => abilityId !== "locked")
@@ -412,8 +453,13 @@ function SpecialAbilitiesDisclosure({ abilities, catalog, parameters }) {
                 <span>{abilityLimitsLabel(definition)}</span>
               </header>
               <p>{definition?.summary || "A selected special ability for this match."}</p>
-              <div className="ability-owner-statuses">
+              <div className="effect-owner-statuses ability-owner-statuses">
                 {owners.map((color) => {
+                  const descriptor = effectOwnerDescriptor(
+                    color,
+                    perspectiveColor,
+                    gameMode
+                  );
                   const remaining = abilities.cooldowns?.[color]?.[abilityId] || 0;
                   const uses = abilities.usageCount?.[color]?.[abilityId] || 0;
                   const initialDelay = (
@@ -422,8 +468,8 @@ function SpecialAbilitiesDisclosure({ abilities, catalog, parameters }) {
                     && definition?.initialCooldownTurns > 0
                   );
                   return (
-                    <div key={color}>
-                      <strong>{title(color)}</strong>
+                    <div className={`is-${descriptor.relation}`} key={color}>
+                      <strong>{descriptor.label}</strong>
                       <span>{remaining
                         ? `${initialDelay ? "Initial delay: " : ""}${remaining} own turns remaining`
                         : definition?.usageLimit != null && uses >= definition.usageLimit
@@ -442,15 +488,22 @@ function SpecialAbilitiesDisclosure({ abilities, catalog, parameters }) {
   );
 }
 
-function EnabledEffects({ game, catalog, specialRulesContent = null }) {
+function EnabledEffects({
+  game,
+  catalog,
+  perspectiveColor,
+  specialRulesContent = null,
+}) {
   return (
     <div className="enabled-effects" aria-label="Enabled match options">
       <SpecialRulesDisclosure game={game}>{specialRulesContent}</SpecialRulesDisclosure>
-      <CustomPiecesDisclosure game={game} />
+      <CustomPiecesDisclosure game={game} perspectiveColor={perspectiveColor} />
       <SpecialAbilitiesDisclosure
         abilities={game.abilities}
         catalog={catalog}
+        gameMode={game.mode}
         parameters={game.configuration?.specialAbilities?.parameters}
+        perspectiveColor={perspectiveColor}
       />
     </div>
   );
@@ -463,13 +516,19 @@ export function EffectsPanel({
   actionLoading,
   selectedGlobalActionKey,
   onSelectGlobalActionKey,
+  playerColor = null,
   specialRulesContent = null,
   children,
 }) {
+  const perspectiveColor = effectPerspectiveColor(game, playerColor);
   return (
     <aside className="effects-panel">
       {children}
-      <CountdownPanel countdowns={game.countdowns} />
+      <CountdownPanel
+        countdowns={game.countdowns}
+        gameMode={game.mode}
+        perspectiveColor={perspectiveColor}
+      />
       <ActionPanel
         actions={game.availableActions}
         game={game}
@@ -482,6 +541,7 @@ export function EffectsPanel({
       <EnabledEffects
         game={game}
         catalog={catalog}
+        perspectiveColor={perspectiveColor}
         specialRulesContent={specialRulesContent}
       />
     </aside>
