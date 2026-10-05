@@ -1270,7 +1270,7 @@ class GameService:
             ),
             reason=(
                 (
-                    "Stockfish 18 is available for the exact Classic Chass setup."
+                    "Stockfish 18 is available for this standard Classic setup."
                     if selection and selection.engine_id == "stockfish"
                     else selection.reason
                     or "Chass Engine supports this custom configuration."

@@ -5,6 +5,7 @@ from .classic import (
     StockfishClassicBotEngine,
     classic_bot_eligibility,
     move_to_uci,
+    timed_stockfish_response_delay_seconds,
 )
 from .compatibility import (
     BotCompatibility,
@@ -50,5 +51,6 @@ __all__ = [
     "get_bot_profile",
     "move_to_uci",
     "select_bot_engine",
+    "timed_stockfish_response_delay_seconds",
     "verify_bot_compatibility",
 ]

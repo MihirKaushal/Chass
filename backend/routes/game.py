@@ -30,6 +30,7 @@ from backend.bots import (
     StockfishClassicBotEngine,
     bot_action_needed,
     get_bot_profile,
+    timed_stockfish_response_delay_seconds,
     verify_bot_compatibility,
 )
 from backend.config import get_settings
@@ -294,6 +295,13 @@ async def _run_bot_turn(game_id: str, expected_version: int) -> None:
                 decision = await chass_bot_engine.choose_action(
                     replace(context, profile_id=fallback_profile_id)
                 )
+            if decision.engine_id == "stockfish":
+                response_delay = timed_stockfish_response_delay_seconds(
+                    context,
+                    decision.elapsed_ms,
+                )
+                if response_delay > 0:
+                    await asyncio.sleep(response_delay)
             record, explanation = await run_in_threadpool(
                 game_service.apply_bot_decision,
                 game_id,

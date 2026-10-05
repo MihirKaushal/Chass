@@ -128,6 +128,15 @@ def test_stockfish_is_preferred_before_deterministic_fairy_profiles(client):
     assert "checkCounting = true" in (check_profile.variant_definition or "")
 
 
+def test_standard_timed_positions_keep_stockfish_analysis(client):
+    timed = create_state(client)
+    timed.configuration.victory.mode = "timed"
+    selection = select_analysis_profile(timed)
+
+    assert selection.profile is not None
+    assert selection.profile.engine_id == "stockfish"
+
+
 def test_configuration_validation_reports_the_auto_selected_engine(client):
     classic = client.post(
         "/game/validate",

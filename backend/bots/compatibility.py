@@ -121,7 +121,10 @@ async def verify_bot_compatibility(
             **base,
             eligible=True,
             status="compatible",
-            reason="Stockfish 18 is available for the exact Classic Chass setup.",
+            reason=(
+                "Stockfish 18 is available for this standard Classic setup, "
+                "including its chess clock."
+            ),
         )
     if selection.engine_id == "chass":
         return _chass_compatibility(
