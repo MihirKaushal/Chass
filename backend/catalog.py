@@ -235,11 +235,22 @@ def configure_special_ability(
     configured = deepcopy(ability)
     specs = list(configured.get("tunableParameters", []))
     values = _normalize_values(specs, supplied, configured["name"])
+    rendered_values = dict(values)
+    initial_cooldown_divisor = configured.get("initialCooldownDivisor")
+    cooldown_parameter = configured.get("cooldownTurnsParameter")
+    if initial_cooldown_divisor and cooldown_parameter:
+        cooldown_turns = values[cooldown_parameter]
+        rendered_values["initialCooldownTurns"] = (
+            cooldown_turns + initial_cooldown_divisor - 1
+        ) // initial_cooldown_divisor
+        configured["initialCooldownTurns"] = rendered_values[
+            "initialCooldownTurns"
+        ]
     configured["summary"] = _render_template(
-        configured.get("summaryTemplate", configured["summary"]), values
+        configured.get("summaryTemplate", configured["summary"]), rendered_values
     )
     configured["details"] = [
-        _render_template(template, values)
+        _render_template(template, rendered_values)
         for template in configured.get("detailTemplates", configured.get("details", []))
     ]
     configured["configuredParameters"] = [
@@ -1133,18 +1144,24 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "id": "eye_for_an_eye",
         "name": "Eye for an Eye",
         "icon": "⚖",
-        "summary": "Trade matching pieces, then wait 10 turns before using the ability again.",
+        "summary": (
+            "Wait 5 own turns before the first trade, then wait 10 own turns between uses."
+        ),
         "summaryTemplate": (
-            "Trade matching pieces, then wait {cooldownTurns} turn(s) before using the "
-            "ability again."
+            "Wait {initialCooldownTurns} own turn(s) before the first trade, then wait "
+            "{cooldownTurns} own turn(s) between uses."
         ),
         "cooldownTurns": 10,
         "cooldownTurnsParameter": "cooldownTurns",
+        "initialCooldownDivisor": 2,
         "tunableParameters": [
             _parameter(
                 "cooldownTurns",
                 "Recharge",
-                "Own turns before Eye for an Eye can be used again.",
+                (
+                    "Own turns between uses. The first use opens after half this value, "
+                    "rounded up."
+                ),
                 10,
                 0,
                 50,
@@ -1152,6 +1169,7 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
             ),
         ],
         "detailTemplates": [
+            "The first use becomes available after {initialCooldownTurns} own turn(s).",
             "A successful trade consumes the turn and starts a {cooldownTurns}-turn cooldown.",
             "Kings and neutral pieces cannot be selected.",
             "Neither removal awards score and it cannot be used while in check.",
@@ -1261,21 +1279,26 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "name": "Scorch",
         "icon": "♨",
         "summary": (
-            "Permanently scorch an empty square, then recharge for 10 turns."
+            "Wait 5 own turns, then permanently scorch an empty square and recharge for 10 turns."
         ),
         "summaryTemplate": (
-            "Permanently scorch an empty square up to {usesPerGame} time(s), then "
-            "recharge for {cooldownTurns} turn(s)."
+            "Wait {initialCooldownTurns} own turn(s) before the first use, then permanently "
+            "scorch an empty square up to {usesPerGame} time(s) with a "
+            "{cooldownTurns}-turn recharge."
         ),
         "cooldownTurns": 10,
         "cooldownTurnsParameter": "cooldownTurns",
+        "initialCooldownDivisor": 2,
         "usageLimit": 2,
         "usageLimitParameter": "usesPerGame",
         "tunableParameters": [
             _parameter(
                 "cooldownTurns",
                 "Recharge",
-                "Own turns before Scorch can be used again.",
+                (
+                    "Own turns between uses. The first use opens after half this value, "
+                    "rounded up."
+                ),
                 10,
                 0,
                 50,
@@ -1303,6 +1326,7 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
             ),
         ],
         "detailTemplates": [
+            "The first use becomes available after {initialCooldownTurns} own turn(s).",
             "Only an empty, unscorched square may be selected.",
             "A scorched square cannot be occupied and blocks normal sliding movement.",
             "Jumping pieces and projectiles may cross it, but no piece may land on it.",
@@ -1358,9 +1382,9 @@ VICTORY_MODES: list[dict[str, Any]] = [
         "name": "Center Dominion",
         "icon": "◆",
         "summary": (
-            "Hold both center squares assigned to your color through three consecutive "
-            "opponent turns. The marked center starts empty except for Barricades. "
-            "Checkmate also wins."
+            "Hold both center squares assigned to your color through the configured number "
+            "of consecutive opponent turns. The marked center starts empty except for "
+            "Barricades. Checkmate also wins."
         ),
     },
     {

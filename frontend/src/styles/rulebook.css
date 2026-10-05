@@ -302,9 +302,42 @@
 }
 
 .rulebook-entry summary b {
+  display: grid;
+  justify-items: end;
+  gap: 0.18rem;
   color: var(--accent);
   font-family: var(--font-mono);
   font-size: 0.68rem;
+}
+
+.rulebook-default-note {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0;
+  padding: 0.6rem 1rem;
+  color: rgba(26, 54, 93, 0.72);
+  border-bottom: 1px solid rgba(43, 108, 176, 0.16);
+  background: rgba(99, 179, 237, 0.08);
+  font-size: 0.72rem;
+}
+
+.rulebook-default-marker {
+  display: inline-flex;
+  align-items: center;
+  width: max-content;
+  padding: 0.1rem 0.32rem;
+  color: var(--deep);
+  border: 1px solid rgba(43, 108, 176, 0.24);
+  border-radius: 999px;
+  background: rgba(99, 179, 237, 0.16);
+  font-family: var(--font-body);
+  font-size: 0.53rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  line-height: 1;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .entry-icon {
@@ -432,6 +465,10 @@
 }
 
 .configured-parameter-list dd {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
   margin: 0.1rem 0 0;
   color: var(--deep);
   font-family: var(--font-mono);

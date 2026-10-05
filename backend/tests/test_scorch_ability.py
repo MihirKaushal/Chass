@@ -56,6 +56,30 @@ def start_scorch_game(client, payload: dict) -> dict:
     return black.json()
 
 
+def advance_opening_king_turns(client, game: dict, turns: int) -> dict:
+    white_col = game["boardCols"] - 1
+    black_col = game["boardCols"] - 1
+    for _ in range(turns):
+        for row, from_col in ((game["boardRows"] - 1, white_col), (0, black_col)):
+            moved = client.post(
+                f"/game/{game['id']}/move",
+                json={
+                    "fromRow": row,
+                    "fromCol": from_col,
+                    "toRow": row,
+                    "toCol": from_col - 1,
+                    "expectedVersion": game["version"],
+                },
+            )
+            assert moved.status_code == 200, moved.text
+            game = moved.json()
+            if row == game["boardRows"] - 1:
+                white_col -= 1
+            else:
+                black_col -= 1
+    return game
+
+
 def use_scorch(client, game: dict, row: int, col: int):
     return client.post(
         f"/game/{game['id']}/action",
@@ -114,12 +138,23 @@ def test_scorch_catalog_and_board_area_default(client):
     assert game["configuration"]["specialAbilities"]["parameters"]["scorch"][
         "usesPerGame"
     ] == 3
+    assert game["abilities"]["cooldowns"]["white"]["scorch"] == 5
+    assert game["abilities"]["cooldowns"]["black"]["scorch"] == 5
+    assert not scorch_targets(game)
+
+    odd_recharge = start_scorch_game(
+        client,
+        scorch_game(base_layout(), parameters={"cooldownTurns": 11}),
+    )
+    assert odd_recharge["abilities"]["cooldowns"]["white"]["scorch"] == 6
 
 
 def test_scorch_persists_terrain_starts_cooldown_and_enforces_gap(client):
     game = start_scorch_game(client, scorch_game(base_layout()))
+    assert not scorch_targets(game)
+    game = advance_opening_king_turns(client, game, 5)
     assert (3, 3) in scorch_targets(game)
-    assert (7, 7) not in scorch_targets(game)
+    assert (7, 2) not in scorch_targets(game)
 
     scorched = use_scorch(client, game, 3, 3)
     assert scorched.status_code == 200, scorched.text
@@ -165,7 +200,8 @@ def test_scorch_blocks_sliding_moves_but_not_jumps(client):
                 {"row": 7, "col": 0, "type": "king", "color": "white"},
                 {"row": 0, "col": 7, "type": "king", "color": "black"},
                 {"row": 4, "col": 7, "type": "rook", "color": "black"},
-            ]
+            ],
+            parameters={"cooldownTurns": 0},
         ),
     )
     rook_game = use_scorch(client, rook_game, 4, 4).json()
@@ -180,7 +216,8 @@ def test_scorch_blocks_sliding_moves_but_not_jumps(client):
             [
                 *base_layout(),
                 {"row": 2, "col": 2, "type": "knight", "color": "black"},
-            ]
+            ],
+            parameters={"cooldownTurns": 0},
         ),
     )
     knight_game = use_scorch(client, knight_game, 3, 2).json()
@@ -195,7 +232,8 @@ def test_scorch_blocks_elephant_movement_and_charges(client):
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "king", "color": "black"},
             {"row": 1, "col": 3, "type": "elephant", "color": "black"},
-        ]
+        ],
+        parameters={"cooldownTurns": 0},
     )
     payload["configuration"]["enabledPieces"].append("elephant")
     payload["configuration"]["piecePoints"]["elephant"] = 7
@@ -216,7 +254,8 @@ def test_scorch_can_legally_block_check_and_reset_removes_terrain(client):
                 {"row": 0, "col": 7, "type": "king", "color": "black"},
                 {"row": 6, "col": 0, "type": "knight", "color": "white"},
                 {"row": 0, "col": 3, "type": "rook", "color": "black"},
-            ]
+            ],
+            parameters={"cooldownTurns": 0},
         ),
     )
     white_wait = client.post(

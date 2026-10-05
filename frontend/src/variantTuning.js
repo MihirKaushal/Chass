@@ -90,6 +90,11 @@ export function effectiveCatalogEntry(entry, configured = {}) {
     ),
     ...configured,
   };
+  if (entry.initialCooldownDivisor && entry.cooldownTurnsParameter) {
+    values.initialCooldownTurns = Math.ceil(
+      values[entry.cooldownTurnsParameter] / entry.initialCooldownDivisor
+    );
+  }
   const result = {
     ...entry,
     description: renderTuningTemplate(
@@ -114,6 +119,9 @@ export function effectiveCatalogEntry(entry, configured = {}) {
   };
   if (entry.cooldownTurnsParameter) {
     result.cooldownTurns = values[entry.cooldownTurnsParameter];
+  }
+  if (values.initialCooldownTurns != null) {
+    result.initialCooldownTurns = values.initialCooldownTurns;
   }
   if (entry.usageLimitParameter) {
     result.usageLimit = values[entry.usageLimitParameter];

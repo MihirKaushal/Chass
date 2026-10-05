@@ -78,6 +78,41 @@ def start_local_ability_game(
     return black.json()
 
 
+def advance_opening_king_turns(client, game: dict, turns: int) -> dict:
+    """Complete quiet turns for both colors without repeating a position."""
+    white_col = 7
+    black_col = 7
+    for _ in range(turns):
+        white = client.post(
+            f"/game/{game['id']}/move",
+            json={
+                "fromRow": 7,
+                "fromCol": white_col,
+                "toRow": 7,
+                "toCol": white_col - 1,
+                "expectedVersion": game["version"],
+            },
+        )
+        assert white.status_code == 200, white.text
+        game = white.json()
+        white_col -= 1
+
+        black = client.post(
+            f"/game/{game['id']}/move",
+            json={
+                "fromRow": 0,
+                "fromCol": black_col,
+                "toRow": 0,
+                "toCol": black_col - 1,
+                "expectedVersion": game["version"],
+            },
+        )
+        assert black.status_code == 200, black.text
+        game = black.json()
+        black_col -= 1
+    return game
+
+
 def deliver_getaway_checkmate(client, game: dict) -> dict:
     white_wait = client.post(
         f"/game/{game['id']}/move",
@@ -148,6 +183,12 @@ def test_catalog_describes_custom_content(client):
     assert cooldowns["getaway"] is None
     assert cooldowns["eye_for_an_eye"] == 10
     assert cooldowns["episcopal"] == 6
+    initial_delays = {
+        ability["id"]: ability.get("initialCooldownTurns")
+        for ability in catalog["specialAbilities"]
+    }
+    assert initial_delays["eye_for_an_eye"] == 5
+    assert initial_delays["scorch"] == 5
     getaway = next(ability for ability in catalog["specialAbilities"] if ability["id"] == "getaway")
     assert "Queen" in getaway["summary"]
     assert "Rook" not in getaway["summary"]
@@ -1779,6 +1820,21 @@ def test_eye_for_an_eye_removes_matching_pieces_without_scoring(client):
             {"row": 0, "col": 0, "type": "rook", "color": "black"},
         ],
     )
+    assert game["abilities"]["cooldowns"]["white"]["eye_for_an_eye"] == 5
+    assert game["abilities"]["cooldowns"]["black"]["eye_for_an_eye"] == 5
+    assert not any(
+        item["actionType"] == "eye_for_an_eye"
+        for item in game["availableActions"]
+    )
+    assert any(
+        item["kind"] == "eye_for_an_eye"
+        and item["label"] == "Eye For An Eye Initial Delay"
+        and item["remainingTurns"] == 5
+        for item in game["countdowns"]
+    )
+
+    game = advance_opening_king_turns(client, game, 5)
+    assert "eye_for_an_eye" not in game["abilities"]["cooldowns"]["white"]
     action = next(
         item for item in game["availableActions"] if item["actionType"] == "eye_for_an_eye"
     )
@@ -1817,6 +1873,8 @@ def test_eye_for_an_eye_uses_configured_recharge(client):
             {"row": 0, "col": 0, "type": "rook", "color": "black"},
         ],
     )
+    assert game["abilities"]["cooldowns"]["white"]["eye_for_an_eye"] == 2
+    game = advance_opening_king_turns(client, game, 2)
     action = next(
         item for item in game["availableActions"] if item["actionType"] == "eye_for_an_eye"
     )
@@ -1830,6 +1888,23 @@ def test_eye_for_an_eye_uses_configured_recharge(client):
         },
     ).json()
     assert updated["abilities"]["cooldowns"]["white"]["eye_for_an_eye"] == 3
+
+
+def test_eye_for_an_eye_initial_delay_rounds_up(client):
+    game = start_local_ability_game(
+        client,
+        "eye_for_an_eye",
+        ability_parameters={"cooldownTurns": 11},
+        initialLayout=[
+            {"row": 7, "col": 7, "type": "king", "color": "white"},
+            {"row": 0, "col": 7, "type": "king", "color": "black"},
+            {"row": 7, "col": 0, "type": "rook", "color": "white"},
+            {"row": 0, "col": 0, "type": "rook", "color": "black"},
+        ],
+    )
+
+    assert game["abilities"]["cooldowns"]["white"]["eye_for_an_eye"] == 6
+    assert game["abilities"]["cooldowns"]["black"]["eye_for_an_eye"] == 6
 
 
 def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
