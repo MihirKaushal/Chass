@@ -1470,6 +1470,32 @@ def test_clock_expiry_is_resolved_and_persisted_on_refresh(client):
     assert persisted.state.result.reason_code == "time_expired"
 
 
+def test_clock_expiry_can_be_committed_without_a_follow_up_request(client):
+    from backend.routes.game import game_service
+
+    payload = configured_game(victory={"mode": "timed", "timeSeconds": 30})
+    created = client.post("/game/create", json=payload).json()["game"]
+    record = game_service.repository.get_game(created["id"])
+    assert record is not None and record.state.clock is not None
+
+    state = record.state.clone()
+    state.clock.remaining_seconds["white"] = 0
+    state.clock.turn_started_at = datetime.now(timezone.utc) - timedelta(seconds=1)
+    prepared = game_service.repository.save_game(
+        state,
+        record.version,
+        expires_at=record.expires_at,
+    )
+
+    finished = game_service.expire_clock(prepared)
+    assert finished is not None
+    assert finished.version == prepared.version + 1
+    assert finished.state.phase == "finished"
+    assert finished.state.winner == "black"
+    assert finished.state.result is not None
+    assert finished.state.result.reason_code == "time_expired"
+
+
 def test_standard_promotion_stays_available_when_piece_is_not_in_starting_catalog(client):
     payload = configured_game(
         enabledPieces=["pawn", "king"],

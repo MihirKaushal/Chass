@@ -1,6 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { boardSquareLabel } from "../boardGeometry";
+import {
+  CLOCK_RENDER_INTERVAL_MS,
+  clockRemainingByColor,
+} from "../gameClock";
 import { necromancyPurchaseOptions } from "../specialActionSelection";
 import { specialRulePresentation } from "../specialRulePresentation";
 import { effectiveCatalogEntry } from "../variantTuning";
@@ -28,14 +32,15 @@ function MatchClock({ clock }) {
   const [, setTick] = useState(0);
   useEffect(() => {
     if (!clock) return undefined;
-    const interval = window.setInterval(() => setTick((value) => value + 1), 1000);
+    const interval = window.setInterval(
+      () => setTick((value) => value + 1),
+      CLOCK_RENDER_INTERVAL_MS
+    );
     return () => window.clearInterval(interval);
   }, [clock]);
   if (!clock) return null;
 
-  const elapsed = Math.max(0, (Date.now() - new Date(clock.turnStartedAt).getTime()) / 1000);
-  const remaining = { ...clock.remainingSeconds };
-  remaining[clock.activeColor] = Math.max(0, remaining[clock.activeColor] - elapsed);
+  const remaining = clockRemainingByColor(clock) || clock.remainingSeconds;
   const format = (seconds) => {
     const normalized = Math.max(0, Math.ceil(seconds));
     return `${Math.floor(normalized / 60)}:${String(normalized % 60).padStart(2, "0")}`;
