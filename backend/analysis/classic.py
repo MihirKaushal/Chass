@@ -175,8 +175,12 @@ def classic_analysis_eligibility(
         return ClassicAnalysisEligibility(False, enabled, "Classic piece behavior was changed.")
     if not definitions_use_classic_behavior(state):
         return ClassicAnalysisEligibility(False, enabled, "Classic piece movement was changed.")
-    if configuration.victory.mode != "checkmate":
-        return ClassicAnalysisEligibility(False, enabled, "Classic checkmate victory is required.")
+    if configuration.victory.mode not in {"checkmate", "timed"}:
+        return ClassicAnalysisEligibility(
+            False,
+            enabled,
+            "Classic checkmate or a standard timed match is required.",
+        )
     if configuration.custom_rules.affinity_enabled:
         return ClassicAnalysisEligibility(False, enabled, "Custom rules disable Stockfish analysis.")
     if configuration.special_abilities.enabled:

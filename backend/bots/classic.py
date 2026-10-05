@@ -29,6 +29,17 @@ class ClassicBotEligibility:
     reason: str | None = None
 
 
+TIMED_RESPONSE_TARGET_MS = {
+    500: 900,
+    800: 750,
+    1000: 600,
+    1200: 450,
+    1500: 300,
+    2000: 180,
+    2500: 100,
+}
+
+
 def _placement_signature(placement: dict) -> tuple[int, int, str, str]:
     return (
         int(placement["row"]),
@@ -74,8 +85,11 @@ def classic_bot_eligibility(
         for piece_type in CLASSIC_TYPES
     ):
         return ClassicBotEligibility(False, "Classic piece point values are required.")
-    if state.configuration.victory.mode != "checkmate":
-        return ClassicBotEligibility(False, "Classic checkmate must be the win condition.")
+    if state.configuration.victory.mode not in {"checkmate", "timed"}:
+        return ClassicBotEligibility(
+            False,
+            "Classic checkmate or a standard timed match must be the win condition.",
+        )
     if state.configuration.custom_rules.affinity_enabled:
         return ClassicBotEligibility(False, "Custom rules are not available in bot games yet.")
     if state.configuration.special_abilities.enabled:
@@ -116,6 +130,36 @@ def classic_bot_eligibility(
             return ClassicBotEligibility(False, "Starting pieces must be unmoved.")
 
     return ClassicBotEligibility(True)
+
+
+def timed_stockfish_response_delay_seconds(
+    context: BotTurnContext,
+    engine_elapsed_ms: int,
+) -> float:
+    """Return a bounded human-like delay without risking the bot's clock."""
+    state = context.state
+    if state.configuration.victory.mode != "timed" or state.clock is None:
+        return 0.0
+
+    profile = get_bot_profile(context.profile_id)
+    if profile.engine_id != "stockfish":
+        return 0.0
+
+    bot_color = state.bot.bot_color if state.bot is not None else state.current_player
+    stored_remaining = float(state.clock.remaining_seconds.get(bot_color, 0.0))
+    elapsed_seconds = max(0.0, float(engine_elapsed_ms) / 1_000)
+    usable_seconds = max(0.0, stored_remaining - elapsed_seconds)
+    if usable_seconds <= 0.1:
+        return 0.0
+
+    base_target_ms = TIMED_RESPONSE_TARGET_MS.get(profile.target_elo, 450)
+    # Preserve the intended pace early, then progressively remove artificial
+    # thinking time once the bot falls below 15 seconds.
+    pressure_scale = min(1.0, max(0.0, usable_seconds / 15.0))
+    target_seconds = (base_target_ms / 1_000) * pressure_scale
+    remaining_target = max(0.0, target_seconds - elapsed_seconds)
+    persistence_reserve = min(0.35, usable_seconds * 0.25)
+    return min(remaining_target, max(0.0, usable_seconds - persistence_reserve))
 
 
 def move_to_uci(move: Move) -> str:

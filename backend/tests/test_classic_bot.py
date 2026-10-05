@@ -3,7 +3,12 @@ from __future__ import annotations
 import asyncio
 import time
 
-from backend.bots import BotDecision
+from backend.bots import (
+    BotDecision,
+    BotTurnContext,
+    timed_stockfish_response_delay_seconds,
+)
+from backend.catalog import classic_layout
 from backend.models import Move
 
 
@@ -15,6 +20,20 @@ def create_bot_game(client, *, profile: str = "stockfish-800", color: str = "whi
             "bot": {"profileId": profile, "humanColor": color},
         },
     )
+
+
+def timed_bot_payload(*, profile: str = "stockfish-800") -> dict:
+    return {
+        "mode": "bot",
+        "bot": {"profileId": profile, "humanColor": "white"},
+        "configuration": {
+            "schemaVersion": 2,
+            "presetId": "classic",
+            "formationId": "classic",
+            "initialLayout": classic_layout(8, 8),
+            "victory": {"mode": "timed", "timeSeconds": 60},
+        },
+    }
 
 
 def test_catalog_and_validation_publish_classic_bot_options(client):
@@ -70,6 +89,61 @@ def test_catalog_and_validation_publish_classic_bot_options(client):
     assert [
         profile["targetElo"] for profile in custom.json()["bot"]["profiles"]
     ] == [500, 800]
+
+
+def test_timed_classic_games_stay_on_stockfish(client):
+    payload = timed_bot_payload()
+    validation_payload = {**payload, "mode": "local", "bot": None}
+    validation = client.post("/game/validate", json=validation_payload)
+    assert validation.status_code == 200, validation.text
+    assert validation.json()["bot"]["engineId"] == "stockfish"
+
+    created = client.post("/game/create", json=payload)
+    assert created.status_code == 200, created.text
+    game = created.json()["game"]
+    assert game["bot"]["engineId"] == "stockfish"
+    assert game["clock"]["initialSeconds"] == 60
+
+
+def test_timed_stockfish_pacing_is_elo_and_clock_pressure_aware(client):
+    from backend.routes.game import game_service
+
+    created = client.post(
+        "/game/create",
+        json=timed_bot_payload(profile="stockfish-500"),
+    ).json()["game"]
+    record = game_service.repository.get_game(created["id"])
+    assert record is not None and record.state.clock is not None
+
+    beginner = BotTurnContext(
+        game_id=record.state.id,
+        game_version=record.version,
+        state=record.state.clone(),
+        profile_id="stockfish-500",
+    )
+    master = BotTurnContext(
+        game_id=record.state.id,
+        game_version=record.version,
+        state=record.state.clone(),
+        profile_id="stockfish-2500",
+    )
+    beginner_delay = timed_stockfish_response_delay_seconds(beginner, 50)
+    master_delay = timed_stockfish_response_delay_seconds(master, 50)
+    assert beginner_delay > master_delay >= 0
+
+    pressured_state = record.state.clone()
+    assert pressured_state.bot is not None and pressured_state.clock is not None
+    pressured_state.clock.remaining_seconds[pressured_state.bot.bot_color] = 3
+    pressured = BotTurnContext(
+        game_id=record.state.id,
+        game_version=record.version,
+        state=pressured_state,
+        profile_id="stockfish-500",
+    )
+    assert (
+        timed_stockfish_response_delay_seconds(pressured, 50)
+        < beginner_delay
+    )
 
 
 def test_bot_game_persists_human_seat_and_routes_custom_setups(client):
