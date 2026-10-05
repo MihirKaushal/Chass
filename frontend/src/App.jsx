@@ -234,7 +234,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const gameSounds = useGameSounds(
     game,
     session?.color || game?.bot?.humanColor || null,
-    pendingMove
+    pendingMove,
+    startedWithBootstrapRef.current
   );
 
   useNavigationBlocker(
@@ -347,6 +348,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       if (payload.type === "player_joined") {
         setSocketMessage(`${colorLabel(payload.color)} joined the game.`);
       } else if (payload.type === "bot_error") {
+        gameSounds.play("error");
         setError(payload.message || "The chess bot is temporarily unavailable.");
         setAnalysisRefreshing(false);
       } else if (
@@ -540,6 +542,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         };
       });
     } catch (requestError) {
+      gameSounds.play("error");
       setError(requestError.message);
     } finally {
       setHistoryLoading(false);
@@ -678,6 +681,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     try {
       return await operation();
     } catch (requestError) {
+      gameSounds.play("error");
       setError(requestError.message);
       if (requestError instanceof ApiError && requestError.status === 409) {
         await refreshGame().catch(() => {});
@@ -715,10 +719,12 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     const pendingId = pendingMoveIdRef.current + 1;
     pendingMoveIdRef.current = pendingId;
     if (current && previewMove) {
+      const movingPiece = current.board?.[fromSquare.row]?.[fromSquare.col];
       setPendingMove({
         id: pendingId,
         baseVersion: current.version,
         move: previewMove,
+        pieceType: movingPiece?.type || null,
         promotion,
       });
       setSelectedSquare(null);
