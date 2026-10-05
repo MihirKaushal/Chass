@@ -155,7 +155,7 @@ def test_chass_coverage_contract_matches_the_live_catalog_and_rule_engine():
         ("hypnotizer", "strongContactTurns", 5, 8),
         ("diplomat", "movementDistance", 1, 2),
         ("diplomat", "contactTurns", 2, 4),
-        ("diplomat", "pacifiedTurns", 5, 8),
+        ("diplomat", "pacifiedTurns", 4, 8),
         ("diplomat", "retireAfterPacifications", 5, 8),
         ("cannibal", "movementDistance", 1, 2),
         ("cannibal", "consumeDistance", 1, 2),

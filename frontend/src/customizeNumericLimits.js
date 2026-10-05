@@ -52,11 +52,22 @@ export function clampEvenWholeNumber(value, minimum, maximum) {
   return Math.max(minimum, Math.min(maximum, even));
 }
 
+export function defaultBarricadeCount(boardRows = 8, boardCols = boardRows) {
+  const rows = Number.isFinite(Number(boardRows)) ? Math.trunc(Number(boardRows)) : 8;
+  const cols = Number.isFinite(Number(boardCols)) ? Math.trunc(Number(boardCols)) : rows;
+  return rows % 2 !== 0 && cols % 2 !== 0 ? 1 : 2;
+}
+
 export function defaultGambitPieceCap(pieceType, maxPieces = 16) {
   if (pieceType === "king") return 1;
   if (pieceType === "barricade") return 0;
 
-  const preferred = pieceType === "pawn" ? 15 : pieceType === "queen" ? 2 : 3;
+  const customCaps = { maharani: 2, hypnotizer: 2, diplomat: 1 };
+  const preferred = pieceType === "pawn"
+    ? 15
+    : pieceType === "queen"
+      ? 2
+      : (customCaps[pieceType] ?? 3);
   return Math.min(preferred, Math.max(0, Math.trunc(Number(maxPieces)) - 1));
 }
 

@@ -42,7 +42,7 @@ export function victoryDisplayMetadata(victory = {}) {
       ];
     }
     case "center_dominion": {
-      const rounds = positiveInteger(victory.dominionRounds, 3);
+      const rounds = positiveInteger(victory.dominionRounds, 2);
       return [
         { label: "Rounds To Hold", value: quantity(rounds, "round") },
       ];

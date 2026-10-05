@@ -36,6 +36,17 @@ DRAFT_POOL_COUNT_MAX = 256
 GAMBIT_DEFAULT_PAWN_CAP = 15
 GAMBIT_DEFAULT_QUEEN_CAP = 2
 GAMBIT_DEFAULT_OTHER_PIECE_CAP = 3
+GAMBIT_DEFAULT_CUSTOM_PIECE_CAPS = {
+    "maharani": 2,
+    "hypnotizer": 2,
+    "diplomat": 1,
+}
+
+
+def default_barricade_count(board_rows: int = 8, board_cols: int | None = None) -> int:
+    """Use one exact center when available, otherwise a rotationally symmetric pair."""
+    columns = board_rows if board_cols is None else board_cols
+    return 1 if board_rows % 2 and columns % 2 else 2
 
 
 def default_gambit_piece_cap(piece_type: str, max_pieces: int = 16) -> int:
@@ -45,13 +56,15 @@ def default_gambit_piece_cap(piece_type: str, max_pieces: int = 16) -> int:
     if piece_type == "barricade":
         return 0
 
-    preferred = (
-        GAMBIT_DEFAULT_PAWN_CAP
-        if piece_type == "pawn"
-        else GAMBIT_DEFAULT_QUEEN_CAP
-        if piece_type == "queen"
-        else GAMBIT_DEFAULT_OTHER_PIECE_CAP
-    )
+    if piece_type == "pawn":
+        preferred = GAMBIT_DEFAULT_PAWN_CAP
+    elif piece_type == "queen":
+        preferred = GAMBIT_DEFAULT_QUEEN_CAP
+    else:
+        preferred = GAMBIT_DEFAULT_CUSTOM_PIECE_CAPS.get(
+            piece_type,
+            GAMBIT_DEFAULT_OTHER_PIECE_CAP,
+        )
     return min(preferred, max(0, max_pieces - 1))
 
 

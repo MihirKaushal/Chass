@@ -161,7 +161,7 @@ def intrinsic_piece_value(state: GameState, piece: Piece) -> float:
     elif piece.type == "diplomat":
         movement = _safe_piece_parameter(state, "diplomat", "movementDistance", 1)
         contact = _safe_piece_parameter(state, "diplomat", "contactTurns", 2)
-        duration = _safe_piece_parameter(state, "diplomat", "pacifiedTurns", 5)
+        duration = _safe_piece_parameter(state, "diplomat", "pacifiedTurns", 4)
         retirement = _safe_piece_parameter(
             state,
             "diplomat",
@@ -673,7 +673,7 @@ def _power_of_love_value(
     color: str,
     color_pieces: list[tuple[int, int, Piece]],
 ) -> float:
-    duration = _safe_ability_parameter(state, "power_of_love", "durationTurns", 10)
+    duration = _safe_ability_parameter(state, "power_of_love", "durationTurns", 8)
     queens = sum(piece.type == "queen" for _, _, piece in color_pieces)
     king = next((piece for _, _, piece in color_pieces if piece.type == "king"), None)
     active = 0

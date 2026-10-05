@@ -39,6 +39,7 @@ from backend.configuration_limits import (
     TARGET_POINTS_MIN,
     TIME_SECONDS_MAX,
     TIME_SECONDS_MIN,
+    default_barricade_count,
 )
 
 
@@ -481,7 +482,7 @@ class VictoryConfigPayload(BaseModel):
     timeSeconds: int = Field(default=600, ge=TIME_SECONDS_MIN, le=TIME_SECONDS_MAX)
     kingPoints: int = Field(default=0, ge=POINT_VALUE_MIN, le=POINT_VALUE_MAX)
     dominionRounds: int = Field(
-        default=3,
+        default=2,
         ge=DOMINION_ROUNDS_MIN,
         le=DOMINION_ROUNDS_MAX,
     )
@@ -614,7 +615,7 @@ class GameConfigurationPayload(BaseModel):
     formationId: str = "custom"
     matchPredictorEnabled: bool = True
     barricadeCount: int = Field(
-        default=1,
+        default_factory=default_barricade_count,
         ge=BARRICADE_COUNT_MIN,
         le=BARRICADE_COUNT_MAX,
     )
@@ -722,6 +723,11 @@ class CreateGameRequest(BaseModel):
             self.boardRows = self.boardSize
             self.boardCols = self.boardSize
         if self.configuration:
+            if "barricadeCount" not in self.configuration.model_fields_set:
+                self.configuration.barricadeCount = default_barricade_count(
+                    self.boardRows,
+                    self.boardCols,
+                )
             affinity_count = self.configuration.customRules.affinitySquareCount
             if (
                 "customRules" not in self.configuration.model_fields_set

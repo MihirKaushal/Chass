@@ -5,6 +5,7 @@ import {
   clampEvenWholeNumber,
   clampWholeNumber,
   customizeNumericBounds,
+  defaultBarricadeCount,
   defaultGambitPieceCap,
   normalizeCustomizeNumbers,
 } from "./customizeNumericLimits.js";
@@ -60,12 +61,22 @@ test("affinity square inputs remain even and respect their dynamic bounds", () =
 test("Gambit piece caps use compact defaults and reserve the King slot", () => {
   assert.equal(defaultGambitPieceCap("pawn"), 15);
   assert.equal(defaultGambitPieceCap("queen"), 2);
+  assert.equal(defaultGambitPieceCap("maharani"), 2);
+  assert.equal(defaultGambitPieceCap("hypnotizer"), 2);
+  assert.equal(defaultGambitPieceCap("diplomat"), 1);
   assert.equal(defaultGambitPieceCap("rook"), 3);
   assert.equal(defaultGambitPieceCap("elephant"), 3);
   assert.equal(defaultGambitPieceCap("king"), 1);
   assert.equal(defaultGambitPieceCap("barricade"), 0);
   assert.equal(defaultGambitPieceCap("pawn", 4), 3);
   assert.equal(defaultGambitPieceCap("elephant", 3), 2);
+});
+
+test("Barricade defaults preserve center symmetry across board dimensions", () => {
+  assert.equal(defaultBarricadeCount(8, 8), 2);
+  assert.equal(defaultBarricadeCount(8, 7), 2);
+  assert.equal(defaultBarricadeCount(7, 8), 2);
+  assert.equal(defaultBarricadeCount(7, 7), 1);
 });
 
 test("numeric bounds adapt Gambit limits to deployment space", () => {

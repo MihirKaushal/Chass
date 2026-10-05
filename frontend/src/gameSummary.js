@@ -18,7 +18,7 @@ function victorySummary(victory = {}) {
     case "royal_score":
       return "Defeat a King; the player with the higher captured score wins.";
     case "center_dominion":
-      return `Begin with the center empty, then hold both squares for ${positiveInteger(victory.dominionRounds, 3)} consecutive rounds; checkmate also wins.`;
+      return `Begin with the center empty, then hold both squares for ${positiveInteger(victory.dominionRounds, 2)} consecutive rounds; checkmate also wins.`;
     case "royal_center":
       return "Begin with the center empty, then move your King onto an objective square; checkmate also wins.";
     case "check_race":
