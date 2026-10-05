@@ -1161,6 +1161,11 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           analysisRefreshing={analysisRefreshing}
           onRetryAnalysis={retryMatchAnalysis}
           matchAnalysisEnabled={matchAnalysisEnabled}
+          playerColor={
+            ["online", "bot"].includes(game.mode)
+              ? session?.color || game.bot?.humanColor || null
+              : null
+          }
         />
       ) : (
         <PlayPage
@@ -1179,6 +1184,11 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           analysisRefreshing={analysisRefreshing}
           onRetryAnalysis={retryMatchAnalysis}
           matchAnalysisEnabled={matchAnalysisEnabled}
+          playerColor={
+            ["online", "bot"].includes(game.mode)
+              ? session?.color || game.bot?.humanColor || null
+              : null
+          }
         />
       )}
 

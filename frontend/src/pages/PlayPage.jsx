@@ -26,6 +26,7 @@ function PlayPage({
   analysisRefreshing,
   onRetryAnalysis,
   matchAnalysisEnabled,
+  playerColor,
 }) {
   const [selectedPower, setSelectedPower] = useState(null);
   const [selectedGlobalActionKey, setSelectedGlobalActionKey] = useState(null);
@@ -106,6 +107,7 @@ function PlayPage({
       actionLoading={actionLoading}
       selectedGlobalActionKey={selectedGlobalActionKey}
       onSelectGlobalActionKey={selectGlobalAction}
+      playerColor={playerColor}
       specialRulesContent={game.affinity?.enabled ? (
         <CommandPanel
           game={game}
