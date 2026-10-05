@@ -14,6 +14,7 @@ import {
   clampEvenWholeNumber,
   clampWholeNumber,
   customizeNumericBounds,
+  defaultBarricadeCount,
   defaultGambitPieceCap,
   normalizeCustomizeNumbers,
 } from "../customizeNumericLimits";
@@ -186,7 +187,7 @@ function defaultDraft(catalog) {
     presetId: "classic",
     formationId: "classic",
     matchPredictorEnabled: true,
-    barricadeCount: 1,
+    barricadeCount: defaultBarricadeCount(8, 8),
     boardRows: 8,
     boardCols: 8,
     enabledPieces: [...STANDARD_TYPES],
@@ -194,7 +195,7 @@ function defaultDraft(catalog) {
     pointValues,
     pieceCaps,
     placements: classicLayout(8, 8),
-    victory: { mode: "checkmate", targetPoints: 21, timeSeconds: 600, kingPoints: 0, dominionRounds: 3, checkTarget: 3 },
+    victory: { mode: "checkmate", targetPoints: 21, timeSeconds: 600, kingPoints: 0, dominionRounds: 2, checkTarget: 3 },
     customRules: {
       affinityEnabled: false,
       affinitySquareCount: 4,
@@ -270,7 +271,8 @@ function loadSavedDraft(catalog) {
       presetId: configuration.presetId || "custom",
       formationId: configuration.formationId || "custom",
       matchPredictorEnabled: true,
-      barricadeCount: configuration.barricadeCount ?? base.barricadeCount,
+      barricadeCount: configuration.barricadeCount
+        ?? defaultBarricadeCount(boardRows, boardCols),
       boardRows,
       boardCols,
       enabledPieces: configuration.enabledPieces || base.enabledPieces,
@@ -353,7 +355,7 @@ function applyModeToDraft(current, mode, catalog) {
     pieceParameters: defaults.pieceParameters,
     pointValues: defaults.pointValues,
     pieceCaps: defaults.pieceCaps,
-    barricadeCount: defaults.barricadeCount,
+    barricadeCount: defaultBarricadeCount(rows, cols),
     placements: layout,
     victory: { ...current.victory, ...mode.victory },
     customRules: { ...defaults.customRules, ...(mode.customRules || {}) },
@@ -1155,13 +1157,21 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     setBoardHistory([]);
     setRestoreFormationId("classic");
     setDraft((current) => {
+      const previousDefaultBarricades = defaultBarricadeCount(
+        current.boardRows,
+        current.boardCols
+      );
+      const nextDefaultBarricades = defaultBarricadeCount(rows, cols);
+      const nextBarricadeCount = current.barricadeCount === previousDefaultBarricades
+        ? nextDefaultBarricades
+        : current.barricadeCount;
       return normalizeCustomizeNumbers({
         ...current,
         presetId: "custom",
         formationId: "custom",
         boardRows: rows,
         boardCols: cols,
-        barricadeCount: Math.min(current.barricadeCount, Math.max(1, Math.floor(cols / 2))),
+        barricadeCount: Math.min(nextBarricadeCount, Math.max(1, Math.floor(cols / 2))),
         placements: centeredResize(current.placements, current.boardRows, current.boardCols, rows, cols),
         specialAbilities: {
           ...current.specialAbilities,

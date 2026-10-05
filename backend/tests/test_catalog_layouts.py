@@ -3,7 +3,12 @@ from __future__ import annotations
 import pytest
 
 from backend.catalog import POPULAR_PRESETS, adaptive_back_rank, catalog_payload, classic_layout
-from backend.configuration_limits import customization_limits, default_gambit_piece_cap
+from backend.configuration_limits import (
+    customization_limits,
+    default_barricade_count,
+    default_gambit_piece_cap,
+)
+from backend.models.schemas import CreateGameRequest, VictoryConfigPayload
 
 
 @pytest.mark.parametrize("cols", range(4, 17))
@@ -61,6 +66,9 @@ def test_gambit_starting_systems_leave_affinity_as_an_opt_in_rule():
     [
         ("pawn", 15),
         ("queen", 2),
+        ("maharani", 2),
+        ("hypnotizer", 2),
+        ("diplomat", 1),
         ("rook", 3),
         ("elephant", 3),
         ("king", 1),
@@ -74,6 +82,58 @@ def test_gambit_piece_caps_have_compact_defaults(piece_type: str, expected: int)
 def test_gambit_piece_cap_defaults_reserve_the_king_slot():
     assert default_gambit_piece_cap("pawn", max_pieces=4) == 3
     assert default_gambit_piece_cap("elephant", max_pieces=3) == 2
+
+
+@pytest.mark.parametrize(
+    ("rows", "cols", "expected"),
+    [(8, 8, 2), (8, 7, 2), (7, 8, 2), (7, 7, 1)],
+)
+def test_barricade_default_uses_symmetric_center_when_possible(
+    rows: int,
+    cols: int,
+    expected: int,
+):
+    assert default_barricade_count(rows, cols) == expected
+
+
+def test_game_request_resolves_board_dependent_barricade_default():
+    odd_board = CreateGameRequest(
+        boardRows=7,
+        boardCols=7,
+        configuration={"enabledPieces": ["king", "barricade"]},
+    )
+    explicit_count = CreateGameRequest(
+        boardRows=7,
+        boardCols=7,
+        configuration={
+            "barricadeCount": 3,
+            "enabledPieces": ["king", "barricade"],
+        },
+    )
+
+    assert odd_board.configuration is not None
+    assert odd_board.configuration.barricadeCount == 1
+    assert explicit_count.configuration is not None
+    assert explicit_count.configuration.barricadeCount == 3
+
+
+def test_catalog_exposes_rebalanced_piece_and_ability_defaults():
+    catalog = catalog_payload()
+    pieces = {piece["type"]: piece for piece in catalog["pieces"]}
+    abilities = {ability["id"]: ability for ability in catalog["specialAbilities"]}
+    diplomat_parameters = {
+        parameter["id"]: parameter["default"]
+        for parameter in pieces["diplomat"]["tunableParameters"]
+    }
+    love_parameters = {
+        parameter["id"]: parameter["default"]
+        for parameter in abilities["power_of_love"]["tunableParameters"]
+    }
+
+    assert pieces["diplomat"]["points"] == 5
+    assert diplomat_parameters["pacifiedTurns"] == 4
+    assert love_parameters["durationTurns"] == 8
+    assert VictoryConfigPayload().dominionRounds == 2
 
 
 def test_configured_catalog_copy_pluralizes_descriptive_counts():

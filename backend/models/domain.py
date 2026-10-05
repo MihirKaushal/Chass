@@ -6,7 +6,7 @@ from uuid import uuid4
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from backend.configuration_limits import default_gambit_piece_cap
+from backend.configuration_limits import default_barricade_count, default_gambit_piece_cap
 
 Color = Literal["white", "black"]
 PieceColor = Literal["white", "black", "neutral"]
@@ -177,7 +177,7 @@ class VictoryConfig(BaseModel):
     target_points: int = Field(default=21, ge=1)
     time_seconds: int = Field(default=600, ge=30)
     king_points: int = Field(default=0, ge=0)
-    dominion_rounds: int = Field(default=3, ge=1)
+    dominion_rounds: int = Field(default=2, ge=1)
     check_target: int = Field(default=3, ge=1)
 
 
@@ -229,7 +229,7 @@ class GameConfiguration(BaseModel):
     preset_id: str = "classic"
     formation_id: str = "classic"
     match_predictor_enabled: bool = True
-    barricade_count: int = Field(default=1, ge=0)
+    barricade_count: int = Field(default_factory=default_barricade_count, ge=0)
     enabled_piece_types: list[str] = Field(
         default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"]
     )

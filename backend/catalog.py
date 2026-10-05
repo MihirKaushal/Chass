@@ -846,9 +846,9 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
             description=("A protected peacekeeper that temporarily pacifies nearby enemy pieces."),
             movement_summary=(
                 "Moves one square in any direction. It cannot capture or be captured. After two "
-                "contact turns it pacifies an enemy for five of that enemy's turns."
+                "contact turns it pacifies an enemy for four of that enemy's turns."
             ),
-            points=4,
+            points=5,
             is_custom=True,
             behavior="diplomat",
             patterns=[
@@ -888,7 +888,7 @@ def build_catalog_piece_definitions() -> dict[str, PieceDefinition]:
                         "pacifiedTurns",
                         "Pacification Duration",
                         "Affected player's turns that the target remains pacified.",
-                        5,
+                        4,
                         1,
                         50,
                         "turn",
@@ -1269,7 +1269,7 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "id": "power_of_love",
         "name": "Power of Love",
         "icon": "♥",
-        "summary": "After losing a Queen, the King gains Queen mobility for 10 turns.",
+        "summary": "After losing a Queen, the King gains Queen mobility for 8 turns.",
         "summaryTemplate": (
             "After losing a Queen, the King gains Queen mobility for {durationTurns} turn(s)."
         ),
@@ -1278,7 +1278,7 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
                 "durationTurns",
                 "Queen Mobility Duration",
                 "Own turns for which the King's borrowed Queen mobility remains active.",
-                10,
+                8,
                 1,
                 50,
                 "turn",

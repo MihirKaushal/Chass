@@ -2811,7 +2811,7 @@ def test_hypnotizer_recruits_weak_piece_after_three_owner_turns(client):
     assert game["board"][5][0]["color"] == "white"
 
 
-def test_diplomat_pacifies_for_five_target_turns_after_second_contact(client):
+def test_diplomat_pacifies_for_four_target_turns_after_second_contact(client):
     payload = configured_game(
         enabledPieces=[*classic_types(), "diplomat"],
         piecePoints={
@@ -2821,7 +2821,7 @@ def test_diplomat_pacifies_for_five_target_turns_after_second_contact(client):
             "rook": 5,
             "queen": 9,
             "king": 0,
-            "diplomat": 4,
+            "diplomat": 5,
         },
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
@@ -2850,6 +2850,6 @@ def test_diplomat_pacifies_for_five_target_turns_after_second_contact(client):
         game = response.json()
     pawn = game["board"][5][0]
     countdown = next(item for item in game["countdowns"] if item["kind"] == "pacified")
-    assert pawn["runtime"]["pacified_until_turn_remaining"] == 5
-    assert countdown["remainingTurns"] == 5
+    assert pawn["runtime"]["pacified_until_turn_remaining"] == 4
+    assert countdown["remainingTurns"] == 4
     assert not any(move["from"] == {"row": 5, "col": 0} for move in game["validMoves"])
