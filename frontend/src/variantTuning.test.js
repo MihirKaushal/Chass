@@ -13,8 +13,10 @@ import {
 const scorch = {
   id: "scorch",
   summary: "Scorch squares.",
-  summaryTemplate: "Scorch {usesPerGame} square(s) with {cooldownTurns} turn(s) between uses.",
+  summaryTemplate: "Wait {initialCooldownTurns} turn(s), then scorch {usesPerGame} square(s) with {cooldownTurns} turn(s) between uses.",
   details: [],
+  cooldownTurnsParameter: "cooldownTurns",
+  initialCooldownDivisor: 2,
   tunableParameters: [
     { id: "usesPerGame", default: 2, dynamicDefault: "board_sqrt_quarter", unit: "use" },
     { id: "cooldownTurns", default: 10, unit: "turn" },
@@ -37,7 +39,23 @@ test("Scorch renders configured values in descriptions", () => {
     cooldownTurns: 3,
   });
 
-  assert.equal(configured.summary, "Scorch 5 squares with 3 turns between uses.");
+  assert.equal(
+    configured.summary,
+    "Wait 2 turns, then scorch 5 squares with 3 turns between uses."
+  );
+});
+
+test("opening ability delays use half the recharge rounded up", () => {
+  const configured = effectiveCatalogEntry(scorch, {
+    usesPerGame: 2,
+    cooldownTurns: 11,
+  });
+
+  assert.equal(
+    configured.summary,
+    "Wait 6 turns, then scorch 2 squares with 11 turns between uses."
+  );
+  assert.equal(configured.initialCooldownTurns, 6);
 });
 
 test("configured descriptions pluralize counts with movement modifiers", () => {

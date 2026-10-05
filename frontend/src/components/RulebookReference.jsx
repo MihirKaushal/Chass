@@ -35,14 +35,21 @@ function referenceDraft(catalog) {
   };
 }
 
-function ConfiguredParameterList({ parameters }) {
+function DefaultMarker({ visible = false }) {
+  return visible ? <small className="rulebook-default-marker">Default</small> : null;
+}
+
+function ConfiguredParameterList({ parameters, markDefaults = false }) {
   if (!parameters?.length) return null;
   return (
     <dl className="configured-parameter-list">
       {parameters.map((parameter) => (
         <div key={parameter.id}>
           <dt>{parameter.label}</dt>
-          <dd>{parameterValueLabel(parameter)}</dd>
+          <dd>
+            <span>{parameterValueLabel(parameter)}</span>
+            <DefaultMarker visible={markDefaults} />
+          </dd>
         </div>
       ))}
     </dl>
@@ -80,6 +87,7 @@ function RulebookSection({
 
 function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = null }) {
   const draft = suppliedDraft || referenceDraft(catalog);
+  const markDefaults = !suppliedDraft;
   const [query, setQuery] = useState("");
   const [enabledOnly, setEnabledOnly] = useState(false);
   const effectivePieces = catalog.pieces.map((piece) => effectiveCatalogEntry(
@@ -221,6 +229,12 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
         </div>
       </header>
 
+      {markDefaults ? (
+        <p className="rulebook-default-note">
+          <DefaultMarker visible /> marks the starting value. These values can be changed in the Game Customizer.
+        </p>
+      ) : null}
+
       <RulebookSection id="rulebook-match-analysis" title="Match Analysis" description="How Chass selects an engine and where each estimate is reliable." revealKey={revealKey}>
         {showAnalysisEngines ? (
           <div className="predictor-reference-grid">
@@ -278,12 +292,18 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
               <summary>
                 <span className="entry-icon"><PieceGlyph type={effectivePiece.type} color="black" symbol={effectivePiece.symbols.black || effectivePiece.icon} /></span>
                 <span><strong>{effectivePiece.name}</strong><small>{effectivePiece.isCustom ? "Custom Piece" : "Classic Piece"}</small></span>
-                <b>{draft.pointValues[effectivePiece.type] ?? 0} pts</b>
+                <b>
+                  <span>{draft.pointValues[effectivePiece.type] ?? 0} pts</span>
+                  <DefaultMarker visible={markDefaults} />
+                </b>
               </summary>
               <p>{effectivePiece.description}</p>
               <h4>Movement</h4>
               <p>{effectivePiece.movement}</p>
-              <ConfiguredParameterList parameters={effectivePiece.configuredParameters} />
+              <ConfiguredParameterList
+                parameters={effectivePiece.configuredParameters}
+                markDefaults={markDefaults}
+              />
               {effectivePiece.rules.length ? <ul>{effectivePiece.rules.map((rule) => <li key={rule}>{rule}</li>)}</ul> : null}
             </details>
           ))}
@@ -302,16 +322,16 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
         {showAffinity ? <div className="rulebook-gambit-copy">
           <div>
             <h4>Affinity Squares</h4>
-            <p>The board marks {draft.customRules.affinitySquareCount} centered squares, divided equally so each color receives {draft.customRules.affinitySquareCount / 2}.</p>
-            <p>Hold {draft.customRules.affinityControlRequired} of your assigned squares through the opponent&apos;s turn to earn one command point.</p>
+            <p>The board marks a configurable group of centered squares, divided equally between both colors.</p>
+            <p>Hold the configured number of your assigned squares through the opponent&apos;s turn to earn one command point.</p>
             <p>Spend one point for a Pawn, two to evolve a Pawn, or three for a Rook. A command uses the normal turn and must leave the King safe.</p>
             <p>Marked center squares must begin empty; only Barricades may start there.</p>
           </div>
           <div>
             <h4>Configuration</h4>
-            <p><strong>Affinity squares:</strong> {draft.customRules.affinitySquareCount} total.</p>
-            <p><strong>Squares required:</strong> {draft.customRules.affinityControlRequired} per player.</p>
-            <p><strong>Command point cap:</strong> {draft.customRules.commandPointCap}. This limits how many unused points a player may save.</p>
+            <p><strong>Affinity squares:</strong> {draft.customRules.affinitySquareCount} total. <DefaultMarker visible={markDefaults} /></p>
+            <p><strong>Squares required:</strong> {draft.customRules.affinityControlRequired} per player. <DefaultMarker visible={markDefaults} /></p>
+            <p><strong>Command point cap:</strong> {draft.customRules.commandPointCap}. <DefaultMarker visible={markDefaults} /> This limits how many unused points a player may save.</p>
           </div>
         </div> : <EmptyState className="rulebook-empty">No matching custom rules in this configuration.</EmptyState>}
       </RulebookSection>
@@ -322,7 +342,10 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
             <details className="rulebook-entry ability-entry" key={effectiveAbility.id}>
               <summary><span className="entry-icon">{effectiveAbility.icon}</span><span><strong>{effectiveAbility.name}</strong><small>Player ability</small></span></summary>
               <p>{effectiveAbility.summary}</p>
-              <ConfiguredParameterList parameters={effectiveAbility.configuredParameters} />
+              <ConfiguredParameterList
+                parameters={effectiveAbility.configuredParameters}
+                markDefaults={markDefaults}
+              />
               <ul>{effectiveAbility.details.map((detail) => <li key={detail}>{detail}</li>)}</ul>
             </details>
           ))}

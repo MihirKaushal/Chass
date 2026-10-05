@@ -304,6 +304,7 @@ def test_native_bot_can_select_and_apply_a_special_ability_action(client, monkey
     state.configuration.special_abilities.allowed = ["scorch"]
     state.abilities.selected["black"] = ["scorch"]
     state.current_player = "black"
+    state.turn_counts["black"] = 5
     state.bot = BotState(
         profile_id="chass-500",
         target_elo=500,

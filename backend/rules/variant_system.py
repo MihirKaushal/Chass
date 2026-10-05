@@ -19,8 +19,17 @@ ABILITY_COOLDOWN_PARAMETERS = {
     for ability in SPECIAL_ABILITIES
     if ability.get("cooldownTurnsParameter")
 }
+ABILITY_INITIAL_COOLDOWN_DIVISORS = {
+    ability["id"]: int(ability["initialCooldownDivisor"])
+    for ability in SPECIAL_ABILITIES
+    if ability.get("initialCooldownDivisor")
+}
 ABILITY_COOLDOWN_DESCRIPTIONS = {
     "episcopal": "The Bishop color-shift is recharging.",
+}
+ABILITY_INITIAL_COOLDOWN_DESCRIPTIONS = {
+    "eye_for_an_eye": "Eye for an Eye is unavailable during its opening delay.",
+    "scorch": "Scorch is unavailable during its opening delay.",
 }
 FINISHED_STATUSES = {
     "checkmate",
@@ -278,6 +287,18 @@ def ability_cooldown_remaining(state: GameState, color: str, ability_id: str) ->
     ready_turn = int(
         state.abilities.runtime[color].get(f"{ability_id}_ready_turn", 0)
     )
+    usage_count = int(state.abilities.usage_count[color].get(ability_id, 0))
+    initial_divisor = ABILITY_INITIAL_COOLDOWN_DIVISORS.get(ability_id)
+    if usage_count == 0 and initial_divisor:
+        cooldown_turns = ability_parameter(
+            state,
+            ability_id,
+            ABILITY_COOLDOWN_PARAMETERS[ability_id],
+        )
+        initial_ready_turn = (
+            cooldown_turns + initial_divisor - 1
+        ) // initial_divisor
+        ready_turn = max(ready_turn, initial_ready_turn)
     return max(0, ready_turn - state.turn_counts[color])
 
 
@@ -1334,16 +1355,33 @@ def public_countdowns(state: GameState) -> list[dict]:
                 continue
             remaining = ability_cooldown_remaining(state, color, selected)
             if remaining > 0:
+                is_initial_delay = (
+                    selected in ABILITY_INITIAL_COOLDOWN_DIVISORS
+                    and int(
+                        state.abilities.usage_count[color].get(selected, 0)
+                    ) == 0
+                )
                 countdowns.append(
                     {
                         "id": f"ability:{selected}:{color}",
                         "owner": color,
                         "kind": selected,
                         "icon": ABILITY_ICONS[selected],
-                        "label": f"{selected.replace('_', ' ').title()} Recharge",
-                        "description": ABILITY_COOLDOWN_DESCRIPTIONS.get(
-                            selected,
-                            "This player ability is recharging.",
+                        "label": (
+                            f"{selected.replace('_', ' ').title()} Initial Delay"
+                            if is_initial_delay
+                            else f"{selected.replace('_', ' ').title()} Recharge"
+                        ),
+                        "description": (
+                            ABILITY_INITIAL_COOLDOWN_DESCRIPTIONS.get(
+                                selected,
+                                "This player ability is waiting for its first use.",
+                            )
+                            if is_initial_delay
+                            else ABILITY_COOLDOWN_DESCRIPTIONS.get(
+                                selected,
+                                "This player ability is recharging.",
+                            )
                         ),
                         "remainingTurns": remaining,
                     }

@@ -28,6 +28,23 @@ function formatValue(value) {
   return label(value);
 }
 
+function abilityLimitsLabel(definition) {
+  if (!definition) return "Enabled";
+  const limits = [];
+  if (definition.usageLimit != null) {
+    limits.push(definition.usageLimit === 1 ? "One Use" : `${definition.usageLimit} Uses`);
+  }
+  if (definition.initialCooldownTurns > 0) {
+    limits.push(`${definition.initialCooldownTurns}-Turn Initial Delay`);
+  }
+  if (definition.cooldownTurns != null) {
+    limits.push(definition.cooldownTurns
+      ? `${definition.cooldownTurns}-Turn Recharge`
+      : "No Recharge");
+  }
+  return limits.join(" · ") || "Enabled";
+}
+
 function MatchClock({ clock }) {
   const [, setTick] = useState(0);
   useEffect(() => {
@@ -392,17 +409,26 @@ function SpecialAbilitiesDisclosure({ abilities, catalog, parameters }) {
             <article className="effect-reference-card" key={abilityId}>
               <header>
                 <strong>{definition?.icon ? `${definition.icon} ` : ""}{definition?.name || title(abilityId)}</strong>
-                {definition?.usageLimit != null ? <span>{definition.usageLimit === 1 ? "One Use" : `${definition.usageLimit} Uses`}</span> : definition?.cooldownTurns != null ? <span>{definition.cooldownTurns ? `${definition.cooldownTurns}-Turn Cooldown` : "No Cooldown"}</span> : <span>Enabled</span>}
+                <span>{abilityLimitsLabel(definition)}</span>
               </header>
               <p>{definition?.summary || "A selected special ability for this match."}</p>
               <div className="ability-owner-statuses">
                 {owners.map((color) => {
                   const remaining = abilities.cooldowns?.[color]?.[abilityId] || 0;
                   const uses = abilities.usageCount?.[color]?.[abilityId] || 0;
+                  const initialDelay = (
+                    remaining > 0
+                    && uses === 0
+                    && definition?.initialCooldownTurns > 0
+                  );
                   return (
                     <div key={color}>
                       <strong>{title(color)}</strong>
-                      <span>{remaining ? `${remaining} own turns remaining` : definition?.usageLimit != null && uses >= definition.usageLimit ? "Used" : "Ready"}</span>
+                      <span>{remaining
+                        ? `${initialDelay ? "Initial delay: " : ""}${remaining} own turns remaining`
+                        : definition?.usageLimit != null && uses >= definition.usageLimit
+                          ? "Used"
+                          : "Ready"}</span>
                       <small>{uses} use{uses === 1 ? "" : "s"}</small>
                     </div>
                   );

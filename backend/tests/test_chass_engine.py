@@ -384,6 +384,7 @@ def test_action_space_includes_moves_special_actions_and_affinity_powers(client)
     state.configuration.special_abilities.enabled = True
     state.configuration.special_abilities.allowed = ["scorch"]
     state.abilities.selected["white"] = ["scorch"]
+    state.turn_counts["white"] = 5
 
     actions = legal_turn_actions(state, RuleEngine())
     kinds = {action.kind for action in actions}
@@ -406,6 +407,7 @@ def test_bounded_action_space_reserves_moves_and_each_mechanic_family(client):
     state.configuration.special_abilities.enabled = True
     state.configuration.special_abilities.allowed = ["scorch"]
     state.abilities.selected["white"] = ["scorch"]
+    state.turn_counts["white"] = 5
     actions = legal_turn_actions(state, RuleEngine())
 
     bounded = select_search_actions(actions, limit=12)
@@ -422,6 +424,7 @@ def test_scorch_skips_terminal_prescreen_unless_turn_bookkeeping_can_end_game(cl
     state.configuration.special_abilities.enabled = True
     state.configuration.special_abilities.allowed = ["scorch"]
     state.abilities.selected["white"] = ["scorch"]
+    state.turn_counts["white"] = 5
     scorch = next(
         action
         for action in legal_turn_actions(state, RuleEngine())
@@ -464,6 +467,7 @@ def test_search_detects_mate_before_high_volume_special_actions_are_truncated(cl
     state.configuration.special_abilities.enabled = True
     state.configuration.special_abilities.allowed = ["scorch"]
     state.abilities.selected["white"] = ["scorch"]
+    state.turn_counts["white"] = 5
     engine = RuleEngine()
     engine.evaluate_state(state)
 
