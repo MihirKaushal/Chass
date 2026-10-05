@@ -148,7 +148,7 @@ async def _broadcast_state(
             )
         view = views[identity.color]
         if isinstance(view, GameResponse):
-            view = view.model_dump(by_alias=True)
+            view = view.model_dump(mode="json", by_alias=True)
             views[identity.color] = view
         return {"game": view}
 
@@ -1076,7 +1076,7 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
                 "game": game_service.serialize_game(
                     authorized.record,
                     viewer_color=identity.color,
-                ).model_dump(by_alias=True)
+                ).model_dump(mode="json", by_alias=True)
             },
         )
         await _ensure_bot_turn(authorized.record)
@@ -1097,7 +1097,7 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
                         "game": game_service.serialize_game(
                             latest,
                             viewer_color=identity.color,
-                        ).model_dump(by_alias=True)
+                        ).model_dump(mode="json", by_alias=True)
                     },
                 )
     except WebSocketDisconnect:

@@ -68,6 +68,7 @@ const FINISHED_STATUSES = new Set([
   "check_race",
   "draw",
 ]);
+const BOT_STATE_FALLBACK_POLL_MS = 1000;
 
 function colorLabel(color) {
   return color ? color.charAt(0).toUpperCase() + color.slice(1) : "";
@@ -364,6 +365,45 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     },
     onError: setSocketMessage,
   });
+
+  useEffect(() => {
+    if (!botTurnIsPending(game)) {
+      return undefined;
+    }
+
+    let cancelled = false;
+    let pollTimer;
+    const pollBotState = async () => {
+      try {
+        await refreshGame();
+      } catch {
+        // The WebSocket may still deliver the move; retry without disrupting play.
+      } finally {
+        if (!cancelled) {
+          pollTimer = window.setTimeout(
+            pollBotState,
+            BOT_STATE_FALLBACK_POLL_MS
+          );
+        }
+      }
+    };
+
+    pollTimer = window.setTimeout(
+      pollBotState,
+      BOT_STATE_FALLBACK_POLL_MS
+    );
+    return () => {
+      cancelled = true;
+      window.clearTimeout(pollTimer);
+    };
+  }, [
+    game?.bot?.status,
+    game?.currentPlayer,
+    game?.id,
+    game?.phase,
+    game?.version,
+    refreshGame,
+  ]);
 
   const activeOnlineInviteState = useMemo(
     () => onlineInviteState({
