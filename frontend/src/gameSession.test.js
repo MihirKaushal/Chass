@@ -127,6 +127,36 @@ test("projectPendingMove applies server-provided movement and captures", () => {
   assert.equal(game.board[1][1], enemy);
 });
 
+test("projectPendingMove switches the visible turn and clock immediately", () => {
+  const projectedAt = Date.parse("2026-10-04T12:00:01Z");
+  const pawn = { pieceId: "white-pawn", type: "pawn", color: "white" };
+  const game = {
+    currentPlayer: "white",
+    board: [[null], [pawn]],
+    clock: {
+      initialSeconds: 60,
+      remainingSeconds: { white: 60, black: 60 },
+      activeColor: "white",
+      turnStartedAt: "2026-10-04T12:00:00Z",
+    },
+  };
+
+  const projected = projectPendingMove(
+    game,
+    { from: { row: 1, col: 0 }, to: { row: 0, col: 0 }, captures: [] },
+    null,
+    projectedAt
+  );
+
+  assert.equal(projected.currentPlayer, "black");
+  assert.equal(projected.clock.activeColor, "black");
+  assert.equal(projected.clock.remainingSeconds.white, 59);
+  assert.equal(projected.clock.remainingSeconds.black, 60);
+  assert.equal(projected.clock.turnStartedAt, "2026-10-04T12:00:01.000Z");
+  assert.equal(game.currentPlayer, "white");
+  assert.equal(game.clock.activeColor, "white");
+});
+
 test("projectPendingMove previews promotion without mutating authoritative state", () => {
   const pawn = { pieceId: "pawn", type: "pawn", name: "Pawn", color: "white" };
   const game = {

@@ -1,3 +1,6 @@
+import { activeClockTiming } from "./gameClock.js";
+
+
 export const SOUND_PREFERENCE_STORAGE_KEY = "chass:sound-preferences";
 export const DEFAULT_SOUND_VOLUME = 0.7;
 
@@ -357,19 +360,16 @@ export function clockSoundPlan(game, nowMs = Date.now()) {
 
   const activeColor = game.clock.activeColor;
   const initialSeconds = Number(game.clock.initialSeconds);
-  const storedRemaining = Number(game.clock.remainingSeconds?.[activeColor]);
-  const turnStartedAt = new Date(game.clock.turnStartedAt).getTime();
+  const timing = activeClockTiming(game.clock, nowMs);
   if (
     !["white", "black"].includes(activeColor)
     || !Number.isFinite(initialSeconds)
-    || !Number.isFinite(storedRemaining)
-    || !Number.isFinite(turnStartedAt)
+    || !timing
   ) {
     return null;
   }
 
-  const elapsedSeconds = Math.max(0, (nowMs - turnStartedAt) / 1000);
-  const remainingSeconds = Math.max(0, storedRemaining - elapsedSeconds);
+  const remainingSeconds = timing.remainingSeconds;
   const epoch = Number(game.historyPagination?.epoch) || 0;
   return {
     gameId: game.id,
@@ -387,10 +387,7 @@ export function clockSoundPlan(game, nowMs = Date.now()) {
         activeDurationMs: event.loop
           ? Math.max(0, Math.min(event.durationMs, remainingSeconds * 1000))
           : event.durationMs,
-        endAtMs: event.loop
-          ? nowMs + Math.max(0, (remainingSeconds - event.seconds) * 1000)
-            + Math.max(0, Math.min(event.durationMs, remainingSeconds * 1000))
-          : null,
+        endAtMs: event.loop ? timing.deadlineMs : null,
       })),
   };
 }

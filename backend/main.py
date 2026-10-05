@@ -16,6 +16,7 @@ from backend.db import init_db
 from backend.firebase_client import get_firestore_client, reset_firestore_client
 from backend.routes import (
     bot_turn_scheduler,
+    clock_deadline_scheduler,
     game_router,
     game_service,
     match_analysis_service,
@@ -66,6 +67,7 @@ async def lifespan(_: FastAPI):
         stop_event.set()
         await cleanup_task
         await bot_turn_scheduler.shutdown()
+        await clock_deadline_scheduler.shutdown()
         await match_analysis_service.shutdown()
 
 

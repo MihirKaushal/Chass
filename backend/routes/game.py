@@ -66,10 +66,11 @@ from backend.repositories import (
     GameRecord,
 )
 from backend.rules import RuleEngine
-from backend.services.game_service import GameService
+from backend.services import ClockDeadlineScheduler, GameService
 
 router = APIRouter(prefix="/game", tags=["game"])
 logger = logging.getLogger(__name__)
+CLOCK_DEADLINE_GRACE_SECONDS = 0.025
 rule_engine = RuleEngine()
 game_service = GameService(rule_engine)
 analysis_settings = get_settings()
@@ -133,6 +134,7 @@ async def _broadcast_state(
     target_color: str | None = None,
     serialized_views: dict[str | None, GameResponse | dict] | None = None,
 ) -> None:
+    _sync_clock_deadline(record)
     match_analysis_service.invalidate(record.state.id)
     views = serialized_views if serialized_views is not None else {}
 
@@ -168,6 +170,85 @@ async def _broadcast_match_analysis(analysis: MatchAnalysisView) -> None:
 
 
 match_analysis_service.set_listener(_broadcast_match_analysis)
+
+
+def _clock_deadline_delay(record: GameRecord) -> float | None:
+    state = record.state
+    if state.clock is None or state.phase != "play":
+        return None
+    snapshot = rule_engine.clock_snapshot(state)
+    if snapshot is None:
+        return None
+    active_color = snapshot["activeColor"]
+    return max(0.0, float(snapshot["remainingSeconds"][active_color]))
+
+
+async def _run_clock_deadline(record: GameRecord) -> None:
+    delay = _clock_deadline_delay(record)
+    if delay is None:
+        return
+
+    try:
+        await asyncio.sleep(delay + CLOCK_DEADLINE_GRACE_SECONDS)
+        finished = await run_in_threadpool(game_service.expire_clock, record)
+    except asyncio.CancelledError:
+        raise
+    except HTTPException as error:
+        if error.status_code != 409:
+            logger.warning(
+                "Clock deadline failed for %s: %s",
+                record.state.id,
+                error.detail,
+            )
+            return
+        try:
+            latest = await run_in_threadpool(
+                game_service.get_game,
+                record.state.id,
+            )
+        except HTTPException:
+            return
+        if (
+            latest.state.result is None
+            or latest.state.result.reason_code != "time_expired"
+        ):
+            return
+        finished = latest
+    except Exception:
+        logger.exception("Clock deadline failed for game %s", record.state.id)
+        return
+
+    if finished is None:
+        return
+
+    bot_turn_scheduler.cancel(finished.state.id)
+    explanation = (
+        finished.state.result.description
+        if finished.state.result is not None
+        else "The active player's clock expired."
+    )
+    serialized_views: dict[str | None, GameResponse | dict] = {}
+    await _broadcast_state(
+        finished,
+        last_explanation=explanation,
+        serialized_views=serialized_views,
+    )
+    await _broadcast_state(
+        finished,
+        event_type="game_ended",
+        last_explanation=explanation,
+        serialized_views=serialized_views,
+    )
+
+
+clock_deadline_scheduler = ClockDeadlineScheduler(_run_clock_deadline)
+
+
+def _sync_clock_deadline(record: GameRecord) -> None:
+    if _clock_deadline_delay(record) is None:
+        clock_deadline_scheduler.cancel(record.state.id)
+        return
+    clock_deadline_scheduler.schedule(record)
 
 
 def _bot_turn_needed(record: GameRecord) -> bool:
@@ -321,8 +402,13 @@ async def create_game(payload: CreateGameRequest, request: Request) -> GameSessi
                     ),
                 )
     response = await run_in_threadpool(game_service.create_game, payload)
-    if response.game.mode == "bot":
+    record = None
+    if response.game.mode == "bot" or (
+        response.game.clock is not None and response.game.phase == "play"
+    ):
         record = await run_in_threadpool(game_service.get_game, response.game.id)
+        _sync_clock_deadline(record)
+    if response.game.mode == "bot" and record is not None:
         await _ensure_bot_turn(record)
     return response
 
@@ -400,6 +486,7 @@ async def get_game(
         authorized.record,
         viewer_color=game_service.viewer_color(authorized.record, token),
     )
+    _sync_clock_deadline(authorized.record)
     await _ensure_bot_turn(authorized.record)
     return response
 
@@ -971,6 +1058,7 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
             await websocket.close(code=1011)
             return
     await socket_manager.connect(game_id, websocket, identity, accept=False)
+    _sync_clock_deadline(authorized.record)
 
     try:
         await socket_manager.send(
@@ -993,6 +1081,7 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
                 await socket_manager.send(websocket, "pong")
             elif event_type == "sync":
                 latest = await run_in_threadpool(game_service.get_game, game_id, token)
+                _sync_clock_deadline(latest)
                 await socket_manager.send(
                     websocket,
                     "game_state",

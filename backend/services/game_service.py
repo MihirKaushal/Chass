@@ -1179,6 +1179,23 @@ class GameService:
     def get_game(self, game_id: str, player_token: str | None = None) -> GameRecord:
         return self.authorize(game_id, player_token).record
 
+    def expire_clock(self, record: GameRecord) -> GameRecord | None:
+        state = record.state.clone()
+        if (
+            state.clock is None
+            or state.phase != "play"
+            or state.game_status in FINISHED_STATUSES
+        ):
+            return None
+
+        self.engine.evaluate_state(state)
+        if (
+            state.result is None
+            or state.result.reason_code != "time_expired"
+        ):
+            return None
+        return self._save(record, state)
+
     def get_history_page(
         self,
         game_id: str,

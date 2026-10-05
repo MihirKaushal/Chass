@@ -38,6 +38,7 @@ import {
   saveGameSession,
   updateGameSession,
 } from "./gameSession";
+import { clockDeadlineDelayMs } from "./gameClock";
 import { onlineInviteState } from "./onlineInviteState";
 import useGameSocket from "./hooks/useGameSocket";
 import useGameSounds from "./hooks/useGameSounds";
@@ -225,6 +226,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   );
   const [endgameMessage, setEndgameMessage] = useState("");
   const [showEndgameModal, setShowEndgameModal] = useState(false);
+  const [clockTimeoutPending, setClockTimeoutPending] = useState(null);
   const [showLocalRestartChooser, setShowLocalRestartChooser] = useState(false);
   const [pendingLeaveDestination, setPendingLeaveDestination] = useState(null);
   const lastEndgameSignatureRef = useRef("");
@@ -506,7 +508,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     () => projectPendingMove(
       historyGame,
       pendingMove?.move,
-      pendingMove?.promotion
+      pendingMove?.promotion,
+      pendingMove?.submittedAtMs
     ),
     [historyGame, pendingMove]
   );
@@ -596,30 +599,51 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
 
   useEffect(() => {
     if (
-      !game?.clock ||
-      game.phase !== "play" ||
-      FINISHED_STATUSES.has(game.gameStatus)
+      !visibleGame?.clock ||
+      visibleGame.phase !== "play" ||
+      FINISHED_STATUSES.has(visibleGame.gameStatus)
     ) {
       return undefined;
     }
 
-    const activeColor = game.clock.activeColor;
-    const storedRemaining = Number(game.clock.remainingSeconds?.[activeColor] ?? 0);
-    const startedAt = new Date(game.clock.turnStartedAt).getTime();
-    const elapsedSeconds = Number.isFinite(startedAt)
-      ? Math.max(0, (Date.now() - startedAt) / 1000)
-      : 0;
-    const refreshDelay = Math.max(100, (storedRemaining - elapsedSeconds) * 1000 + 150);
+    const activeColor = visibleGame.clock.activeColor;
+    const deadlineSignature = [
+      visibleGame.id,
+      visibleGame.version,
+      activeColor,
+      visibleGame.clock.turnStartedAt,
+    ].join(":");
+    setClockTimeoutPending((current) => (
+      current?.signature === deadlineSignature ? current : null
+    ));
+    const refreshDelay = clockDeadlineDelayMs(visibleGame.clock);
+    if (refreshDelay == null) return undefined;
     const timer = window.setTimeout(() => {
-      refreshGame().catch((requestError) => setError(requestError.message));
-    }, refreshDelay);
+      const current = gameRef.current;
+      if (
+        current?.id === visibleGame.id
+        && current.version === visibleGame.version
+        && current.clock?.activeColor === activeColor
+      ) {
+        setClockTimeoutPending({
+          signature: deadlineSignature,
+          expiredColor: activeColor,
+        });
+      }
+      refreshGame().catch((requestError) => {
+        gameSounds.play("error");
+        setError(requestError.message);
+      });
+    }, Math.max(0, refreshDelay));
     return () => window.clearTimeout(timer);
   }, [
-    game?.clock?.activeColor,
-    game?.clock?.remainingSeconds,
-    game?.clock?.turnStartedAt,
-    game?.gameStatus,
-    game?.phase,
+    visibleGame?.clock?.activeColor,
+    visibleGame?.clock?.remainingSeconds,
+    visibleGame?.clock?.turnStartedAt,
+    visibleGame?.gameStatus,
+    visibleGame?.id,
+    visibleGame?.phase,
+    visibleGame?.version,
     refreshGame,
   ]);
 
@@ -647,6 +671,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     }
 
     lastEndgameSignatureRef.current = signature;
+    setClockTimeoutPending(null);
     setEndgameMessage(buildEndgameMessage(game));
     setShowEndgameModal(true);
   }, [game]);
@@ -726,6 +751,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         move: previewMove,
         pieceType: movingPiece?.type || null,
         promotion,
+        submittedAtMs: Date.now(),
       });
       setSelectedSquare(null);
     }
@@ -1213,7 +1239,17 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         />
       ) : null}
 
-      {showEndgameModal ? (
+      {clockTimeoutPending && !FINISHED_STATUSES.has(game.gameStatus) && !game.winner ? (
+        <Dialog
+          open
+          onClose={() => setClockTimeoutPending(null)}
+          closeLabel="Close timeout confirmation"
+          eyebrow="Clock Reached Zero"
+          title={`${colorLabel(oppositeColor(clockTimeoutPending.expiredColor))} Won on Time`}
+          description={`${colorLabel(clockTimeoutPending.expiredColor)} ran out of time. Saving the final result...`}
+          ariaLive="assertive"
+        />
+      ) : showEndgameModal ? (
         <Dialog
           open
           onClose={() => setShowEndgameModal(false)}

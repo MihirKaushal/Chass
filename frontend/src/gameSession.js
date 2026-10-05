@@ -1,3 +1,6 @@
+import { projectClockAfterTurn } from "./gameClock.js";
+
+
 const SESSION_PREFIX = "chass:game:";
 const memorySessions = new Map();
 
@@ -137,7 +140,7 @@ export function mergeHistoryRecords(...groups) {
   return [...records.values()].sort((left, right) => left.moveNumber - right.moveNumber);
 }
 
-export function projectPendingMove(game, move, promotion = null) {
+export function projectPendingMove(game, move, promotion = null, projectedAtMs = Date.now()) {
   if (!game?.board || !move?.from || !move?.to) return game;
 
   const board = game.board.map((row) => [...row]);
@@ -203,5 +206,11 @@ export function projectPendingMove(game, move, promotion = null) {
     }
   }
 
-  return { ...game, board };
+  const nextPlayer = game.currentPlayer === "white" ? "black" : "white";
+  return {
+    ...game,
+    board,
+    currentPlayer: nextPlayer,
+    clock: projectClockAfterTurn(game.clock, nextPlayer, projectedAtMs),
+  };
 }
