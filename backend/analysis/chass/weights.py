@@ -133,7 +133,7 @@ ABILITY_PARAMETER_COVERAGE = {
     "getaway": frozenset({"usesPerGame"}),
     "eye_for_an_eye": frozenset({"cooldownTurns"}),
     "kamikaze": frozenset({"blastRadius"}),
-    "episcopal": frozenset({"cooldownTurns", "shiftDistance"}),
+    "episcopal": frozenset({"cooldownTurns"}),
     "power_of_love": frozenset({"durationTurns"}),
     "scorch": frozenset({"cooldownTurns", "usesPerGame", "minimumGap"}),
 }

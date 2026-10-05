@@ -2527,15 +2527,12 @@ class GameService:
                     piece.type == "bishop"
                     and has_ability(game_state, piece.color, "episcopal")
                 ):
-                    ready_turn = int(
-                        game_state.abilities.runtime[piece.color].get(
-                            "episcopal_ready_turn",
-                            0,
+                    runtime["episcopal_ready_turn_remaining"] = (
+                        ability_cooldown_remaining(
+                            game_state,
+                            piece.color,
+                            "episcopal",
                         )
-                    )
-                    runtime["episcopal_ready_turn_remaining"] = max(
-                        0,
-                        ready_turn - current_turn,
                     )
                 if piece.type == "diplomat":
                     contact_turns = piece_parameter(

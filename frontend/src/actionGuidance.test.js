@@ -62,6 +62,45 @@ test("guidance covers global abilities and command powers", () => {
   assert.match(evolve.description, /1 legal target/);
 });
 
+test("Episcopal guidance describes same-color jumps and captures", () => {
+  const episcopalGame = {
+    ...game,
+    board: [
+      [{ name: "Rook", color: "black" }, null, null],
+      [null, null, null],
+      [{ name: "Bishop", color: "white" }, null, null],
+    ],
+  };
+  const guidance = buildActionGuidance({
+    game: episcopalGame,
+    selectedBoardAction: {
+      source: { row: 2, col: 0 },
+      actions: [
+        {
+          actionType: "episcopal",
+          boardMarker: "ability",
+          icon: "E",
+          target: { row: 0, col: 0 },
+        },
+        {
+          actionType: "episcopal",
+          boardMarker: "ability",
+          icon: "E",
+          target: { row: 2, col: 2 },
+        },
+      ],
+    },
+  });
+
+  assert.equal(guidance.title, "Episcopal jump ready");
+  assert.equal(guidance.marker, "ability");
+  assert.equal(
+    guidance.description,
+    "Bishop has 2 legal same-color destinations, including 1 capture."
+  );
+  assert.match(guidance.instruction, /current square color/);
+});
+
 test("Necromancy guidance follows the selected purchase", () => {
   const necromancyGame = {
     ...game,
