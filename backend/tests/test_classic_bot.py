@@ -3,6 +3,8 @@ from __future__ import annotations
 import asyncio
 import time
 
+import pytest
+
 from backend.bots import (
     BotDecision,
     BotTurnContext,
@@ -336,8 +338,13 @@ def test_human_cannot_submit_a_move_during_the_bot_turn(client, monkeypatch):
     assert second_move.json()["detail"] == "Wait for the bot to move."
 
 
-def test_bot_turn_reaches_the_human_over_the_existing_websocket(client, monkeypatch):
-    from backend.routes.game import classic_bot_engine
+@pytest.mark.parametrize("timed", [False, True])
+def test_bot_turn_reaches_the_human_over_the_existing_websocket(
+    client,
+    monkeypatch,
+    timed,
+):
+    from backend.routes import game as game_routes
 
     async def choose_black_reply(context):
         return BotDecision(
@@ -349,14 +356,31 @@ def test_bot_turn_reaches_the_human_over_the_existing_websocket(client, monkeypa
             elapsed_ms=1,
         )
 
-    monkeypatch.setattr(classic_bot_engine, "choose_action", choose_black_reply)
-    game = create_bot_game(client).json()["game"]
+    monkeypatch.setattr(
+        game_routes.classic_bot_engine,
+        "choose_action",
+        choose_black_reply,
+    )
+    monkeypatch.setattr(
+        game_routes,
+        "timed_stockfish_response_delay_seconds",
+        lambda *_args: 0.0,
+    )
+    created = (
+        client.post("/game/create", json=timed_bot_payload())
+        if timed
+        else create_bot_game(client)
+    )
+    game = created.json()["game"]
 
     with client.websocket_connect(f"/game/ws/{game['id']}") as websocket:
         websocket.send_json({"type": "authenticate", "token": None})
         initial = websocket.receive_json()
         assert initial["type"] == "game_state"
         assert initial["game"]["bot"]["humanColor"] == "white"
+        assert bool(initial["game"].get("clock")) is timed
+        if timed:
+            assert isinstance(initial["game"]["clock"]["turnStartedAt"], str)
         assert websocket.receive_json()["type"] == "presence"
 
         moved = client.post(
@@ -384,3 +408,6 @@ def test_bot_turn_reaches_the_human_over_the_existing_websocket(client, monkeypa
         assert final is not None
         assert final["currentPlayer"] == "white"
         assert final["board"][3][3]["type"] == "pawn"
+        if timed:
+            assert final["clock"]["activeColor"] == "white"
+            assert isinstance(final["clock"]["turnStartedAt"], str)
