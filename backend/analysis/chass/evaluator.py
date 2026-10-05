@@ -9,6 +9,7 @@ from typing import Any
 from backend.models import GameState, Piece
 from backend.models.schemas import PositionFactorView
 from backend.rules import RuleEngine
+from backend.rules.episcopal import episcopal_destinations
 from backend.rules.terrain import is_scorched
 from backend.rules.tuning import ability_parameter, piece_parameter
 from backend.rules.variant_system import (
@@ -629,14 +630,42 @@ def _episcopal_value(
     color: str,
     color_pieces: list[tuple[int, int, Piece]],
 ) -> float:
-    bishops = sum(piece.type == "bishop" for _, _, piece in color_pieces)
+    bishops = [
+        (row, col, piece)
+        for row, col, piece in color_pieces
+        if piece.type == "bishop"
+    ]
     if not bishops:
         return 0.0
-    cooldown = _safe_ability_parameter(state, "episcopal", "cooldownTurns", 6)
-    shift = _safe_ability_parameter(state, "episcopal", "shiftDistance", 1)
+    cooldown = _safe_ability_parameter(state, "episcopal", "cooldownTurns", 10)
     readiness = _ability_readiness(state, color, "episcopal")
-    range_factor = shift / max(1, max(state.board.rows, state.board.cols) - 1)
-    return bishops * readiness * (1 + (2.5 * range_factor)) / (1 + (cooldown / 8))
+    destinations = [
+        destination
+        for row, col, _ in bishops
+        for destination in episcopal_destinations(state, row, col)
+    ]
+    maximum_destinations = sum(
+        max(
+            1,
+            (row // 2)
+            + ((state.board.rows - 1 - row) // 2)
+            + (col // 2)
+            + ((state.board.cols - 1 - col) // 2),
+        )
+        for row, col, _ in bishops
+    )
+    mobility_ratio = min(1.0, len(destinations) / maximum_destinations)
+    capture_pressure = sum(
+        min(10.0, intrinsic_piece_value(state, destination.captured_piece))
+        for destination in destinations
+        if destination.captured_piece is not None
+    )
+    available_value = (
+        (1.15 * len(bishops))
+        + (1.8 * len(bishops) * mobility_ratio)
+        + (0.16 * capture_pressure)
+    )
+    return readiness * available_value / (1 + (cooldown / 12))
 
 
 def _power_of_love_value(

@@ -32,7 +32,7 @@ CUSTOM_ACTION_PRIORITY = {
     "catapult_projectile": 12.0,
     "eye_for_an_eye": 10.0,
     "necromancy": 8.0,
-    "episcopal": 7.0,
+    "episcopal": 8.5,
     "demolish_barricade": 5.0,
     "scorch": 2.5,
     "move_barricade": 1.5,

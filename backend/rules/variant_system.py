@@ -5,6 +5,7 @@ from uuid import uuid4
 
 from backend.catalog import SPECIAL_ABILITIES
 from backend.models import BoardTerrain, CaptureEvent, GameResult, GameState, MoveRecord, Piece
+from backend.rules.episcopal import episcopal_destinations
 from backend.rules.movement import in_bounds
 from backend.rules.terrain import is_scorched, scorched_squares
 from backend.rules.tuning import (
@@ -25,10 +26,11 @@ ABILITY_INITIAL_COOLDOWN_DIVISORS = {
     if ability.get("initialCooldownDivisor")
 }
 ABILITY_COOLDOWN_DESCRIPTIONS = {
-    "episcopal": "The Bishop color-shift is recharging.",
+    "episcopal": "The Episcopal Bishop jump is recharging.",
 }
 ABILITY_INITIAL_COOLDOWN_DESCRIPTIONS = {
     "eye_for_an_eye": "Eye for an Eye is unavailable during its opening delay.",
+    "episcopal": "Episcopal is unavailable during its opening delay.",
     "scorch": "Scorch is unavailable during its opening delay.",
 }
 FINISHED_STATUSES = {
@@ -798,52 +800,45 @@ class VariantActionRules:
         return actions
 
     def _episcopal_actions(self, state: GameState, color: str) -> list[dict]:
-        if not has_ability(state, color, "episcopal"):
+        if (
+            not has_ability(state, color, "episcopal")
+            or not ability_is_ready(state, color, "episcopal")
+        ):
             return []
-        ready_turn = int(state.abilities.runtime[color].get("episcopal_ready_turn", 0))
-        if state.turn_counts[color] < ready_turn:
-            return []
-        shift_distance = ability_parameter(state, "episcopal", "shiftDistance")
         actions = []
         for row, board_row in enumerate(state.board.grid):
             for col, piece in enumerate(board_row):
                 if piece is None or piece.color != color or piece.type != "bishop":
                     continue
-                for dr, dc in ((-1, 0), (1, 0), (0, -1), (0, 1)):
-                    for distance in range(1, shift_distance + 1):
-                        target_row = row + dr * distance
-                        target_col = col + dc * distance
-                        if not in_bounds(
-                            state.board.rows, state.board.cols, target_row, target_col
-                        ):
-                            break
-                        if is_scorched(state, target_row, target_col):
-                            break
-                        target = state.board.grid[target_row][target_col]
-                        if target is not None and (
-                            target.color == color
-                            or not self._capture_is_legal(state, target)
-                        ):
-                            break
-                        # A cardinal shift changes square color only at odd distances.
-                        if distance % 2:
-                            actions.append(
-                                {
-                                    "id": f"episcopal:{piece.piece_id}:{target_row}:{target_col}",
-                                    "actionType": "episcopal",
-                                    "owner": color,
-                                    "icon": "✝",
-                                    "label": "Episcopal Shift",
-                                    "boardMarker": "ability",
-                                    "description": (
-                                        "Shift this Bishop onto the opposite square color."
-                                    ),
-                                    "source": {"row": row, "col": col},
-                                    "target": {"row": target_row, "col": target_col},
-                                }
-                            )
-                        if target is not None:
-                            break
+                for destination in episcopal_destinations(state, row, col):
+                    victim = destination.captured_piece
+                    actions.append(
+                        {
+                            "id": (
+                                f"episcopal:{piece.piece_id}:"
+                                f"{destination.row}:{destination.col}"
+                            ),
+                            "actionType": "episcopal",
+                            "owner": color,
+                            "icon": "✝",
+                            "label": (
+                                f"Episcopal Capture: {victim.name}"
+                                if victim is not None
+                                else "Episcopal Jump"
+                            ),
+                            "boardMarker": "ability",
+                            "description": (
+                                f"Jump to this same-color square and capture {victim.name}."
+                                if victim is not None
+                                else "Jump to this same-color square."
+                            ),
+                            "source": {"row": row, "col": col},
+                            "target": {
+                                "row": destination.row,
+                                "col": destination.col,
+                            },
+                        }
+                    )
         return actions
 
     def _eye_actions(self, state: GameState, color: str, helper) -> list[dict]:
@@ -1103,12 +1098,22 @@ class VariantActionRules:
             state.board.grid[target[0]][target[1]] = bishop
             bishop.has_moved = True
             if victim is not None:
-                captures.append(CaptureEvent(row=target[0], col=target[1], piece=victim, reason="Episcopal shift"))
-            cooldown = ability_parameter(state, "episcopal", "cooldownTurns")
-            state.abilities.runtime[color]["episcopal_ready_turn"] = (
-                state.turn_counts[color] + cooldown + 1
+                captures.append(
+                    CaptureEvent(
+                        row=target[0],
+                        col=target[1],
+                        piece=victim,
+                        reason="Episcopal capture",
+                    )
+                )
+            start_ability_cooldown(state, color, "episcopal")
+            mark_ability_used(state, color, "episcopal")
+            explanation = (
+                f"{color.title()} used Episcopal to jump a Bishop and capture "
+                f"{victim.name}."
+                if victim is not None
+                else f"{color.title()} used Episcopal to jump a Bishop."
             )
-            explanation = f"{color.title()} used Episcopal to shift a Bishop."
             piece_type = "bishop"
         elif action_type == "getaway":
             assert source is not None and target is not None

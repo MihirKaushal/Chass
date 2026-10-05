@@ -46,7 +46,7 @@ class ChassSetupPlanner:
             "getaway": 7.0 if "queen" in pieces else 0.2,
             "eye_for_an_eye": 4.8,
             "kamikaze": 5.5 if "pawn" in pieces else 0.2,
-            "episcopal": 5.2 if "bishop" in pieces else 0.2,
+            "episcopal": 6.0 if "bishop" in pieces else 0.2,
             "power_of_love": 5.0 if "queen" in pieces else 0.2,
             "scorch": 4.6 + (0.8 if victory in {"center_dominion", "royal_center"} else 0),
         }
@@ -70,7 +70,7 @@ class ChassSetupPlanner:
         if piece_type == "pawn" and "kamikaze" in selected:
             bonus += 1.6
         if piece_type == "bishop" and "episcopal" in selected:
-            bonus += 1.5
+            bonus += 2.0
         if piece_type == "queen" and "getaway" in selected:
             bonus += 1.8
         if piece_type == "queen" and "power_of_love" in selected:

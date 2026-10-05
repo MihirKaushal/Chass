@@ -18,8 +18,8 @@ const ACTION_COPY = {
     instruction: "Choose the gold Queen target to complete the emergency swap.",
   },
   episcopal: {
-    title: "Episcopal shift ready",
-    instruction: "Choose a gold target to move the Bishop onto the opposite square color.",
+    title: "Episcopal jump ready",
+    instruction: "Choose a gold target matching the Bishop's current square color. It may jump ordinary pieces and capture a marked non-King enemy.",
   },
   eye_for_an_eye: {
     title: "Eye for an Eye ready",
@@ -77,8 +77,13 @@ function actionGuidance(actions, game, source) {
         (candidate) => candidate.pieceId === action.params?.capturedPieceId
       )
     : null;
+  const episcopalCaptures = action.actionType === "episcopal"
+    ? actions.filter((candidate) => pieceAt(game, candidate.target)).length
+    : 0;
   const description = capturedPiece
     ? `${capturedPiece.name} costs ${capturedPiece.points ?? 0} point${capturedPiece.points === 1 ? "" : "s"} and has ${actions.length} legal home square${actions.length === 1 ? "" : "s"}.`
+    : action.actionType === "episcopal" && piece
+      ? `${piece.name} has ${actions.length} legal same-color destination${actions.length === 1 ? "" : "s"}, including ${episcopalCaptures} capture${episcopalCaptures === 1 ? "" : "s"}.`
     : piece
       ? `${piece.name} has ${actions.length} legal special target${actions.length === 1 ? "" : "s"}.`
       : action.description;

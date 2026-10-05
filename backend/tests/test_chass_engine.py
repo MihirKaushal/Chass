@@ -217,7 +217,6 @@ def test_barricade_range_movement_and_rook_demolition_affect_terrain_utility(cli
         ("eye_for_an_eye", "cooldownTurns", 1, 10),
         ("kamikaze", "blastRadius", 1, 4),
         ("episcopal", "cooldownTurns", 1, 10),
-        ("episcopal", "shiftDistance", 1, 3),
         ("power_of_love", "durationTurns", 1, 20),
         ("scorch", "cooldownTurns", 1, 10),
         ("scorch", "usesPerGame", 1, 4),

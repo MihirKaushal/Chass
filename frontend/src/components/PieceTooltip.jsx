@@ -37,7 +37,9 @@ function PieceTooltip({ piece, placement = "above", edge = "center", onClose = n
     runtimeItems.push(`Diplomat pacifications: ${piece.runtime.pacifications}/${retirementThreshold}`);
   }
   if (piece.runtime?.episcopal_ready_turn_remaining > 0) {
-    runtimeItems.push(`Episcopal ready in ${piece.runtime.episcopal_ready_turn_remaining} own turns`);
+    runtimeItems.push(
+      `Episcopal jump ready in ${quantity(piece.runtime.episcopal_ready_turn_remaining, "own turn")}`
+    );
   }
   if (piece.runtime?.cannibal_moves_remaining > 0) {
     runtimeItems.push(

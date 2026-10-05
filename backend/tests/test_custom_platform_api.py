@@ -182,13 +182,26 @@ def test_catalog_describes_custom_content(client):
     assert cooldowns["necromancy"] == 9
     assert cooldowns["getaway"] is None
     assert cooldowns["eye_for_an_eye"] == 10
-    assert cooldowns["episcopal"] == 6
+    assert cooldowns["episcopal"] == 10
     initial_delays = {
         ability["id"]: ability.get("initialCooldownTurns")
         for ability in catalog["specialAbilities"]
     }
     assert initial_delays["eye_for_an_eye"] == 5
+    assert initial_delays["episcopal"] == 5
     assert initial_delays["scorch"] == 5
+    episcopal = next(
+        ability
+        for ability in catalog["specialAbilities"]
+        if ability["id"] == "episcopal"
+    )
+    assert "current board color" in episcopal["summary"]
+    assert [
+        parameter["id"]
+        for parameter in episcopal["configuredParameters"]
+    ] == ["cooldownTurns"]
+    assert any("Barricade blocks the lane" in detail for detail in episcopal["details"])
+    assert any("enemy non-King piece" in detail for detail in episcopal["details"])
     getaway = next(ability for ability in catalog["specialAbilities"] if ability["id"] == "getaway")
     assert "Queen" in getaway["summary"]
     assert "Rook" not in getaway["summary"]
@@ -1907,7 +1920,7 @@ def test_eye_for_an_eye_initial_delay_rounds_up(client):
     assert game["abilities"]["cooldowns"]["black"]["eye_for_an_eye"] == 6
 
 
-def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
+def test_episcopal_opens_after_five_turns_and_captures_at_range(client):
     game = start_local_ability_game(
         client,
         "episcopal",
@@ -1916,13 +1929,48 @@ def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
             {"row": 0, "col": 7, "type": "king", "color": "black"},
             {"row": 7, "col": 0, "type": "rook", "color": "white"},
             {"row": 6, "col": 2, "type": "bishop", "color": "white"},
+            {"row": 4, "col": 2, "type": "pawn", "color": "white"},
+            {"row": 2, "col": 2, "type": "rook", "color": "black"},
         ],
     )
-    action = next(
+    assert game["abilities"]["cooldowns"]["white"]["episcopal"] == 5
+    assert game["board"][6][2]["runtime"]["episcopal_ready_turn_remaining"] == 5
+    assert not any(
+        item["actionType"] == "episcopal"
+        for item in game["availableActions"]
+    )
+
+    game = advance_opening_king_turns(client, game, 5)
+    episcopal_actions = [
         item
         for item in game["availableActions"]
-        if item["actionType"] == "episcopal" and item["target"] == {"row": 5, "col": 2}
+        if item["actionType"] == "episcopal"
+    ]
+    targets = {
+        (item["target"]["row"], item["target"]["col"])
+        for item in episcopal_actions
+    }
+    assert (2, 2) in targets  # The Bishop jumps over its allied Pawn.
+    assert (4, 2) not in targets
+    assert (0, 2) not in targets  # The opposing King can never be targeted.
+    action = next(
+        item
+        for item in episcopal_actions
+        if item["target"] == {"row": 2, "col": 2}
     )
+    assert action["label"] == "Episcopal Capture: Rook"
+    assert action["boardMarker"] == "ability"
+    assert action["description"] == (
+        "Jump to this same-color square and capture Rook."
+    )
+    jump = next(
+        item
+        for item in episcopal_actions
+        if item["target"] == {"row": 6, "col": 4}
+    )
+    assert jump["label"] == "Episcopal Jump"
+    assert jump["boardMarker"] == "ability"
+    assert jump["description"] == "Jump to this same-color square."
     shifted = client.post(
         f"/game/{game['id']}/action",
         json={
@@ -1937,16 +1985,19 @@ def test_episcopal_shift_exposes_six_turn_countdown_on_bishop(client):
     countdowns = [item for item in updated["countdowns"] if item["kind"] == "episcopal"]
     assert len(countdowns) == 1
     countdown = countdowns[0]
-    assert countdown["remainingTurns"] == 6
-    assert countdown["description"] == "The Bishop color-shift is recharging."
-    assert updated["board"][5][2]["runtime"]["episcopal_ready_turn_remaining"] == 6
+    assert countdown["remainingTurns"] == 10
+    assert countdown["description"] == "The Episcopal Bishop jump is recharging."
+    assert updated["board"][2][2]["type"] == "bishop"
+    assert updated["board"][2][2]["runtime"]["episcopal_ready_turn_remaining"] == 10
+    assert updated["abilities"]["usageCount"]["white"]["episcopal"] == 1
+    assert "capture Rook" in updated["lastMoveExplanation"]
 
 
-def test_episcopal_uses_configured_shift_distance_and_recharge(client):
+def test_episcopal_configured_opening_delay_rounds_up(client):
     game = start_local_ability_game(
         client,
         "episcopal",
-        ability_parameters={"cooldownTurns": 2, "shiftDistance": 3},
+        ability_parameters={"cooldownTurns": 11},
         initialLayout=[
             {"row": 7, "col": 7, "type": "king", "color": "white"},
             {"row": 0, "col": 7, "type": "king", "color": "black"},
@@ -1954,25 +2005,8 @@ def test_episcopal_uses_configured_shift_distance_and_recharge(client):
             {"row": 6, "col": 2, "type": "bishop", "color": "white"},
         ],
     )
-    action = next(
-        item
-        for item in game["availableActions"]
-        if item["actionType"] == "episcopal" and item["target"] == {"row": 3, "col": 2}
-    )
-    updated = client.post(
-        f"/game/{game['id']}/action",
-        json={
-            "actionType": action["actionType"],
-            "source": action["source"],
-            "target": action["target"],
-            "expectedVersion": game["version"],
-        },
-    ).json()
-    assert updated["board"][3][2]["type"] == "bishop"
-    assert updated["abilities"]["cooldowns"]["white"]["episcopal"] == 2
-    assert next(
-        item for item in updated["countdowns"] if item["kind"] == "episcopal"
-    )["remainingTurns"] == 2
+    assert game["abilities"]["cooldowns"]["white"]["episcopal"] == 6
+    assert game["abilities"]["cooldowns"]["black"]["episcopal"] == 6
 
 
 def test_power_of_love_grants_queen_mobility_after_queen_capture(client):

@@ -285,8 +285,22 @@ def normalize_ability_parameters(
     unknown = sorted(set(supplied) - set(abilities))
     if unknown:
         raise ValueError(f"Unknown ability parameter group: {unknown[0]}")
+    normalized_supplied = {
+        ability_id: {
+            parameter_id: value
+            for parameter_id, value in parameters.items()
+            if not (
+                ability_id == "episcopal"
+                and parameter_id == "shiftDistance"
+            )
+        }
+        for ability_id, parameters in supplied.items()
+    }
     return {
-        ability_id: configure_special_ability(ability, supplied.get(ability_id))[1]
+        ability_id: configure_special_ability(
+            ability,
+            normalized_supplied.get(ability_id),
+        )[1]
         for ability_id, ability in abilities.items()
     }
 
@@ -1213,38 +1227,41 @@ SPECIAL_ABILITIES: list[dict[str, Any]] = [
         "id": "episcopal",
         "name": "Episcopal",
         "icon": "✝",
-        "summary": "Every 6 turns, shift a Bishop 1 square onto the opposite color.",
-        "summaryTemplate": (
-            "Every {cooldownTurns} turn(s), shift a Bishop up to {shiftDistance} "
-            "square(s) horizontally or vertically."
+        "summary": (
+            "After 5 own turns, a Bishop may jump horizontally or vertically "
+            "to any square matching its current board color. Using it starts "
+            "a 10-turn recharge."
         ),
-        "cooldownTurns": 6,
+        "summaryTemplate": (
+            "After {initialCooldownTurns} own turn(s), a Bishop may jump horizontally "
+            "or vertically to any square matching its current board color. Using it starts a "
+            "{cooldownTurns}-turn recharge."
+        ),
+        "cooldownTurns": 10,
         "cooldownTurnsParameter": "cooldownTurns",
+        "initialCooldownDivisor": 2,
         "tunableParameters": [
             _parameter(
                 "cooldownTurns",
                 "Recharge",
-                "Own turns before another Episcopal shift is available.",
-                6,
+                "Own turns before another Episcopal jump is available.",
+                10,
                 0,
                 50,
                 "turn",
             ),
-            _parameter(
-                "shiftDistance",
-                "Shift Distance",
-                "Maximum clear horizontal or vertical distance for the Bishop shift.",
-                1,
-                1,
-                15,
-                "square",
-            ),
         ],
         "detailTemplates": [
-            "The shift travels up to {shiftDistance} clear square(s) horizontally or vertically "
-            "and may capture an enemy on its destination.",
-            "It consumes the turn and must leave the King safe.",
-            "The {cooldownTurns}-turn recharge is shared by all Bishops on that side.",
+            "The Bishop may land on any empty square in its row or column that matches "
+            "the board color beneath it, jumping over ordinary pieces and scorched squares.",
+            "It may instead capture an enemy non-King piece on that destination. Kings, "
+            "allied pieces, Diplomats, protected pieces, Barricades, and scorched squares "
+            "cannot be targeted.",
+            "A Barricade blocks the lane. The jump consumes the turn and must leave the "
+            "Bishop's King safe.",
+            "The first jump becomes available after {initialCooldownTurns} own turn(s), "
+            "half the configured recharge rounded up. The {cooldownTurns}-turn recharge "
+            "is shared by every Bishop on that side.",
         ],
         "details": [],
     },
