@@ -607,11 +607,51 @@
   border-top: 1px solid var(--border-subtle);
 }
 
-.scanner-corner-coordinates,
 .scanner-quarter-turns {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
+}
+
+.scanner-angle-control {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.scanner-angle-heading,
+.scanner-angle-slider {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.65rem;
+}
+
+.scanner-angle-heading > label {
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+
+.scanner-angle-heading > .ui-button {
+  padding: 0.25rem;
+  font-size: var(--text-xs);
+}
+
+.scanner-angle-slider > input {
+  flex: 1;
+  min-width: 0;
+}
+
+.scanner-angle-slider > output {
+  flex: 0 0 7ch;
+  padding: 0.3rem 0.4rem;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-control);
+  color: var(--accent);
+  background: rgba(99, 179, 237, 0.12);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
 }
 
 .scanner-quarter-turns .ui-button {

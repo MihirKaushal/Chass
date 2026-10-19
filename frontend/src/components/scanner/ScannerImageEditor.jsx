@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import {
   clampScannerAngle,
@@ -15,22 +15,19 @@ import {
 } from "../../scannerImage";
 import Button from "../ui/Button";
 import Dialog from "../ui/Dialog";
-import FormField from "../ui/FormField";
 import ScannerIcon from "./ScannerIcon";
 
 const CORNER_NAMES = ["Top left", "Top right", "Bottom right", "Bottom left"];
 const bounded = (value) => Math.max(0, Math.min(1, value));
 
 function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
+  const angleId = useId();
   const svgRef = useRef(null);
   const draggingRef = useRef(null);
   const activeRef = useRef(false);
   const savingRef = useRef(false);
   const [photo, setPhoto] = useState(null);
   const [rotation, setRotation] = useState(initialEdits?.rotation ?? 0);
-  const [angleText, setAngleText] = useState(
-    String(initialEdits?.rotation ?? 0),
-  );
   const [corners, setCorners] = useState(
     initialEdits?.corners?.map((point) => ({ ...point })) ?? null,
   );
@@ -180,7 +177,7 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
         y: corners[index].y + dy * amount,
       });
   };
-  const changeRotation = (value, preserveText = false) => {
+  const changeRotation = (value) => {
     const angle = clampScannerAngle(value);
     if (geometry && corners) {
       const next = scannerRotationGeometry(
@@ -191,7 +188,6 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
       setCorners((current) => reframeScannerCrop(current, geometry, next));
     }
     setRotation(angle);
-    if (!preserveText) setAngleText(String(angle));
     setError("");
   };
   const quarterTurn = (amount) =>
@@ -387,35 +383,35 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
               Put White's home rank at the bottom, with a1 in the bottom-left
               corner.
             </p>
-            <input
-              type="range"
-              min="-180"
-              max="180"
-              step="0.1"
-              value={rotation}
-              aria-label="Rotate photo"
-              disabled={!photo || saving}
-              onChange={(event) => changeRotation(event.target.value)}
-            />
-            <FormField label="Angle (degrees)">
-              <input
-                type="number"
-                min="-180"
-                max="180"
-                step="0.1"
-                value={angleText}
-                disabled={!photo || saving}
-                onChange={(event) => {
-                  setAngleText(event.target.value);
-                  if (
-                    event.target.value.trim() &&
-                    Number.isFinite(Number(event.target.value))
-                  )
-                    changeRotation(event.target.value, true);
-                }}
-                onBlur={() => changeRotation(angleText)}
-              />
-            </FormField>
+            <div className="scanner-angle-control">
+              <div className="scanner-angle-heading">
+                <label htmlFor={angleId}>Angle (degrees)</label>
+                <Button
+                  variant="text"
+                  size="small"
+                  disabled={!photo || saving}
+                  onClick={() => changeRotation(0)}
+                >
+                  Reset to 0°
+                </Button>
+              </div>
+              <div className="scanner-angle-slider">
+                <input
+                  id={angleId}
+                  type="range"
+                  min="-180"
+                  max="180"
+                  step="0.1"
+                  value={rotation}
+                  aria-valuetext={`${rotation} degrees`}
+                  disabled={!photo || saving}
+                  onChange={(event) => changeRotation(event.target.value)}
+                />
+                <output htmlFor={angleId} aria-live="off">
+                  {rotation}°
+                </output>
+              </div>
+            </div>
             <div className="scanner-quarter-turns">
               <Button
                 variant="secondary"
@@ -441,47 +437,6 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
               Exclude the table and captured pieces. The selected board will be
               straightened into a square.
             </p>
-            <FormField label="Selected corner">
-              <select
-                value={selectedCorner}
-                disabled={!photo || saving}
-                onChange={(event) =>
-                  setSelectedCorner(Number(event.target.value))
-                }
-              >
-                {CORNER_NAMES.map((name, index) => (
-                  <option key={name} value={index}>
-                    {index + 1}. {name}
-                  </option>
-                ))}
-              </select>
-            </FormField>
-            <div className="scanner-corner-coordinates">
-              {["x", "y"].map((axis) => (
-                <FormField key={axis} label={`${axis.toUpperCase()} (%)`}>
-                  <input
-                    type="number"
-                    min="0"
-                    max="100"
-                    step="0.1"
-                    disabled={!photo || saving}
-                    value={
-                      corners
-                        ? Math.round(corners[selectedCorner][axis] * 1000) / 10
-                        : ""
-                    }
-                    onChange={(event) => {
-                      const value = Number(event.target.value);
-                      if (Number.isFinite(value))
-                        updateCorner(selectedCorner, {
-                          ...corners[selectedCorner],
-                          [axis]: value / 100,
-                        });
-                    }}
-                  />
-                </FormField>
-              ))}
-            </div>
             <label className="scanner-check-option">
               <input
                 type="checkbox"
