@@ -308,11 +308,6 @@
   padding: 1.3rem;
 }
 
-.scanner-photo-preview.is-rotated {
-  width: 80%;
-  height: 125%;
-}
-
 .scanner-remove-photo {
   position: absolute;
   top: 0.55rem;
@@ -425,6 +420,215 @@
   margin: 0;
   color: var(--ink-muted);
   font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.scanner-edited-label {
+  flex-shrink: 0;
+  color: var(--accent);
+  font-size: var(--text-xs);
+}
+
+.scanner-image-editor {
+  display: flex;
+  flex-direction: column;
+  width: min(1100px, 100%);
+  max-height: calc(100dvh - 2.5rem);
+  overflow: hidden;
+  padding: clamp(1rem, 3dvh, 1.5rem);
+}
+
+.scanner-image-editor > .ui-dialog-header,
+.scanner-image-editor > .ui-dialog-actions {
+  flex: 0 0 auto;
+}
+
+.scanner-image-editor .ui-dialog-header h2 {
+  font-size: clamp(1.3rem, 3dvh, 1.8rem);
+}
+
+.scanner-image-editor .ui-dialog-header p {
+  margin-top: 0.5rem;
+  font-size: var(--text-sm);
+}
+
+.scanner-image-editor > .ui-dialog-body {
+  min-height: 0;
+  overflow: auto;
+  margin-top: 1rem;
+}
+
+.scanner-image-editor > .ui-dialog-actions {
+  justify-content: space-between;
+  margin-top: 1rem;
+  padding-top: 0.8rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.scanner-editor-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 250px;
+  align-items: start;
+  gap: 1.25rem;
+}
+
+.scanner-editor-visual {
+  position: sticky;
+  top: 0;
+  min-width: 0;
+}
+
+.scanner-editor-stage {
+  display: grid;
+  place-items: center;
+  height: clamp(180px, 49dvh, 540px);
+  overflow: hidden;
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-md);
+  background: var(--deep);
+}
+
+.scanner-crop-surface {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  touch-action: none;
+  user-select: none;
+}
+
+.scanner-crop-mask {
+  fill: rgba(0, 0, 0, 0.6);
+  pointer-events: none;
+}
+
+.scanner-crop-outline {
+  fill: transparent;
+  stroke: var(--accent-soft);
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+  cursor: move;
+}
+
+.scanner-crop-outline.is-invalid {
+  stroke: #ffada3;
+}
+
+.scanner-crop-outline:focus-visible {
+  outline: none;
+  stroke: #fff;
+  stroke-width: 3;
+}
+
+.scanner-crop-grid-line {
+  stroke: rgba(255, 255, 255, 0.55);
+  stroke-width: 1;
+  vector-effect: non-scaling-stroke;
+  pointer-events: none;
+}
+
+.scanner-crop-handle {
+  cursor: grab;
+  outline: none;
+}
+
+.scanner-crop-handle:active {
+  cursor: grabbing;
+}
+
+.scanner-crop-handle-hit {
+  fill: transparent;
+}
+
+.scanner-crop-handle-face {
+  fill: var(--accent);
+  stroke: #fff;
+  stroke-width: 2;
+  vector-effect: non-scaling-stroke;
+}
+
+.scanner-crop-handle.is-selected .scanner-crop-handle-face,
+.scanner-crop-handle:focus-visible .scanner-crop-handle-face {
+  fill: var(--deep);
+  stroke: var(--accent-soft);
+  stroke-width: 3;
+}
+
+.scanner-crop-handle text {
+  fill: #fff;
+  font-family: var(--font-mono);
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.scanner-editor-caption {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.65rem 0 0;
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.scanner-editor-caption > .scanner-icon {
+  color: var(--accent);
+}
+
+.scanner-editor-loading {
+  max-width: 25rem;
+  padding: 1.25rem;
+  color: #fff;
+  text-align: center;
+}
+
+.scanner-editor-controls,
+.scanner-rotation-tools,
+.scanner-corner-tools {
+  display: grid;
+  gap: 0.8rem;
+  min-width: 0;
+}
+
+.scanner-editor-controls h3 {
+  margin: 0;
+  font-size: var(--text-md);
+}
+
+.scanner-editor-controls p {
+  margin: -0.35rem 0 0;
+  color: var(--ink-muted);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+}
+
+.scanner-corner-tools {
+  padding-top: 1rem;
+  border-top: 1px solid var(--border-subtle);
+}
+
+.scanner-corner-coordinates,
+.scanner-quarter-turns {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.scanner-quarter-turns .ui-button {
+  padding-inline: 0.35rem;
+  font-size: var(--text-xs);
+}
+
+.scanner-rotation-tools input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.scanner-image-quality-note {
+  margin: 0.75rem 0 0;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
   line-height: 1.6;
 }
 
@@ -1044,6 +1248,15 @@
 }
 
 @media (max-width: 760px) {
+  .scanner-editor-layout {
+    grid-template-columns: 1fr;
+  }
+  .scanner-editor-visual {
+    position: static;
+  }
+  .scanner-editor-stage {
+    height: clamp(180px, 38dvh, 360px);
+  }
   .scanner-shell {
     width: calc(100% - 2rem);
     padding-top: 1rem;
