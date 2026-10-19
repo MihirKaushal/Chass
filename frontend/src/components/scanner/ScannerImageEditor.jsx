@@ -1,11 +1,10 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 
 import {
-  clampScannerAngle,
   defaultScannerCrop,
   prepareScannerPhoto,
   projectScannerPoint,
-  reframeScannerCrop,
+  rotateScannerEdits,
   scannerCropIssue,
   scannerCropResolution,
   scannerPerspectiveMatrix,
@@ -27,14 +26,21 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
   const activeRef = useRef(false);
   const savingRef = useRef(false);
   const [photo, setPhoto] = useState(null);
-  const [rotation, setRotation] = useState(initialEdits?.rotation ?? 0);
-  const [corners, setCorners] = useState(
-    initialEdits?.corners?.map((point) => ({ ...point })) ?? null,
-  );
+  const [{ rotation, corners }, setImageEdits] = useState(() => ({
+    rotation: initialEdits?.rotation ?? 0,
+    corners: initialEdits?.corners?.map((point) => ({ ...point })) ?? null,
+  }));
   const [selectedCorner, setSelectedCorner] = useState(0);
   const [showGrid, setShowGrid] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
+
+  const setCorners = (update) => {
+    setImageEdits((current) => ({
+      ...current,
+      corners: typeof update === "function" ? update(current.corners) : update,
+    }));
+  };
 
   useEffect(() => {
     activeRef.current = true;
@@ -178,33 +184,35 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
       });
   };
   const changeRotation = (value) => {
-    const angle = clampScannerAngle(value);
-    if (geometry && corners) {
-      const next = scannerRotationGeometry(
-        geometry.sourceWidth,
-        geometry.sourceHeight,
-        angle,
-      );
-      setCorners((current) => reframeScannerCrop(current, geometry, next));
-    }
-    setRotation(angle);
+    if (!photo || saving) return;
+    setImageEdits((current) =>
+      rotateScannerEdits(
+        current,
+        photo.image.naturalWidth,
+        photo.image.naturalHeight,
+        typeof value === "function" ? value(current.rotation) : value,
+      ),
+    );
     setError("");
   };
   const quarterTurn = (amount) =>
-    changeRotation(((((rotation + amount + 180) % 360) + 360) % 360) - 180);
+    changeRotation(
+      (current) => ((((current + amount + 180) % 360) + 360) % 360) - 180,
+    );
   const reset = () => {
-    changeRotation(0);
     if (photo)
-      setCorners(
-        defaultScannerCrop(
+      setImageEdits({
+        rotation: 0,
+        corners: defaultScannerCrop(
           scannerRotationGeometry(
             photo.image.naturalWidth,
             photo.image.naturalHeight,
             0,
           ),
         ),
-      );
+      });
     setSelectedCorner(0);
+    setError("");
   };
   const close = () => {
     activeRef.current = false;
@@ -284,6 +292,7 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
               <svg
                 ref={svgRef}
                 viewBox={`0 0 ${geometry.width} ${geometry.height}`}
+                preserveAspectRatio="xMidYMid meet"
                 className="scanner-crop-surface"
                 aria-label="Board crop area"
                 onPointerMove={drag}

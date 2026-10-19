@@ -44,6 +44,22 @@ export function reframeScannerCrop(corners, previous, next) {
   }));
 }
 
+export function rotateScannerEdits(edits, width, height, value) {
+  const rotation = clampScannerAngle(value);
+  if (rotation === edits.rotation) return edits;
+  return {
+    ...edits,
+    rotation,
+    corners: edits.corners
+      ? reframeScannerCrop(
+          edits.corners,
+          scannerRotationGeometry(width, height, edits.rotation),
+          scannerRotationGeometry(width, height, rotation),
+        )
+      : null,
+  };
+}
+
 export function defaultScannerCrop(geometry) {
   const edge =
     (0.92 * Math.min(geometry.sourceWidth, geometry.sourceHeight)) /
@@ -139,17 +155,30 @@ export function projectScannerPoint(matrix, x, y) {
   };
 }
 
-export function scannerPointerPosition(clientX, clientY, bounds, geometry) {
+export function scannerPreviewFit(geometry, bounds) {
+  // Match SVG's xMidYMid meet sizing without allowing its intrinsic ratio to resize the stage.
   const scale = Math.min(
     bounds.width / geometry.width,
     bounds.height / geometry.height,
   );
-  if (!(scale > 0)) return null;
-  const left = bounds.left + (bounds.width - geometry.width * scale) / 2;
-  const top = bounds.top + (bounds.height - geometry.height * scale) / 2;
+  if (!(scale > 0) || !Number.isFinite(scale)) return null;
+  const width = geometry.width * scale;
+  const height = geometry.height * scale;
   return {
-    x: Math.max(0, Math.min(1, (clientX - left) / (geometry.width * scale))),
-    y: Math.max(0, Math.min(1, (clientY - top) / (geometry.height * scale))),
+    scale,
+    width,
+    height,
+    left: (bounds.width - width) / 2,
+    top: (bounds.height - height) / 2,
+  };
+}
+
+export function scannerPointerPosition(clientX, clientY, bounds, geometry) {
+  const fit = scannerPreviewFit(geometry, bounds);
+  if (!fit) return null;
+  return {
+    x: Math.max(0, Math.min(1, (clientX - bounds.left - fit.left) / fit.width)),
+    y: Math.max(0, Math.min(1, (clientY - bounds.top - fit.top) / fit.height)),
   };
 }
 
