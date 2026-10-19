@@ -249,6 +249,7 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
   const handleRadius = geometry
     ? Math.max(geometry.width, geometry.height) * 0.021
     : 0;
+  const feedbackError = (photo && error) || cropIssue;
 
   return (
     <Dialog
@@ -457,17 +458,18 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
           </div>
         </aside>
       </div>
-      {(error && photo) || cropIssue ? (
-        <p className="scanner-field-error" role="alert">
-          {error || cropIssue}
-        </p>
-      ) : null}
-      {resolution > 0 && resolution < 256 ? (
-        <p className="scanner-image-quality-note">
-          This crop is small. A closer, sharper photo will preserve more piece
-          detail.
-        </p>
-      ) : null}
+      <div className="scanner-editor-feedback">
+        {feedbackError ? (
+          <p className="scanner-field-error" role="alert">
+            {feedbackError}
+          </p>
+        ) : resolution > 0 && resolution < 256 ? (
+          <p className="scanner-image-quality-note">
+            This crop is small. A closer, sharper photo will preserve more piece
+            detail.
+          </p>
+        ) : null}
+      </div>
     </Dialog>
   );
 }
