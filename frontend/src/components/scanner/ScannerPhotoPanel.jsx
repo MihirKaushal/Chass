@@ -4,6 +4,7 @@ import IconCloseButton from "../IconCloseButton";
 import Button from "../ui/Button";
 import ScannerCameraDialog from "./ScannerCameraDialog";
 import ScannerIcon from "./ScannerIcon";
+import ScannerImageEditor from "./ScannerImageEditor";
 
 const PHOTO_TIPS = [
   {
@@ -21,6 +22,11 @@ const PHOTO_TIPS = [
     title: "Center the pieces",
     text: "Place each piece inside its square. Keep hands and captured pieces off the board.",
   },
+  {
+    icon: "rotate",
+    title: "Rotate and crop before scanning",
+    text: "Put White's home rank at the bottom. Crop to the playing grid, keeping all 64 squares and pieces visible, without the surrounding table.",
+  },
 ];
 
 function ScannerPhotoPanel() {
@@ -28,7 +34,9 @@ function ScannerPhotoPanel() {
   const [cameraOpen, setCameraOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
-  const [rotation, setRotation] = useState(0);
+  const [originalFile, setOriginalFile] = useState(null);
+  const [edits, setEdits] = useState(null);
+  const [editorOpen, setEditorOpen] = useState(false);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
 
@@ -57,7 +65,17 @@ function ScannerPhotoPanel() {
       return;
     }
     setFile(candidate);
-    setRotation(0);
+    setOriginalFile(candidate);
+    setEdits(null);
+    setEditorOpen(true);
+    setError("");
+  };
+
+  const removePhoto = () => {
+    setFile(null);
+    setOriginalFile(null);
+    setEdits(null);
+    setEditorOpen(false);
     setError("");
   };
 
@@ -96,12 +114,11 @@ function ScannerPhotoPanel() {
         {previewUrl ? (
           <>
             <img
-              className={`scanner-photo-preview${rotation % 180 ? " is-rotated" : ""}`}
+              className="scanner-photo-preview"
               src={previewUrl}
               alt="Uploaded physical chessboard for review"
-              style={{ transform: `rotate(${rotation}deg)` }}
               onError={() => {
-                setFile(null);
+                removePhoto();
                 setError(
                   "This image could not be opened. Try another JPG, PNG, or WebP photo.",
                 );
@@ -110,10 +127,7 @@ function ScannerPhotoPanel() {
             <IconCloseButton
               className="scanner-remove-photo"
               label="Remove photo"
-              onClick={() => {
-                setFile(null);
-                setError("");
-              }}
+              onClick={removePhoto}
             />
           </>
         ) : (
@@ -161,14 +175,9 @@ function ScannerPhotoPanel() {
       {file ? (
         <div className="scanner-photo-file">
           <span title={file.name}>{file.name}</span>
-          <Button
-            variant="text"
-            size="small"
-            onClick={() => setRotation((current) => (current + 90) % 360)}
-          >
-            <ScannerIcon name="rotate" />
-            Rotate
-          </Button>
+          {edits ? (
+            <span className="scanner-edited-label">Edited photo</span>
+          ) : null}
         </div>
       ) : null}
       {error ? (
@@ -180,10 +189,11 @@ function ScannerPhotoPanel() {
         <Button
           variant="secondary"
           size="small"
-          disabled
-          title="Corner detection and adjustment will be connected with recognition."
+          disabled={!originalFile}
+          onClick={() => setEditorOpen(true)}
         >
-          Adjust Corners
+          <ScannerIcon name="rotate" />
+          Crop &amp; Rotate
         </Button>
         <Button
           size="small"
@@ -222,6 +232,18 @@ function ScannerPhotoPanel() {
           onCapture={(photo) => {
             choosePhoto(photo);
             setCameraOpen(false);
+          }}
+        />
+      ) : null}
+      {editorOpen && originalFile ? (
+        <ScannerImageEditor
+          sourceFile={originalFile}
+          initialEdits={edits}
+          onClose={() => setEditorOpen(false)}
+          onApply={(prepared, settings) => {
+            setFile(prepared);
+            setEdits(settings);
+            setEditorOpen(false);
           }}
         />
       ) : null}
