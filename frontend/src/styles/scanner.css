@@ -665,11 +665,22 @@
   cursor: pointer;
 }
 
-.scanner-image-quality-note {
-  margin: 0.75rem 0 0;
-  color: var(--ink-muted);
+.scanner-editor-feedback {
+  block-size: 3.2em;
+  margin-top: 0.65rem;
+  overflow: auto;
   font-size: var(--text-sm);
   line-height: 1.6;
+}
+
+.scanner-editor-feedback > p {
+  margin: 0;
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.scanner-image-quality-note {
+  color: var(--ink-muted);
 }
 
 .scanner-camera-note .scanner-icon {
@@ -1288,6 +1299,9 @@
 }
 
 @media (max-width: 760px) {
+  .scanner-editor-feedback {
+    block-size: 4.8em;
+  }
   .scanner-editor-layout {
     grid-template-columns: 1fr;
   }
