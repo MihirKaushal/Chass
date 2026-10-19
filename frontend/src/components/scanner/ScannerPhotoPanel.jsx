@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import IconCloseButton from "../IconCloseButton";
 import Button from "../ui/Button";
+import ScannerCameraDialog from "./ScannerCameraDialog";
 import ScannerIcon from "./ScannerIcon";
 
 const PHOTO_TIPS = [
@@ -24,7 +25,7 @@ const PHOTO_TIPS = [
 
 function ScannerPhotoPanel() {
   const uploadRef = useRef(null);
-  const cameraRef = useRef(null);
+  const [cameraOpen, setCameraOpen] = useState(false);
   const [file, setFile] = useState(null);
   const [previewUrl, setPreviewUrl] = useState("");
   const [rotation, setRotation] = useState(0);
@@ -147,21 +148,12 @@ function ScannerPhotoPanel() {
         aria-label="Upload a board photo"
         onChange={handleFileChange}
       />
-      <input
-        ref={cameraRef}
-        className="scanner-hidden-input"
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        capture="environment"
-        aria-label="Take a board photo"
-        onChange={handleFileChange}
-      />
       <div className="scanner-photo-actions">
         <Button onClick={() => uploadRef.current?.click()}>
           <ScannerIcon name="upload" />
           {file ? "Replace Photo" : "Upload Photo"}
         </Button>
-        <Button variant="secondary" onClick={() => cameraRef.current?.click()}>
+        <Button variant="secondary" onClick={() => setCameraOpen(true)}>
           <ScannerIcon name="camera" />
           Take A Photo
         </Button>
@@ -224,6 +216,15 @@ function ScannerPhotoPanel() {
           </div>
         ))}
       </div>
+      {cameraOpen ? (
+        <ScannerCameraDialog
+          onClose={() => setCameraOpen(false)}
+          onCapture={(photo) => {
+            choosePhoto(photo);
+            setCameraOpen(false);
+          }}
+        />
+      ) : null}
     </section>
   );
 }
