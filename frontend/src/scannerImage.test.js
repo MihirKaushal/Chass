@@ -8,11 +8,13 @@ import {
   prepareScannerPhoto,
   projectScannerPoint,
   reframeScannerCrop,
+  rotateScannerEdits,
   scannerCropIssue,
   scannerCropResolution,
   scannerCropToSource,
   scannerPerspectiveMatrix,
   scannerPointerPosition,
+  scannerPreviewFit,
   scannerRotationGeometry,
   translateScannerCrop,
   warpScannerPixels,
@@ -74,6 +76,112 @@ test("rotation preserves the crop frame's pixel dimensions and is reversible", (
   reframeScannerCrop(reframed, rotated, original).forEach((point, index) =>
     nearPoint(point, corners[index]),
   );
+});
+
+test("rapid rotation updates keep the angle and crop together without accumulating drift", () => {
+  const original = {
+    rotation: 0,
+    corners: defaultScannerCrop(scannerRotationGeometry(1600, 900, 0)),
+  };
+  const snapshot = structuredClone(original);
+  let edits = original;
+  for (let step = -1800; step <= 1800; step += 1) {
+    edits = rotateScannerEdits(edits, 1600, 900, step / 10);
+  }
+  edits = rotateScannerEdits(edits, 1600, 900, 3.7);
+  const direct = rotateScannerEdits(original, 1600, 900, 3.7);
+  assert.equal(edits.rotation, 3.7);
+  edits.corners.forEach((point, index) =>
+    nearPoint(point, direct.corners[index]),
+  );
+  edits = rotateScannerEdits(edits, 1600, 900, 0);
+  edits.corners.forEach((point, index) =>
+    nearPoint(point, original.corners[index]),
+  );
+  assert.deepEqual(original, snapshot);
+  assert.equal(rotateScannerEdits(edits, 1600, 900, 0), edits);
+  assert.deepEqual(
+    rotateScannerEdits({ rotation: 0, corners: null }, 1600, 900, 90),
+    { rotation: 90, corners: null },
+  );
+});
+
+test("wide photos rotated 90 degrees fit against the viewport height without clipping", () => {
+  const bounds = { width: 640, height: 360 };
+  const fit = scannerPreviewFit(scannerRotationGeometry(2400, 600, 90), bounds);
+  near(fit.height, bounds.height);
+  near(fit.width, 90);
+  near(fit.left, 275);
+  near(fit.top, 0);
+  assert.equal(
+    scannerPreviewFit(scannerRotationGeometry(2400, 600, 90), {
+      width: 0,
+      height: 360,
+    }),
+    null,
+  );
+});
+
+test("the full rotated photo remains centered and edge-fitted at every fine angle", () => {
+  for (const [width, height] of [
+    [2400, 600],
+    [600, 2400],
+    [800, 800],
+  ]) {
+    for (const bounds of [
+      { width: 720, height: 360 },
+      { width: 300, height: 600 },
+    ]) {
+      for (let step = -1800; step <= 1800; step += 1) {
+        const geometry = scannerRotationGeometry(width, height, step / 10);
+        const fit = scannerPreviewFit(geometry, bounds);
+        near(fit.left * 2 + fit.width, bounds.width);
+        near(fit.top * 2 + fit.height, bounds.height);
+        assert.ok(fit.left >= -1e-8 && fit.top >= -1e-8);
+        assert.ok(Math.abs(fit.left) < 1e-8 || Math.abs(fit.top) < 1e-8);
+        for (const corner of FULL_CROP) {
+          const dx = (corner.x - 0.5) * width;
+          const dy = (corner.y - 0.5) * height;
+          const x =
+            fit.left +
+            (geometry.width / 2 + geometry.cosine * dx - geometry.sine * dy) *
+              fit.scale;
+          const y =
+            fit.top +
+            (geometry.height / 2 + geometry.sine * dx + geometry.cosine * dy) *
+              fit.scale;
+          assert.ok(
+            x >= -1e-8 && x <= bounds.width + 1e-8,
+            `clipped x at ${step / 10}`,
+          );
+          assert.ok(
+            y >= -1e-8 && y <= bounds.height + 1e-8,
+            `clipped y at ${step / 10}`,
+          );
+        }
+      }
+    }
+  }
+});
+
+test("edge-fitting stays continuous when the limiting axis changes during rotation", () => {
+  const bounds = { width: 720, height: 360 };
+  let previous;
+  for (let step = -1800; step <= 1800; step += 1) {
+    const fit = scannerPreviewFit(
+      scannerRotationGeometry(2400, 600, step / 10),
+      bounds,
+    );
+    if (previous) {
+      for (const field of ["left", "top", "width", "height"]) {
+        assert.ok(
+          Math.abs(fit[field] - previous[field]) < 5,
+          `${field} jumped at ${step / 10}`,
+        );
+      }
+    }
+    previous = fit;
+  }
 });
 
 test("default crops stay inside portrait, landscape, and square photos at every angle", () => {
