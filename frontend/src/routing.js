@@ -26,6 +26,10 @@ export function routeFromPath(pathname, search = "") {
     return { name: "rulebook" };
   }
 
+  if (/^\/scanner\/?$/.test(pathname)) {
+    return { name: "scanner" };
+  }
+
   const joinMatch = pathname.match(/^\/join\/([^/]+)\/?$/);
   if (joinMatch) {
     return { name: "join", inviteToken: decodeURIComponent(joinMatch[1]) };

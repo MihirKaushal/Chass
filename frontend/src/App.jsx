@@ -50,6 +50,7 @@ import HomePage from "./pages/HomePage";
 import JoinPage from "./pages/JoinPage";
 import PlayPage from "./pages/PlayPage";
 import RulebookPage from "./pages/RulebookPage";
+import ScannerPage from "./pages/ScannerPage";
 import AbilitySelectionPage, { AbilityHandoffPage } from "./pages/AbilitySelectionPage";
 import { navigate, useNavigationBlocker, useRoute } from "./routing";
 
@@ -1405,6 +1406,10 @@ function App() {
         onCustomize={() => navigate("/customize")}
       />
     );
+  }
+
+  if (route.name === "scanner") {
+    return <ScannerPage />;
   }
 
   return (
