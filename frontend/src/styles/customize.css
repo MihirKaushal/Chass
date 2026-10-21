@@ -1,6 +1,7 @@
 /* Unified game customizer */
 .customize-page-shell {
   width: min(1580px, calc(100% - 2rem));
+  min-width: 0;
   margin: 0 auto;
   padding: 1rem 0 4rem;
 }
@@ -14,6 +15,7 @@
 
 .configuration-studio {
   width: 100%;
+  min-width: 0;
   padding: clamp(1rem, 2.5vw, 2rem);
   border-radius: 26px;
   background:
@@ -327,6 +329,7 @@
 }
 
 .studio-preview-column {
+  min-width: 0;
   position: sticky;
   top: 1rem;
   display: grid;
@@ -334,6 +337,7 @@
 }
 
 .studio-preview-stack {
+  min-width: 0;
   padding: 0.85rem;
   border: 1px solid rgba(26, 54, 93, 0.2);
   border-radius: 18px;
@@ -343,6 +347,7 @@
 
 .studio-board-frame {
   width: 100%;
+  min-width: 0;
   display: grid;
   place-items: center;
   min-height: 280px;
@@ -771,10 +776,13 @@
 .studio-controls {
   min-width: 0;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 1rem;
 }
 
 .studio-section {
+  min-width: 0;
+  overflow-wrap: anywhere;
   padding: clamp(1rem, 2vw, 1.35rem);
   border: 1px solid var(--border-subtle);
   border-radius: 18px;
@@ -806,6 +814,7 @@
 
 .studio-disclosure-body,
 .rulebook-disclosure-body {
+  min-width: 0;
   padding-top: 1rem;
 }
 
@@ -1054,6 +1063,7 @@ details[open] > summary > .disclosure-arrow {
 .piece-config-fields label,
 .conditional-fields label,
 .gambit-settings-grid > label {
+  min-width: 0;
   display: grid;
   gap: 0.3rem;
   color: rgba(26, 54, 93, 0.78);
@@ -1117,6 +1127,7 @@ details[open] > summary > .disclosure-arrow {
 }
 
 .piece-config-card {
+  min-width: 0;
   padding: 0.8rem;
   border: 1px solid rgba(26, 54, 93, 0.16);
   border-radius: 13px;
@@ -1137,7 +1148,7 @@ details[open] > summary > .disclosure-arrow {
 
 .piece-config-card header {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.55rem;
 }
@@ -1185,7 +1196,7 @@ details[open] > summary > .disclosure-arrow {
 
 .piece-config-fields {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(120px, 100%), 1fr));
   gap: 0.5rem;
   margin-top: 0.65rem;
 }
@@ -1408,7 +1419,7 @@ details[open] > summary > .disclosure-arrow {
 
 .gambit-piece-limit-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(145px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(min(145px, 100%), 1fr));
   gap: 0.42rem;
   margin-bottom: 0.55rem;
 }
@@ -1463,7 +1474,7 @@ details[open] > summary > .disclosure-arrow {
 
 .studio-toggle {
   display: grid;
-  grid-template-columns: auto auto 1fr;
+  grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 0.65rem;
   cursor: pointer;
@@ -1538,7 +1549,7 @@ details[open] > summary > .disclosure-arrow {
   z-index: 20;
   bottom: 0.7rem;
   display: grid;
-  grid-template-columns: minmax(190px, 0.75fr) minmax(280px, 1.25fr) auto;
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 1.25fr) minmax(0, 21rem);
   align-items: center;
   gap: 1rem;
   margin: 1.2rem 0 0;
@@ -1653,7 +1664,7 @@ details[open] > summary > .disclosure-arrow {
 }
 
 .launch-actions {
-  min-width: 21rem;
+  min-width: 0;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.5rem;
@@ -1685,6 +1696,10 @@ details[open] > summary > .disclosure-arrow {
 .studio-launch-bar .launch-actions .ui-button-content,
 .studio-launch-bar .launch-actions .ui-button-progress,
 .studio-launch-bar .launch-actions .ui-button-progress span {
+  min-width: 0;
+  max-width: 100%;
+  white-space: normal;
+  overflow-wrap: anywhere;
   color: #fff;
   font-size: 0.76rem;
 }
