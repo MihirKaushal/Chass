@@ -7,6 +7,7 @@ import { boardPlacementRestriction } from "../customizeBoardPlacement";
 import { configurationIssueSquares, locateConfigurationIssue } from "../configurationIssues";
 import { customizeLaunchState } from "../customizeLaunchState";
 import {
+  customizeResultHref,
   matchingCustomizeResults,
   nextCustomizeResultIndex,
 } from "../customizeNavigation";
@@ -20,6 +21,7 @@ import {
 } from "../customizeNumericLimits";
 import { PIECE_FILTERS, visibleCustomizePieces } from "../customizePieces";
 import { customizeSession } from "../customizeSession";
+import { navigate, shouldHandleAppLink } from "../routing";
 import {
   resetEnabledCustomRules,
   resetEnabledGambit,
@@ -880,7 +882,7 @@ function CustomizeNavigator({
               {results.map((result, index) => (
                 <a
                   id={`customize-jump-result-${result.id}`}
-                  href={`#${result.targetId || result.sectionId}`}
+                  href={customizeResultHref(result)}
                   key={result.id}
                   role="option"
                   aria-selected={activeResultIndex === index}
@@ -888,6 +890,7 @@ function CustomizeNavigator({
                   ref={(element) => { resultRefs.current[index] = element; }}
                   onMouseEnter={() => setActiveResultIndex(index)}
                   onClick={(event) => {
+                    if (!shouldHandleAppLink(event)) return;
                     event.preventDefault();
                     setMenuOpen(false);
                     onNavigate(result);
@@ -1648,6 +1651,11 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   };
 
   const jumpToCustomizeResult = (result) => {
+    const destination = customizeResultHref(result);
+    if (destination === "/rulebook") {
+      if (navigate(destination)) window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+      return;
+    }
     const sectionId = result.sectionId || result.id;
     const section = document.getElementById(sectionId);
     if (!section) return;

@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   CUSTOMIZE_SECTION_LINKS,
+  customizeResultHref,
   matchingCustomizeResults,
   nextCustomizeResultIndex,
 } from "./customizeNavigation.js";
@@ -91,11 +92,24 @@ test("customize search returns direct setting and catalog destinations", () => {
   assert.equal(bots.targetId, "rulebook");
 });
 
-test("broad reference searches still navigate to the Rulebook section", () => {
+test("broad reference searches still identify the Rulebook", () => {
   assert.deepEqual(
     matchingCustomizeResults("reference", catalog).map(({ label }) => label),
     ["Rulebook"]
   );
+});
+
+test("the Rulebook option and reference search results open the same-tab Rulebook route", () => {
+  const rulebook = matchingCustomizeResults("", catalog).find(({ id }) => id === "rulebook");
+  assert.equal(customizeResultHref(rulebook), "/rulebook");
+  for (const query of ["reference", "match analysis", "chess bot"]) {
+    assert.equal(customizeResultHref(matchingCustomizeResults(query, catalog)[0]), "/rulebook");
+  }
+});
+
+test("other customize results keep their local section and setting anchors", () => {
+  assert.equal(customizeResultHref(matchingCustomizeResults("board dimensions", catalog)[0]), "#customize-board-dimensions");
+  assert.equal(customizeResultHref(matchingCustomizeResults("catapult", catalog)[0]), "#customize-piece-catapult");
 });
 
 test("keyboard result selection starts predictably and wraps in both directions", () => {

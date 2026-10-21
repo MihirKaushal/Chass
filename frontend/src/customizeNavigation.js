@@ -263,6 +263,11 @@ export function matchingCustomizeResults(query, catalog = {}) {
     ));
 }
 
+export function customizeResultHref(result) {
+  const sectionId = result.sectionId || result.id;
+  return sectionId === "rulebook" ? "/rulebook" : `#${result.targetId || sectionId}`;
+}
+
 export function nextCustomizeResultIndex(currentIndex, resultCount, direction) {
   if (resultCount <= 0) return -1;
   if (currentIndex < 0 || currentIndex >= resultCount) {
