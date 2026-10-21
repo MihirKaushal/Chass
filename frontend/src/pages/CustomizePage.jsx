@@ -7,6 +7,7 @@ import Button from "../components/ui/Button";
 import Dialog from "../components/ui/Dialog";
 import { shouldConfirmDiscardingCustomization } from "../leaveGameGuard";
 import { navigate, useNavigationBlocker } from "../routing";
+import { customizeSession } from "../customizeSession";
 
 function LeaveCustomizeConfirmation({ open, onCancel, onConfirm }) {
   return (
@@ -36,7 +37,7 @@ function CustomizePage({ onCreate, onHome, initialPreset = "" }) {
 
   useNavigationBlocker(
     (destination) => {
-      if (!shouldConfirmDiscardingCustomization(configurationModified)) return true;
+      if (!shouldConfirmDiscardingCustomization(configurationModified, destination)) return true;
       setPendingLeaveDestination(destination);
       setConfirmingLeave(true);
       return false;
@@ -50,6 +51,7 @@ function CustomizePage({ onCreate, onHome, initialPreset = "" }) {
       setConfirmingLeave(true);
       return;
     }
+    customizeSession.clear();
     onHome();
   };
 
@@ -69,6 +71,7 @@ function CustomizePage({ onCreate, onHome, initialPreset = "" }) {
         onCancel={() => setConfirmingLeave(false)}
         onConfirm={() => {
           setConfirmingLeave(false);
+          customizeSession.clear();
           navigate(pendingLeaveDestination, { bypassBlocker: true });
         }}
       />

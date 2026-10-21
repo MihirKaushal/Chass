@@ -19,6 +19,7 @@ import {
   normalizeCustomizeNumbers,
 } from "../customizeNumericLimits";
 import { PIECE_FILTERS, visibleCustomizePieces } from "../customizePieces";
+import { customizeSession } from "../customizeSession";
 import {
   resetEnabledCustomRules,
   resetEnabledGambit,
@@ -47,7 +48,7 @@ import {
 } from "../variantTuning";
 import GameBriefing from "./GameBriefing";
 import BotSetupDialog from "./BotSetupDialog";
-import NewTabIcon from "./NewTabIcon";
+import AppLink from "./AppLink";
 import PageSkeleton from "./PageSkeleton";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
@@ -222,10 +223,10 @@ function defaultDraft(catalog) {
 
 function loadSavedDraft(catalog) {
   const base = defaultDraft(catalog);
-  const serialized = window.sessionStorage.getItem("chass-customize-draft");
-  if (!serialized) return base;
-  window.sessionStorage.removeItem("chass-customize-draft");
   try {
+    const serialized = window.sessionStorage.getItem("chass-customize-draft");
+    if (!serialized) return base;
+    window.sessionStorage.removeItem("chass-customize-draft");
     const saved = JSON.parse(serialized);
     const configuration = saved.configuration || {};
     const gambit = configuration.gambit || {};
@@ -942,16 +943,12 @@ function RulebookLauncher() {
           <p>Explore every engine, bot, piece, win condition, ability, and Gambit system in one searchable guide.</p>
         </div>
         <div className="rulebook-launcher-action">
-          <a
-            className="ui-button new-tab-link rulebook-launch-link"
+          <AppLink
+            className="ui-button rulebook-launch-link"
             href="/rulebook"
-            target="_blank"
-            rel="noopener noreferrer"
-            aria-label="Open the Chass Rulebook in a new tab"
           >
             Open Rulebook
-            <NewTabIcon />
-          </a>
+          </AppLink>
         </div>
       </div>
     </section>
@@ -981,6 +978,8 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const placementNoticeTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
   const botNoticeTimerRef = useRef(null);
+  const loadedPresetRef = useRef(null);
+  const customizePathRef = useRef("");
   const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, matchPredictor: null, bot: null, requestKey: null });
   const validationRequest = useMemo(() => (draft ? buildRequest(draft) : null), [draft]);
   const validationRequestKey = useMemo(
@@ -1026,26 +1025,57 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
 
   useEffect(() => {
     let cancelled = false;
+    loadedPresetRef.current = null;
+    customizePathRef.current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
     getCatalog()
       .then((payload) => {
         if (cancelled) return;
-        let initial = loadSavedDraft(payload);
+        const session = customizeSession.read();
+        let importedDraft = false;
+        try {
+          importedDraft = Boolean(window.sessionStorage.getItem("chass-customize-draft"));
+        } catch {
+          // Browser storage is optional for an ordinary configuration.
+        }
+        const saved = !importedDraft && session?.initialPreset === initialPreset ? session : null;
+        let initial = saved ? cloneDraft(saved.draft) : loadSavedDraft(payload);
         const preset = payload.popularModes.find((mode) => mode.id === initialPreset);
-        if (preset) initial = applyModeToDraft(initial, preset, payload);
+        if (preset && !saved) initial = applyModeToDraft(initial, preset, payload);
         initial = normalizeCustomizeNumbers(initial, payload.limits);
         setRestoreFormationId(
-          initial.formationId && initial.formationId !== "custom"
+          saved?.restoreFormationId || (initial.formationId && initial.formationId !== "custom"
             ? initial.formationId
-            : "classic"
+            : "classic")
         );
-        setConfigurationBaseline(cloneDraft(initial));
-        setPageEntryBaseline(cloneDraft(initial));
+        setConfigurationBaseline(cloneDraft(saved?.configurationBaseline || initial));
+        setPageEntryBaseline(cloneDraft(saved?.pageEntryBaseline || initial));
+        setBoardHistory(Array.isArray(saved?.boardHistory) ? saved.boardHistory : []);
+        setSelectedTool(saved?.selectedTool || null);
+        setSectionQuery(saved?.sectionQuery || "");
+        setPieceFilter(saved?.pieceFilter || "all");
+        loadedPresetRef.current = initialPreset;
         setCatalog(payload);
         setDraft(initial);
       })
       .catch((requestError) => setError(requestError.message));
     return () => { cancelled = true; };
   }, [initialPreset]);
+
+  useEffect(() => {
+    if (!draft || !configurationBaseline || !pageEntryBaseline || loadedPresetRef.current !== initialPreset) return;
+    customizeSession.save({
+      initialPreset,
+      path: customizePathRef.current,
+      draft,
+      configurationBaseline,
+      pageEntryBaseline,
+      boardHistory,
+      restoreFormationId,
+      selectedTool,
+      sectionQuery,
+      pieceFilter,
+    });
+  }, [draft, configurationBaseline, pageEntryBaseline, initialPreset, boardHistory, restoreFormationId, selectedTool, sectionQuery, pieceFilter]);
 
   useEffect(() => {
     try {

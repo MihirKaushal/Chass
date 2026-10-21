@@ -75,6 +75,7 @@
   color: white;
   border-color: rgba(255, 255, 255, 0.34);
   background: rgba(255, 255, 255, 0.14);
+  text-decoration: none;
 }
 
 .rulebook-launch-link:hover,

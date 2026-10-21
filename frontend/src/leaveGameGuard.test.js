@@ -53,3 +53,12 @@ test("Home navigation warns only when the Customize configuration changed", () =
   assert.equal(shouldConfirmDiscardingCustomization(false), false);
   assert.equal(shouldConfirmDiscardingCustomization(undefined), false);
 });
+
+test("reading the Rulebook preserves the customizer instead of prompting to discard it", () => {
+  for (const destination of ["/rulebook", "/rulebook/", "/rulebook#rulebook-pieces", "/rulebook?search=pawn"]) {
+    assert.equal(shouldConfirmDiscardingCustomization(true, destination), false);
+  }
+  assert.equal(shouldConfirmDiscardingCustomization(true, "/"), true);
+  assert.equal(shouldConfirmDiscardingCustomization(true, "/game/123"), true);
+  assert.equal(shouldConfirmDiscardingCustomization(true, "/rulebook-other"), true);
+});
