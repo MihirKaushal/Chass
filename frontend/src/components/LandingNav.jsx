@@ -1,4 +1,4 @@
-import NewTabIcon from "./NewTabIcon";
+import AppLink from "./AppLink";
 
 function LandingNav({ active, onHome, onCustomize }) {
   return (
@@ -24,16 +24,12 @@ function LandingNav({ active, onHome, onCustomize }) {
           Rulebook
         </span>
       ) : (
-        <a
-          className="site-nav-button new-tab-link"
+        <AppLink
+          className="site-nav-button"
           href="/rulebook"
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label="Open the Chass Rulebook in a new tab"
         >
           Rulebook
-          <NewTabIcon />
-        </a>
+        </AppLink>
       )}
     </nav>
   );
