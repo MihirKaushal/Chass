@@ -56,6 +56,15 @@ export function navigate(path, { replace = false, bypassBlocker = false } = {}) 
   return true;
 }
 
+export function shouldHandleAppLink(event, origin = window.location.origin) {
+  return !event.defaultPrevented
+    && event.button === 0
+    && !event.metaKey && !event.ctrlKey && !event.shiftKey && !event.altKey
+    && (!event.currentTarget.target || event.currentTarget.target === "_self")
+    && event.currentTarget.origin === origin
+    && !event.currentTarget.hasAttribute("download");
+}
+
 export function useNavigationBlocker(blocker, enabled) {
   const blockerRef = useRef(blocker);
   blockerRef.current = blocker;
