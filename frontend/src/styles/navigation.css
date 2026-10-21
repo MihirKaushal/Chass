@@ -66,25 +66,6 @@
     box-shadow var(--motion-fast);
 }
 
-.new-tab-link {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.36rem;
-  text-decoration: none;
-}
-
-.new-tab-icon {
-  width: 0.82rem;
-  height: 0.82rem;
-  flex: 0 0 auto;
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.8;
-  stroke-linecap: round;
-  stroke-linejoin: round;
-}
-
 .site-nav-button:hover {
   color: var(--deep);
   background: rgba(99, 179, 237, 0.2);
