@@ -3,6 +3,9 @@ __pycache__/
 *.pyo
 *.DS_Store
 .venv/
+.venv-scanner/
+scanner/artifacts/
+scanner/data/
 .stockfish/
 .env
 .env.local

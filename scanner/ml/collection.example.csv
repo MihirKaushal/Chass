@@ -1,0 +1,2 @@
+image,source_url,license,board_set_id,session_id,game_id,camera_id,orientation,annotation_file,split
+example.jpg,https://example.org/source,confirm-permission,set-001,session-001,game-001,camera-001,white-bottom,example.annotations.json,unassigned
