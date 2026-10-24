@@ -1,0 +1,402 @@
+{
+  "format_version": 1,
+  "run_date": "2026-10-24",
+  "architecture": "ssdlite320_mobilenet_v3_large",
+  "environment": {
+    "torch": "2.14.1",
+    "device": "mps",
+    "seed": 42,
+    "dataset_fingerprint": "592e7de2fc93b224e2e4ebd65ecbb43836c634eed957a0f964ba38c3fc350f57",
+    "task": "12-class piece detection"
+  },
+  "dataset": {
+    "source": "https://universe.roboflow.com/chess-gftva/chess-top-down",
+    "attribution": "Chess Top Down Dataset by chess, Roboflow Universe, 2022",
+    "license": "CC BY 4.0",
+    "fingerprint": "592e7de2fc93b224e2e4ebd65ecbb43836c634eed957a0f964ba38c3fc350f57",
+    "images": 327,
+    "source_groups": 147,
+    "splits": {
+      "train": {
+        "images": 270,
+        "source_groups": 90,
+        "annotations": 1431,
+        "classes": {
+          "black-bishop": 57,
+          "black-king": 213,
+          "black-knight": 75,
+          "black-pawn": 156,
+          "black-queen": 66,
+          "black-rook": 108,
+          "white-bishop": 39,
+          "white-king": 234,
+          "white-knight": 87,
+          "white-pawn": 198,
+          "white-queen": 66,
+          "white-rook": 132
+        },
+        "min_pieces": 2,
+        "max_pieces": 11,
+        "missing_classes": []
+      },
+      "valid": {
+        "images": 40,
+        "source_groups": 40,
+        "annotations": 234,
+        "classes": {
+          "black-bishop": 9,
+          "black-king": 33,
+          "black-knight": 9,
+          "black-pawn": 23,
+          "black-queen": 15,
+          "black-rook": 12,
+          "white-bishop": 6,
+          "white-king": 33,
+          "white-knight": 12,
+          "white-pawn": 37,
+          "white-queen": 15,
+          "white-rook": 30
+        },
+        "min_pieces": 2,
+        "max_pieces": 9,
+        "missing_classes": []
+      },
+      "test": {
+        "images": 17,
+        "source_groups": 17,
+        "annotations": 93,
+        "classes": {
+          "black-bishop": 3,
+          "black-king": 14,
+          "black-knight": 5,
+          "black-pawn": 11,
+          "black-queen": 4,
+          "black-rook": 6,
+          "white-bishop": 3,
+          "white-king": 15,
+          "white-knight": 5,
+          "white-pawn": 14,
+          "white-queen": 4,
+          "white-rook": 9
+        },
+        "min_pieces": 2,
+        "max_pieces": 9,
+        "missing_classes": []
+      }
+    }
+  },
+  "training": {
+    "epochs_completed": 22,
+    "best_epoch": 12,
+    "epoch_seconds": 148.54249608700047,
+    "initial_validation_map50": 0.010536405526134227
+  },
+  "validation": {
+    "map50": 0.664735762827937,
+    "map50_95": 0.3374903922548207,
+    "per_class_ap50": {
+      "black-bishop": 0.5169416941694169,
+      "black-king": 0.8046774358631483,
+      "black-knight": 0.5907590759075908,
+      "black-pawn": 0.8304832676443302,
+      "black-queen": 0.6267739273927392,
+      "black-rook": 0.5627200603953724,
+      "white-bishop": 0.2726499573034226,
+      "white-king": 0.8974022038718792,
+      "white-knight": 0.7296268088347297,
+      "white-pawn": 0.8720821155479395,
+      "white-queen": 0.5183140499213893,
+      "white-rook": 0.7543985570832865
+    },
+    "tp": 150,
+    "fp": 57,
+    "fn": 84,
+    "support": 234,
+    "precision": 0.7246376811594203,
+    "recall": 0.6410256410256411,
+    "f1": 0.6802721088435374,
+    "threshold": 0.2,
+    "matching_iou": 0.5,
+    "exact_detection_images": 1,
+    "images": 40,
+    "exact_detection_image_rate": 0.025,
+    "per_class": {
+      "black-bishop": {
+        "tp": 4,
+        "fp": 1,
+        "fn": 5,
+        "support": 9,
+        "precision": 0.8,
+        "recall": 0.4444444444444444,
+        "f1": 0.5714285714285714
+      },
+      "black-king": {
+        "tp": 14,
+        "fp": 2,
+        "fn": 19,
+        "support": 33,
+        "precision": 0.875,
+        "recall": 0.42424242424242425,
+        "f1": 0.5714285714285714
+      },
+      "black-knight": {
+        "tp": 4,
+        "fp": 3,
+        "fn": 5,
+        "support": 9,
+        "precision": 0.5714285714285714,
+        "recall": 0.4444444444444444,
+        "f1": 0.5
+      },
+      "black-pawn": {
+        "tp": 16,
+        "fp": 3,
+        "fn": 7,
+        "support": 23,
+        "precision": 0.8421052631578947,
+        "recall": 0.6956521739130435,
+        "f1": 0.7619047619047619
+      },
+      "black-queen": {
+        "tp": 11,
+        "fp": 6,
+        "fn": 4,
+        "support": 15,
+        "precision": 0.6470588235294118,
+        "recall": 0.7333333333333333,
+        "f1": 0.6875
+      },
+      "black-rook": {
+        "tp": 4,
+        "fp": 1,
+        "fn": 8,
+        "support": 12,
+        "precision": 0.8,
+        "recall": 0.3333333333333333,
+        "f1": 0.47058823529411764
+      },
+      "white-bishop": {
+        "tp": 2,
+        "fp": 4,
+        "fn": 4,
+        "support": 6,
+        "precision": 0.3333333333333333,
+        "recall": 0.3333333333333333,
+        "f1": 0.3333333333333333
+      },
+      "white-king": {
+        "tp": 25,
+        "fp": 4,
+        "fn": 8,
+        "support": 33,
+        "precision": 0.8620689655172413,
+        "recall": 0.7575757575757576,
+        "f1": 0.8064516129032258
+      },
+      "white-knight": {
+        "tp": 8,
+        "fp": 2,
+        "fn": 4,
+        "support": 12,
+        "precision": 0.8,
+        "recall": 0.6666666666666666,
+        "f1": 0.7272727272727273
+      },
+      "white-pawn": {
+        "tp": 33,
+        "fp": 14,
+        "fn": 4,
+        "support": 37,
+        "precision": 0.7021276595744681,
+        "recall": 0.8918918918918919,
+        "f1": 0.7857142857142857
+      },
+      "white-queen": {
+        "tp": 6,
+        "fp": 7,
+        "fn": 9,
+        "support": 15,
+        "precision": 0.46153846153846156,
+        "recall": 0.4,
+        "f1": 0.42857142857142855
+      },
+      "white-rook": {
+        "tp": 23,
+        "fp": 10,
+        "fn": 7,
+        "support": 30,
+        "precision": 0.696969696969697,
+        "recall": 0.7666666666666667,
+        "f1": 0.7301587301587301
+      }
+    },
+    "note": "Exact detection requires every annotated piece matched at IoU >= 0.5 and no extra detections. This is NOT exact-board accuracy.",
+    "split": "valid",
+    "checkpoint_epoch": 12,
+    "checkpoint_sha256": "a1af4cedbca97a712a446ac5ee10b03f6225435cf5a607bf821c8b3f542efb15",
+    "dataset_fingerprint": "592e7de2fc93b224e2e4ebd65ecbb43836c634eed957a0f964ba38c3fc350f57",
+    "timing": {
+      "seconds": 1.0611581669945735,
+      "mean_ms_per_image": 26.52895417486434,
+      "device": "mps",
+      "batch_size": 8
+    }
+  },
+  "test": {
+    "map50": 0.7264955434441879,
+    "map50_95": 0.3548807444141736,
+    "per_class_ap50": {
+      "black-bishop": 0.16584158415841585,
+      "black-king": 0.891039002685694,
+      "black-knight": 0.8679867986798677,
+      "black-pawn": 0.7985700355749858,
+      "black-queen": 0.32673267326732675,
+      "black-rook": 0.7788778877887792,
+      "white-bishop": 0.4526166902404527,
+      "white-king": 0.8709918515071322,
+      "white-knight": 1.0,
+      "white-pawn": 0.8947789902829295,
+      "white-queen": 0.9174917491749175,
+      "white-rook": 0.7530192579697529
+    },
+    "tp": 62,
+    "fp": 23,
+    "fn": 31,
+    "support": 93,
+    "precision": 0.7294117647058823,
+    "recall": 0.6666666666666666,
+    "f1": 0.6966292134831461,
+    "threshold": 0.2,
+    "matching_iou": 0.5,
+    "exact_detection_images": 2,
+    "images": 17,
+    "exact_detection_image_rate": 0.11764705882352941,
+    "per_class": {
+      "black-bishop": {
+        "tp": 0,
+        "fp": 1,
+        "fn": 3,
+        "support": 3,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0
+      },
+      "black-king": {
+        "tp": 9,
+        "fp": 2,
+        "fn": 5,
+        "support": 14,
+        "precision": 0.8181818181818182,
+        "recall": 0.6428571428571429,
+        "f1": 0.72
+      },
+      "black-knight": {
+        "tp": 2,
+        "fp": 1,
+        "fn": 3,
+        "support": 5,
+        "precision": 0.6666666666666666,
+        "recall": 0.4,
+        "f1": 0.5
+      },
+      "black-pawn": {
+        "tp": 8,
+        "fp": 3,
+        "fn": 3,
+        "support": 11,
+        "precision": 0.7272727272727273,
+        "recall": 0.7272727272727273,
+        "f1": 0.7272727272727273
+      },
+      "black-queen": {
+        "tp": 2,
+        "fp": 3,
+        "fn": 2,
+        "support": 4,
+        "precision": 0.4,
+        "recall": 0.5,
+        "f1": 0.4444444444444444
+      },
+      "black-rook": {
+        "tp": 4,
+        "fp": 2,
+        "fn": 2,
+        "support": 6,
+        "precision": 0.6666666666666666,
+        "recall": 0.6666666666666666,
+        "f1": 0.6666666666666666
+      },
+      "white-bishop": {
+        "tp": 1,
+        "fp": 1,
+        "fn": 2,
+        "support": 3,
+        "precision": 0.5,
+        "recall": 0.3333333333333333,
+        "f1": 0.4
+      },
+      "white-king": {
+        "tp": 10,
+        "fp": 3,
+        "fn": 5,
+        "support": 15,
+        "precision": 0.7692307692307693,
+        "recall": 0.6666666666666666,
+        "f1": 0.7142857142857143
+      },
+      "white-knight": {
+        "tp": 5,
+        "fp": 1,
+        "fn": 0,
+        "support": 5,
+        "precision": 0.8333333333333334,
+        "recall": 1.0,
+        "f1": 0.9090909090909091
+      },
+      "white-pawn": {
+        "tp": 12,
+        "fp": 2,
+        "fn": 2,
+        "support": 14,
+        "precision": 0.8571428571428571,
+        "recall": 0.8571428571428571,
+        "f1": 0.8571428571428571
+      },
+      "white-queen": {
+        "tp": 4,
+        "fp": 3,
+        "fn": 0,
+        "support": 4,
+        "precision": 0.5714285714285714,
+        "recall": 1.0,
+        "f1": 0.7272727272727273
+      },
+      "white-rook": {
+        "tp": 5,
+        "fp": 1,
+        "fn": 4,
+        "support": 9,
+        "precision": 0.8333333333333334,
+        "recall": 0.5555555555555556,
+        "f1": 0.6666666666666666
+      }
+    },
+    "note": "Exact detection requires every annotated piece matched at IoU >= 0.5 and no extra detections. This is NOT exact-board accuracy.",
+    "split": "test",
+    "checkpoint_epoch": 12,
+    "checkpoint_sha256": "a1af4cedbca97a712a446ac5ee10b03f6225435cf5a607bf821c8b3f542efb15",
+    "dataset_fingerprint": "592e7de2fc93b224e2e4ebd65ecbb43836c634eed957a0f964ba38c3fc350f57",
+    "timing": {
+      "seconds": 2.1901231250085402,
+      "mean_ms_per_image": 128.8307720593259,
+      "device": "mps",
+      "batch_size": 8
+    }
+  },
+  "limitations": [
+    "Detection metrics are not 64-square board accuracy.",
+    "Sparse boards, small test set, and limited physical-set diversity.",
+    "Filename/hash checks do not prove capture-session or physical-set isolation.",
+    "Automatic board reconstruction and website inference are not connected."
+  ]
+}

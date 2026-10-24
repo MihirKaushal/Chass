@@ -28,6 +28,14 @@ link-or-code multiplayer, custom boards and pieces, modular rules, and real-time
 - Automatic cleanup after 24 hours without game activity
 - Responsive React interface for desktop and mobile
 
+## Board Scanner Research
+
+The unlinked `/scanner` page prototypes photo upload, camera capture, crop/rotation,
+and manual board confirmation. A separate [offline ML pipeline](scanner/ml/README.md)
+audits the current COCO dataset, trains a 12-class piece detector, and generates
+held-out evaluation reports. Automatic photo-to-board reconstruction and website
+inference are not connected yet; ML packages are not installed on the game server.
+
 ## Tech Stack
 
 | Area | Tools |
