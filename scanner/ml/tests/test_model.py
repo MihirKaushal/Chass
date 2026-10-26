@@ -3,8 +3,9 @@ import sys
 
 import pytest
 import torch
+from PIL import Image
 
-from scanner.ml.data import CLASSES
+from scanner.ml.data import CLASSES, detector_tensor
 from scanner.ml.model import ARCHITECTURE, build_model, load_checkpoint
 from scanner.ml.train import save_checkpoint
 
@@ -40,3 +41,11 @@ def test_cli_does_not_tune_test_threshold():
     )
     assert result.returncode == 2
     assert "chosen using validation" in result.stderr
+
+
+def test_cpu_presizing_matches_native_detector_transform():
+    image = Image.frombytes("RGB", (96, 72), bytes(range(256)) * 81)
+    model = build_model().eval()
+    native, _ = model.transform([detector_tensor(image)])
+    presized, _ = model.transform([detector_tensor(image, 320)])
+    torch.testing.assert_close(presized.tensors, native.tensors, atol=1e-6, rtol=1e-4)

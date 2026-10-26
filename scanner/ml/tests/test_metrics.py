@@ -1,6 +1,8 @@
 import pytest
+import torch
 
-from scanner.ml.metrics import box_iou, coco_metrics, operating_metrics
+from scanner.ml.data import CocoPieces, prepare_dataset, read_manifest
+from scanner.ml.metrics import box_iou, coco_metrics, collect_predictions, operating_metrics
 
 
 @pytest.fixture
@@ -61,3 +63,25 @@ def test_localization_must_overlap(record):
     assert result["fp"] == result["fn"] == 1
     assert box_iou([0, 0, 10, 10], [0, 0, 10, 10]) == 1
     assert box_iou([0, 0, 1, 1], [2, 2, 3, 3]) == 0
+
+
+def test_collect_predictions_restores_original_photo_coordinates(dataset_root, tmp_path):
+    prepare_dataset(dataset_root, tmp_path / "prepared")
+    dataset = CocoPieces(
+        read_manifest(tmp_path / "prepared/manifest.json"), "valid", input_size=320
+    )
+
+    class Detector(torch.nn.Module):
+        def forward(self, images):
+            return [
+                {
+                    "boxes": torch.tensor([[25.0, 40.0, 75.0, 120.0]]),
+                    "labels": torch.tensor([12]),
+                    "scores": torch.tensor([0.9]),
+                }
+                for _ in images
+            ]
+
+    predictions, _ = collect_predictions(Detector(), dataset, torch.device("cpu"))
+    assert predictions[0]["boxes"] == [[5.0, 6.0, 15.0, 18.0]]
+    assert operating_metrics(predictions, dataset.records, 0.5)["f1"] == 1.0

@@ -276,15 +276,48 @@ def collate_detection(batch):
     return tuple(zip(*batch, strict=True))
 
 
+def detector_tensor(image: Image.Image, input_size: int | None = None):
+    import torch.nn.functional as F
+    from torchvision.transforms.functional import to_tensor
+
+    tensor = to_tensor(image)
+    if input_size is not None:
+        # Match SSDLite's bilinear resize before transferring large photos to the GPU.
+        tensor = F.interpolate(
+            tensor.unsqueeze(0),
+            size=(input_size, input_size),
+            mode="bilinear",
+            align_corners=False,
+        ).squeeze(0)
+    return tensor
+
+
+def resize_boxes(boxes, source_size: tuple[int, int], target_size: tuple[int, int]):
+    scale_x = target_size[0] / source_size[0]
+    scale_y = target_size[1] / source_size[1]
+    return boxes * boxes.new_tensor([scale_x, scale_y, scale_x, scale_y])
+
+
 class CocoPieces:
-    def __init__(self, manifest: dict, split: str, *, augment=False, root: Path | None = None):
+    def __init__(
+        self,
+        manifest: dict,
+        split: str,
+        *,
+        augment=False,
+        root: Path | None = None,
+        input_size: int | None = None,
+    ):
         if split not in SPLITS:
             raise ValueError(f"Unknown split: {split}")
         if augment and split != "train":
             raise ValueError("Augmentation is only permitted for the training split.")
+        if input_size is not None and (type(input_size) is not int or input_size < 1):
+            raise ValueError("input_size must be a positive integer or None.")
         self.records = [record for record in manifest["records"] if record["split"] == split]
         self.root = root or Path(manifest["dataset_root"])
         self.augment = augment
+        self.input_size = input_size
 
     def __len__(self):
         return len(self.records)
@@ -305,6 +338,8 @@ class CocoPieces:
                 boxes[:, [0, 2]] = image.width - boxes[:, [2, 0]]
             image = TF.adjust_brightness(image, random.uniform(0.9, 1.1))
             image = TF.adjust_contrast(image, random.uniform(0.9, 1.1))
+        if self.input_size is not None:
+            boxes = resize_boxes(boxes, image.size, (self.input_size, self.input_size))
         target = {
             "boxes": boxes,
             "labels": torch.tensor(record["labels"], dtype=torch.int64),
@@ -312,4 +347,4 @@ class CocoPieces:
             "area": (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1]),
             "iscrowd": torch.tensor(record["iscrowd"], dtype=torch.int64),
         }
-        return TF.to_tensor(image), target
+        return detector_tensor(image, self.input_size), target
