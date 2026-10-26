@@ -4,6 +4,7 @@
   "warmup_epochs": 3,
   "batch_size": 8,
   "input_size": 320,
+  "anchor_scales": [0.06, 0.12, 0.24, 0.4, 0.6, 0.8, 1.0],
   "learning_rate": 0.003,
   "backbone_learning_rate": 0.0003,
   "weight_decay": 0.0001,

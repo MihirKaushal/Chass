@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import math
 from functools import partial
 from pathlib import Path
 
@@ -9,6 +10,7 @@ from torchvision.models.detection import (
     SSDLite320_MobileNet_V3_Large_Weights,
     ssdlite320_mobilenet_v3_large,
 )
+from torchvision.models.detection.anchor_utils import DefaultBoxGenerator
 from torchvision.models.detection.ssdlite import SSDLiteClassificationHead
 
 from .data import CLASSES
@@ -16,7 +18,16 @@ from .data import CLASSES
 ARCHITECTURE = "ssdlite320_mobilenet_v3_large"
 
 
-def build_model(*, pretrained: bool = False):
+def build_model(*, pretrained: bool = False, anchor_scales: list[float] | None = None):
+    if anchor_scales is not None and (
+        len(anchor_scales) != 7
+        or any(not math.isfinite(scale) or not 0 < scale <= 1 for scale in anchor_scales)
+        or any(
+            first >= second
+            for first, second in zip(anchor_scales, anchor_scales[1:], strict=False)
+        )
+    ):
+        raise ValueError("Use seven strictly increasing anchor scales in (0, 1].")
     if pretrained:
         model = ssdlite320_mobilenet_v3_large(
             weights=SSDLite320_MobileNet_V3_Large_Weights.DEFAULT,
@@ -34,6 +45,8 @@ def build_model(*, pretrained: bool = False):
             weights_backbone=None,
             num_classes=len(CLASSES),
         )
+    if anchor_scales is not None:
+        model.anchor_generator = DefaultBoxGenerator([[2, 3]] * 6, scales=anchor_scales)
     # Keep low-score candidates for COCO evaluation; the operating threshold is chosen on validation.
     model.score_thresh = 0.01
     model.detections_per_img = 100
@@ -60,6 +73,6 @@ def load_checkpoint(path: Path, device: torch.device):
     checkpoint = torch.load(path, map_location="cpu", weights_only=True)
     if checkpoint.get("architecture") != ARCHITECTURE or checkpoint.get("classes") != list(CLASSES):
         raise ValueError("The checkpoint architecture/class mapping does not match this scanner.")
-    model = build_model()
+    model = build_model(anchor_scales=checkpoint.get("config", {}).get("anchor_scales"))
     model.load_state_dict(checkpoint["model"])
     return model.to(device).eval(), checkpoint
