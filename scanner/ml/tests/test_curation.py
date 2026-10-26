@@ -11,6 +11,7 @@ from scanner.ml.curation import (
     digest_bytes,
     equivalent_annotations,
     remove_copies,
+    reviewed_rotation,
 )
 from scanner.ml.data import CLASSES, SPLITS, read_manifest
 from scanner.ml.datasets import TOP_DOWN
@@ -127,6 +128,32 @@ def test_splits_keep_whole_components_and_are_deterministic():
     assert [row["split"] for row in first] == [row["split"] for row in second]
     with pytest.raises(ValueError, match="three independent"):
         assign_splits(rows[:4], [])
+
+
+def test_fixed_capture_splits_preserve_holdout_membership():
+    rows = [sample_row(str(i), f"day-{i // 2}", f"pixel-{i}") for i in range(12)]
+    fixed = {f"day-{i}": SPLITS[i % 3] for i in range(6)}
+    result = assign_splits(rows, [], fixed_capture_splits=fixed)
+    assert result["counts"] == {split: 4 for split in SPLITS}
+    assert all(row["split"] == fixed[row["capture_group"]] for row in rows)
+    with pytest.raises(ValueError, match="conflict"):
+        assign_splits(rows, [{"first": 0, "second": 2}], fixed_capture_splits=fixed)
+    with pytest.raises(ValueError, match="missing"):
+        assign_splits(rows, [], fixed_capture_splits={})
+    with pytest.raises(ValueError, match="nonempty"):
+        assign_splits(rows, [], fixed_capture_splits={key: "train" for key in fixed})
+
+
+def test_reviewed_half_turn_is_lossless_even_for_square_images():
+    image = Image.new("RGB", (64, 64), "white")
+    image.putpixel((2, 3), (10, 20, 30))
+    turned = reviewed_rotation(image, "half")
+    assert turned.size == image.size
+    assert turned.getpixel((61, 60)) == (10, 20, 30)
+    assert reviewed_rotation(turned, "half").tobytes() == image.tobytes()
+    assert reviewed_rotation(image, "none") is image
+    with pytest.raises(ValueError, match="Unknown"):
+        reviewed_rotation(image, "guess")
 
 
 def test_perceptual_features_find_quarter_turns():
