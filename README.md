@@ -35,6 +35,8 @@ and manual board confirmation. A separate [offline ML pipeline](scanner/ml/READM
 audits the current COCO dataset, trains a 12-class piece detector, and generates
 held-out evaluation reports. Automatic photo-to-board reconstruction and website
 inference are not connected yet; ML packages are not installed on the game server.
+See the [Scanner Workspace](scanner/README.md) for organized raw/curated datasets,
+reviewed label cleanup, deduplication, capture-grouped splits, and audit reports.
 
 ## Tech Stack
 
