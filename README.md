@@ -37,6 +37,8 @@ held-out evaluation reports. Automatic photo-to-board reconstruction and website
 inference are not connected yet; ML packages are not installed on the game server.
 See the [Scanner Workspace](scanner/README.md) for organized raw/curated datasets,
 reviewed label cleanup, deduplication, capture-grouped splits, and audit reports.
+The [trained Chess V2 baseline](scanner/ml/CHESS_V2_MODEL_CARD.md) records its
+configuration, held-out metrics, error analysis, and reproducible local commands.
 
 ## Tech Stack
 

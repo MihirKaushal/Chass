@@ -1,4 +1,4 @@
-# Scanner ML baseline
+# Scanner ML Pipeline
 
 An offline, 12-class **piece detector**, separate from the FastAPI game service.
 It learns from the existing COCO bounding boxes using TorchVision's pretrained
@@ -11,7 +11,9 @@ corners or 64-square labels, so the pipeline deliberately does not invent square
 positions, empty-square labels, FENs, or exact-board accuracy. The `/scanner` page
 is still a UI prototype; its recognition button is not connected to this model.
 
-The trained run and its limitations are recorded in [MODEL_CARD.md](MODEL_CARD.md).
+The new trained run and its limitations are recorded in
+[CHESS_V2_MODEL_CARD.md](CHESS_V2_MODEL_CARD.md). The original small Top Down
+benchmark remains separately documented in [MODEL_CARD.md](MODEL_CARD.md).
 
 ## Setup
 
@@ -182,13 +184,26 @@ To train on the cleaned copy rather than the old baseline:
 .venv-scanner/bin/python -m scanner.ml train \
   --manifest scanner/artifacts/curation/chess-v2-v3/prepared/manifest.json \
   --config scanner/ml/configs/chess-v2-baseline.json \
-  --output scanner/artifacts/chess-v2-baseline
+  --output scanner/artifacts/chess-v2-another-run
 ```
 
-This starts a new model run, not a resume of the Top Down checkpoint. Choose its
-threshold on its own validation set; compare source-specific results honestly,
-since the larger dataset has new grouped test splits. Curation itself does not
-train a model or update `/scanner`. Default training still uses Top Down.
+This starts a new model run, not a resume of the Top Down checkpoint. The completed
+local run is documented in [CHESS_V2_MODEL_CARD.md](CHESS_V2_MODEL_CARD.md), with
+results in `chess_v2_results.json`. Its selected threshold is **0.25**. Pass both
+the v3 manifest and new checkpoint explicitly when evaluating:
+
+```sh
+.venv-scanner/bin/python -m scanner.ml evaluate \
+  --manifest scanner/artifacts/curation/chess-v2-v3/prepared/manifest.json \
+  --checkpoint scanner/artifacts/chess-v2-baseline/best.pt \
+  --split valid --output scanner/artifacts/chess-v2-baseline/validation
+open scanner/artifacts/chess-v2-baseline/test/report/index.html
+```
+
+Choose each new run's threshold using its own validation set; do not tune on test.
+Compare source-specific results honestly, since the larger dataset has different
+holdouts from Top Down. Curation itself does not train a model or update `/scanner`.
+Default training/inference still refer to Top Down unless paths are supplied.
 
 ## What to collect next
 

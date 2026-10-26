@@ -56,8 +56,9 @@ metrics were used to choose these corrections or exclusions.
 open scanner/artifacts/curation/chess-v2-v3/index.html
 ```
 
-The local `orientation-review-v3/` artifacts include candidate scores, all reviewed
-contact sheets, larger diagnostic examples, and per-image decisions. Published
+The local `scanner/artifacts/curation/chess-v2-v3/alignment-review/` artifacts
+include candidate scores, all reviewed contact sheets, larger diagnostic examples,
+and per-image decisions. Published
 `provenance.json` records raw hashes, original annotation IDs, corrections, and
 capture/split lineage. Rotated images are lossless PNGs; unrotated raw image bytes
 are copied unchanged. Neither raw archive is modified.

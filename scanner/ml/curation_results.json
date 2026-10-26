@@ -1,4 +1,7 @@
 {
+  "status": "superseded",
+  "superseded_by": "chess-v2-v3 (alignment_results.json)",
+  "withdrawal_reason": "Visual training review found additional orientation errors and incomplete labels not detected by the earlier dimension/overlap audit. These are historical curation counts, not the active training dataset.",
   "date": "2026-10-25",
   "summary": {
     "format_version": 1,
