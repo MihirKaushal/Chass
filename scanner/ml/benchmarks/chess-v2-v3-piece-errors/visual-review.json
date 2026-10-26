@@ -1,0 +1,367 @@
+{
+  "recorded_on": "2026-10-26",
+  "split": "test",
+  "review_scope": "All 16 IoU < 0.1 background candidates; contact sheet and full annotated photos for IDs 1811 and 1956.",
+  "label_action": "Flagged for review only; original labels, model and scores preserved.",
+  "counts": {
+    "printed_logo": 4,
+    "apparently_empty_square": 10,
+    "visible_piece_without_overlapping_annotation": 2
+  },
+  "observations": [
+    {
+      "image_id": 1740,
+      "kind": "background_candidate",
+      "predicted": "white-pawn",
+      "actual_or_nearest": "white-king",
+      "score": 0.3926081955432892,
+      "iou": 0.0,
+      "box": [
+        2302.951171875,
+        2229.222900390625,
+        2568.79296875,
+        2404.26123046875
+      ],
+      "target_box": [
+        2268,
+        1947,
+        2619,
+        2212
+      ],
+      "file": "test/1660301703086_jpg.rf.325b66863d31534f78856a40cf9724fe.jpg",
+      "visual_observation": "printed_logo"
+    },
+    {
+      "image_id": 1789,
+      "kind": "background_candidate",
+      "predicted": "white-queen",
+      "actual_or_nearest": "black-king",
+      "score": 0.28368130326271057,
+      "iou": 0.0,
+      "box": [
+        416.2035217285156,
+        815.6909790039062,
+        507.7530517578125,
+        911.8018188476562
+      ],
+      "target_box": [
+        633,
+        1046,
+        753,
+        1161
+      ],
+      "file": "test/IMG_20220814_175940_jpg.rf.739a1f6df03ccad983a9f78b891f78c2.jpg",
+      "visual_observation": "apparently_empty_square"
+    },
+    {
+      "image_id": 1803,
+      "kind": "background_candidate",
+      "predicted": "white-queen",
+      "actual_or_nearest": "white-queen",
+      "score": 0.302169531583786,
+      "iou": 0.07668579078293748,
+      "box": [
+        783.9132080078125,
+        583.7381591796875,
+        877.2220458984375,
+        671.166259765625
+      ],
+      "target_box": [
+        862,
+        586,
+        970,
+        679
+      ],
+      "file": "test/IMG_20220814_182053_jpg.rf.d0d71add4afb1d260d2bc9879aef0019.jpg",
+      "visual_observation": "apparently_empty_square"
+    },
+    {
+      "image_id": 1811,
+      "kind": "background_candidate",
+      "predicted": "black-pawn",
+      "actual_or_nearest": "black-bishop",
+      "score": 0.9760239720344543,
+      "iou": 0.0,
+      "box": [
+        1080.9840087890625,
+        846.7401733398438,
+        1184.0516357421875,
+        929.374267578125
+      ],
+      "target_box": [
+        304,
+        849,
+        416,
+        982
+      ],
+      "file": "test/IMG_20220814_105107_jpg.rf.dc7cde0260bf195ebb862d147667c184.jpg",
+      "visual_observation": "visible_piece_without_overlapping_annotation"
+    },
+    {
+      "image_id": 1823,
+      "kind": "background_candidate",
+      "predicted": "white-pawn",
+      "actual_or_nearest": "black-king",
+      "score": 0.2796412706375122,
+      "iou": 0.0,
+      "box": [
+        732.6444091796875,
+        152.55369567871094,
+        815.7779541015625,
+        233.1965789794922
+      ],
+      "target_box": [
+        963,
+        311,
+        1071,
+        440
+      ],
+      "file": "test/IMG_20220814_182119_jpg.rf.ec0e0f69baf75ab43d41915aa13d28e2.jpg",
+      "visual_observation": "apparently_empty_square"
+    },
+    {
+      "image_id": 1866,
+      "kind": "background_candidate",
+      "predicted": "black-pawn",
+      "actual_or_nearest": "black-pawn",
+      "score": 0.2841331362724304,
+      "iou": 0.0020289623410189596,
+      "box": [
+        210.4844207763672,
+        148.1966552734375,
+        302.45538330078125,
+        224.28741455078125
+      ],
+      "target_box": [
+        302,
+        122,
+        398,
+        222
+      ],
+      "file": "test/IMG_20220814_105245_jpg.rf.1dd660eac7bf9ee75e42c17b36823201.jpg",
+      "visual_observation": "printed_logo"
+    },
+    {
+      "image_id": 1879,
+      "kind": "background_candidate",
+      "predicted": "white-queen",
+      "actual_or_nearest": "black-king",
+      "score": 0.6159942150115967,
+      "iou": 0.0,
+      "box": [
+        709.7576904296875,
+        587.317626953125,
+        808.3169555664062,
+        680.6690673828125
+      ],
+      "target_box": [
+        934,
+        934,
+        1060,
+        1085
+      ],
+      "file": "test/IMG_20220814_185422_jpg.rf.a5d3ca91b463ba61109983b23ed54b4b.jpg",
+      "visual_observation": "apparently_empty_square"
+    },
+    {
+      "image_id": 1879,
+      "kind": "background_candidate",
+      "predicted": "white-king",
+      "actual_or_nearest": "black-king",
+      "score": 0.5049344897270203,
+      "iou": 0.0,
+      "box": [
+        709.1588134765625,
+        586.8828125,
+        808.6748046875,
+        680.5030517578125
+      ],
+      "target_box": [
+        934,
+        934,
+        1060,
+        1085
+      ],
+      "file": "test/IMG_20220814_185422_jpg.rf.a5d3ca91b463ba61109983b23ed54b4b.jpg",
+      "visual_observation": "apparently_empty_square"
+    },
+    {
+      "image_id": 1896,
+      "kind": "background_candidate",
+      "predicted": "white-king",
+      "actual_or_nearest": "white-queen",
+      "score": 0.2884986400604248,
+      "iou": 0.0,
+      "box": [
+        574.9609375,
+        716.8417358398438,
+        675.6783447265625,
+        820.515625
+      ],
+      "target_box": [
+        181,
+        950,
+        331,
+        1069
+      ],
+      "file": "test/IMG_20220814_184538_jpg.rf.b4473b6a62f4149c8e9d2e1344600679.jpg",
+      "visual_observation": "apparently_empty_square"
+    },
+    {
+      "image_id": 1932,
+      "kind": "background_candidate",
+      "predicted": "white-king",
+      "actual_or_nearest": "black-king",
+      "score": 0.6912428736686707,
+      "iou": 0.0,
+      "box": [
+        741.228515625,
+        526.581298828125,
+        834.30615234375,
+        614.869140625
+      ],
+      "target_box": [
+        862,
+        742,
+        968,
+        862
+      ],
+      "file": "test/IMG_20220814_182351_jpg.rf.fe37295fff9f9b33edd8b80dca0e452e.jpg",
+      "visual_observation": "apparently_empty_square"
+    },
+    {
+      "image_id": 1938,
+      "kind": "background_candidate",
+      "predicted": "white-pawn",
+      "actual_or_nearest": "white-queen",
+      "score": 0.2725927233695984,
+      "iou": 0.011764774909315635,
+      "box": [
+        388.388671875,
+        158.79501342773438,
+        474.51055908203125,
+        239.939697265625
+      ],
+      "target_box": [
+        310,
+        236,
+        473,
+        369
+      ],
+      "file": "test/IMG_20220814_182401_jpg.rf.7fabbc2998a53e561795b48c566d0dd7.jpg",
+      "visual_observation": "printed_logo"
+    },
+    {
+      "image_id": 1946,
+      "kind": "background_candidate",
+      "predicted": "white-pawn",
+      "actual_or_nearest": "black-pawn",
+      "score": 0.33772072196006775,
+      "iou": 0.01517030558245658,
+      "box": [
+        206.74346923828125,
+        152.7599639892578,
+        294.5300598144531,
+        229.10943603515625
+      ],
+      "target_box": [
+        180,
+        226,
+        298,
+        324
+      ],
+      "file": "test/IMG_20220814_105249_jpg.rf.8421646cb2ea1fe7254c7e1c00fab327.jpg",
+      "visual_observation": "printed_logo"
+    },
+    {
+      "image_id": 1956,
+      "kind": "background_candidate",
+      "predicted": "black-queen",
+      "actual_or_nearest": "black-king",
+      "score": 0.324712872505188,
+      "iou": 0.0,
+      "box": [
+        985.3460083007812,
+        682.197265625,
+        1156.162109375,
+        800.359375
+      ],
+      "target_box": [
+        488,
+        829,
+        609,
+        940
+      ],
+      "file": "test/IMG_20220814_190206_jpg.rf.9106bbad941e6dd51a712fefc7bad296.jpg",
+      "visual_observation": "visible_piece_without_overlapping_annotation"
+    },
+    {
+      "image_id": 1972,
+      "kind": "background_candidate",
+      "predicted": "white-king",
+      "actual_or_nearest": "white-bishop",
+      "score": 0.44001534581184387,
+      "iou": 0.0,
+      "box": [
+        699.7362060546875,
+        797.8619384765625,
+        790.1060791015625,
+        897.289306640625
+      ],
+      "target_box": [
+        599,
+        1140,
+        691,
+        1262
+      ],
+      "file": "test/IMG_20220814_175919_jpg.rf.9e4c3f2262155d1c853dfca94b984d9b.jpg",
+      "visual_observation": "apparently_empty_square"
+    },
+    {
+      "image_id": 2047,
+      "kind": "background_candidate",
+      "predicted": "white-king",
+      "actual_or_nearest": "white-queen",
+      "score": 0.36295071244239807,
+      "iou": 0.0,
+      "box": [
+        632.6627807617188,
+        699.7374877929688,
+        730.82275390625,
+        796.5253295898438
+      ],
+      "target_box": [
+        290,
+        1021,
+        421,
+        1161
+      ],
+      "file": "test/IMG_20220814_172634_jpg.rf.469c06e88d829eadbeb533adf2e5c0e4.jpg",
+      "visual_observation": "apparently_empty_square"
+    },
+    {
+      "image_id": 2053,
+      "kind": "background_candidate",
+      "predicted": "white-queen",
+      "actual_or_nearest": "black-king",
+      "score": 0.7782532572746277,
+      "iou": 0.0,
+      "box": [
+        798.3516845703125,
+        520.9432983398438,
+        885.5498657226562,
+        609.6305541992188
+      ],
+      "target_box": [
+        423,
+        730,
+        565,
+        844
+      ],
+      "file": "test/IMG_20220814_185431_jpg.rf.4cb46cbca67d7da10b903ac20e30a946.jpg",
+      "visual_observation": "apparently_empty_square"
+    }
+  ],
+  "classification_review": "Also inspected seven examples across bishop/rook, king/queen, queen/king and knight/rook confusions; this is not an exhaustive semantic label audit.",
+  "limits": "No verified square ground truth; observations do not establish background or occupancy accuracy. The two unannotated objects require a versioned label correction audit."
+}

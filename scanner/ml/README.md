@@ -17,6 +17,8 @@ benchmark remains separately documented in [MODEL_CARD.md](MODEL_CARD.md).
 See [ACCURACY_TRACKER.md](ACCURACY_TRACKER.md) for dated results, box-level
 localization versus classification diagnostics, chart-ready snapshots, and the
 square-level metrics that cannot yet be measured.
+The [Piece Error Analysis](PIECE_ERROR_ANALYSIS.md) breaks down confused labels,
+missed pieces, duplicate predictions, and visually reviewed background candidates.
 
 ## Setup
 
