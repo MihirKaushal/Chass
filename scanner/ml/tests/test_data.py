@@ -60,6 +60,10 @@ def test_prepare_remaps_categories_and_preserves_originals(dataset_root, tmp_pat
         (lambda data: data["annotations"][0].update(iscrowd=1), "crowd regions"),
         (lambda data: data["categories"][1].update(name="dragon"), "unsupported categories"),
         (lambda data: data["categories"].append(dict(data["categories"][0])), "duplicate category"),
+        (
+            lambda data: data["annotations"].append({**data["annotations"][0], "id": 9}),
+            "duplicate piece box",
+        ),
     ],
 )
 def test_bad_labels_are_rejected(dataset_root, tmp_path, change, reason):
@@ -132,3 +136,15 @@ def test_source_group_keeps_original_identity():
     assert source_group("IMG_0123_jpg.rf.abcd.jpg") == "IMG_0123_jpg"
     assert source_group("IMG_0123_jpg.rf.efgh.jpg") == "IMG_0123_jpg"
     assert source_group("original.jpg") == "original.jpg"
+
+
+def test_failed_reaudit_blocks_a_stale_manifest(dataset_root, tmp_path):
+    output = tmp_path / "prepared"
+    prepare_dataset(dataset_root, output)
+    change_annotations(
+        dataset_root, lambda data: data["annotations"][0].update(bbox=[60, 1, 10, 10])
+    )
+    with pytest.raises(ValueError, match="audit failed"):
+        prepare_dataset(dataset_root, output)
+    with pytest.raises(ValueError, match="latest dataset audit failed"):
+        read_manifest(output / "manifest.json")

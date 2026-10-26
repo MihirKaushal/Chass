@@ -11,12 +11,12 @@ os.environ.setdefault("PYTORCH_ENABLE_MPS_FALLBACK", "1")
 
 from .data import (
     DEFAULT_ARTIFACTS,
-    DEFAULT_DATA,
     CocoPieces,
     prepare_dataset,
     read_manifest,
     save_json,
 )
+from .datasets import DATASETS, prepared_directory
 
 
 def main():
@@ -27,8 +27,13 @@ def main():
     prepare = commands.add_parser(
         "prepare", help="Audit COCO data and preserve its existing grouped splits."
     )
-    prepare.add_argument("--data", type=Path, default=DEFAULT_DATA)
-    prepare.add_argument("--output", type=Path, default=DEFAULT_ARTIFACTS / "prepared")
+    prepare.add_argument("--dataset", choices=sorted(DATASETS), default="top-down")
+    prepare.add_argument(
+        "--data", type=Path, help="Override the selected profile's image directory."
+    )
+    prepare.add_argument(
+        "--output", type=Path, help="Override the selected profile's prepared directory."
+    )
     training = commands.add_parser("train")
     training.add_argument(
         "--manifest", type=Path, default=DEFAULT_ARTIFACTS / "prepared/manifest.json"
@@ -61,7 +66,15 @@ def main():
     prediction.add_argument("--device", choices=["auto", "cpu", "mps", "cuda"], default="auto")
     args = parser.parse_args()
     if args.command == "prepare":
-        result = prepare_dataset(args.data, args.output)
+        profile = DATASETS[args.dataset]
+        try:
+            result = prepare_dataset(
+                args.data or profile.root,
+                args.output or prepared_directory(profile),
+                profile=profile,
+            )
+        except ValueError as error:
+            parser.exit(2, f"{error}\n")
     elif args.command == "train":
         from .train import train
 

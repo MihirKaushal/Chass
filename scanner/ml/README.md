@@ -84,7 +84,8 @@ A fresh run will not overwrite an existing run's checkpoints; use a different
 
 ## Current data and split policy
 
-The v2 export has 327 images, 147 filename-based source groups, and 1,758 boxes.
+The Top Down v2 export lives in `scanner/ChessTopDown.v2-chess2.coco/` and has
+327 images, 147 filename-based source groups, and 1,758 boxes.
 The existing splits are preserved, not randomly re-split after augmentation:
 
 | Split | Exported images | Source groups | Piece boxes |
@@ -111,6 +112,35 @@ weights, full predictions, and reports are ignored under `scanner/artifacts/`.
 Back up the trained `best.pt` separately if you want to retain that exact run;
 cloning this repository alone does not download the trained chess checkpoint.
 The game's deployment requirements remain unchanged.
+
+## Chess V2 intake
+
+The second source is staged separately in `scanner/data/raw/ChessV2.v1i.coco/`.
+It is ignored by Git. It contains 2,232 images and 64,399 raw box annotations.
+`datasets.py` defines each source's paths, attribution, supercategories, caveats,
+and explicit class aliases. Chess V2's `BB`, `BKN`, `WR`, etc. map to the same
+12 canonical classes as Top Down; no numeric category IDs are guessed.
+
+```sh
+# Rebuild the original manifest after the folder rename; fingerprint stays unchanged.
+.venv-scanner/bin/python -m scanner.ml prepare --dataset top-down
+
+# Audit the new source separately. This raw export currently FAILS validation.
+.venv-scanner/bin/python -m scanner.ml prepare --dataset chess-v2
+```
+
+Chess V2 reports are written to `scanner/artifacts/chess-v2/prepared/`, not over
+the existing Top Down manifest. The raw export currently has dimension mismatches,
+invalid/duplicate boxes, and cross-split source groups. A failed audit exits with
+a short error and writes `audit.json`; it does not publish a training manifest.
+If an older manifest exists, a failed re-audit blocks it from being used.
+See [CHESS_V2_INTAKE.md](CHESS_V2_INTAKE.md) for verified findings and the cleanup plan.
+
+Do not merge the archives, silently rotate labels, or train on the broken raw
+export. Curate a separately versioned copy after reviewing uncertain labels. The
+same profile can audit that copy using `--data` and `--output` overrides. Pass its
+validated manifest and a new checkpoint output directory explicitly to `train`;
+default training still uses Top Down and cannot overwrite its existing checkpoint.
 
 ## What to collect next
 
@@ -169,7 +199,8 @@ private photos or large raw exports into public Git history.
 - Model: [official TorchVision SSDLite documentation](https://docs.pytorch.org/vision/stable/models/generated/torchvision.models.detection.ssdlite320_mobilenet_v3_large.html).
 - Evaluation: [official COCO API](https://github.com/cocodataset/cocoapi).
 
-`data.py` owns validation/transforms, `model.py` the detector/checkpoint contract,
+`datasets.py` owns source profiles and label aliases, `data.py` validation/transforms,
+`model.py` the detector/checkpoint contract,
 `train.py` optimization, `metrics.py` evaluation, and `report.py` inspection output.
 Future board geometry and web inference should be separate adapters rather than
 changing the game engine or hiding guessed square labels inside training.
