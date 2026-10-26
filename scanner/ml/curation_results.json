@@ -1,0 +1,195 @@
+{
+  "date": "2026-10-25",
+  "summary": {
+    "format_version": 1,
+    "dataset": "chess-v2",
+    "version": "chess-v2-v2",
+    "raw_images": 2232,
+    "kept_images": 2108,
+    "quarantined_images": 98,
+    "removed_copy_images": 26,
+    "kept_annotations": 59850,
+    "actions": {
+      "duplicate_annotation_removed": 249,
+      "reviewed_image_rotation": 96,
+      "zero_area_annotation_removed": 88,
+      "identical_image_removed": 26,
+      "reviewed_annotation_removed": 13
+    },
+    "retained_actions": {
+      "zero_area_annotation_removed": 53,
+      "reviewed_image_rotation": 87,
+      "duplicate_annotation_removed": 13,
+      "reviewed_annotation_removed": 1
+    },
+    "splits": {
+      "target_fractions": [
+        0.7,
+        0.15,
+        0.15
+      ],
+      "counts": {
+        "train": 1450,
+        "valid": 319,
+        "test": 339
+      },
+      "groups": 25,
+      "method": "Capture day/family, source name, pixel identity and perceptual candidates stay together."
+    },
+    "near_candidate_pairs_grouped": 128,
+    "audit_valid": true,
+    "raw_snapshot": "3e70f2d10c9553c140543529e9d606222e3955973ed349c389d87455f074fdc6",
+    "policy_sha256": "91d9a710a8c53e8e9c0dfac614d10dfb826fd00feaf07d478ba6a00ab5f2cd07",
+    "manifest": "scanner/artifacts/curation/chess-v2-v2/prepared/manifest.json",
+    "limitations": [
+      "Not an exhaustive manual reannotation of every piece.",
+      "Capture-date grouping is not proof of unseen physical-board-set isolation.",
+      "Original Top Down baseline/test data is not merged or re-split."
+    ]
+  },
+  "audit": {
+    "valid": true,
+    "dataset": "chess-v2",
+    "source": "https://universe.roboflow.com/public-wspace/chess-v2-qqtmk",
+    "attribution": "Chess V2 Dataset by Public Wspace, Roboflow Universe, 2022",
+    "license": "CC BY 4.0",
+    "category_aliases": {
+      "BB": "black-bishop",
+      "BK": "black-king",
+      "BKN": "black-knight",
+      "BP": "black-pawn",
+      "BQ": "black-queen",
+      "BR": "black-rook",
+      "WB": "white-bishop",
+      "WK": "white-king",
+      "WKN": "white-knight",
+      "WP": "white-pawn",
+      "WQ": "white-queen",
+      "WR": "white-rook"
+    },
+    "errors": [],
+    "splits": {
+      "train": {
+        "declared_images": 1450,
+        "declared_annotations": 40461,
+        "images": 1450,
+        "source_groups": 1442,
+        "annotations": 40461,
+        "classes": {
+          "black-bishop": 2569,
+          "black-king": 2245,
+          "black-knight": 2647,
+          "black-pawn": 8841,
+          "black-queen": 2208,
+          "black-rook": 3573,
+          "white-bishop": 3037,
+          "white-king": 2150,
+          "white-knight": 3129,
+          "white-pawn": 5321,
+          "white-queen": 2421,
+          "white-rook": 2320
+        },
+        "min_pieces": 1,
+        "max_pieces": 64,
+        "images_over_32_pieces": 435,
+        "duplicate_piece_boxes": 0,
+        "missing_classes": []
+      },
+      "valid": {
+        "declared_images": 319,
+        "declared_annotations": 13090,
+        "images": 319,
+        "source_groups": 317,
+        "annotations": 13090,
+        "classes": {
+          "black-bishop": 999,
+          "black-king": 379,
+          "black-knight": 984,
+          "black-pawn": 4058,
+          "black-queen": 299,
+          "black-rook": 786,
+          "white-bishop": 959,
+          "white-king": 230,
+          "white-knight": 739,
+          "white-pawn": 2743,
+          "white-queen": 192,
+          "white-rook": 722
+        },
+        "min_pieces": 3,
+        "max_pieces": 64,
+        "images_over_32_pieces": 287,
+        "duplicate_piece_boxes": 0,
+        "missing_classes": []
+      },
+      "test": {
+        "declared_images": 339,
+        "declared_annotations": 6299,
+        "images": 339,
+        "source_groups": 339,
+        "annotations": 6299,
+        "classes": {
+          "black-bishop": 857,
+          "black-king": 411,
+          "black-knight": 566,
+          "black-pawn": 905,
+          "black-queen": 442,
+          "black-rook": 280,
+          "white-bishop": 453,
+          "white-king": 749,
+          "white-knight": 708,
+          "white-pawn": 50,
+          "white-queen": 863,
+          "white-rook": 15
+        },
+        "min_pieces": 14,
+        "max_pieces": 32,
+        "images_over_32_pieces": 0,
+        "duplicate_piece_boxes": 0,
+        "missing_classes": []
+      }
+    },
+    "total_images": 2108,
+    "declared_total_images": 2108,
+    "declared_total_annotations": 59850,
+    "source_groups": 2098,
+    "unique_image_hashes": 2108,
+    "fingerprint": "8ba2270c38f889b56d2d5cc219ab197bcad1ae08256c0cfbde0d5c8fd958daac",
+    "scope": "12 foreground detection classes. Background is NOT a verified empty-square label.",
+    "limitations": [
+      "Curated export: original source split ratios are not retained; capture groups were re-split.",
+      "Geometry and reviewed label errors were corrected; unreviewed semantic errors can remain.",
+      "No verified board corners or 64-square ground truth is present.",
+      "Source-name separation does not prove separation of capture sessions or physical chess sets."
+    ]
+  },
+  "curated_fingerprint": "8ba2270c38f889b56d2d5cc219ab197bcad1ae08256c0cfbde0d5c8fd958daac",
+  "cross_source": {
+    "exact_byte_pairs": 0,
+    "perceptual_candidates": 0,
+    "limitations": [
+      "No files or splits are changed by this comparison.",
+      "Candidates are not confirmed duplicates; absence of matches does not establish source independence.",
+      "Arbitrary crops, perspective changes, and non-quarter-turn rotations may evade this check.",
+      "Do not combine sources before reviewing overlap and capture provenance."
+    ]
+  },
+  "model_input_smoke": {
+    "valid": true,
+    "device": "cpu",
+    "images": [
+      "train/IMG_20220813_221558_jpg.rf.2bf8c58c27f3944cd1d36e2276f42819.png",
+      "train/IMG_20210425_001015_jpg.rf.2ac3de8a19615a4fb6b3add9dccbb55b.jpg"
+    ],
+    "pieces_per_image": [
+      24,
+      64
+    ],
+    "finite_loss": true,
+    "finite_gradients": true,
+    "optimizer_step": false,
+    "checkpoint_written": false,
+    "note": "Input/gradient smoke check, not an accuracy measurement or model training run."
+  },
+  "original_checkpoint_sha256": "a1af4cedbca97a712a446ac5ee10b03f6225435cf5a607bf821c8b3f542efb15",
+  "original_top_down_fingerprint": "592e7de2fc93b224e2e4ebd65ecbb43836c634eed957a0f964ba38c3fc350f57"
+}

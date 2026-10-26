@@ -1,5 +1,9 @@
 # Chess V2 intake: October 25, 2026
 
+This is the original raw-data audit. Cleanup is now complete in a separate
+version; see [CHESS_V2_CURATION.md](CHESS_V2_CURATION.md). The findings below remain
+as an intake record and are not claims about the cleaned export.
+
 Source: [Chess V2 by Public Wspace](https://universe.roboflow.com/public-wspace/chess-v2-qqtmk).
 The supplied export README credits Roboflow and lists CC BY 4.0. Keep both source
 credit and export license records. README reports no preprocessing or augmentation;

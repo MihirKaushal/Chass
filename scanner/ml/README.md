@@ -84,7 +84,7 @@ A fresh run will not overwrite an existing run's checkpoints; use a different
 
 ## Current data and split policy
 
-The Top Down v2 export lives in `scanner/ChessTopDown.v2-chess2.coco/` and has
+The Top Down v2 export lives in `scanner/data/raw/ChessTopDown.v2-chess2.coco/` and has
 327 images, 147 filename-based source groups, and 1,758 boxes.
 The existing splits are preserved, not randomly re-split after augmentation:
 
@@ -113,7 +113,7 @@ Back up the trained `best.pt` separately if you want to retain that exact run;
 cloning this repository alone does not download the trained chess checkpoint.
 The game's deployment requirements remain unchanged.
 
-## Chess V2 intake
+## Chess V2 intake and curation
 
 The second source is staged separately in `scanner/data/raw/ChessV2.v1i.coco/`.
 It is ignored by Git. It contains 2,232 images and 64,399 raw box annotations.
@@ -134,13 +134,41 @@ the existing Top Down manifest. The raw export currently has dimension mismatche
 invalid/duplicate boxes, and cross-split source groups. A failed audit exits with
 a short error and writes `audit.json`; it does not publish a training manifest.
 If an older manifest exists, a failed re-audit blocks it from being used.
-See [CHESS_V2_INTAKE.md](CHESS_V2_INTAKE.md) for verified findings and the cleanup plan.
+See [CHESS_V2_INTAKE.md](CHESS_V2_INTAKE.md) for the initial findings, and
+[CHESS_V2_CURATION.md](CHESS_V2_CURATION.md) for the completed cleanup and limitations.
 
 Do not merge the archives, silently rotate labels, or train on the broken raw
-export. Curate a separately versioned copy after reviewing uncertain labels. The
-same profile can audit that copy using `--data` and `--output` overrides. Pass its
-validated manifest and a new checkpoint output directory explicitly to `train`;
-default training still uses Top Down and cannot overwrite its existing checkpoint.
+export. The reviewed policy in `configs/chess-v2-clean-v2.json` binds corrections
+to exact raw image/annotation hashes. It builds a separate curated COCO version:
+
+```sh
+# Already built locally; this will refuse to overwrite an existing version.
+.venv-scanner/bin/python -m scanner.ml curate
+.venv-scanner/bin/python -m scanner.ml compare
+open scanner/artifacts/curation/chess-v2-v2/index.html
+```
+
+Review queue entries are excluded from every split, not guessed or silently
+re-labeled by a model. Corrected rotations use lossless PNGs and preserve the
+reviewed annotation coordinate system. Raw downloads and the original Top Down
+benchmark remain unchanged. Exact/high-confidence redundant targets are removed;
+remaining overlaps at IoU >= 0.50 are conservatively excluded for review, including
+some potentially valid occlusions. Unlabeled photos are not treated as empty boards
+without explicit visual verification. Similar views remain together in grouped
+splits, and each split must support all classes.
+
+To train on the cleaned copy rather than the old baseline:
+
+```sh
+.venv-scanner/bin/python -m scanner.ml train \
+  --manifest scanner/artifacts/curation/chess-v2-v2/prepared/manifest.json \
+  --output scanner/artifacts/chess-v2-baseline
+```
+
+This starts a new model run, not a resume of the Top Down checkpoint. Choose its
+threshold on its own validation set; compare source-specific results honestly,
+since the larger dataset has new grouped test splits. Curation itself does not
+train a model or update `/scanner`. Default training still uses Top Down.
 
 ## What to collect next
 
@@ -202,5 +230,8 @@ private photos or large raw exports into public Git history.
 `datasets.py` owns source profiles and label aliases, `data.py` validation/transforms,
 `model.py` the detector/checkpoint contract,
 `train.py` optimization, `metrics.py` evaluation, and `report.py` inspection output.
+`curation.py` applies hash-bound reviewed decisions, `grouping.py` keeps related
+captures together, `curation_report.py` documents exclusions/corrections, and
+`compare.py` checks cross-source overlap without merging.
 Future board geometry and web inference should be separate adapters rather than
 changing the game engine or hiding guessed square labels inside training.
