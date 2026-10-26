@@ -80,7 +80,9 @@ def train(
         old = checkpoint["config"]
         if any(old[key] != config[key] for key in old if key != "epochs"):
             raise ValueError("Resume requires the original configuration; only epochs may change.")
-    model = build_model(pretrained=checkpoint is None).to(device)
+    model = build_model(
+        pretrained=checkpoint is None, anchor_scales=config.get("anchor_scales")
+    ).to(device)
     if checkpoint:
         model.load_state_dict(checkpoint["model"])
     backbone = list(model.backbone.parameters())

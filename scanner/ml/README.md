@@ -90,6 +90,13 @@ dataset fingerprints are unchanged. The setting is stored in the checkpoint and
 automatically reused by `evaluate` and `predict`. Older checkpoints retain their
 original preprocessing when the setting is absent.
 
+The Chess V2 config also stores seven `anchor_scales` for the six SSDLite feature
+maps. Training boxes are typically much smaller than COCO's default anchors at
+320x320, so this run uses scales `[0.06, 0.12, 0.24, 0.4, 0.6, 0.8, 1.0]`.
+This is an architecture setting, not a confidence threshold. Checkpoint loading
+recreates the same anchors; older checkpoints retain the original COCO defaults.
+Anchor selection uses training geometry and validation, never held-out test results.
+
 ## Current data and split policy
 
 The Top Down v2 export lives in `scanner/data/raw/ChessTopDown.v2-chess2.coco/` and has

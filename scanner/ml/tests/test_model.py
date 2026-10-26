@@ -49,3 +49,38 @@ def test_cpu_presizing_matches_native_detector_transform():
     native, _ = model.transform([detector_tensor(image)])
     presized, _ = model.transform([detector_tensor(image, 320)])
     torch.testing.assert_close(presized.tensors, native.tensors, atol=1e-6, rtol=1e-4)
+
+
+def test_small_piece_anchor_config_roundtrips(tmp_path):
+    scales = [0.06, 0.12, 0.24, 0.4, 0.6, 0.8, 1.0]
+    model = build_model(anchor_scales=scales)
+    assert model.anchor_generator.scales == scales
+    assert model.anchor_generator.num_anchors_per_location() == [6] * 6
+    path = tmp_path / "small-pieces.pt"
+    save_checkpoint(
+        path,
+        {
+            "architecture": ARCHITECTURE,
+            "classes": list(CLASSES),
+            "model": model.state_dict(),
+            "config": {"anchor_scales": scales},
+        },
+    )
+    restored, _ = load_checkpoint(path, torch.device("cpu"))
+    assert restored.anchor_generator.scales == scales
+    assert build_model().anchor_generator.scales[0] == 0.2
+
+
+@pytest.mark.parametrize(
+    "scales",
+    [
+        [],
+        [0.1] * 7,
+        [float("nan")] * 7,
+        [0, 0.12, 0.24, 0.4, 0.6, 0.8, 1],
+        [0.06, 0.12, 0.24, 0.4, 0.6, 0.8, 1.1],
+    ],
+)
+def test_invalid_anchor_config_rejected(scales):
+    with pytest.raises(ValueError, match="anchor scales"):
+        build_model(anchor_scales=scales)
