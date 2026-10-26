@@ -4,6 +4,7 @@ import argparse
 import hashlib
 import json
 import os
+from dataclasses import replace
 from pathlib import Path
 
 # Torch must see this before importing the MPS backend. Unsupported operations can use CPU.
@@ -33,6 +34,34 @@ def main():
     )
     prepare.add_argument(
         "--output", type=Path, help="Override the selected profile's prepared directory."
+    )
+    curation = commands.add_parser(
+        "curate", help="Build a separate, reviewed and leakage-safe COCO version."
+    )
+    curation.add_argument("--dataset", choices=sorted(DATASETS), default="chess-v2")
+    curation.add_argument("--data", type=Path)
+    curation.add_argument(
+        "--policy", type=Path, default=Path(__file__).parent / "configs/chess-v2-clean-v2.json"
+    )
+    curation.add_argument(
+        "--output",
+        type=Path,
+        default=Path(__file__).resolve().parents[1] / "data/curated/chess-v2-v2",
+    )
+    curation.add_argument("--report", type=Path, default=DEFAULT_ARTIFACTS / "curation/chess-v2-v2")
+    comparison = commands.add_parser(
+        "compare", help="Check two audited datasets for possible overlap without merging."
+    )
+    comparison.add_argument(
+        "--first", type=Path, default=DEFAULT_ARTIFACTS / "prepared/manifest.json"
+    )
+    comparison.add_argument(
+        "--second",
+        type=Path,
+        default=DEFAULT_ARTIFACTS / "curation/chess-v2-v2/prepared/manifest.json",
+    )
+    comparison.add_argument(
+        "--output", type=Path, default=DEFAULT_ARTIFACTS / "curation/chess-v2-v2/cross-source.json"
     )
     training = commands.add_parser("train")
     training.add_argument(
@@ -75,6 +104,20 @@ def main():
             )
         except ValueError as error:
             parser.exit(2, f"{error}\n")
+    elif args.command == "curate":
+        from .curation import curate
+
+        profile = DATASETS[args.dataset]
+        if args.data:
+            profile = replace(profile, root=args.data)
+        try:
+            result = curate(profile, args.policy, args.output, args.report)
+        except ValueError as error:
+            parser.exit(2, f"{error}\n")
+    elif args.command == "compare":
+        from .compare import compare_manifests
+
+        result = compare_manifests(args.first, args.second, args.output)
     elif args.command == "train":
         from .train import train
 
