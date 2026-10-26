@@ -47,7 +47,9 @@ Run from the repository root using the isolated ML environment:
 
 See [ML Instructions](ml/README.md), [Alignment Review](ml/CHESS_V2_ALIGNMENT.md),
 the new [Chess V2 Model Card](ml/CHESS_V2_MODEL_CARD.md), and the original
-[Model Card](ml/MODEL_CARD.md). The new baseline is trained locally; website
+[Model Card](ml/MODEL_CARD.md). The [Accuracy Tracker](ml/ACCURACY_TRACKER.md)
+records dated metrics and chart-ready snapshots without confusing bounding-box
+results with square accuracy. The new baseline is trained locally; website
 inference remains unconnected. To inspect uncertain examples:
 
 ```sh
