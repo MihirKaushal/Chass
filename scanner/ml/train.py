@@ -45,10 +45,11 @@ def train(
         or config["warmup_epochs"] < 0
         or not math.isfinite(config["weight_decay"])
         or config["weight_decay"] < 0
+        or config.get("input_size") not in (None, 320)
     ):
         raise ValueError(
             "Use positive epochs, learning rates, threads and patience, batch size >= 2, "
-            "and nonnegative warmup, workers and weight decay."
+            "and nonnegative warmup, workers and weight decay. Optional input_size must be 320."
         )
     if not resume and any((output / name).exists() for name in ("best.pt", "last.pt")):
         raise ValueError(
@@ -95,8 +96,10 @@ def train(
         optimizer.load_state_dict(checkpoint["optimizer"])
         random.setstate(checkpoint["python_rng"])
         torch.set_rng_state(checkpoint["torch_rng"])
-    train_data = CocoPieces(manifest, "train", augment=config["augment"])
-    valid_data = CocoPieces(manifest, "valid")
+    train_data = CocoPieces(
+        manifest, "train", augment=config["augment"], input_size=config.get("input_size")
+    )
+    valid_data = CocoPieces(manifest, "valid", input_size=config.get("input_size"))
     if len(train_data) < config["batch_size"] or not len(valid_data):
         raise ValueError("The training/validation sets are too small for this configuration.")
     # A one-image final batch cannot train SSDLite's 1x1 BatchNorm features.

@@ -155,15 +155,22 @@ def coco_metrics(predictions: list[dict], records: list[dict]) -> dict:
 def collect_predictions(model, dataset, device, batch_size=8):
     from torch.utils.data import DataLoader
 
-    from .data import collate_detection
+    from .data import collate_detection, resize_boxes
 
     loader = DataLoader(dataset, batch_size=batch_size, shuffle=False, collate_fn=collate_detection)
     model.eval()
     predictions = []
+    records = {record["id"]: record for record in dataset.records}
     started = time.perf_counter()
     for images, targets in loader:
         output = model([image.to(device) for image in images])
-        for target, result in zip(targets, output, strict=True):
+        for image, target, result in zip(images, targets, output, strict=True):
+            record = records[int(target["image_id"])]
+            result["boxes"] = resize_boxes(
+                result["boxes"],
+                (image.shape[-1], image.shape[-2]),
+                (record["width"], record["height"]),
+            )
             predictions.append(
                 {
                     "image_id": int(target["image_id"]),

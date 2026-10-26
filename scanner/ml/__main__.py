@@ -150,7 +150,9 @@ def main():
             parser.error(
                 "Checkpoint/dataset fingerprints differ; evaluate on the original manifest."
             )
-        dataset = CocoPieces(manifest, args.split)
+        dataset = CocoPieces(
+            manifest, args.split, input_size=checkpoint["config"].get("input_size")
+        )
         predictions, timing = collect_predictions(model, dataset, device)
         threshold = args.threshold
         if threshold is None:
@@ -184,9 +186,8 @@ def main():
             parser.error("--threshold must be between 0 and 1.")
         import torch
         from PIL import Image, ImageOps
-        from torchvision.transforms.functional import to_tensor
 
-        from .data import CLASSES
+        from .data import CLASSES, detector_tensor, resize_boxes
         from .model import choose_device, load_checkpoint
         from .report import draw_predictions
 
@@ -195,11 +196,13 @@ def main():
         model, checkpoint = load_checkpoint(args.checkpoint, device)
         with Image.open(args.image) as original:
             image = ImageOps.exif_transpose(original).convert("RGB")
+        tensor = detector_tensor(image, checkpoint["config"].get("input_size"))
         with torch.inference_mode():
-            prediction = {
-                key: value.cpu().tolist()
-                for key, value in model([to_tensor(image).to(device)])[0].items()
-            }
+            output = model([tensor.to(device)])[0]
+            output["boxes"] = resize_boxes(
+                output["boxes"], (tensor.shape[-1], tensor.shape[-2]), image.size
+            )
+            prediction = {key: value.cpu().tolist() for key, value in output.items()}
         pieces = [
             {"piece": CLASSES[label], "confidence": score, "box_xyxy": box}
             for box, label, score in zip(

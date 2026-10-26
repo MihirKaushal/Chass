@@ -82,6 +82,14 @@ are atomic. Do not load checkpoints from untrusted sources.
 A fresh run will not overwrite an existing run's checkpoints; use a different
 `--output` directory to compare configurations.
 
+For large photos, the Chess V2 config uses `input_size: 320` to perform the
+detector's bilinear resize on CPU before GPU transfer. Images and targets are
+scaled together, and evaluation/inference restore boxes to original photo pixels.
+This matches SSDLite's fixed input resolution; raw images, curated labels, and
+dataset fingerprints are unchanged. The setting is stored in the checkpoint and
+automatically reused by `evaluate` and `predict`. Older checkpoints retain their
+original preprocessing when the setting is absent.
+
 ## Current data and split policy
 
 The Top Down v2 export lives in `scanner/data/raw/ChessTopDown.v2-chess2.coco/` and has
@@ -162,6 +170,7 @@ To train on the cleaned copy rather than the old baseline:
 ```sh
 .venv-scanner/bin/python -m scanner.ml train \
   --manifest scanner/artifacts/curation/chess-v2-v2/prepared/manifest.json \
+  --config scanner/ml/configs/chess-v2-baseline.json \
   --output scanner/artifacts/chess-v2-baseline
 ```
 

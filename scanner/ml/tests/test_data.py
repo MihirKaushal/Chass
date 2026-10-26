@@ -138,6 +138,27 @@ def test_source_group_keeps_original_identity():
     assert source_group("original.jpg") == "original.jpg"
 
 
+def test_detector_resize_scales_targets_without_changing_records(dataset_root, tmp_path):
+    prepare_dataset(dataset_root, tmp_path / "prepared")
+    manifest = read_manifest(tmp_path / "prepared/manifest.json")
+    image, target = CocoPieces(manifest, "valid", input_size=320)[0]
+    assert image.shape == (3, 320, 320)
+    torch.testing.assert_close(target["boxes"], torch.tensor([[25.0, 40.0, 75.0, 120.0]]))
+    torch.testing.assert_close(target["area"], torch.tensor([4000.0]))
+    assert manifest["records"][0]["boxes"] == [[5, 6, 15, 18]]
+    for size in (0, -1, True, 320.5):
+        with pytest.raises(ValueError, match="positive integer"):
+            CocoPieces(manifest, "valid", input_size=size)
+
+
+def test_resized_flip_keeps_boxes_in_image_coordinates(dataset_root, tmp_path):
+    prepare_dataset(dataset_root, tmp_path / "prepared")
+    manifest = read_manifest(tmp_path / "prepared/manifest.json")
+    with patch("random.random", return_value=0.0):
+        _, target = CocoPieces(manifest, "train", augment=True, input_size=320)[0]
+    torch.testing.assert_close(target["boxes"], torch.tensor([[245.0, 40.0, 295.0, 120.0]]))
+
+
 def test_failed_reaudit_blocks_a_stale_manifest(dataset_root, tmp_path):
     output = tmp_path / "prepared"
     prepare_dataset(dataset_root, output)
