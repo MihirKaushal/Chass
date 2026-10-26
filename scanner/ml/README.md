@@ -14,6 +14,9 @@ is still a UI prototype; its recognition button is not connected to this model.
 The new trained run and its limitations are recorded in
 [CHESS_V2_MODEL_CARD.md](CHESS_V2_MODEL_CARD.md). The original small Top Down
 benchmark remains separately documented in [MODEL_CARD.md](MODEL_CARD.md).
+See [ACCURACY_TRACKER.md](ACCURACY_TRACKER.md) for dated results, box-level
+localization versus classification diagnostics, chart-ready snapshots, and the
+square-level metrics that cannot yet be measured.
 
 ## Setup
 
