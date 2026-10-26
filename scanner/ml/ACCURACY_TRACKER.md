@@ -45,6 +45,43 @@ predicted boxes is unmatched. Color recognition is strong on matched pieces, but
 piece type is the main bottleneck. These scores measure agreement with existing
 annotations; remaining label errors and limited physical-set diversity also matter.
 
+## Piece-Specific Findings: 2026-10-26
+
+Full results, per-color tables, visual review, and recommendations are in
+[PIECE_ERROR_ANALYSIS.md](PIECE_ERROR_ANALYSIS.md). These use the same frozen
+predictions and matching protocol as the current baseline.
+
+| Actual piece, colors combined | Correct type/color when located | Missed / annotated | Main confusion |
+| --- | ---: | ---: | --- |
+| Pawn | 805 / 850 (94.71%) | 105 / 955 (10.99%) | Rook |
+| Rook | 213 / 256 (83.20%) | 39 / 295 (13.22%) | Knight |
+| Queen | 816 / 1,181 (69.09%) | 123 / 1,304 (9.43%) | King |
+| Knight | 682 / 1,139 (59.88%) | 126 / 1,265 (9.96%) | Rook |
+| King | 308 / 1,021 (30.17%) | 133 / 1,154 (11.53%) | Queen |
+| Bishop | 258 / 1,114 (23.16%) | 196 / 1,310 (14.96%) | Rook, then knight |
+
+Of **1,952 unmatched predictions**, **1,812 (92.83%)** overlap an already matched
+piece, **124** have insufficient overlap, and **16** have IoU below 0.1 with all
+annotations. Visual inspection of those 16 found 10 predictions on apparently
+empty squares, four on printed logos, and two on visible unannotated pieces.
+Thus the extra-box count is mostly duplicates; it is not a background hallucination
+count. There are **722 missed annotated pieces** and **2,479 wrong labels on
+matched pieces**, making type recognition the larger current problem.
+
+White pawns (23/50 missed) and white rooks (5/15 missed) have the highest miss rates,
+but very small test samples. Black bishops have the most misses by individual
+class (112). Black rook, white queen, and white king are the most frequent
+incorrect predicted labels when counting misclassification and extras together.
+
+Next priorities: targeted label audit, validation of duplicate resolution, then
+a classifier using original-resolution piece crops with balanced class sampling.
+Keep corrected datasets versioned and use a new unseen board-set holdout for
+the final assessment. See the full report for the two flagged missing annotations.
+
+Detailed counts and confusion matrices are stored as
+[JSON](benchmarks/chess-v2-v3-piece-errors/analysis.json) and
+[per-class CSV](benchmarks/chess-v2-v3-piece-errors/test-by_actual_class.csv).
+
 ## Methods And Existing Detection Metrics
 
 Diagnostic method ID: `confidence_ordered_class_agnostic_iou_v1`.

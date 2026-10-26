@@ -1,0 +1,1504 @@
+{
+  "format_version": 1,
+  "recorded_on": "2026-10-26",
+  "run_id": "chess-v2-v3-baseline",
+  "training_date": "2026-10-25",
+  "checkpoint_sha256": "88e3093f50114d1c18356b7057027184a6a6f01b99810dd33d62c54ee650105f",
+  "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+  "parent_snapshot_sha256": "ab1929734ca1348c3ffa117a8ffc1736b349a49b7c612cf0e04763be449a4e79",
+  "predictions_sha256": {
+    "validation": "6c711f27d459d5db17744e9cb6199bf5ad1608e2114f2b88a0edc12f760a9390",
+    "test": "6dd16d30fc9bdb186641fff996ba1898b2e5d718527d14a680f81bf2d9cb444a"
+  },
+  "splits": {
+    "validation": {
+      "matching_method": "confidence_ordered_class_agnostic_iou_v1",
+      "error_method": "class_agnostic_piece_errors_v1",
+      "images": 308,
+      "threshold": 0.25,
+      "matching_iou": 0.5,
+      "background_iou_boundary": 0.1,
+      "totals": {
+        "correct": 8744,
+        "wrong_label": 2338,
+        "missed": 1780,
+        "duplicate_candidate": 1905,
+        "localization_candidate": 230,
+        "background_candidate": 9
+      },
+      "by_actual_class": [
+        {
+          "piece": "black-bishop",
+          "support": 989,
+          "located": 749,
+          "correct": 265,
+          "missed": 240,
+          "miss_rate": 0.24266936299292213,
+          "conditional_type_color_accuracy": 0.3538050734312417,
+          "typed_piece_recall": 0.2679474216380182
+        },
+        {
+          "piece": "black-king",
+          "support": 359,
+          "located": 331,
+          "correct": 191,
+          "missed": 28,
+          "miss_rate": 0.07799442896935933,
+          "conditional_type_color_accuracy": 0.5770392749244713,
+          "typed_piece_recall": 0.532033426183844
+        },
+        {
+          "piece": "black-knight",
+          "support": 960,
+          "located": 852,
+          "correct": 699,
+          "missed": 108,
+          "miss_rate": 0.1125,
+          "conditional_type_color_accuracy": 0.8204225352112676,
+          "typed_piece_recall": 0.728125
+        },
+        {
+          "piece": "black-pawn",
+          "support": 3985,
+          "located": 3657,
+          "correct": 3554,
+          "missed": 328,
+          "miss_rate": 0.08230865746549561,
+          "conditional_type_color_accuracy": 0.971834837298332,
+          "typed_piece_recall": 0.8918444165621079
+        },
+        {
+          "piece": "black-queen",
+          "support": 294,
+          "located": 266,
+          "correct": 158,
+          "missed": 28,
+          "miss_rate": 0.09523809523809523,
+          "conditional_type_color_accuracy": 0.5939849624060151,
+          "typed_piece_recall": 0.5374149659863946
+        },
+        {
+          "piece": "black-rook",
+          "support": 774,
+          "located": 679,
+          "correct": 507,
+          "missed": 95,
+          "miss_rate": 0.1227390180878553,
+          "conditional_type_color_accuracy": 0.7466863033873343,
+          "typed_piece_recall": 0.6550387596899225
+        },
+        {
+          "piece": "white-bishop",
+          "support": 935,
+          "located": 721,
+          "correct": 380,
+          "missed": 214,
+          "miss_rate": 0.2288770053475936,
+          "conditional_type_color_accuracy": 0.5270457697642164,
+          "typed_piece_recall": 0.40641711229946526
+        },
+        {
+          "piece": "white-king",
+          "support": 230,
+          "located": 215,
+          "correct": 120,
+          "missed": 15,
+          "miss_rate": 0.06521739130434782,
+          "conditional_type_color_accuracy": 0.5581395348837209,
+          "typed_piece_recall": 0.5217391304347826
+        },
+        {
+          "piece": "white-knight",
+          "support": 728,
+          "located": 582,
+          "correct": 315,
+          "missed": 146,
+          "miss_rate": 0.20054945054945056,
+          "conditional_type_color_accuracy": 0.5412371134020618,
+          "typed_piece_recall": 0.4326923076923077
+        },
+        {
+          "piece": "white-pawn",
+          "support": 2718,
+          "located": 2310,
+          "correct": 2110,
+          "missed": 408,
+          "miss_rate": 0.15011037527593818,
+          "conditional_type_color_accuracy": 0.9134199134199135,
+          "typed_piece_recall": 0.7763061074319353
+        },
+        {
+          "piece": "white-queen",
+          "support": 186,
+          "located": 165,
+          "correct": 82,
+          "missed": 21,
+          "miss_rate": 0.11290322580645161,
+          "conditional_type_color_accuracy": 0.49696969696969695,
+          "typed_piece_recall": 0.44086021505376344
+        },
+        {
+          "piece": "white-rook",
+          "support": 704,
+          "located": 555,
+          "correct": 363,
+          "missed": 149,
+          "miss_rate": 0.21164772727272727,
+          "conditional_type_color_accuracy": 0.654054054054054,
+          "typed_piece_recall": 0.515625
+        }
+      ],
+      "by_actual_type": [
+        {
+          "piece": "bishop",
+          "support": 1924,
+          "located": 1470,
+          "correct": 645,
+          "missed": 454,
+          "miss_rate": 0.23596673596673598,
+          "conditional_type_color_accuracy": 0.4387755102040816,
+          "typed_piece_recall": 0.33523908523908524
+        },
+        {
+          "piece": "king",
+          "support": 589,
+          "located": 546,
+          "correct": 311,
+          "missed": 43,
+          "miss_rate": 0.0730050933786078,
+          "conditional_type_color_accuracy": 0.5695970695970696,
+          "typed_piece_recall": 0.5280135823429541
+        },
+        {
+          "piece": "knight",
+          "support": 1688,
+          "located": 1434,
+          "correct": 1014,
+          "missed": 254,
+          "miss_rate": 0.1504739336492891,
+          "conditional_type_color_accuracy": 0.7071129707112971,
+          "typed_piece_recall": 0.6007109004739336
+        },
+        {
+          "piece": "pawn",
+          "support": 6703,
+          "located": 5967,
+          "correct": 5664,
+          "missed": 736,
+          "miss_rate": 0.10980158138147099,
+          "conditional_type_color_accuracy": 0.9492207139265962,
+          "typed_piece_recall": 0.8449947784574071
+        },
+        {
+          "piece": "queen",
+          "support": 480,
+          "located": 431,
+          "correct": 240,
+          "missed": 49,
+          "miss_rate": 0.10208333333333333,
+          "conditional_type_color_accuracy": 0.5568445475638051,
+          "typed_piece_recall": 0.5
+        },
+        {
+          "piece": "rook",
+          "support": 1478,
+          "located": 1234,
+          "correct": 870,
+          "missed": 244,
+          "miss_rate": 0.16508795669824086,
+          "conditional_type_color_accuracy": 0.7050243111831442,
+          "typed_piece_recall": 0.5886332882273342
+        }
+      ],
+      "by_predicted_class": [
+        {
+          "piece": "black-bishop",
+          "predictions": 526,
+          "correct": 265,
+          "wrong_label_on_real_piece": 72,
+          "duplicate_candidate": 173,
+          "localization_candidate": 16,
+          "background_candidate": 0,
+          "unmatched_predictions": 189,
+          "incorrect_predictions": 261,
+          "typed_prediction_precision": 0.5038022813688213
+        },
+        {
+          "piece": "black-king",
+          "predictions": 506,
+          "correct": 191,
+          "wrong_label_on_real_piece": 119,
+          "duplicate_candidate": 185,
+          "localization_candidate": 10,
+          "background_candidate": 1,
+          "unmatched_predictions": 196,
+          "incorrect_predictions": 315,
+          "typed_prediction_precision": 0.3774703557312253
+        },
+        {
+          "piece": "black-knight",
+          "predictions": 1270,
+          "correct": 699,
+          "wrong_label_on_real_piece": 352,
+          "duplicate_candidate": 190,
+          "localization_candidate": 29,
+          "background_candidate": 0,
+          "unmatched_predictions": 219,
+          "incorrect_predictions": 571,
+          "typed_prediction_precision": 0.5503937007874016
+        },
+        {
+          "piece": "black-pawn",
+          "predictions": 3846,
+          "correct": 3554,
+          "wrong_label_on_real_piece": 133,
+          "duplicate_candidate": 110,
+          "localization_candidate": 46,
+          "background_candidate": 3,
+          "unmatched_predictions": 159,
+          "incorrect_predictions": 292,
+          "typed_prediction_precision": 0.9240769630785232
+        },
+        {
+          "piece": "black-queen",
+          "predictions": 758,
+          "correct": 158,
+          "wrong_label_on_real_piece": 346,
+          "duplicate_candidate": 237,
+          "localization_candidate": 17,
+          "background_candidate": 0,
+          "unmatched_predictions": 254,
+          "incorrect_predictions": 600,
+          "typed_prediction_precision": 0.20844327176781002
+        },
+        {
+          "piece": "black-rook",
+          "predictions": 777,
+          "correct": 507,
+          "wrong_label_on_real_piece": 153,
+          "duplicate_candidate": 100,
+          "localization_candidate": 17,
+          "background_candidate": 0,
+          "unmatched_predictions": 117,
+          "incorrect_predictions": 270,
+          "typed_prediction_precision": 0.6525096525096525
+        },
+        {
+          "piece": "white-bishop",
+          "predictions": 747,
+          "correct": 380,
+          "wrong_label_on_real_piece": 165,
+          "duplicate_candidate": 196,
+          "localization_candidate": 5,
+          "background_candidate": 1,
+          "unmatched_predictions": 202,
+          "incorrect_predictions": 367,
+          "typed_prediction_precision": 0.5087014725568942
+        },
+        {
+          "piece": "white-king",
+          "predictions": 535,
+          "correct": 120,
+          "wrong_label_on_real_piece": 215,
+          "duplicate_candidate": 187,
+          "localization_candidate": 13,
+          "background_candidate": 0,
+          "unmatched_predictions": 200,
+          "incorrect_predictions": 415,
+          "typed_prediction_precision": 0.22429906542056074
+        },
+        {
+          "piece": "white-knight",
+          "predictions": 520,
+          "correct": 315,
+          "wrong_label_on_real_piece": 108,
+          "duplicate_candidate": 89,
+          "localization_candidate": 7,
+          "background_candidate": 1,
+          "unmatched_predictions": 97,
+          "incorrect_predictions": 205,
+          "typed_prediction_precision": 0.6057692307692307
+        },
+        {
+          "piece": "white-pawn",
+          "predictions": 2531,
+          "correct": 2110,
+          "wrong_label_on_real_piece": 215,
+          "duplicate_candidate": 157,
+          "localization_candidate": 47,
+          "background_candidate": 2,
+          "unmatched_predictions": 206,
+          "incorrect_predictions": 421,
+          "typed_prediction_precision": 0.8336625839589096
+        },
+        {
+          "piece": "white-queen",
+          "predictions": 616,
+          "correct": 82,
+          "wrong_label_on_real_piece": 310,
+          "duplicate_candidate": 210,
+          "localization_candidate": 14,
+          "background_candidate": 0,
+          "unmatched_predictions": 224,
+          "incorrect_predictions": 534,
+          "typed_prediction_precision": 0.1331168831168831
+        },
+        {
+          "piece": "white-rook",
+          "predictions": 594,
+          "correct": 363,
+          "wrong_label_on_real_piece": 150,
+          "duplicate_candidate": 71,
+          "localization_candidate": 9,
+          "background_candidate": 1,
+          "unmatched_predictions": 81,
+          "incorrect_predictions": 231,
+          "typed_prediction_precision": 0.6111111111111112
+        }
+      ],
+      "confusions": [
+        {
+          "actual": "black-pawn",
+          "predicted": "black-pawn",
+          "count": 3554
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "white-pawn",
+          "count": 2110
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-knight",
+          "count": 699
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-rook",
+          "count": 507
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-bishop",
+          "count": 380
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-rook",
+          "count": 363
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-knight",
+          "count": 315
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-bishop",
+          "count": 265
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-knight",
+          "count": 198
+        },
+        {
+          "actual": "black-king",
+          "predicted": "black-king",
+          "count": 191
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "black-queen",
+          "count": 158
+        },
+        {
+          "actual": "white-king",
+          "predicted": "white-king",
+          "count": 120
+        },
+        {
+          "actual": "black-king",
+          "predicted": "black-queen",
+          "count": 109
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-pawn",
+          "count": 101
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-pawn",
+          "count": 98
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-queen",
+          "count": 96
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-rook",
+          "count": 95
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-queen",
+          "count": 91
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-knight",
+          "count": 90
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "black-king",
+          "count": 87
+        },
+        {
+          "actual": "white-king",
+          "predicted": "white-queen",
+          "count": 86
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-queen",
+          "count": 82
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-queen",
+          "count": 82
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "white-bishop",
+          "count": 79
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-pawn",
+          "count": 78
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-queen",
+          "count": 74
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-rook",
+          "count": 67
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-king",
+          "count": 59
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-king",
+          "count": 59
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-king",
+          "count": 57
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-bishop",
+          "count": 57
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "white-rook",
+          "count": 55
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-knight",
+          "count": 44
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-queen",
+          "count": 44
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-queen",
+          "count": 43
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "white-knight",
+          "count": 39
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "black-bishop",
+          "count": 36
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-king",
+          "count": 34
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "black-knight",
+          "count": 31
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-pawn",
+          "count": 27
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-bishop",
+          "count": 26
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-bishop",
+          "count": 23
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-rook",
+          "count": 22
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-rook",
+          "count": 21
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "black-knight",
+          "count": 17
+        },
+        {
+          "actual": "black-king",
+          "predicted": "black-rook",
+          "count": 16
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "black-rook",
+          "count": 15
+        },
+        {
+          "actual": "black-king",
+          "predicted": "black-knight",
+          "count": 14
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-bishop",
+          "count": 13
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-king",
+          "count": 13
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-knight",
+          "count": 13
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "black-pawn",
+          "count": 12
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-pawn",
+          "count": 11
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "black-queen",
+          "count": 10
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-pawn",
+          "count": 9
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "white-pawn",
+          "count": 8
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "white-queen",
+          "count": 8
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-knight",
+          "count": 8
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-king",
+          "count": 6
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-king",
+          "count": 5
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-rook",
+          "count": 5
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "black-queen",
+          "count": 4
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "white-king",
+          "count": 4
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "black-rook",
+          "count": 3
+        },
+        {
+          "actual": "white-king",
+          "predicted": "white-knight",
+          "count": 3
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "white-pawn",
+          "count": 2
+        },
+        {
+          "actual": "white-king",
+          "predicted": "black-king",
+          "count": 2
+        },
+        {
+          "actual": "white-king",
+          "predicted": "black-queen",
+          "count": 2
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "black-king",
+          "count": 2
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "black-king",
+          "count": 2
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "black-queen",
+          "count": 2
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "white-king",
+          "count": 1
+        },
+        {
+          "actual": "black-king",
+          "predicted": "white-bishop",
+          "count": 1
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "white-pawn",
+          "count": 1
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "white-queen",
+          "count": 1
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "black-king",
+          "count": 1
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "white-queen",
+          "count": 1
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "white-rook",
+          "count": 1
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "white-king",
+          "count": 1
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "white-knight",
+          "count": 1
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "white-pawn",
+          "count": 1
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "black-queen",
+          "count": 1
+        },
+        {
+          "actual": "white-king",
+          "predicted": "white-bishop",
+          "count": 1
+        },
+        {
+          "actual": "white-king",
+          "predicted": "white-rook",
+          "count": 1
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "black-knight",
+          "count": 1
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "black-king",
+          "count": 1
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "black-queen",
+          "count": 1
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "black-rook",
+          "count": 1
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "black-rook",
+          "count": 1
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-bishop",
+          "count": 1
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "black-knight",
+          "count": 1
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "black-queen",
+          "count": 1
+        }
+      ]
+    },
+    "test": {
+      "matching_method": "confidence_ordered_class_agnostic_iou_v1",
+      "error_method": "class_agnostic_piece_errors_v1",
+      "images": 338,
+      "threshold": 0.25,
+      "matching_iou": 0.5,
+      "background_iou_boundary": 0.1,
+      "totals": {
+        "correct": 3082,
+        "wrong_label": 2479,
+        "missed": 722,
+        "duplicate_candidate": 1812,
+        "localization_candidate": 124,
+        "background_candidate": 16
+      },
+      "by_actual_class": [
+        {
+          "piece": "black-bishop",
+          "support": 857,
+          "located": 745,
+          "correct": 62,
+          "missed": 112,
+          "miss_rate": 0.1306884480746791,
+          "conditional_type_color_accuracy": 0.08322147651006712,
+          "typed_piece_recall": 0.07234539089848308
+        },
+        {
+          "piece": "black-king",
+          "support": 407,
+          "located": 377,
+          "correct": 77,
+          "missed": 30,
+          "miss_rate": 0.07371007371007371,
+          "conditional_type_color_accuracy": 0.20424403183023873,
+          "typed_piece_recall": 0.1891891891891892
+        },
+        {
+          "piece": "black-knight",
+          "support": 564,
+          "located": 517,
+          "correct": 317,
+          "missed": 47,
+          "miss_rate": 0.08333333333333333,
+          "conditional_type_color_accuracy": 0.6131528046421664,
+          "typed_piece_recall": 0.5620567375886525
+        },
+        {
+          "piece": "black-pawn",
+          "support": 905,
+          "located": 823,
+          "correct": 781,
+          "missed": 82,
+          "miss_rate": 0.09060773480662983,
+          "conditional_type_color_accuracy": 0.9489671931956257,
+          "typed_piece_recall": 0.8629834254143647
+        },
+        {
+          "piece": "black-queen",
+          "support": 442,
+          "located": 417,
+          "correct": 351,
+          "missed": 25,
+          "miss_rate": 0.05656108597285068,
+          "conditional_type_color_accuracy": 0.841726618705036,
+          "typed_piece_recall": 0.7941176470588235
+        },
+        {
+          "piece": "black-rook",
+          "support": 280,
+          "located": 246,
+          "correct": 211,
+          "missed": 34,
+          "miss_rate": 0.12142857142857143,
+          "conditional_type_color_accuracy": 0.8577235772357723,
+          "typed_piece_recall": 0.7535714285714286
+        },
+        {
+          "piece": "white-bishop",
+          "support": 453,
+          "located": 369,
+          "correct": 196,
+          "missed": 84,
+          "miss_rate": 0.18543046357615894,
+          "conditional_type_color_accuracy": 0.5311653116531165,
+          "typed_piece_recall": 0.4326710816777042
+        },
+        {
+          "piece": "white-king",
+          "support": 747,
+          "located": 644,
+          "correct": 231,
+          "missed": 103,
+          "miss_rate": 0.13788487282463185,
+          "conditional_type_color_accuracy": 0.358695652173913,
+          "typed_piece_recall": 0.3092369477911647
+        },
+        {
+          "piece": "white-knight",
+          "support": 701,
+          "located": 622,
+          "correct": 365,
+          "missed": 79,
+          "miss_rate": 0.11269614835948645,
+          "conditional_type_color_accuracy": 0.5868167202572347,
+          "typed_piece_recall": 0.5206847360912982
+        },
+        {
+          "piece": "white-pawn",
+          "support": 50,
+          "located": 27,
+          "correct": 24,
+          "missed": 23,
+          "miss_rate": 0.46,
+          "conditional_type_color_accuracy": 0.8888888888888888,
+          "typed_piece_recall": 0.48
+        },
+        {
+          "piece": "white-queen",
+          "support": 862,
+          "located": 764,
+          "correct": 465,
+          "missed": 98,
+          "miss_rate": 0.1136890951276102,
+          "conditional_type_color_accuracy": 0.6086387434554974,
+          "typed_piece_recall": 0.5394431554524362
+        },
+        {
+          "piece": "white-rook",
+          "support": 15,
+          "located": 10,
+          "correct": 2,
+          "missed": 5,
+          "miss_rate": 0.3333333333333333,
+          "conditional_type_color_accuracy": 0.2,
+          "typed_piece_recall": 0.13333333333333333
+        }
+      ],
+      "by_actual_type": [
+        {
+          "piece": "bishop",
+          "support": 1310,
+          "located": 1114,
+          "correct": 258,
+          "missed": 196,
+          "miss_rate": 0.14961832061068703,
+          "conditional_type_color_accuracy": 0.23159784560143626,
+          "typed_piece_recall": 0.1969465648854962
+        },
+        {
+          "piece": "king",
+          "support": 1154,
+          "located": 1021,
+          "correct": 308,
+          "missed": 133,
+          "miss_rate": 0.11525129982668977,
+          "conditional_type_color_accuracy": 0.30166503428011754,
+          "typed_piece_recall": 0.2668977469670711
+        },
+        {
+          "piece": "knight",
+          "support": 1265,
+          "located": 1139,
+          "correct": 682,
+          "missed": 126,
+          "miss_rate": 0.09960474308300395,
+          "conditional_type_color_accuracy": 0.5987708516242318,
+          "typed_piece_recall": 0.5391304347826087
+        },
+        {
+          "piece": "pawn",
+          "support": 955,
+          "located": 850,
+          "correct": 805,
+          "missed": 105,
+          "miss_rate": 0.1099476439790576,
+          "conditional_type_color_accuracy": 0.9470588235294117,
+          "typed_piece_recall": 0.8429319371727748
+        },
+        {
+          "piece": "queen",
+          "support": 1304,
+          "located": 1181,
+          "correct": 816,
+          "missed": 123,
+          "miss_rate": 0.09432515337423313,
+          "conditional_type_color_accuracy": 0.6909398814563928,
+          "typed_piece_recall": 0.6257668711656442
+        },
+        {
+          "piece": "rook",
+          "support": 295,
+          "located": 256,
+          "correct": 213,
+          "missed": 39,
+          "miss_rate": 0.13220338983050847,
+          "conditional_type_color_accuracy": 0.83203125,
+          "typed_piece_recall": 0.7220338983050848
+        }
+      ],
+      "by_predicted_class": [
+        {
+          "piece": "black-bishop",
+          "predictions": 194,
+          "correct": 62,
+          "wrong_label_on_real_piece": 41,
+          "duplicate_candidate": 85,
+          "localization_candidate": 6,
+          "background_candidate": 0,
+          "unmatched_predictions": 91,
+          "incorrect_predictions": 132,
+          "typed_prediction_precision": 0.31958762886597936
+        },
+        {
+          "piece": "black-king",
+          "predictions": 340,
+          "correct": 77,
+          "wrong_label_on_real_piece": 77,
+          "duplicate_candidate": 176,
+          "localization_candidate": 10,
+          "background_candidate": 0,
+          "unmatched_predictions": 186,
+          "incorrect_predictions": 263,
+          "typed_prediction_precision": 0.22647058823529412
+        },
+        {
+          "piece": "black-knight",
+          "predictions": 848,
+          "correct": 317,
+          "wrong_label_on_real_piece": 339,
+          "duplicate_candidate": 181,
+          "localization_candidate": 11,
+          "background_candidate": 0,
+          "unmatched_predictions": 192,
+          "incorrect_predictions": 531,
+          "typed_prediction_precision": 0.3738207547169811
+        },
+        {
+          "piece": "black-pawn",
+          "predictions": 970,
+          "correct": 781,
+          "wrong_label_on_real_piece": 101,
+          "duplicate_candidate": 53,
+          "localization_candidate": 33,
+          "background_candidate": 2,
+          "unmatched_predictions": 88,
+          "incorrect_predictions": 189,
+          "typed_prediction_precision": 0.8051546391752578
+        },
+        {
+          "piece": "black-queen",
+          "predictions": 695,
+          "correct": 351,
+          "wrong_label_on_real_piece": 201,
+          "duplicate_candidate": 135,
+          "localization_candidate": 7,
+          "background_candidate": 1,
+          "unmatched_predictions": 143,
+          "incorrect_predictions": 344,
+          "typed_prediction_precision": 0.5050359712230216
+        },
+        {
+          "piece": "black-rook",
+          "predictions": 991,
+          "correct": 211,
+          "wrong_label_on_real_piece": 576,
+          "duplicate_candidate": 188,
+          "localization_candidate": 16,
+          "background_candidate": 0,
+          "unmatched_predictions": 204,
+          "incorrect_predictions": 780,
+          "typed_prediction_precision": 0.2129162462159435
+        },
+        {
+          "piece": "white-bishop",
+          "predictions": 358,
+          "correct": 196,
+          "wrong_label_on_real_piece": 68,
+          "duplicate_candidate": 87,
+          "localization_candidate": 7,
+          "background_candidate": 0,
+          "unmatched_predictions": 94,
+          "incorrect_predictions": 162,
+          "typed_prediction_precision": 0.547486033519553
+        },
+        {
+          "piece": "white-king",
+          "predictions": 899,
+          "correct": 231,
+          "wrong_label_on_real_piece": 248,
+          "duplicate_candidate": 407,
+          "localization_candidate": 8,
+          "background_candidate": 5,
+          "unmatched_predictions": 420,
+          "incorrect_predictions": 668,
+          "typed_prediction_precision": 0.25695216907675195
+        },
+        {
+          "piece": "white-knight",
+          "predictions": 546,
+          "correct": 365,
+          "wrong_label_on_real_piece": 111,
+          "duplicate_candidate": 69,
+          "localization_candidate": 1,
+          "background_candidate": 0,
+          "unmatched_predictions": 70,
+          "incorrect_predictions": 181,
+          "typed_prediction_precision": 0.6684981684981685
+        },
+        {
+          "piece": "white-pawn",
+          "predictions": 84,
+          "correct": 24,
+          "wrong_label_on_real_piece": 23,
+          "duplicate_candidate": 14,
+          "localization_candidate": 19,
+          "background_candidate": 4,
+          "unmatched_predictions": 37,
+          "incorrect_predictions": 60,
+          "typed_prediction_precision": 0.2857142857142857
+        },
+        {
+          "piece": "white-queen",
+          "predictions": 1198,
+          "correct": 465,
+          "wrong_label_on_real_piece": 397,
+          "duplicate_candidate": 330,
+          "localization_candidate": 2,
+          "background_candidate": 4,
+          "unmatched_predictions": 336,
+          "incorrect_predictions": 733,
+          "typed_prediction_precision": 0.38814691151919867
+        },
+        {
+          "piece": "white-rook",
+          "predictions": 390,
+          "correct": 2,
+          "wrong_label_on_real_piece": 297,
+          "duplicate_candidate": 87,
+          "localization_candidate": 4,
+          "background_candidate": 0,
+          "unmatched_predictions": 91,
+          "incorrect_predictions": 388,
+          "typed_prediction_precision": 0.005128205128205128
+        }
+      ],
+      "confusions": [
+        {
+          "actual": "black-pawn",
+          "predicted": "black-pawn",
+          "count": 781
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-queen",
+          "count": 465
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-rook",
+          "count": 419
+        },
+        {
+          "actual": "white-king",
+          "predicted": "white-queen",
+          "count": 374
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-knight",
+          "count": 365
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "black-queen",
+          "count": 351
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-knight",
+          "count": 317
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-king",
+          "count": 238
+        },
+        {
+          "actual": "white-king",
+          "predicted": "white-king",
+          "count": 231
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-rook",
+          "count": 211
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-knight",
+          "count": 209
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-bishop",
+          "count": 196
+        },
+        {
+          "actual": "black-king",
+          "predicted": "black-queen",
+          "count": 185
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-rook",
+          "count": 168
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-rook",
+          "count": 98
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-rook",
+          "count": 95
+        },
+        {
+          "actual": "black-king",
+          "predicted": "black-knight",
+          "count": 83
+        },
+        {
+          "actual": "black-king",
+          "predicted": "black-king",
+          "count": 77
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-bishop",
+          "count": 62
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-bishop",
+          "count": 58
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-pawn",
+          "count": 57
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-knight",
+          "count": 51
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "black-king",
+          "count": 40
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-pawn",
+          "count": 39
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-knight",
+          "count": 38
+        },
+        {
+          "actual": "black-king",
+          "predicted": "black-rook",
+          "count": 31
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-bishop",
+          "count": 27
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "black-rook",
+          "count": 24
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "white-pawn",
+          "count": 24
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-knight",
+          "count": 21
+        },
+        {
+          "actual": "white-king",
+          "predicted": "white-knight",
+          "count": 21
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "black-knight",
+          "count": 18
+        },
+        {
+          "actual": "white-king",
+          "predicted": "white-rook",
+          "count": 15
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-rook",
+          "count": 15
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-king",
+          "count": 14
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-queen",
+          "count": 14
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-queen",
+          "count": 12
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-pawn",
+          "count": 11
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "black-bishop",
+          "count": 10
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-pawn",
+          "count": 10
+        },
+        {
+          "actual": "black-knight",
+          "predicted": "black-king",
+          "count": 9
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-queen",
+          "count": 9
+        },
+        {
+          "actual": "black-pawn",
+          "predicted": "black-knight",
+          "count": 8
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "black-rook",
+          "count": 7
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-king",
+          "count": 7
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "white-king",
+          "count": 6
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-bishop",
+          "count": 5
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-pawn",
+          "count": 4
+        },
+        {
+          "actual": "white-bishop",
+          "predicted": "white-king",
+          "count": 4
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "black-king",
+          "count": 4
+        },
+        {
+          "actual": "white-queen",
+          "predicted": "white-bishop",
+          "count": 4
+        },
+        {
+          "actual": "black-bishop",
+          "predicted": "black-queen",
+          "count": 2
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-bishop",
+          "count": 2
+        },
+        {
+          "actual": "white-king",
+          "predicted": "black-king",
+          "count": 2
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-pawn",
+          "count": 2
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-rook",
+          "count": 2
+        },
+        {
+          "actual": "black-king",
+          "predicted": "black-bishop",
+          "count": 1
+        },
+        {
+          "actual": "black-queen",
+          "predicted": "black-bishop",
+          "count": 1
+        },
+        {
+          "actual": "black-rook",
+          "predicted": "black-queen",
+          "count": 1
+        },
+        {
+          "actual": "white-king",
+          "predicted": "black-queen",
+          "count": 1
+        },
+        {
+          "actual": "white-knight",
+          "predicted": "black-king",
+          "count": 1
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "black-pawn",
+          "count": 1
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "white-bishop",
+          "count": 1
+        },
+        {
+          "actual": "white-pawn",
+          "predicted": "white-rook",
+          "count": 1
+        },
+        {
+          "actual": "white-rook",
+          "predicted": "white-knight",
+          "count": 1
+        }
+      ]
+    }
+  },
+  "interpretation": [
+    "Counts concern annotated boxes, not verified squares or physical piece identity.",
+    "Duplicate candidates overlap an already matched annotation at IoU >= 0.5, regardless of class.",
+    "Localization candidates have maximum IoU in [0.1, 0.5); background candidates have IoU < 0.1.",
+    "These overlap buckets are diagnostics, not the full TIDE toolkit or proof that a piece is absent.",
+    "Incorrect label predictions and duplicate predictions on real pieces are not background hallucinations.",
+    "Type totals combine colors; report per-color support and small-sample uncertainty too."
+  ]
+}
