@@ -18,7 +18,7 @@ class DatasetProfile:
 
 TOP_DOWN = DatasetProfile(
     name="top-down",
-    root=SCANNER_ROOT / "ChessTopDown.v2-chess2.coco",
+    root=SCANNER_ROOT / "data/raw/ChessTopDown.v2-chess2.coco",
     source="https://universe.roboflow.com/chess-gftva/chess-top-down",
     attribution="Chess Top Down Dataset by chess, Roboflow Universe, 2022",
     license="CC BY 4.0",

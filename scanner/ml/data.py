@@ -53,6 +53,7 @@ def prepare_dataset(root: Path, output: Path, *, profile: DatasetProfile = TOP_D
     root = root.resolve()
     errors, records, summary = [], [], {}
     source_splits, hash_splits = defaultdict(set), defaultdict(set)
+    capture_splits, curated_group_splits = defaultdict(set), defaultdict(set)
     for split in SPLITS:
         annotation_path = root / split / "_annotations.coco.json"
         try:
@@ -90,8 +91,11 @@ def prepare_dataset(root: Path, output: Path, *, profile: DatasetProfile = TOP_D
             try:
                 with Image.open(path) as image:
                     size = image.size
-                    orientation = image.getexif().get(274, 1)
                     image.verify()
+                # PNG EXIF access can load the image, invalidating verify() on the same handle.
+                with Image.open(path) as image:
+                    orientation = image.getexif().get(274, 1)
+                    image.load()
                 if size != (item["width"], item["height"]):
                     raise ValueError("decoded dimensions do not match annotations")
                 if orientation not in (None, 1):
@@ -139,6 +143,10 @@ def prepare_dataset(root: Path, output: Path, *, profile: DatasetProfile = TOP_D
                 crowds.append(int(annotation.get("iscrowd", 0)))
                 class_counts[name] += 1
             group = source_group(item["file_name"])
+            if item.get("capture_group"):
+                capture_splits[item["capture_group"]].add(split)
+            if item.get("split_group"):
+                curated_group_splits[item["split_group"]].add(split)
             digest = hashlib.sha256(path.read_bytes()).hexdigest()
             source_splits[group].add(split)
             hash_splits[digest].add(split)
@@ -156,6 +164,11 @@ def prepare_dataset(root: Path, output: Path, *, profile: DatasetProfile = TOP_D
                     "boxes": boxes,
                     "labels": labels,
                     "iscrowd": crowds,
+                    **{
+                        key: item[key]
+                        for key in ("capture_group", "split_group", "source_key")
+                        if key in item
+                    },
                 }
             )
         orphaned = set(annotations) - seen_images
@@ -177,7 +190,12 @@ def prepare_dataset(root: Path, output: Path, *, profile: DatasetProfile = TOP_D
         if not split_records:
             errors.append(f"{split}: no usable images")
         records.extend(split_records)
-    for kind, grouped in [("source filename", source_splits), ("image hash", hash_splits)]:
+    for kind, grouped in [
+        ("source filename", source_splits),
+        ("image hash", hash_splits),
+        ("capture group", capture_splits),
+        ("curated split group", curated_group_splits),
+    ]:
         for key, splits in grouped.items():
             if len(splits) > 1:
                 errors.append(f"Leakage: {kind} {key} appears in {sorted(splits)}")
