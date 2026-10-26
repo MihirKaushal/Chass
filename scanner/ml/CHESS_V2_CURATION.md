@@ -1,6 +1,12 @@
 # Chess V2 curation: October 25, 2026
 
-The active training-ready version is `scanner/data/curated/chess-v2-v2/`.
+**Historical, superseded by [alignment-reviewed v3](CHESS_V2_ALIGNMENT.md).**
+Training-time visual inspection found additional quarter-turn/180-degree alignment
+errors and incomplete annotations. The local v2 audit is now marked invalid to
+prevent accidental reuse. The counts below describe the earlier curation pass,
+not the active training dataset.
+
+The earlier version is `scanner/data/curated/chess-v2-v2/`.
 Its manifest and visual report live in `scanner/artifacts/curation/chess-v2-v2/`.
 Machine-readable results are recorded in `curation_results.json`.
 

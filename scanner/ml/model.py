@@ -23,8 +23,7 @@ def build_model(*, pretrained: bool = False, anchor_scales: list[float] | None =
         len(anchor_scales) != 7
         or any(not math.isfinite(scale) or not 0 < scale <= 1 for scale in anchor_scales)
         or any(
-            first >= second
-            for first, second in zip(anchor_scales, anchor_scales[1:], strict=False)
+            first >= second for first, second in zip(anchor_scales, anchor_scales[1:], strict=False)
         )
     ):
         raise ValueError("Use seven strictly increasing anchor scales in (0, 1].")

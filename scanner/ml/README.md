@@ -76,7 +76,8 @@ To resume an interrupted run, keep its original output directory and `best.pt`:
 
 Only the epoch limit may change when resuming. Python, CPU Torch, and loader RNG
 states are retained; exact bitwise reproducibility across GPU platforms or resumed
-GPU execution is not guaranteed. Configuration, environment, loss curves, validation
+GPU execution is not guaranteed. Resumed multi-worker augmentation streams are
+also not bitwise identical. Configuration, environment, loss curves, validation
 scores, and dataset fingerprints are saved beside checkpoints. Checkpoint writes
 are atomic. Do not load checkpoints from untrusted sources.
 A fresh run will not overwrite an existing run's checkpoints; use a different
@@ -149,18 +150,20 @@ the existing Top Down manifest. The raw export currently has dimension mismatche
 invalid/duplicate boxes, and cross-split source groups. A failed audit exits with
 a short error and writes `audit.json`; it does not publish a training manifest.
 If an older manifest exists, a failed re-audit blocks it from being used.
-See [CHESS_V2_INTAKE.md](CHESS_V2_INTAKE.md) for the initial findings, and
-[CHESS_V2_CURATION.md](CHESS_V2_CURATION.md) for the completed cleanup and limitations.
+See [CHESS_V2_INTAKE.md](CHESS_V2_INTAKE.md) for the initial findings and
+[CHESS_V2_ALIGNMENT.md](CHESS_V2_ALIGNMENT.md) for the active v3 cleanup. The earlier
+[v2 curation report](CHESS_V2_CURATION.md) is historical: visual training review
+found additional misaligned images that its dimension audit could not detect.
 
 Do not merge the archives, silently rotate labels, or train on the broken raw
-export. The reviewed policy in `configs/chess-v2-clean-v2.json` binds corrections
+export. The reviewed policy in `configs/chess-v2-clean-v3.json` binds corrections
 to exact raw image/annotation hashes. It builds a separate curated COCO version:
 
 ```sh
 # Already built locally; this will refuse to overwrite an existing version.
 .venv-scanner/bin/python -m scanner.ml curate
 .venv-scanner/bin/python -m scanner.ml compare
-open scanner/artifacts/curation/chess-v2-v2/index.html
+open scanner/artifacts/curation/chess-v2-v3/index.html
 ```
 
 Review queue entries are excluded from every split, not guessed or silently
@@ -170,13 +173,14 @@ benchmark remain unchanged. Exact/high-confidence redundant targets are removed;
 remaining overlaps at IoU >= 0.50 are conservatively excluded for review, including
 some potentially valid occlusions. Unlabeled photos are not treated as empty boards
 without explicit visual verification. Similar views remain together in grouped
-splits, and each split must support all classes.
+splits, and each split must support all classes. v3 preserves prior capture-to-split
+assignments instead of moving any previously exposed validation captures into test.
 
 To train on the cleaned copy rather than the old baseline:
 
 ```sh
 .venv-scanner/bin/python -m scanner.ml train \
-  --manifest scanner/artifacts/curation/chess-v2-v2/prepared/manifest.json \
+  --manifest scanner/artifacts/curation/chess-v2-v3/prepared/manifest.json \
   --config scanner/ml/configs/chess-v2-baseline.json \
   --output scanner/artifacts/chess-v2-baseline
 ```

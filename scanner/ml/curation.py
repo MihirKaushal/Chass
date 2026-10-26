@@ -20,6 +20,18 @@ def digest_bytes(value):
     return hashlib.sha256(value).hexdigest()
 
 
+def reviewed_rotation(image, rotation):
+    turns = {
+        "none": None,
+        "cw": Image.Transpose.ROTATE_270,
+        "half": Image.Transpose.ROTATE_180,
+        "ccw": Image.Transpose.ROTATE_90,
+    }
+    if rotation not in turns:
+        raise ValueError("Unknown reviewed rotation")
+    return image if turns[rotation] is None else image.transpose(turns[rotation])
+
+
 def xyxy(box):
     x, y, width, height = box
     return [x, y, x + width, y + height]
@@ -221,12 +233,7 @@ def load_source(profile, policy):
                     if source.getexif().get(274, 1) not in (None, 1):
                         raise ValueError("Unreviewed EXIF orientation")
                     image = source.convert("RGB")
-                if row["rotation"] == "cw":
-                    image = image.transpose(Image.Transpose.ROTATE_270)
-                elif row["rotation"] == "ccw":
-                    image = image.transpose(Image.Transpose.ROTATE_90)
-                elif row["rotation"] != "none":
-                    raise ValueError("Unknown reviewed rotation")
+                image = reviewed_rotation(image, row["rotation"])
                 row["size"] = image.size
                 row["pixel_sha256"] = digest_bytes(str(image.size).encode() + image.tobytes())
                 if image.size != (item["width"], item["height"]):
@@ -348,7 +355,12 @@ def curate(profile, policy_path: Path, output: Path, report: Path):
     )
     rows, snapshot = load_source(profile, policy)
     retained, pairs = remove_copies(rows)
-    split_info = assign_splits(retained, pairs, seed=policy.get("seed", 42))
+    split_info = assign_splits(
+        retained,
+        pairs,
+        seed=policy.get("seed", 42),
+        fixed_capture_splits=policy.get("fixed_capture_splits"),
+    )
     output.parent.mkdir(parents=True, exist_ok=True)
     staging = Path(tempfile.mkdtemp(prefix=f".{output.name}-", dir=output.parent))
     try:
@@ -385,12 +397,9 @@ def curate(profile, policy_path: Path, output: Path, report: Path):
                     shutil.copy2(row["path"], folder / filename)
                 else:
                     with Image.open(row["path"]) as image:
-                        turn = (
-                            Image.Transpose.ROTATE_270
-                            if row["rotation"] == "cw"
-                            else Image.Transpose.ROTATE_90
+                        reviewed_rotation(image, row["rotation"]).convert("RGB").save(
+                            folder / filename
                         )
-                        image.transpose(turn).convert("RGB").save(folder / filename)
                 image_id = len(coco["images"]) + 1
                 row["output_file"] = f"{split}/{filename}"
                 coco["images"].append(

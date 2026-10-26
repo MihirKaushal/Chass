@@ -41,14 +41,14 @@ def main():
     curation.add_argument("--dataset", choices=sorted(DATASETS), default="chess-v2")
     curation.add_argument("--data", type=Path)
     curation.add_argument(
-        "--policy", type=Path, default=Path(__file__).parent / "configs/chess-v2-clean-v2.json"
+        "--policy", type=Path, default=Path(__file__).parent / "configs/chess-v2-clean-v3.json"
     )
     curation.add_argument(
         "--output",
         type=Path,
-        default=Path(__file__).resolve().parents[1] / "data/curated/chess-v2-v2",
+        default=Path(__file__).resolve().parents[1] / "data/curated/chess-v2-v3",
     )
-    curation.add_argument("--report", type=Path, default=DEFAULT_ARTIFACTS / "curation/chess-v2-v2")
+    curation.add_argument("--report", type=Path, default=DEFAULT_ARTIFACTS / "curation/chess-v2-v3")
     comparison = commands.add_parser(
         "compare", help="Check two audited datasets for possible overlap without merging."
     )
@@ -58,10 +58,10 @@ def main():
     comparison.add_argument(
         "--second",
         type=Path,
-        default=DEFAULT_ARTIFACTS / "curation/chess-v2-v2/prepared/manifest.json",
+        default=DEFAULT_ARTIFACTS / "curation/chess-v2-v3/prepared/manifest.json",
     )
     comparison.add_argument(
-        "--output", type=Path, default=DEFAULT_ARTIFACTS / "curation/chess-v2-v2/cross-source.json"
+        "--output", type=Path, default=DEFAULT_ARTIFACTS / "curation/chess-v2-v3/cross-source.json"
     )
     training = commands.add_parser("train")
     training.add_argument(

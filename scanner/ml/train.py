@@ -117,6 +117,7 @@ def train(
         collate_fn=collate_detection,
         drop_last=drop_last,
         generator=generator,
+        persistent_workers=config["num_workers"] > 0,
     )
     save_json(output / "config.json", config)
     environment = {

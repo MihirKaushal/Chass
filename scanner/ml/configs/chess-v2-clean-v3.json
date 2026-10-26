@@ -1,0 +1,2378 @@
+{
+  "format_version": 1,
+  "dataset": "chess-v2",
+  "review_date": "2026-10-25",
+  "seed": 42,
+  "source_annotation_hashes": {
+    "train": "26907e997b6bb177f06633d3c4928919fede97d2730acc61e7017ae1c138bd32",
+    "valid": "6f2736ddc374873b783f69011f7618c8929923d07e9bb6d2459b1f8a1d7fbb84",
+    "test": "11ac3b28201497d05cddc95ea7501f8d2759f650c7f3042096f7c4cba1bbf842"
+  },
+  "source_images_hash": "3e70f2d10c9553c140543529e9d606222e3955973ed349c389d87455f074fdc6",
+  "notes": [
+    "Original raw bytes and source split files remain immutable.",
+    "Rotation decisions were checked in contact-sheet overlays; nine visibly inconsistent annotation frames are excluded.",
+    "Zero-area point artifacts were visually inspected; no bounding boxes are invented for them.",
+    "High-overlap class conflicts without a reviewed correction are excluded, never assigned model-predicted labels.",
+    "Second pass quarantines remaining IoU>=0.50 target overlaps after conservative duplicate removal, plus unverified zero-label photos; these may include legitimate occlusions, but are not guessed or merged.",
+    "v3 supersedes v2: visually reviewed all 2108 retained-image overlays for orientation/coverage at contact-sheet scale, with larger inspection where needed; this is not exhaustive piece-type reannotation.",
+    "Square images can require quarter turns and all image shapes can require half turns even though decoded dimensions match. Color scoring was a review aid, never a model-generated class relabel.",
+    "Preserve all prior capture-to-split assignments. No previous validation photos become test data.",
+    "43 additional unresolved photos are excluded from every split; no boxes or piece labels are invented."
+  ],
+  "images": {
+    "train/IMG_20220808_141111_jpg.rf.a54a5789053fb4988bf6f23e97267f2b.jpg": {
+      "sha256": "e87568b8d40c7cd0f97a27543284faaf3c3c99b173f6bfe3d9f7afc01c2f7600",
+      "quarantine": "Image appears resized/cropped, not a recoverable quarter-turn. Original coordinate transform is unavailable."
+    },
+    "train/IMG_20220809_232136_jpg.rf.24ecc04fbc0cb3d03c6d1e0d21e97917.jpg": {
+      "sha256": "71d26d13db2428364f665c9db106bf7f541148c95b61e911f79e274167b2bf15",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220813_221558_jpg.rf.2bf8c58c27f3944cd1d36e2276f42819.jpg": {
+      "sha256": "21b0f6e2cbd122ca15040fb3f6fd0deb2b66ae2682863ea138a699b063edd869",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205618_jpg.rf.2fc6cf8eda8fbbeb87e63b18cb22b5cd.jpg": {
+      "sha256": "63caffc1b7cbd57bb9f37f672e37ffde35e479c14598d3b8e0ae7eb139debb46",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142957_jpg.rf.2f04265f6bb52bfff4ff220de0f826e5.jpg": {
+      "sha256": "cb2ef2206d1be8cef231fad13a92388d6b6f4683f1ca9cd6865b901e3233bd47",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_201913_jpg.rf.2f6c4dc4671b240e7ce57d57e5e84ba4.jpg": {
+      "sha256": "adb5aac3c06ef8b90cc827c287b63eea36e2c5c6689cbd5914dfef0ab2c3384b",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143219_jpg.rf.318b72aaf317de828007d09f94fe685d.jpg": {
+      "sha256": "ec2b142a0970c79b835a31ff59ce56aba653ae4de867b71941e38e009bff34d4",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_140211_jpg.rf.3dccce221610e44751b6c38dd9fd0626.jpg": {
+      "sha256": "620d3b58326a23a3a2c9e2eb3dad31ac7e2042715202b7f89032a3096f756b5a",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205752_jpg.rf.47176dadf0c22675777069e6bfabd90c.jpg": {
+      "sha256": "46e63473272f9a9899ef0b849bfcbe99684ecdbe064cd56161c3687d8c644019",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223404_jpg.rf.4a23149857421da212671160ae627aa7.jpg": {
+      "sha256": "4561bc0624abc03f46b1a5a7c575ca4d77c5a1cf6d0e72b9b1d7f9b5b531191c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220810_180926_jpg.rf.4d2ebf7d0ef2970c215cbf602da5116f.jpg": {
+      "sha256": "a4077b6e88ccc13c4f60cc764e27f81b14b48b78086c179c02adcab4c4507ea7",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220808_142726_jpg.rf.52e4ca6f231dcd649b22fc7e846b62cb.jpg": {
+      "sha256": "ead3dfa3702d867e67aff565cd98cd1f18dd9e11f61c4f8c522166ce59667cb6",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221007_jpg.rf.4fa839399395c6416e41a65cd45fc57e.jpg": {
+      "sha256": "9fda3b27661fbdd38bbee2afd449fb77152df9237ab3b14a8cdeb8407d7ba662",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221926_jpg.rf.5dff6e3848fbfe7e7ccdc5517f3d61e0.jpg": {
+      "sha256": "9fb52fede5c6fa2d576e70e4c2409af30e0461f88b56ac21e4ecbd35efde7a31",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143840_jpg.rf.618098cbe6bc30b6f2d15de6b37e80f5.jpg": {
+      "sha256": "4ae90a757af582dcb3a734d1dfae77f7849c24da99cb54a82c6b2a758ac49d0a",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220813_222805_jpg.rf.649d7829ce6243c0c226707f3d3e5412.jpg": {
+      "sha256": "2fa0ed0d0d6aad9ac89276080fdd440ca5506357e7f693246678ce6c4b842416",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_135613_jpg.rf.650ed22b610ed02b9b8d7e97e4939f8b.jpg": {
+      "sha256": "bee57f131e699bc76a99139f1f6960b96810637ba26623154ec52c0bfe007b2c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142907_jpg.rf.71362a0e2c7078acf7c05b421f9d2bc6.jpg": {
+      "sha256": "533b54f4e38c98a55e40480e243ee16075b652bfee49e1d69293a6cdd7cc1b68",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142820_jpg.rf.73226cc8f1e9254476f5c71faf8678da.jpg": {
+      "sha256": "17846cfb691f109a336807be30c906925a08723e792e8e7d06f104463624a62a",
+      "rotation": "ccw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_220751_jpg.rf.73c437d45e8846a38ce24639f3db7021.jpg": {
+      "sha256": "147d1ad7b6a112c12c33fa9570130108366fc181d08039c545d1e32a6d11d27e",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_203700_jpg.rf.74f38c3cbf2b71bf1ef668155b9366f0.jpg": {
+      "sha256": "51005c8b3d92bf82890d3576be5c1107501fb4a0e506c14d3817287c97f4971c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143107_jpg.rf.76058d6405257fbacd879c24da4f9607.jpg": {
+      "sha256": "357a58f83cab2d89334e14ff1a38989e95b0fa126f6531b755d689e8045c02a3",
+      "rotation": "ccw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142921_jpg.rf.791f2689a4e45401414e72aa20dbf68a.jpg": {
+      "sha256": "2c481b1e7e86c7bca9a664ec0748fcb1b372a7fa429810f1fd46c750dec49bab",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223340_jpg.rf.cbd5e5cb5a6331c63434a5881a41f8b5.jpg": {
+      "sha256": "bedfd5d6b517e1bc6bea2094ac6c779688a9bedad51edcc675e5c6de1366f1a2",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_220738_jpg.rf.d16c9edf2d070ad30335f37f912d0bac.jpg": {
+      "sha256": "145421b508739a661f292090f0f5e6c1a0f998d9a605fb1f1aa198a8c253f428",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_222734_jpg.rf.d274d782113d438886dd6b6d3fdbe0c6.jpg": {
+      "sha256": "e41204cf9ef206160b394ee9552831adcc2b657bb1c5dab408339fc7062e4e72",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221512_jpg.rf.d3d1cb03bb362262fd0ed8c66c933efd.jpg": {
+      "sha256": "e2dad5e4d200217b1afe6dcf700cb647bc55842bff00b9563333b76029cb7b8d",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142439_jpg.rf.df47e6a0eed1faed3761916d0265b227.jpg": {
+      "sha256": "c9ef7e0f821e1bfa6640b03c22b22c191277f8e1650f442571c6fec92c55101d",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_224444_jpg.rf.e3b13eec400108071a4877b39a75b4d2.jpg": {
+      "sha256": "cb76c0d4ce37cb04fab96058475952ae11006c2c8789e65f9c30e4f3aba3876f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221538_jpg.rf.e9a71af62113451c4ce51703eab9ac20.jpg": {
+      "sha256": "c7a344ffc30ca08393a1abfaf3d92b51c855b3c152ea9a07a84544c5218fc5e1",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_210311_jpg.rf.ef01bff5a32e8a2ea77d1241f24e5a0c.jpg": {
+      "sha256": "27f73c2a34ceab999821d9ef7a00d64fab6857c66e2e698ebe7e88a16627ccd5",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_203649_jpg.rf.ef226887c8882989b7c1bf37574322c6.jpg": {
+      "sha256": "54c0c93ebc5f43ad054d934667c8a0cfd05d8f5e550c872daa6799a93135ab0c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_144246_jpg.rf.f10645d0da5ff1802eb9857f60b26e05.jpg": {
+      "sha256": "c298f755c6a69c111bfe94e32f634d75084d96019d073644b8bc2a6f99948e4f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_224234_jpg.rf.f0f95fbae0c6a3c618583e95b49e1dfc.jpg": {
+      "sha256": "2da40f2c9831e556c4cae2e170557a5e6a1cd1fe3c518a3f5062850952755352",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220813_222745_jpg.rf.f1611c1fb674bbeadfb6104226456b24.jpg": {
+      "sha256": "4891295b69e47c65de0cf9a4e8f497b1ab5197397c90ce75f4913f31da38ffec",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_135556_jpg.rf.f809d66379cb8f74565f357e79bc4b7a.jpg": {
+      "sha256": "6f6220ea91d6098e0e7d62eefe9c5c296b73ec3db3d3cc5fe2996493bc9b2f6f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221016_jpg.rf.02443416cc24c61ce6c0d5833db7c452.jpg": {
+      "sha256": "353e3868d064b28b598192d6937463d1911348169124efc3074e164b6e6a54fa",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143209_jpg.rf.01763868d328216033a7ac8001b006c1.jpg": {
+      "sha256": "604d86f495b21fc78b9b705b39804996e4136c89e06de69af80c7eea7ed3ace4",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_203458_jpg.rf.03d67bedc572677d1e53237e226aeec7.jpg": {
+      "sha256": "7a248e78fae7fc374ba3b9e82a2a362bc0b02897051cecb104feb6201918cf9b",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142830_jpg.rf.09ac9b12af81e429e3ab2735e8c0846a.jpg": {
+      "sha256": "82933eda000799ed87ecd6338b866f3594f0265f79a9669f1b56428acbdbdb5a",
+      "rotation": "ccw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_144301_jpg.rf.087eb6a4eba68705a803b6f10aa85090.jpg": {
+      "sha256": "bbf5afcdadc13950fa51ac87996c63f90458a5885acb34fe3951940022b67667",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_135628_jpg.rf.15be1c22713c9839633fe626074f2ab3.jpg": {
+      "sha256": "31e9961c7335455621c2c3369d975d084c6cce7ac944f3578dba7e4f519f80a7",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_140653_jpg.rf.1633d13f8184a75a32c80e107940ce1f.jpg": {
+      "sha256": "864eb7eb70747b1b7eb458d39f60e29daf9d7a8f18c421eaf2c47a9d1ad9e936",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_224243_jpg.rf.130a61a9dd80165a929dabe955119c32.jpg": {
+      "sha256": "06c6fb91827fb5067b7a412d29eabef620ba7f93a8a92d535ad9bd76186e526c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142233_jpg.rf.17879faba3ed8518584371f13cf0bddb.jpg": {
+      "sha256": "6974d5227b94931246e9113a744971cdcfb02e7176c1f7896bd176fe3485a689",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_204351_jpg.rf.19bd7f1021c7451f9fbf2b40a52cf936.jpg": {
+      "sha256": "fcf10365396282e03fc19fc633eff78c8b6b63a5534ed2c10a7bf7326570f148",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223420_jpg.rf.19b580ddeeb6ad9fd231c15de8424942.jpg": {
+      "sha256": "d715e458e003c78d0d5943439a054a6ee3abc8c6a39da67af425819c3a372660",
+      "rotation": "ccw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141420_jpg.rf.1bc666eb45cbc3cddf25f8a8d532cb7d.jpg": {
+      "sha256": "bfc5ddc51fe1f642ca5569635cb8e7103464a6080ef426289c42fdaf0957b3c1",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142946_jpg.rf.1a225442735ed107839f4d939f3fe66e.jpg": {
+      "sha256": "e867a6cfc91d2027948f2c78919d792dba770ae0ab08bb1b5d761b05cb33656d",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_220802_jpg.rf.1ce988dec6ce4147fb68cf63c0ea6261.jpg": {
+      "sha256": "4d2842a21d7f56a41a868599f5a175803ce7260c17a9b3fc313e283f908a79a7",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_210303_jpg.rf.2396413516665a65f3e2e7e065ec3a97.jpg": {
+      "sha256": "d3bae47c73591e6bf6c0d4b4bbcf2e5bad31da22a7c3918f97a0e738304b7a78",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143854_jpg.rf.a56119d6d727fdae634257157efe19f9.jpg": {
+      "sha256": "171fee53731991e6d42648fa0d7c3ca028500bb132dbb85ba1318fb49f702d7f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205721_jpg.rf.aa6cb7d41979959e1857ea467df80c96.jpg": {
+      "sha256": "b3dbd306166e6702e56716c110c6c019295af98e5e53145ca3610d677c797e0f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205648_jpg.rf.abab6b938b592d84931f430b99d4203c.jpg": {
+      "sha256": "87b71d6e2e7b3cbd1acc015c278258f3d4573d737e03740412dbd685944e99ac",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_141657_jpg.rf.ac33408487ab504b8f5155ce0972d6cd.jpg": {
+      "sha256": "95c407c1bc53e419d16a35b3627526d6ef45d203115f783e5d9d132c693573da",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_224428_jpg.rf.b64ff28964a235a3ddb2927c203c9f41.jpg": {
+      "sha256": "d241e53899de36db1ff549002b3ae09dfc423f47d0c2f1a73049e83bed5bb1a0",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_141456_jpg.rf.b80d17aa8db620bc5e4db367870bdb37.jpg": {
+      "sha256": "cf6559cfc6c05b6981020f5e6a68167be9df6529c6fc246cadb060fde92a6aec",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223113_jpg.rf.be79d22b0cb124a581cd4a4ca0bd281e.jpg": {
+      "sha256": "366a377f4da87f7e920b194c22239be97dabb67a6c92c9b287819b79889b76ed",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223129_jpg.rf.c34651f61fff675c2782c9be2373e0f7.jpg": {
+      "sha256": "9224b71c598728e60a90caf2e1ee92296efe18200ff6682d25b4bda421649ffe",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221250_jpg.rf.cb1374ed32aacfbff156790a57b31f6c.jpg": {
+      "sha256": "5e583d713950105902e1a807fe229cf93f38f32ebda0eeb72798eee35479b528",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143251_jpg.rf.f859e86a4a8fa6cdb09a03deae4c423c.jpg": {
+      "sha256": "60d35ec5a9e364e7f9f9d46e955c2bb7f3eb54669b4e2247c98a3e6592fc5d31",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205550_jpg.rf.fcbedff73ad0cfee09a4f11084b0dc43.jpg": {
+      "sha256": "186c344b29f55f0319d9774085a875dc199ac43783a84977eda00e8d754da231",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_203905_jpg.rf.fd177d96afe5a29852e013add2414bbd.jpg": {
+      "sha256": "11592e3a792dcd0325dd221898ab5dbe5a8d6f616d82a739d653014146beb333",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_141408_jpg.rf.fd854c07895a70181e1d2a64e63025c8.jpg": {
+      "sha256": "1c5ad06b6bb96fe160571dc5f0c241fa78532f0a0071e1b97bafc7f3b956f042",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142427_jpg.rf.7ede5548d01cf9c3dcdf778dba1b671f.jpg": {
+      "sha256": "38672b8db7c44d6b19cfb64a6fb057bf63e2c1ccaa1107db31cdcc75eda16c76",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143802_jpg.rf.82ceda6b0e47c4cf48b9f2d7b7d39927.jpg": {
+      "sha256": "6da82da4e0ec964334b277c41d1caf638eaa40424a64afb67f07087427871ce1",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205558_jpg.rf.85a44f3a2bf1991051fd373be918c0ec.jpg": {
+      "sha256": "04b1443aaba4c5ebc2372700ef5be94280a656e0f30dcd297d01c2429988bff7",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_141514_jpg.rf.94b913c986f07cf908635131b4a8d87a.jpg": {
+      "sha256": "c56fa8d43fe265d4b5ac1485e656032d233bf23decb77e2cd2c6bd6b127c960b",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_204411_jpg.rf.98132be9cb14f31634b782d22e7f1cf1.jpg": {
+      "sha256": "d6c175287682d811afc446b0b1c63d706bc6ba475e2ab3240179f5e82615d2df",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_204222_jpg.rf.9d191f0c239ec3ca046880bbc1f375d0.jpg": {
+      "sha256": "db31afa4c5ba789432684ca1e522de77d16f03e5ce320722c5e3dfd4ca0750fb",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220808_140959_jpg.rf.9cfadc230a7e6a8e865c83b1b3f888f8.jpg": {
+      "sha256": "74b2d66adff8f2ad42683fbe80b7347e95544dd31d719d67c2d903091c788c9c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_224235_jpg.rf.6f3c584e870bb1f8614b994823b62abb.jpg": {
+      "sha256": "5d11b386c7c0cfc83973dd1a2db667d26b4433ad21689fad7ff19817b0f3ff3c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_204214_jpg.rf.7823c0d454caa0624f0180b09ede6288.jpg": {
+      "sha256": "7e1f865bbf3b55b8f9ba5d7f12826a455e1e2b182bcb71e1e35c17cf8d3e0482",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "valid/IMG_20220808_142607_jpg.rf.8eedf7a73f2ac6b617212daf5527de3d.jpg": {
+      "sha256": "3bafb25dc392c1b5866389984d2ed798b21b41ad88ae643f63e65b9d69d21389",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_223351_jpg.rf.af4a1085ff78535224fd7b02a95edb42.jpg": {
+      "sha256": "d3c3f009cc9784bd6b5dcd9caad41dbd46e88e985e22b8ad3e61596bcba079dd",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "valid/IMG_20220808_142627_jpg.rf.b59b81aa08f03c895b15a3b25eaad012.jpg": {
+      "sha256": "8e606a71dc2578566653024dbc89eb1e6ec82a670f947886549ce40a79278f65",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_224509_jpg.rf.bcbc41b06752f5f6e6f4be6797b70e23.jpg": {
+      "sha256": "f1fe53f9070f56cb43ec063edeed1a9974202f0d37a6ae466fb96fd064e204a3",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_144212_jpg.rf.c1c408f1d2294e06b34a6154b29b300e.jpg": {
+      "sha256": "60f8eed36c2a71f95b0a7723007a57c57b1f88723de4213c7c69aacbb4cac0d0",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_223139_jpg.rf.db7d2d1c4a7b7bef5e566569ad9ecd83.jpg": {
+      "sha256": "7e0799d26274bf68d86cf0f245250c25e4b9e75117e8c1d659176f53f79f5419",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_140707_jpg.rf.ddff36a88a983e3a2b13804a19bcace5.jpg": {
+      "sha256": "af99322e745e086abec24fa55785e13907a796ec74e11f30c5113f3f79acc90e",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_141645_jpg.rf.e6fa6546ff63d72400d8c5f0126cb91e.jpg": {
+      "sha256": "6ff3bf8bf1341df7d46785ab5834d85904eea2b349bdfbe0c0c27fe18b9064e8",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_144223_jpg.rf.f4e7d9dd7dfa95afbb9dafd67010dfeb.jpg": {
+      "sha256": "9e6eec8e6f782d4485c9c1c33b8f53ae833290184340542bc0025032192d7997",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_143309_jpg.rf.fa5c7d496e632038b31e33cc753cf7b7.jpg": {
+      "sha256": "ea34b72e243ecaec440338e8e0fcad8d64a45a7c2647cd446b471f07eaa63fb4",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_141602_jpg.rf.076630eea877cfa50229106f09396cdf.jpg": {
+      "sha256": "1a1ef32732e3e9d1bcdcc120d11bfe8c569d23ab6ff7127c5376ce9e3ad28607",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_205641_jpg.rf.165ef6a74a02a231cc3fccd4f02b93fb.jpg": {
+      "sha256": "279eaa70a2cd546548b1ef8b10a2392e176561f924aa87d48c085ef4a0a8ab5c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_224421_jpg.rf.21eab11899d51f43b750879ade5313fc.jpg": {
+      "sha256": "38d0011188a6bf612e0001ceecb4267272bb51b225f058a5f3f240044288f3dc",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_220725_jpg.rf.277d2d9a9584858490836d503e17cd7f.jpg": {
+      "sha256": "5fd77d3a99f6bab3d855b79b36e22524465835c2a8fa34be92afbefbba632192",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_221044_jpg.rf.276453e171ec3d3609a9e84776c45a6b.jpg": {
+      "sha256": "59a48384cbdbc046a18bb58d00f7abc6bdba38bd8b9d1e8b328cc44e4123b42a",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_141356_jpg.rf.321e906545c12efd09326abf56f2f93b.jpg": {
+      "sha256": "142a5e5fcf3b02fd56cb8043fe953794fbabb59a8589363efbb41eaeae2bd8bb",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_205801_jpg.rf.30182d5920b30ab1868656e568fd4640.jpg": {
+      "sha256": "9ab39ed7759ee0b1a33f693a7ecc961ef27f99f4bc6a2ddb5d3029082944cad0",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_143731_jpg.rf.40a8c245b4bacc699d6ae4b505ea07d1.jpg": {
+      "sha256": "90405fb228af724b5a36bbcd9a03c27fb37455686245f6194ce1d0e6f095e49a",
+      "rotation": "ccw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220810_180958_jpg.rf.45d3a677ad15dfb3923071f3e94722be.jpg": {
+      "sha256": "e006a14332c78e027e638d1ce9aa99459d6f0e162a01beb6501802be23c955db",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "valid/IMG_20220808_141548_jpg.rf.518bdd7ec477634c2ee131c22f569273.jpg": {
+      "sha256": "b1cf84385945b2e4a2dc88e5751c268b6e7166a8f13c409671c65f10ce9f3b45",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_223149_jpg.rf.5403da44ee3a7c2ed3b1df31a1899b6d.jpg": {
+      "sha256": "5e08188d10a9ec7b9b8d4b340f41b87d5696b966f7109b9a71b52aafa7064a4a",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_143641_jpg.rf.540aa1eb610015a3e3e7a1fc4d02bf64.jpg": {
+      "sha256": "7a7061da6bae752fd2457a118df73e0389e31cc969739d4d860f486997eae7ec",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_205728_jpg.rf.6100603aba34981d27542ac3f80b0ecf.jpg": {
+      "sha256": "dfa765426ecbaa7b38b54c257b43453132ac6445ce3bf8ea542088c35c38b9e8",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "test/IMG_20220813_221030_jpg.rf.90c3be6bf7632ce9cf643d4fc23509c7.jpg": {
+      "sha256": "fcc038207116fbd8212c0a5ea4b862f24dd76224ca202cb8d6029e2d6f47c08b",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG20210318213647_jpg.rf.2e8fc2359a713640c1636bbdced8a114.jpg": {
+      "sha256": "fd504c7cc8fca1f1bba54d7d2f364c3683d5785e8f99d4bd2555d92f8fef56d3",
+      "drop_annotations": {
+        "2204": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2205": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2206": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2207": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2208": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2209": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2210": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist."
+      }
+    },
+    "train/IMG_20200909_000303_jpg.rf.41b2c6f0907ce00805c951e70aa48285.jpg": {
+      "sha256": "ca145eda6d96b6275d7c46dd467ddfde76064bfaffe0dade330c4ded06b9cb23",
+      "drop_annotations": {
+        "5784": "King-class duplicate lies on a visibly short, round-headed pawn; retain the existing pawn box."
+      }
+    },
+    "train/IMG_20200829_012702_jpg.rf.74aeb6c7b570eb8176594e53bb4e6461.jpg": {
+      "sha256": "a077bbad91448ce94f6ef4fbb84a8c5a102090e2791828a28b2771cdaad39c7e",
+      "drop_annotations": {
+        "15941": "Rook-class duplicate lies on a visibly round-headed pawn; retain the existing pawn box."
+      }
+    },
+    "train/IMG20210318213625_jpg.rf.8932133fd71ec10214bd6055da16e5e4.jpg": {
+      "sha256": "921a83edf83852a21513227c287f5b7ac76cb032b7e5139e0b47a9bde3a13056",
+      "drop_annotations": {
+        "44067": "Knight duplicate lies on the existing circular/crowned king-shaped piece, not a horse-shaped knight."
+      }
+    },
+    "valid/Inverse--26-_jpg.rf.c4de03ae15b37f8fed16c43ad2a12d06.jpg": {
+      "sha256": "89e889efd2e20afc3e029afbad2fae94878ab318fb64a60e0adf20d11f2f68d3",
+      "drop_annotations": {
+        "4385": "Bishop duplicate lies on a short round-headed pawn; retain the existing pawn box."
+      }
+    },
+    "valid/IMG_20200908_230810_jpg.rf.33028008877e3e324ca47cfefa39d7fa.jpg": {
+      "sha256": "dbf9ad163075d47b46727a72da5c784a1daba5447d81d963a11b69052efc847c",
+      "drop_annotations": {
+        "10807": "King-class and redundant pawn annotations describe the same short pawn; retain annotation 10786.",
+        "10828": "King-class and redundant pawn annotations describe the same short pawn; retain annotation 10786."
+      }
+    },
+    "train/IMG_20220813_222820_jpg.rf.2764bec7b440c181b6c08153b9397829.jpg": {
+      "sha256": "3bd82d388ebdd3439e387d8d9a1f5fe013a84b2868a92652acedf01d22aa84fa",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_212033_jpg.rf.2937698c550484a9cd0163288579e232.jpg": {
+      "sha256": "ab70f435c071a47a7c3e07d82e2543386031b949f920abbb5ab07cda4ef75d31",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152723_jpg.rf.29e40a58807cbb796717adcd71e9b7bd.jpg": {
+      "sha256": "1d77ba28aa1974b9e0dfc52b23584dc69f3caf04017ce15454aa1545e9ba10ef",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_143447_jpg.rf.293766734b9c0d444ab5ca8b881d4e75.jpg": {
+      "sha256": "fb0956995bcc81fd428208187c44a5e994ee01005d5991941d54a5194609fd4f",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001015_jpg.rf.2ac3de8a19615a4fb6b3add9dccbb55b.jpg": {
+      "sha256": "2fdd6cd85cdaf34a2ec627a8d6824ff153c92819d612ec5b13a72473af933f4c",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_174039_jpg.rf.2bb3dd7840f3c5d64bdbf43526d97f5f.jpg": {
+      "sha256": "4b8433bc9dd4536841392599af183ad3e89060df9ffcfd343c69029b533c82ef",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20210425_001509_jpg.rf.2b317e95a98af5f7a65c202a6b62227e.jpg": {
+      "sha256": "53f46122bae21a41bf753e506ea617c82fb0e714190b9d238237e20ef4b879ce",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001959_jpg.rf.2c8c055a767e7716b4405d6c95b57451.jpg": {
+      "sha256": "a8452e5764accd93c8bfdf5eee432f3b55ce96742f7c5e173e972d6e8f8a9db0",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20200829_012425_jpg.rf.2e206f467e534dfcceb526617f1738a0.jpg": {
+      "sha256": "66735951ecfd1c8415aa49b80e18eedbd09dcf4c969f25a611e617e2f32852c3",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20210422_213109_jpg.rf.2e7d86d439ca35d0f58bc24fbfcbe4f8.jpg": {
+      "sha256": "78582272b19616d2bd9fed35efda284ffe0b33ff9e3de463aa447fef62d737a8",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213728_jpg.rf.312049771523048ca7b52141067cddfc.jpg": {
+      "sha256": "a6381d1fc7de209713e3d217a208919ed9eabc3628ce16091ac044018f4be248",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001324_jpg.rf.31095d066043adbbf0b5d2d5b44ffe4b.jpg": {
+      "sha256": "bf2f71a866dd2ae0fbf421f971eb22b55441dd5a3884c95269b9a8d8f95e4e91",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213500_jpg.rf.350e5017ba73fc44f1605f2e5512db38.jpg": {
+      "sha256": "23e61b57ace4beefae39808e540f84950cd4fb40708e22c8bde2f3e107184a54",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_143652_jpg.rf.32475b302d9ef6b0ca39a76bb97a776a.jpg": {
+      "sha256": "a9325b857304b444e58dc71b55a1eb53148e3b1bcbeb9d4e6ea41e7b455c2abe",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141944_jpg.rf.34a771d9bd6679c71e9d1410483d84a0.jpg": {
+      "sha256": "51bff46a7166de8f6912746fcbc847f717ad83db3826b684eb80c2258ec94f3c",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001701_jpg.rf.33eab9606857f8bc1a5ba085ec30d933.jpg": {
+      "sha256": "97c8da0cd98498b0c6eb9ec6e2acbb20886ef12aeb25f81e773880adc934735d",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141510_jpg.rf.3516a2c1ed70586dd0cdcd75d289434b.jpg": {
+      "sha256": "29c3463d2cae189e27bc7ac0914629dcf1a15e1f13f75614f70f851445107c13",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_180710_jpg.rf.35848c91496e79d3e0b715603a80cada.jpg": {
+      "sha256": "d3291b1f4d7c7ed2f56d854666d5bde04194528e815986caa4df7d3e44238dd2",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001209_jpg.rf.3793c43f0332af98fcee892672a5a562.jpg": {
+      "sha256": "b6f6877e48c669e45e914083f537bd5633957be6c66c831c75c1258afe63e111",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141036_jpg.rf.39287119e39c7bae8f0a58bea0428e11.jpg": {
+      "sha256": "6582271b531918f0e53feabc582dc512ab71e98cfc8899ce08adfb06ecee0869",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_143603_jpg.rf.3938ac02e1325440d067409c49f4fc1f.jpg": {
+      "sha256": "13952c9a3736206a68d2ce385f433ee9e5edbc834c4282f7daf182a3da41acb5",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001655_jpg.rf.3d3b8b38e69c0b9594a0e3d433eab5af.jpg": {
+      "sha256": "cbc029bec534382dbb5577d430ab36ae93d397d7246f1dd101f68c576e24f70b",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_180841_jpg.rf.3eaecb9dfcc5cb4d52c8c3a8550343b0.jpg": {
+      "sha256": "d531a20daa0dbd4e563a7657c7090ddcbb03432885e6cd6c4462c03ed3eab6d2",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_222153_jpg.rf.3efd6399c5e69688b95baedb17fc63db.jpg": {
+      "sha256": "927e1d5ba9d5e2549fa82236237e08fd4e38642692f221e33d8ad2bc7fd68038",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222125_jpg.rf.417502039237150c0359ab8068e7c82a.jpg": {
+      "sha256": "c2c969883391746e29484862b7bb24dd31a6ce6f82449a8e769dfbbb78e6ecc5",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213115_jpg.rf.419ec187704a5db2e564d04567f44e29.jpg": {
+      "sha256": "92bfa65ab7ede2aa39a8cfeaf6010200df764356f631bde755fb05e92d53a9ce",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140729_jpg.rf.422cc1d08dfdf8007e1fe627f9db8227.jpg": {
+      "sha256": "9764d4fb7454603902a316c22ba94e4390937100eee9c74a086f666a0fc8a34f",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210302200633_jpg.rf.4282e6b9c9b554835bfcf5894e75036d.jpg": {
+      "sha256": "d547dc85bd9f6106d3b153a3df7a515f0c990b613940fdaafc71d14bd73ea2c8",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_144226_jpg.rf.43abe4b67095f87b7a410a55430f1fe6.jpg": {
+      "sha256": "a133f03d2b6516ba3ffcabc252c42700136353e919e9bdc55dcd6ac4d3438fd1",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_142528_jpg.rf.454bfbfca50595e5a6bc8619091cb671.jpg": {
+      "sha256": "636713f2e28bc600edcfdf4ecfa454684f64814bb57e5d924afc3d898c6c4bcf",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210302182932_jpg.rf.45a868053708aaef36419b2f9a2cfdf6.jpg": {
+      "sha256": "022a460caeca1b8959f7449b0f32ea6420911843ab516cea2b06332864d7067a",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_140921_jpg.rf.485f6c2787b5efbd6f2a741eb2a1ed92.jpg": {
+      "sha256": "f05242928ed231bd253758d6ba21bfe0499ceaae4c5f57e54442980c14281e66",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140411_jpg.rf.4a3ee98596854c0e8ce7586e982ca927.jpg": {
+      "sha256": "53d462a8591572335c01107fc722fea58d21e14f4d3aee7d4f6b1ee191bab6e9",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140812_jpg.rf.4b5ee0fa108c24acf81c66bbf85631da.jpg": {
+      "sha256": "ce28add1bb3e90a5e242a25efb16cf8f6a27079b436a182b8722915dd3ab5c0f",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152608_jpg.rf.4b56a463536511ec39561be970f4d497.jpg": {
+      "sha256": "600a36ffa0baee5c87b1d0de6af10d7ae7699165ef22f4afeb7e1757f5ed7da5",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221901_jpg.rf.4bfdc68eac6f6375aca8d880cbcfcae7.jpg": {
+      "sha256": "465332d828bb6e61a4fabc2e9b332f1830d5edaa452ea18908cc3490b4b850ef",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_222142_jpg.rf.4cd5f0d984e77c6d2f9e8305d56c2252.jpg": {
+      "sha256": "5b89377108404bea405e6a89a67a46f43ae52055e8c59791f9afc512914b4731",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222331_jpg.rf.51d80af846eb23058d0772fd545906ca.jpg": {
+      "sha256": "d2c0f20e314ea20262ef80572c245e749fbf39e357aa10198c73640a26ab47a1",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140333_jpg.rf.544fa40f5535594451884b4df896b68d.jpg": {
+      "sha256": "88cb7928b81431fb3c05e4023f482056b1e09f4a29f06f448928f1f17d85e449",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221545_jpg.rf.535992dd561fa1881ee2a25cb7985450.jpg": {
+      "sha256": "3395ae41c56869c499c90308d99b41a5fc26afb0c6e75542d5cb3b7beca2d169",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_000507_jpg.rf.531b20bd83048f774c2e444e0f675577.jpg": {
+      "sha256": "71140063ce9f0d8662b545b3e5ca4eacf061b0a11a093cacaa526c463801e831",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_180815_jpg.rf.550e4f0eada4ccdd6fdd30675751693a.jpg": {
+      "sha256": "a4b9a9277c9ad644ad71757fdbea5e68706c1dc50ab7a329463af22d61648c69",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001352_jpg.rf.57611f33070f424e8a54f24cea22804f.jpg": {
+      "sha256": "c5e91748b29c33698ad1307d933a11d3a9237742dfb953a53e098e2d1d064668",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_181223_jpg.rf.58031904b2ea98d5c858f3b29803a251.jpg": {
+      "sha256": "743a9cd040b8ef8be4f5c5b88a500d9d9554a12a1c32f0ea36360480fe458490",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222424_jpg.rf.5ab57cbee30a4b44770b3bda68b97602.jpg": {
+      "sha256": "8b6e5261f435f737194b84b29583f4f0b84bfbd9d3d069727ba8fcbc007c633b",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_222251_jpg.rf.5778ae91175f020e09f3889877691ea3.jpg": {
+      "sha256": "fdf8bbb50402522e13edb3f21e81c2d22ed9ab05d1c64fd63f604ddf5a811664",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141330_jpg.rf.5ae5f363904caa12f4daef3a409e1525.jpg": {
+      "sha256": "0cc6daff2c9d447139d461cdf29ad35418cfc3064db1211f855b212dae4edf55",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_000731_jpg.rf.5ab7e9e7ff7b5c5f9054ed14358434f6.jpg": {
+      "sha256": "9aa1a57981e0a973a988bf0ee37d800813202ed01c70fcddecee125781d7518a",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140720_jpg.rf.5cc458677a5b5f23a8bf673d87fcc3c6.jpg": {
+      "sha256": "69bbfc5026a8c1cca2520712fd3ff8b94f1c077df7e032416a2795757568f5b5",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001203_jpg.rf.5c85d15be7e89db96f9bd6e3261f1b4c.jpg": {
+      "sha256": "1ca10fd1a60eaacf508ad96a2897c6ade29e89d70668df431afe5a38a7f9abfd",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_224625_jpg.rf.5ee75f3d567eac6c14a389a8360ae12d.jpg": {
+      "sha256": "a0e919030bbf6b8a403bca556c23790652f719bce2abb462632999844134b5e1",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_142030_jpg.rf.5ed99481072096befb7c170d662a1f32.jpg": {
+      "sha256": "505bce6298d2fb2884ce1204e5051ab981cacad8cd782ca9a851000aba354450",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_000258_jpg.rf.5f6525e5739bc8e65e484c2d919137c1.jpg": {
+      "sha256": "d0898adf30add91d1e4825039a0ce0fa14feaaa3fd3e2573a9748b152dbf61fa",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_000718_jpg.rf.5f4931cbcbe180e055850d9c3ffecd0b.jpg": {
+      "sha256": "7569424ceaafbcaa55f5c7111cff90a3637b1f5686fe44056cdc0cb1792e3e77",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140824_jpg.rf.6122a4333ee4b38115e088d5bbdd7947.jpg": {
+      "sha256": "e8995b984dd0f30cbac7d3de3308f7b014ae409fa52ecb56320190ab34ea3f4a",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20210425_001332_jpg.rf.6683d2e2cc3fadd261673c9821748c2f.jpg": {
+      "sha256": "389c791de2ca3ef4caa0ea4a597d06a77f1ba6f8808bb3cc709d45815cb5f3b2",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213114_jpg.rf.65ee270c1ef02956a8c04c03d3f7c275.jpg": {
+      "sha256": "4821c939ba03e8d4c34da6a39424be132145581a753cbbe1c045ab72614e90cb",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210302200758_jpg.rf.66a9c026f6b40b8a7bc00858127ccd07.jpg": {
+      "sha256": "71aad699802fe31bb6f859840b940b8125a733d1f90fd27664d30d78781f3a57",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20210425_001226_jpg.rf.68d986d22a1ffcd368f0275c21874ec6.jpg": {
+      "sha256": "c90dca2812c6288bd094a9e436f33382f5507b8b02936472894426cf5b761bbf",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152617_jpg.rf.66b70abb35346925685b38ec5fff4cc8.jpg": {
+      "sha256": "f412ed0a96181c19f5344decdf65e0184d420bd5b1e0ee21645eb675dcb8777e",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222022_jpg.rf.681095973de1eb9d7999d3d0176946fc.jpg": {
+      "sha256": "03cc4478f828b5e9c3365b8e97da541f49f0047e71303d4a5bdcd24ac6060eaf",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141703_jpg.rf.68898e9073260f66f6d506a143b9d0a1.jpg": {
+      "sha256": "df213151d79c90ac5d06036d6a73601937f7d44ff58d28c163d01b19fcb340de",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213121_jpg.rf.6d5a1ca4efe1c5f141e67b44b3174954.jpg": {
+      "sha256": "ba5d14625f416d666bd3ecbb89f4aff445f6b93dde0ceed93a31b6507de2ce83",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001017_jpg.rf.6e6dac5ddb3110b6f660ca1ed756538c.jpg": {
+      "sha256": "056e7bda7f7789b87bd0d2eceffce96c46bc376ae3cd470b15a5808a01e3df6d",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_135806_jpg.rf.6f5a38b8d1c464b60816306e585e3201.jpg": {
+      "sha256": "99619df5262cc89efe5aedd0740a72c23debcd020d4eeaefa4dcaf8062f12bcf",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_221958_jpg.rf.7086677c16975cd9a4187aa3b925e541.jpg": {
+      "sha256": "4ebc4e06b74a6328b2ebc78e803dd0c58384d4ed873e1c28528f560566d03bf2",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213402_jpg.rf.7137e33fe28ca4d2b4d4e215b280fb5d.jpg": {
+      "sha256": "4d97c3da83928d8ff271b90c48c2b47306f3a16f24b689c6e7437ec4395f6220",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_224650_jpg.rf.72a14361b9c81e79cde28362ec04dbb7.jpg": {
+      "sha256": "123c6e68f4fb15835bd772f2b40a23bd85389b4b4090f7023a39860c29add079",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210302200806_jpg.rf.73184b459305beafe32076ab03f039db.jpg": {
+      "sha256": "f5d329e7d695fedf9e0fc5f91f93408345423a5bd3d1cffaed8e6e636a085caf",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG20210314100340_jpg.rf.7461b23f976f5c9d245016fb3bd63a3c.jpg": {
+      "sha256": "7a625e1f6fe4df2138ba4ab89a0d8781b42c9ef6bf6ee22816c82abc12a1ce2b",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_141809_jpg.rf.75346dc0ce71ff01cc91fe731d8e5b17.jpg": {
+      "sha256": "742ec36e5572c332c95c90c37aa20d27da24653f13c37211c198daf84dcdc796",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_175751_jpg.rf.784c24b0f812b5914309d19373260bad.jpg": {
+      "sha256": "c5fc046c3910e698170033aa48be69d6c217b3f1f0e2654408a22598aa4477bd",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222429_jpg.rf.78e8944fe7e1e991e6719e169ecdd265.jpg": {
+      "sha256": "75fc537ea24441911267d58e1855e171e440404256e74dbec384eba6ebf934ab",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_181102_jpg.rf.cb9c6271783ae318d93a33a2e03a0e58.jpg": {
+      "sha256": "e98a56ab55596962e662307f0c4eec757e2c8fb7f0b2443ac322dbc79652b896",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213344_jpg.rf.cf90f16e9a6b187f7db1906968b4ac89.jpg": {
+      "sha256": "34edd96385e58c3febdecd0e733487010a501cf111fbb29e2cf599abe973f287",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001642_jpg.rf.cce760233ff36aa8336b4f2b3b960940.jpg": {
+      "sha256": "2bc3eb6d0713877dd331a6530c1110b5cccfd7166d8d275960ff175c74c474fa",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140130_jpg.rf.cbd45b0698a11ce29a48a892ca8df0f5.jpg": {
+      "sha256": "11f11ec29d74068ceed67fd4bd92cbe12edd030d95133f1a6d286cee217f547a",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141037_jpg.rf.d35de6c929e998be10a59964b13fdca3.jpg": {
+      "sha256": "77f697d4fd2c0420d9601f49181cd7c9e5abfff3ed9ad0415a17a21f54703b82",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_000711_jpg.rf.d20fa5086b5537509403f06e9641502d.jpg": {
+      "sha256": "a3136781c826b0823d7eb043a07702c0ff52652b391aaba5e57901d0e92f5ac1",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_181154_jpg.rf.d2dbbe697e79009deb7b0bfbf291d5f7.jpg": {
+      "sha256": "35965df8345e19be6af3dfa54ed82bdfbeb39cf9ee37d035da7974db73c76e44",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20200829_012408_jpg.rf.d44bb0c9660107b899f679899b5a5565.jpg": {
+      "sha256": "082c1644f66a0d653073259b1880e73792a3f98aa6fee154d459ab602e652d7b",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_143549_jpg.rf.d4fe5b2c8eb395266ca9dc68e736a3a0.jpg": {
+      "sha256": "204c428002d8d4b1e80bda77a5b8ec6494165187d7ca53adb975af1996d8b241",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001242_jpg.rf.d5579020172737cac907f5362b0d97f0.jpg": {
+      "sha256": "d86b261daaa88f89bea72ff509d989e8223c29973434bbd5d7ff207ecd091c3a",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221851_jpg.rf.d77e4f777f8ddd9ef0faaec712bd0a14.jpg": {
+      "sha256": "f0635f784ffe0e161a33374282781c916cd206e6448e81d8ddf308e4218932de",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20200830_134628_jpg.rf.da0cfe4d79383b5ed93d83f48b3387dd.jpg": {
+      "sha256": "c4dfcb5bd697fc1c195d0f991fb2a466802cd3e179c5576c3df71e56690ea7b7",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_142442_jpg.rf.dadb47b53a153114cba6f6a10b0c42cf.jpg": {
+      "sha256": "4ee1a31643a4cca6caa9e60468b4f0db8f1cb16b78302ae3f3878e2a46aed13f",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141838_jpg.rf.dc4e77c67b89911864b53488ef2bd70c.jpg": {
+      "sha256": "ed32d12c74840fed75f19e4f6a4d7ea9552d56233e542b79881099e4290ad1b9",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141105_jpg.rf.dcb87d1e5a4b3ba44d7e931a0e462d07.jpg": {
+      "sha256": "e8cb94d6d6bdd2f4bf808675855a14505abf1588956152b13b9833456cac1e9b",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG20210314100329_jpg.rf.dd912c92bcf00ef42f0631e830704b35.jpg": {
+      "sha256": "8c47ed7029c70392a208c08d040c62b3c9d35106167371a272a7902d0424f50b",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20210422_222120_jpg.rf.e02494a44726139eb5c431e5bc4de0e1.jpg": {
+      "sha256": "be177d9619245a4825d279f5994267f3970a0d88aa1d0a69432b002619de6043",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221801_jpg.rf.de418fc7c022cd75cb6d25fcad68ba60.jpg": {
+      "sha256": "ed4e70d178e5e9b5c078d2465150dbd9f3d9ec8048c9a82cc12bbd31f6abd4be",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001000_jpg.rf.e0ce325692fec3b792c35e27cf18fef2.jpg": {
+      "sha256": "815b64898b5d26d63955e6f9d1cae8b142f75185499f6b4d6c1daa8a1258df47",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140719_jpg.rf.e2f28f0bb2d4f52352070f2679e8aef9.jpg": {
+      "sha256": "bdeccb9210511ff00cdbb202965fa0196980e529dbb15ae5f3c051f4342de815",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213239_jpg.rf.e2ea21ac4cca65d1375ace0a334d92cc.jpg": {
+      "sha256": "d90d586f78611bbbde2ec78bb00edaa2fd00169b00e7f177d073939eb836dd3d",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_221221_jpg.rf.e48e95fc6a0bc7c5d064451f44f4d097.jpg": {
+      "sha256": "3a5849824eb8a55c23b3a10a92ba1c7cb66827b74f6632193c337c922659fd05",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141137_jpg.rf.e63dfb063e54b08bb92006073f0f870e.jpg": {
+      "sha256": "480368645efe848ca04af320edc22a1ea5f8bec1c2acd458ee8205236e9efaf2",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20210422_221518_jpg.rf.e66bc4fa8705bcee1ea3e73421935520.jpg": {
+      "sha256": "114a65c65f76fb605b98f2b5ab108666fff84dc231b8301c979cc20189c36cd8",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_144217_jpg.rf.e64e2866821cb1a53a07bfb2343332ab.jpg": {
+      "sha256": "333dba06f2fc0266b73285fd0e2bb689204ed69c4cab45e8af15e43f4d2bb91b",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20200829_012414_jpg.rf.e83b758cc9e5b5e24d8cb06ad2fe0064.jpg": {
+      "sha256": "c24182bf6046fa340ac84ff16d352f1c92c0c6ed22e938d18a9253d48c4e7fbb",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_141222_jpg.rf.e8e374f9912fa7babd0f90de216dff26.jpg": {
+      "sha256": "22987b4f344351221e23a1f62b4a2990dc16c47a4db0108c280e347e26043ae6",
+      "rotation": "ccw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_224706_jpg.rf.ea472178c7446b3499a89ba043ed3ab5.jpg": {
+      "sha256": "9e500002967cf6261fe3601ea0db5ec8cdd4848eaf7e100a48027adb543f1bf0",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140230_jpg.rf.eb2f4675cdbf9d333eacd926dbd15e0a.jpg": {
+      "sha256": "24ec533fc9118815ca7383886e55bbfa3290b6629a2f09197c12269c42599b98",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152332_jpg.rf.ebfa09baf095b5fc10029921a478fffb.jpg": {
+      "sha256": "0a3d3c58584a7f36da14ae365903491286cdbbfea8161c8a38ce54fd6846cbea",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222314_jpg.rf.ec53d2d39a2f8e18e86afbdc750f0ebd.jpg": {
+      "sha256": "de53fd147978c9bfeaa354251947fe88ef8520d88956e2c4422fd9549e65216b",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141117_jpg.rf.f040ec9b7cf77c58cd1b25f13ce9cb26.jpg": {
+      "sha256": "a4a4cc4d5366dabd93794f04f91ccd1c9516ce808082b3023d00afc8874b5247",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152822_jpg.rf.f2c10185a6270e8225ccf8d57a4136a0.jpg": {
+      "sha256": "7f2bdce978e0dd5a2c0f059caf2ce24ebf960699d129b2b00670172909904c96",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141042_jpg.rf.f2d1519c124aebd384575c74b5a7ab0b.jpg": {
+      "sha256": "66f38349fe456772caa1b296a043862a33237cedd7abb7f7af4004e994013275",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152904_jpg.rf.f3c57a806b3b9e404e4bde1231d9f2bc.jpg": {
+      "sha256": "6f4a83a90fb00016e417ccef8df6c2e98b5a6005819fe3faa30bec0b267bc230",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222113_jpg.rf.f146d9c0eab3db76f6ee4ce1e1065301.jpg": {
+      "sha256": "587184fc526b823c5e7ae4b14f32e77c6f965ee8d75bb44a278372f4a47bc799",
+      "rotation": "ccw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210302200958_jpg.rf.f31fb9c7f4004d9564bd416a9650f546.jpg": {
+      "sha256": "b5fa786d79b7a179e503bb0c674930b9c02d7cc8dc7ceef0edd06a2c8414e2fa",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_140830_jpg.rf.f3d9551dbdb95f215075640ed920ad29.jpg": {
+      "sha256": "a33a404e0e3517c71015de47559d5dbbff17e6d1688632fc8db7cc87af73400e",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_143854_jpg.rf.f64fd9d310977e7097fe43d5f20b2216.jpg": {
+      "sha256": "40f275b91d6f2dde9b5fc3e714a6fc6265c1291bdc72bb4e42dfb964d7af34bf",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001147_jpg.rf.f5f0e5576631ac501888dacd56a7cd2e.jpg": {
+      "sha256": "41444bdbac4d9bf354790c4059e083d9ed29c1a1d59a3aac489b3c54bfc462d5",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152814_jpg.rf.004c3df2f61e09ae77a50820840c4f3a.jpg": {
+      "sha256": "5d93dee30358d0aae09e43c3d071ec8a1328dc015c6ad18bfed994f9e632a5b1",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213354_jpg.rf.001f2370ab09d3e287a23eb6d42cef00.jpg": {
+      "sha256": "695dfecac2cb2f8554aeeea9db9e289744cf902f060fe45d486953eda05b18a3",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152857_jpg.rf.018c166eaedd3f8cd5bc168e0f252736.jpg": {
+      "sha256": "7c068a04604d57b80f78bb913fcad9bd9b8f483e4a4dbb672800809e803f5cc5",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213251_jpg.rf.06dad4e9ae647240614e70be0219cc88.jpg": {
+      "sha256": "a20b7282e6dc2d47de80a8a43d88ca03fa53287c5cf2de9cffcecbb5008e4b7e",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210302200815_jpg.rf.0aebced16583e4d0c313df6c9cfe288d.jpg": {
+      "sha256": "36955de96f9b14045ea27634cfa8cf3641bb239442a04ed612a02e7e945b4108",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20210514_000826_jpg.rf.09b569b5d8595538d0ffb76d8d14b1a8.jpg": {
+      "sha256": "358eaeb475fa4b24889c330d5dfbf4d9cb2704ffdb72e35dc4d7225b173d0638",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210302200822_jpg.rf.0e318fc8d610384306c446b7d222a533.jpg": {
+      "sha256": "80ce376eefa7b61097673acaf817cc173a39a904d67da6527b7a5135e3aec9f7",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20210425_001216_jpg.rf.0efe7bb6773f4e4a7997ca0cb73d5a81.jpg": {
+      "sha256": "32f5597cd3936b04e3ebaacd72f5533c23b23ea97f69c35b8f6fa89130e2d9fa",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213127_jpg.rf.1316c4369b90d2ebc72d30356f1c1f1f.jpg": {
+      "sha256": "efc2ded971dc47ba42e4981f1e7dac3b4d5666c804d36bd380ad6b08e62a94f1",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_222611_jpg.rf.16830afb8fbf1ee711482ac8596a77b7.jpg": {
+      "sha256": "76d0da1b65e666e22fe449b57b7900afca3697cdf55d31c8ffec1958f1ad8b0d",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222108_jpg.rf.16786cbb3f37e5ce6459d8d37ab505c4.jpg": {
+      "sha256": "2cd2b53ebd78038053bcc0125c5d83cf03031d4a51fdef27c3829186ea4b1562",
+      "rotation": "ccw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140929_jpg.rf.1699fab6da97f1742202aebc5fbbf7d3.jpg": {
+      "sha256": "8756927db4d34c9d7eb925436da702aae3afd70efa28a1eb096f4b72962d5f79",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152312_jpg.rf.1870ff7f3d34ab927ab5fe97ff084121.jpg": {
+      "sha256": "ce78c8b980472a81b735bf7835d02b5ef4fb6a7a8b760c428a9cf29a02f6dd08",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_142004_jpg.rf.1d51a75b986bd8f613a77958b76c9cf1.jpg": {
+      "sha256": "62d661eba32269ec2909cabbba867ca7779ba369312555022472574d00e458fb",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141834_jpg.rf.1d4dbb00acfd00437f15265727a2f8e8.jpg": {
+      "sha256": "e6b8163234cdff734882f69202223d5cf090c569cc7b6c9c40af262645fb4c74",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_221944_jpg.rf.1f92737cb114c017ca1db04c60330b7e.jpg": {
+      "sha256": "a0b868e6bd8d76360fad4bfa62c967f01ddaa158ded384938739a8b6093348c4",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141217_jpg.rf.20bb889c18f3647a4a69297f3489d98d.jpg": {
+      "sha256": "683912b96a5711d72da49efd2cddff32ff4de66c8e94ae4f28660fb5706ef93b",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_000458_jpg.rf.1ff15cde62a9163926808ed992bedff9.jpg": {
+      "sha256": "b64e4c05b87f031d608f33feaefa2af0bf2dca2274a03d2a5751ab4e21352ae3",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001650_jpg.rf.2158be7fba1af0a4cad098fb88d1e649.jpg": {
+      "sha256": "29e14f91e3eea255f179f72d0f19df40929edb7518dfe9aa9b975c966ecf4e52",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_142513_jpg.rf.22b6934b0638ae6618c0ab3026de8579.jpg": {
+      "sha256": "cc26a3bec5145e9bb02151ade07c2ef3eaecac66f86d4ed8381be01177bc27b3",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_181114_jpg.rf.a4e464a558809d92f869a476404cce0e.jpg": {
+      "sha256": "25cae9ee8f0c8ef09cdb44319ac9f4b2ccb98e3096a60b41388a9829b51ce96b",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141028_jpg.rf.a6c6ede12bcee9d476e94e613a7d388a.jpg": {
+      "sha256": "353a557ce1ae5f1c92c98e10d8f3719ba680a4785c03baef46fdba0b9e9fad9b",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_142023_jpg.rf.a6528d9daeb91e0c3038ebd2e342663a.jpg": {
+      "sha256": "87c7394d2a291666f3db5ef623d26e95c50cbd2e23a0cec1970515d4ed16aa85",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20200829_012359_jpg.rf.a762a6985a906d5b34cd7bf78c2be13f.jpg": {
+      "sha256": "03589af7217885941e91a67326617e6dd91b203cbfc5c9519ffd3700d1e6373e",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_152305_jpg.rf.a9d79e7b3fe3f8621ba0ffc1dd8b0433.jpg": {
+      "sha256": "ce75e554a2cb12059a00905df2ab92693b9133fdd97d827c6b179bca1dc89919",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221907_jpg.rf.a900ed24fe946647317bd5b2483588f9.jpg": {
+      "sha256": "e13e6da3a2e47283c467f806203bfde51936233d76f90ba5cef1a3a754363c99",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141647_jpg.rf.a8aebf3a0a4ba6088046630f2f1b459f.jpg": {
+      "sha256": "89e3d1d8560acd3771723b10f7830c689d13bb42dbc6c3c84b5dd4a5c2ec40e1",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222005_jpg.rf.aacb126038643e3283262d1984fb1442.jpg": {
+      "sha256": "920b984bb3987eacc31215b8f8be9e8c7e8266f9d9e5417a075d105f4f8dce10",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222015_jpg.rf.aed9a07d361bd3094ec54c41b3e6eef0.jpg": {
+      "sha256": "c494359b971131403cc009e862c5f679b6cfba9e30170dc557e25b5d747203aa",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_180726_jpg.rf.aeb63752c04b24a560bc8d76f795a831.jpg": {
+      "sha256": "1aa47411189e3f0d2c7f721a5bb68fb605b9e8addc5d91fb66a88639b10e6c66",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140631_jpg.rf.b27e54c618f1da684bced3dd58ce3d5d.jpg": {
+      "sha256": "2a17beb2c5ad6b7ee607f9b3e59e2085c235ae74e22c0b129f06c430566228c5",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221755_jpg.rf.b28020138e13857e2b1fee4dcda1894c.jpg": {
+      "sha256": "aa07c5b8243b46491408387d403ed08a4dccff3de58bd02ceee03a136a0b9416",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_152325_jpg.rf.b4a1e6e0f936ab035026a5a8ba596c6f.jpg": {
+      "sha256": "903a2c49fe22160739cd3445eccdcd070ad6544821f84e321d180ccfad7adfee",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_212028_jpg.rf.b4e0342dd4330ee135737eb804c73328.jpg": {
+      "sha256": "7448233d87c5ececaa9a4805d1a70bbbe0ae0d91a5af5001824306868f528574",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_000723_jpg.rf.b49d72c0944c2dc3359a0cc251e0ee25.jpg": {
+      "sha256": "ca04180471051ae2f593ae352d7c6222971d972f4e9f549c76658ba1605f7599",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213234_jpg.rf.b737e596006573a1d744750fce2f9a38.jpg": {
+      "sha256": "c3134408587ebd3f4c4b6354d9e7452486925a4861598d7723339ffd70c8df34",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_144208_jpg.rf.b505c2db418c953c43cd2b33380e3fde.jpg": {
+      "sha256": "69233499e4e9763bccccd7bb57ef24ec9e46efca483616f2cfe188d6a433a7be",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_224721_jpg.rf.b7b8a3b64e915224442d670174fe1979.jpg": {
+      "sha256": "ca0f2c753ba15019dae48c287b15bb961dd0152af42f7b1d14755f73e45980be",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213742_jpg.rf.baaa5924770b7f18fae2a5d6ebc35a77.jpg": {
+      "sha256": "84a348e65354701fe779beed1cfcc0e1b9105e4bdff8729b73b5e55c1c1fb15f",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141025_jpg.rf.b9132f0dd4da777d2123dea4ad7f434f.jpg": {
+      "sha256": "5b4a67fb6a7361769225c7b604d29c023aae3ab0a8003fa7e8526aec16c973e4",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140318_jpg.rf.ba4cf701725c2e9a8d74bada4cce9534.jpg": {
+      "sha256": "1585cd5a8d6169ce2b1e8eca2dedaa344663019dfabaedfda8dd6222a4df1024",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221632_jpg.rf.bd8ff9c482e761675ad461c99400891a.jpg": {
+      "sha256": "136c8810dee3ab78ea6bb766b417043679b69876c81733ea6222d30fa952193f",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141956_jpg.rf.bf18c3ef7c9cb10dfc261ce62ddbe593.jpg": {
+      "sha256": "bd721172fd6254aba5720e8d98057ea1e8ad5d5e51a559d44ce6753c9765cebc",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001612_jpg.rf.c29427e4b62e2a5e8dc9a3b131a4e659.jpg": {
+      "sha256": "5b47d2a3765617930663d18e13dc0e54e105c8f7e1fe0f136cec7fc60baffac1",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001116_jpg.rf.c9be0554e0b0e9dfd3630f71a1992b8b.jpg": {
+      "sha256": "cf4a232aec6e533bae4609b9eb2fd09a311b2dfb242a065e9b98894ce1ec9665",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221525_jpg.rf.cb1dde463c0ab55c7beba542fe199203.jpg": {
+      "sha256": "73105da10436e536d8c30fbdab7f9251c4541c28d73ca73afefda71f9e31e909",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221914_jpg.rf.faaf948e02dd8b369e1127f9568eedc4.jpg": {
+      "sha256": "a53c903cfb11b273026378a06ac59a02dee6e95c547cce4a8e73f49bd40ae694",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_224203_jpg.rf.fa0509c47e4a0cc5f0c244a03cddfabc.jpg": {
+      "sha256": "74f815cf9a6eb66c288366040fcb63ec741acf99ae204cb3fab2778c6089959b",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20200829_012422_jpg.rf.fae2567cf3fae6cc9e69b34797b67fc3.jpg": {
+      "sha256": "57abbadea8a3051f463b735c6d7d393764adedc3cc45f6e13eeb8c8cf95b7e70",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20210425_001517_jpg.rf.faec93a10a20f354b57d753084d62895.jpg": {
+      "sha256": "80560cc13608bbc9104ccd256ead95818e79d4e1965381acbe180550c48a886f",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213447_jpg.rf.fbb293bd4121509476e9ad92da1aa708.jpg": {
+      "sha256": "d8c666bb5242fa73c27b97f5a19660c70b5fae48aa0cb6560f3bd0ad00de81e2",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222028_jpg.rf.fc5b632d97a2b40cc719e6213859e458.jpg": {
+      "sha256": "1a59bf971215bbde5e694fa79de0464258f6085bc8d42fb6a54a1ba05efa6dbf",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001527_jpg.rf.fdecdffb1d2102d5c8f05bd330734b21.jpg": {
+      "sha256": "b4bff034a04e0f53614d09583620301c952aaf9abaf48a2d15b697a838aa3fe7",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001340_jpg.rf.fe0608db322bb6bc59d36910aec459a5.jpg": {
+      "sha256": "7cfa1a3b01ff426c852489861829428e68ff2b469d385d30475fef7d2c2fe3ae",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210302200627_jpg.rf.fda0d26688e29be2190d9a86eb45f376.jpg": {
+      "sha256": "bc4a72b373121ab12a2b6f203112d757916045a17e14cbe26088127e71c6d860",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20210422_222324_jpg.rf.7a6960125518619da63ad17096d7bfb2.jpg": {
+      "sha256": "b8da8594a3455507aba311e00f9da7c71fc7899a576ff2ac457a0949a2a9d348",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_000629_jpg.rf.7d8ff6c695477f9f7e6463e4c198c9f2.jpg": {
+      "sha256": "244f5bfd18b3a205b8646c2b1f88e9d90fd9612a5b1ed92766e51782dd1e2a37",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_001155_jpg.rf.7f053ff554fa3d89ae45bf368c456d1b.jpg": {
+      "sha256": "bf99cebc40e60003d4b47b40a199f837c8d77ff2865b85d8df741d1768be8894",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141805_jpg.rf.7e83c961cfdb2055f8e9c41c3c81721c.jpg": {
+      "sha256": "274219733f11ae4c1de2d5e9fb16eefdd71c314dd3bbea819ef5874db323f60a",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_221144_jpg.rf.821a9e8444eca2fa1428835635afa377.jpg": {
+      "sha256": "aa51a06d602f56c59b4dab71400d0663e383e80586f4bd476bca59cfab0dd028",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_213453_jpg.rf.8245fc355eb135f08240150265c89420.jpg": {
+      "sha256": "d294c088b2e51a1b739555149bfcb2ff80a47532365b358df582118ff7e5b85a",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221645_jpg.rf.83f1228f7af321dbe10e20a22a7c39b1.jpg": {
+      "sha256": "ce3e0ec91b62ce71b7948ef2aa14c8dd2cfef52134590351b0580e56930cc9df",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_002006_jpg.rf.852dffdb1ae7ac8e8e592e5465b1dbd9.jpg": {
+      "sha256": "fce901970cb9b1cb8b850deec9ad22a9d116aacfa10b7d6e50cb5818bc2c44fe",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210425_001653_jpg.rf.847e9f21aaeb9737791de848bd642081.jpg": {
+      "sha256": "1d829a0e3a19afd7238a9c3a3b68db755b948c207ba27caa3268b674cf261c0e",
+      "rotation": "ccw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_143606_jpg.rf.85db8981002677c86afa376bab04491c.jpg": {
+      "sha256": "b9268e1df69e4e87a5b30e6383b83416c0ac77835594d20f00852ca0650dd33b",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210302200614_jpg.rf.87c9b47b944664979359553795eb7db5.jpg": {
+      "sha256": "01cc65d4b9e0cb69f733a90973b764749f9a7cd84fea599f3627d24ec68b1062",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210314100347_jpg.rf.87678b2ecce23419f78127ecab6e2e66.jpg": {
+      "sha256": "43386158389b08c91f5f4d14dc5cefb36b355f2f80d5bc3d2504ee62393ed8c2",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20210514_001551_jpg.rf.89e289751560373b6df12afa713689a0.jpg": {
+      "sha256": "b1c1f00edfaf2cd642f73eda28225a745d79a7b86e29f5e6cfbe37a9a405ead3",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_142142_jpg.rf.8c4ca0043710b5f58cc3639bb1e01c77.jpg": {
+      "sha256": "d355d0855435fed96d60c56a3bf6a36aabd054ed485d4c9a38b3f384ba228dc0",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_222414_jpg.rf.8babd416ec7c3d626edd4a6e5eb7e525.jpg": {
+      "sha256": "25b7767371093f279fcef2839d3b99faee62e855fb26d67592de2ccce50a68ac",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_174150_jpg.rf.8d3e552b65a75908d6185c74d3acb269.jpg": {
+      "sha256": "f721c445672aa96b4ed089a67f041154cfa5fc054991f9791351879a3165d081",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20210514_001558_jpg.rf.8e0933a7ec5dc53d717b130a4fffa2e1.jpg": {
+      "sha256": "0d3769cf17b145f9f67191194f54194301a27cd78faf77e2a24244405eda9674",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220810_180200_jpg.rf.90db4723052327a96f7f34e740750faf.jpg": {
+      "sha256": "b3dff6f457be6f18bfdc791afa4a8beb5f568d5b5cde56fea848a62d077e4993",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221538_jpg.rf.8e26a1259b4c9c0c8b6e8f3d41fa3777.jpg": {
+      "sha256": "dfbc8cb4c1ba2684053864f8d94441a9ddf5aa0aa3eb3ed4e18e2825b851ac58",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG20210314100352_jpg.rf.92a91cbcf818d038a689a9e1a0dfbc6d.jpg": {
+      "sha256": "350585ca6ddd099e4fe498db7f4bc3672b2ef3dd2bd4937fbd2aefaea7ce6125",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_143842_jpg.rf.932d0b0327f97dc3df68a9c5e068f220.jpg": {
+      "sha256": "e6232d244b2ae37c20923d6048746b7828d00d687a97861ecd0c34e5181a4ddd",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_143700_jpg.rf.94e182193335051e9d10e460355179c6.jpg": {
+      "sha256": "a9d5206fd718cc9752824e68c60db86bbf3c815d3af24ac9f3e6cee6f6134f67",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20200829_012420_jpg.rf.965c5401340b540ee7479f7f3b695ae9.jpg": {
+      "sha256": "7406353f6ce41297229222107a2754e3ea9629a690c37bacac6d6a49459f0c49",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220813_222119_jpg.rf.969eca1fe2e356b13115d028b24a9314.jpg": {
+      "sha256": "3794bf6e7bc96ef34b7eb00455b05fbadb46a13aa886457001be1086f781a01b",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141740_jpg.rf.98368d3c8bc27fed9161ac60b485dde5.jpg": {
+      "sha256": "f0c37ec4590986b09e7355979bd1dae07976ff0fdd69ffb22ea33db2ba85c8ab",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221657_jpg.rf.9bac3057a115d6b1f15714fc98f6ae81.jpg": {
+      "sha256": "5805d472304d9520b6f5a7114c7f92b695a732cd9af2b208c6dbb68576af33a4",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_143900_jpg.rf.9c26c6670543dfd7ee91e349371bb15b.jpg": {
+      "sha256": "294bc73e48e1a9ddd6b649e6353d5939629a7795b293242de428c6e517c12f42",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221519_jpg.rf.9a3273cfb992a9b993fbe305a5d67122.jpg": {
+      "sha256": "23ddb6ed116da00bf0fefe421b1320745001bee28388ca46b91d4a14aa161ab8",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_221203_jpg.rf.a031378f915cdcb5f1a0214697a52f83.jpg": {
+      "sha256": "3bdc3771128aed3a97a8cc268767ea7b830c1c3095ce5891b0d802d49fa6c169",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_222525_jpg.rf.9de30e299ba00c9bb165997ec9053927.jpg": {
+      "sha256": "28514c3a228df7425a17e1233038817ad650a1b2792075d91b122caee0df2952",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210514_000817_jpg.rf.9f338701c87c29ce2de853abbe369506.jpg": {
+      "sha256": "60c493875eca4165f8126932412772a218eb3ac08a61631312dd61e70f60edcf",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140734_jpg.rf.a1852dd3ecadeff1f5bab9f25b1c42e8.jpg": {
+      "sha256": "70dad637b0eba7b690eec1eb121237757c009e4e7bf40deda1320b5fe2d9d715",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_222536_jpg.rf.a13647c032fb79f59986ed2a21f3fb1a.jpg": {
+      "sha256": "e9c44e1252a96650b021fef838d5cea5d4b5a831ae1d6feff8a5b242b7f5ab19",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20200830_134633_jpg.rf.a1041f42bd4a09edf410d8d09e5cec68.jpg": {
+      "sha256": "ce43dc0f0ba49708e5c2a9c38ac9ec343d2955485d92f11985153b9bfe3b22f9",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "train/IMG_20220808_140824_jpg.rf.a15870d807ba56f58ae9f0b5dbc41216.jpg": {
+      "sha256": "0c45c345c5c703af48ed0eb69fe33825be73a23b18ba3084fb76997204c8782c",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210422_221744_jpg.rf.a26abcfac4b8f2a619c98f5e226afaad.jpg": {
+      "sha256": "111dd0347f24bdc2c1da40c030ccea9786b531c81f972ee39b32a4af75586c25",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_141817_jpg.rf.a2a936ff6f9fcca0f69beb34b254aea7.jpg": {
+      "sha256": "582fc311941d6b58243a8c00cdf35dd369bb4acfcfb6ef6c64fd13072f8470f9",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220813_222548_jpg.rf.a2905e63dc91132c487f3539adf8173d.jpg": {
+      "sha256": "0795626e811bf8f140cefcbed39220cc191ed9af69c28fc3a40f04bd732e47c2",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220808_140616_jpg.rf.a23d743502bdb5e1a6f681052e7a2f6f.jpg": {
+      "sha256": "1490eb201df04b6b4368a4549e51926374f8bb457f2fe0fee3e4943c4e99271d",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220813_221840_jpg.rf.78b74d2bda2425ad14008864da3920b1.jpg": {
+      "sha256": "7bed7fdbeb60d6fe14c6db68526a04cf1283e3859fc2f722726916ba5294be67",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210422_213338_jpg.rf.7c7d90c14e9288f11c386487e3cdffea.jpg": {
+      "sha256": "c0b7750bcb2688f8be5e16fd7be9221a5c4dcc83c11a096d7a6258f0502f41f4",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG20210302182922_jpg.rf.85787377d14fb4a3b41c33ef61868480.jpg": {
+      "sha256": "eee60effd730ea0f8996cb596300ea09ed29ba54a1080cd8e7ab4a2c841666bd",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "valid/IMG_20220810_180416_jpg.rf.8c34e1313e748f1daf86dd7a6bc2bdc4.jpg": {
+      "sha256": "cb02feae74ff6cd01970b2669d211c289455c9e1b52af1d3b9dc06cba1668e35",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210422_222419_jpg.rf.904fd7dc3b20ee73494812bf3d347d3c.jpg": {
+      "sha256": "ca84b8b467984eaaa551e61f42624192259002c954e276c36b12372c85ae68e3",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_141103_jpg.rf.9cc3f25d5b9788e2289fc7c924705418.jpg": {
+      "sha256": "cbbd489282f331392b235c89f49be29f1093345707b769e652ba4374ffda35af",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_140728_jpg.rf.b6aa6c716dc6011a8ecf1bf97e460bea.jpg": {
+      "sha256": "c5f79cb66cec5f36e5a1a2406ea76cef42e543df4a25458df767b1d643e7896b",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_141927_jpg.rf.b7f2413fa195041010df754d96818f86.jpg": {
+      "sha256": "7b80445af901c8845488ed763e805eeb68778321079c089d5e5834810b2e8480",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210422_221701_jpg.rf.baa9dcd86cf7951aaa7deb470ef81adf.jpg": {
+      "sha256": "7254b879b3409b2bc63a75ed8b2025f9169c21533effa3b920d4dca4d45e33a9",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220810_175735_jpg.rf.c02a10c989a910816137a6e0e4c9ac49.jpg": {
+      "sha256": "83ef15bf2b3ca264b64381ed91d64f68e5821d0fcdd7eb8e0a473203246e8cd8",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210422_213734_jpg.rf.bd101fda3ad0840862ccc3ebf8693137.jpg": {
+      "sha256": "924a6b773fd5e7df2076b33da1b66ffbf59f29d917be137771b97f02e0a53a71",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210514_000919_jpg.rf.bd5ea3da5d49f80d8ba302436d7149bc.jpg": {
+      "sha256": "67ed948e689d3510dd0849ee735462dece0f3229ed339938c05e4020d6d0a1aa",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_143029_jpg.rf.c971116b4dbcbb0f8e764e63e54ae02b.jpg": {
+      "sha256": "d2f79917564313f9648a07f7f2357bdc2f8ca3e50ea52d62f64f42faaabd5346",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_140739_jpg.rf.cb620e76981323abdc1c0a576828743c.jpg": {
+      "sha256": "542beaabfe34d5033a1908ec2e5abe6f41482af019c797037094bbda576344ff",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220813_224149_jpg.rf.d1c76dfd7cd38ecd140cb433a527bde3.jpg": {
+      "sha256": "44ca5814101a64ec045d9563e683e90ece9e799e04eedb9a7d1b9eedcc77b581",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_140902_jpg.rf.dcccf786ddf07c1aa5be9406d766e850.jpg": {
+      "sha256": "ce87893753a76ba0dc414a74147ed7081d87ae12e5914f5d2f505dc97c05abf4",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220810_174102_jpg.rf.db3b4ea1207df8c5ef89b0f8c51f3346.jpg": {
+      "sha256": "e2dcf8898f026026795782887bb84b071bce9c3020eaa1a06ebf45733f825307",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "valid/IMG_20210514_001541_jpg.rf.f13944f66a9645f48b4c01826e09db91.jpg": {
+      "sha256": "551d753391b57fca678b8e0d647a954da317727a95977e04a16f81c24ffca927",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_140803_jpg.rf.ecb0e78bdfd37c382e9097bcb8489ce3.jpg": {
+      "sha256": "05cbab8505d68e146f42a265caf6dd6ee7f937b36fbf877c043e8898ee8c3b36",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210422_222320_jpg.rf.ee0518b4c8f4e4af829468e51a84dfa4.jpg": {
+      "sha256": "4f767b450620aad62c86a5db47969c82d8d4df694de90ce82041fb6959977e04",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_140820_jpg.rf.eb50d6b91111a1ed7e8ec1075a8d9c95.jpg": {
+      "sha256": "3e2593191fe93ede1e8f4c315bf2751d548a73111806178e48d52bd3f9a3e855",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220810_180217_jpg.rf.f77a9fe74ef21209acf03c10a68f0cdd.jpg": {
+      "sha256": "a3f08219d378c56d500f697c6a8e1f526f8e892b7465cf8fff842103c3313709",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220810_180248_jpg.rf.fd3754b62284df63d478f431bc0d2f54.jpg": {
+      "sha256": "6b1a5650ce28e3245bd5b74a7261086c96e8b86f2e0f886667528f77d787c734",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210422_213244_jpg.rf.033704ea10be78ffb9559299c0e34c08.jpg": {
+      "sha256": "0ab59610e8ba7fa99c6698dff169bdd4564764f36bc7e40f01224c85613239ae",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210514_001009_jpg.rf.04ed3684b9340f447e933a89a4bca9a4.jpg": {
+      "sha256": "4bcbdf8ba5d6127973d05c8747412f469a2456aade770891415f47830b008b83",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210425_001659_jpg.rf.1ef9a7602df0f19549caca196379d973.jpg": {
+      "sha256": "1f88e1c5f2a8f458e6a572b4fc8cfde79a3e6f3bee78b32ff890c74a65eb7234",
+      "rotation": "ccw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20200829_012429_jpg.rf.22412987b13da4211bb2cd9b3e579ecd.jpg": {
+      "sha256": "9c160fa8125c0bb7bff82b761339635c0ad201de6c9f0e8c23f2f74a76cb20b6",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "valid/IMG_20220813_222108_jpg.rf.1a15d6820268d755001460e99e4fcac4.jpg": {
+      "sha256": "34545bff6cdbe780383df24848f6c876544a5b9125501ea559bad3d6c467e2fe",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_141334_jpg.rf.21c2bdf2114b9ed8baa90a984ba3f679.jpg": {
+      "sha256": "0aa19e11af1ab16772fd31f0ca93d765ad698a3bee9209a757b99aa26a6f1245",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220810_180259_jpg.rf.26bf7082906b293c0f2910abff23edf7.jpg": {
+      "sha256": "605d6a8d7aa86e294cda29b5d632c27e45717d5df784a056ae75f4580dc09aeb",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20200829_012411_jpg.rf.25cd68626f3e69eaba499c3d8459321d.jpg": {
+      "sha256": "ef3e59db23263a46a896606c472f7c33e2f1d83dcda906512caafa0e64f13058",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "valid/IMG_20210514_000810_jpg.rf.23bc733d187cba2fd01ccfdee6072353.jpg": {
+      "sha256": "7314451d5e31b879779a9708dd003d698a0323f3d5a2cb4d203ec83769ed8e95",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220810_180358_jpg.rf.2a071e4597b07265826d5b7c1f3fdca2.jpg": {
+      "sha256": "b20e1c7fbe01ead9ec473393ba5ce70bf64661b3657d5c1cd52a85ca5f4726b8",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_141321_jpg.rf.3220dec9ec15655703bc7299ec1446ac.jpg": {
+      "sha256": "f1de225f5204caafa650226078be76b35a0634347c71babe615474cc1d004e53",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210425_001023_jpg.rf.35c05a8161bc80d7a27d76eedcae911d.jpg": {
+      "sha256": "a08bdc7147c89f27f887c956dfa32474526ef8551dd87affbff64b260b7c4ee8",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_140626_jpg.rf.364e0ce492f773a277a83f261e789a1c.jpg": {
+      "sha256": "f7e79ae6f2b92c429781f0513f53d102541d690c4b8a5a652debdfcd4315d342",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210425_001934_jpg.rf.3a8c968e2cda5b096a8ebea12012fb17.jpg": {
+      "sha256": "645327450e0a2cd26f8cada64fac52630886aa05ca6a18c0671e3cdae16567af",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210425_000411_jpg.rf.43b19fefb221a7b4710417e3891a8233.jpg": {
+      "sha256": "d810f5fde182c604328d0b2bb0fdac0347bbbfb8c07c5274eb13c842ea94fd96",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20200829_012404_jpg.rf.464eafe09e40460e20525dd48113a20d.jpg": {
+      "sha256": "3a1bf6bde87ac6d94bc3ad1e4b56431376dcd187abfcf24632bb8407c212b5ab",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "valid/IMG_20210422_221748_jpg.rf.5bbed74ff4faf1349dc09a412774e0eb.jpg": {
+      "sha256": "f28fc81f752237739007f742e17a3e7b04e95fc7a307ca8b2b803614230dd1d3",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210425_001940_jpg.rf.5c46bf1a5ce408cf93e0cd9b12a37e3a.jpg": {
+      "sha256": "7d16b9c49b79353584f6c29e3380bcbfdc82404c764b887d290f2150bccb00e9",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220813_223818_jpg.rf.5e0a48efe0d3316dc70960171a79406e.jpg": {
+      "sha256": "cc39bf140ac53e58611c7d49ff676792ad6b61fc6ecc50416c84aa8b8b9567a3",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_140546_jpg.rf.5f73c05e19eeb3988a75a17d0994c8d2.jpg": {
+      "sha256": "4fcd1bf1a430e60f2c7f0632cb53019d55b3634b8460b43a2f4983d657ac6b0d",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220808_143814_jpg.rf.69a44fff4aeae074491d70040f3910d5.jpg": {
+      "sha256": "b829dee05a0dc6209d3dce529045ace3ff861bff8c8cb14eef1c43b35693e63a",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG20210302200857_jpg.rf.671c89ed17be7d8ab3d9728b54aa5fef.jpg": {
+      "sha256": "ea0a06599a4770e6f5a131c56ed6220b8a864cf5d2e08ff73cdc6f4b63bf033e",
+      "quarantine": "Visual alignment review: close-up target does not consistently enclose the visible piece; correct source transform/reannotation needed."
+    },
+    "test/IMG_20210425_001006_jpg.rf.07c7491144f87a1d07ea7dde99f044a7.jpg": {
+      "sha256": "01d044873bf4d5be899dfdbf705dfa27362c4bf58819eb4efe7884d52ca724e2",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "test/IMG_20210422_213750_jpg.rf.6d7aa62c1ec92c8b6e464b97e9b02b0f.jpg": {
+      "sha256": "964433cf99fe03cfed67b1a565605149570813cf09207a5762857219f32b0ffc",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "test/IMG_20220813_222307_jpg.rf.c4b9cd2b3c72b17384a1da27459e24ec.jpg": {
+      "sha256": "b157f28688405de1b26cc710f38c1dbd3860a288ae07cb818eb96d9fb128aaa6",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "test/IMG_20210425_001534_jpg.rf.4fc31600f14180169762e6f25c99096d.jpg": {
+      "sha256": "812a60415a4f54a6e4ae5770e3beb581ae0909f58c877a152411f3d30aed7dab",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233059_jpg.rf.2617972ceb9a9567022491f3761072bb.jpg": {
+      "sha256": "d6c2c1eabc415e1d1c49e8b536a33ac4de5ca512c029aa18370512ee2c24622d",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_234030_jpg.rf.24b95e5e2c8ae15c5b978ab44c767cbd.jpg": {
+      "sha256": "2fc2c57e7885e31430fd1ff482982c57a03593ee9b1181220032f831f32da322",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_224940_jpg.rf.2e0b45a236cdadc310149ddbd5f137e8.jpg": {
+      "sha256": "7baf6900e3e63e85946a3a8295e6b469c25caa1391d001d628c52fcc280c0fba",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20210513_221830_jpg.rf.2d4b8d5d7ccc53f97daa9c112d8a3080.jpg": {
+      "sha256": "63e7232ed944f61ebf230081aa45241ef24d5ee766bad5e36fea6c4de7c6c5ad",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_232826_jpg.rf.2ec72c1a302891c78f17333d81139550.jpg": {
+      "sha256": "f3899793cb453b19cae41e2ed2962b7947c740a0791bdbb62c75e406726807b2",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_232834_jpg.rf.34660e1730fd0624cabe2615455a6ae8.jpg": {
+      "sha256": "2d28a7d6998bd4724e2436cb009f28e538b3547d857589b040596c8489ae15e7",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_205934_jpg.rf.354162f3f67db13f7001912b3dbbf070.jpg": {
+      "sha256": "1d09489504b2c112559b7248f31ae74bdcc93589d03aa9de271f77251a2f29a0",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_234051_jpg.rf.359fae9adda5b5e8dda88e8a1f012fa4.jpg": {
+      "sha256": "ed77fc16912336e3fef465cdc0cce103b83b3478f05a3cb82cf9bf2a9841cd3d",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_224840_jpg.rf.36387098a7e6265ffb182cf9e03fa29e.jpg": {
+      "sha256": "0fdb2119c0651dfb8702417791abc87a29653a77ccd2aff06c458bad0967b0f2",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20220809_224444_jpg.rf.37b5a6703e06f48d86fc1c04af7237b8.jpg": {
+      "sha256": "8829676e0f2c1d17fe196e2412702fa7c8284712ebbee12bae7d4305c9bc97a9",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20220809_235018_jpg.rf.384c6579628e35b4ee3af94cd83e23dc.jpg": {
+      "sha256": "1847da91a99be6885db61aa2ed100e4db9e836a19526e54ebe4b2d644904fc3d",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221157_jpg.rf.3e0571dfc21bb2f2ced13fec93dd503e.jpg": {
+      "sha256": "fe01d7afd863feec014a4e20bf294bb5dae4e4bcec8ee956b43ca406fddc1e96",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233837_jpg.rf.3f799b290eb93ceafcf1bbb0e61cf008.jpg": {
+      "sha256": "1a6739ae8768fbb7e7e7b165d1daac57b2e7170f2c182a968579bb6a8703b24b",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221007_jpg.rf.44946a19bb8e757306d3038033a48e6f.jpg": {
+      "sha256": "a6dcf8092e087e9d1cf2768f31c37ae28e8ea139a28a6495b17919c87a3b7b55",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233411_jpg.rf.4b1b857f1e45afe2c25363da54260226.jpg": {
+      "sha256": "728457304917b0a4506932ca315ef1399d8f2ad8cb6d3564e14e8e45b3639b33",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221029_jpg.rf.4d479fbbfa38bc096ed4521bda2decf7.jpg": {
+      "sha256": "44c1d6c11eaf35b3d19f949f0f622038509fd85d0d2b11ab50f3d3ad8820d147",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_224554_jpg.rf.4e37d23c5ef5e68a77db61ea3c9d1d0a.jpg": {
+      "sha256": "f3c079945dc8232efa4b2966d7bdabec5b6bcfe0ee4ea63994d91342d60f527f",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_220829_jpg.rf.521108a4136167eb09f6a20959ddbdee.jpg": {
+      "sha256": "70ed536f7f95581883b6346e24716ef0684304a590a7da0c0e1b46cdfea0ea45",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233402_jpg.rf.5ad81d5150448cd578268753801bce70.jpg": {
+      "sha256": "585fca18f29dca988078ac45e077fc916af9f35f173a4e390127be39865f0003",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_212901_jpg.rf.59ae3698f6729a9bddd692695f18c41a.jpg": {
+      "sha256": "8fb77755b9bf190ccb020bb609cdc184537ca5ba36d8db6a7de25c15194ccc06",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233117_jpg.rf.5f88d2b744e80109c18431f12f0ab0a3.jpg": {
+      "sha256": "5b5aedc7e970a1f8737ccdd69e9078042913dbac4fe3c77be6fa680da71aad17",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_234436_jpg.rf.653a217d7c0bc1f9f5fca7611b15a521.jpg": {
+      "sha256": "c23d692c1f78cb521f85db917f67cb4980036f1d9bb546efa688a9c5277cf9a2",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_225014_jpg.rf.6919d63df5579651c19ae668f850c30c.jpg": {
+      "sha256": "c68c510bdac2ed98015c86bc6824a4ad2d1d66bc9f2b4594c156024cd321b035",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20220809_232225_jpg.rf.6c6e2591059e43346c0cf55814a52139.jpg": {
+      "sha256": "e298c11a36f7dd52e43b7205e071356f9e3974b7f5421ab67de81e455ad781fc",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_224338_jpg.rf.6cf24a0e2f5c845c39cf8793e5522b8b.jpg": {
+      "sha256": "985fa2efb460912fd0a4ec2d0244e543e597f8028c308486c9ccdee62798c4b9",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_224947_jpg.rf.6fffd122d9d7821da098756536400221.jpg": {
+      "sha256": "4c03856f5163c7f0b5f33af5f6f46f880ad13d6f89e236e5f5ab46c46b93e182",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20210513_222047_jpg.rf.7213451fdc17a56680f96ab1b60b07c9.jpg": {
+      "sha256": "b3af73392c585886c9733f86e858f081430d690737b8e04b55318daf1aee2e85",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233422_jpg.rf.7225f9837a2786db127ecc52a9053595.jpg": {
+      "sha256": "cd647274ba32289fda79e17b73d9cfaebd6865a033509efbfa815559ec38e042",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_234203_jpg.rf.774839d1f972c076919d0d1dd8411e0e.jpg": {
+      "sha256": "2ce59e1e6ecda64b3eef502cae951d8a398e847d69268fc8e85e63ead652eb7b",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221657_jpg.rf.d0fa5e704e2e04ed4d4003027a72c57d.jpg": {
+      "sha256": "736e3f1b166e06ac4aae6fb895ccee2c3c15db41045222fe6c93a1564f8c4861",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_234514_jpg.rf.d4d8962439562b78be706b39998cd991.jpg": {
+      "sha256": "d58dd1a7a9f8e77afb5c894fd80225220e8a4fcf7661589710992b4b22a21b6e",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221954_jpg.rf.d55e22a7afbf2322a6f716d0cff47ede.jpg": {
+      "sha256": "8d121fd04aecf4782756a0d42f50543faee0eba2ccba43e2894288bc43f509da",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_204017_jpg.rf.d8330f33abafbf9c5237536cc8427b71.jpg": {
+      "sha256": "7cea8cb96fa5858835249092af1f1eb4494bb9204584eb2168c5c9558dd5f66e",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_234310_jpg.rf.dd6a598055dd121c91080fb58a94c416.jpg": {
+      "sha256": "d68b94a32f4c9e355523e9839055cb5aff139ce75b4bb8130df544c0765d8e28",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233105_jpg.rf.e56ea8da423ffdb07b72a938893d028c.jpg": {
+      "sha256": "9b6b0ee828e57930bfc924b2d0264c46767a78ab79783cf4d59694e8f0e9837a",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_204036_jpg.rf.e7f61974c1f3739adb3aced1cd5ddb24.jpg": {
+      "sha256": "b6b015ea5d039e4a7e09ddca68d805f820c46b65e0f4b8e81ed858772e12a1d7",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_234139_jpg.rf.e8650bdda6f3e639a7b6dd16a92ca7b8.jpg": {
+      "sha256": "0ebc43858b6469a1f52d66c64a8a2c5b614606fe25320abafdb6a67f507985e5",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233753_jpg.rf.ecf2179cf09d9b20c7f75dee2de0b551.jpg": {
+      "sha256": "f9d6b9d40dba9024bb0709d8e5a26b4bf5c4163fda10a8021592c67e4d708e41",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_234036_jpg.rf.edce837ca7c006328381888521a82ed8.jpg": {
+      "sha256": "e6718fd156d90c1bb3485bb351fdea31fb549970bab44e47b32b3236df76c2b7",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_232445_jpg.rf.eeafa307a5c8c1208903dab4dd70307c.jpg": {
+      "sha256": "c01198ae50e03ee1905438b953a0b52f0f129f2ebae61383d3c9e2727df183f0",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_222104_jpg.rf.ee8770b0b55236c7dd5c17bd4880cb92.jpg": {
+      "sha256": "4e7bcfc76ba4d81ae2e044fc13d591e16ada35edc94955a9e3a4de5a202df193",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221652_jpg.rf.f7ace7782c7c8c55c90fed7f20a40908.jpg": {
+      "sha256": "2d8b06bb06182527fd85e556250d4886b29aa4323838310f751413dc1707aa9c",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_235007_jpg.rf.07d8418fcca4133184ada2ae360cc80b.jpg": {
+      "sha256": "62969269debce23628a6c1e44b33d17312450e27816a3d3fa098c85c18b6e5e2",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221015_jpg.rf.099e46f4dca6ed904d7f969eee7fba7a.jpg": {
+      "sha256": "d1efc15538433cbd9f25a10c981ab138ecb51c1254b41fbc4680f2c2eedb9d33",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_220840_jpg.rf.1068b7768a14b25f10296d05a141680e.jpg": {
+      "sha256": "468af8134b0c2a4cb32de34ac81b0c1ce6660f99d4980e3ae244eb65cba1d15a",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233442_jpg.rf.11d9fec34c6ab780afcd91bfdbc9c97d.jpg": {
+      "sha256": "a005b6587dd0f7009e404680458bafdc9c74e8564f7142b9362cf79fcc20cbf6",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233842_jpg.rf.1316711ca273ba52ba9a8be345e5d1cb.jpg": {
+      "sha256": "a1746314c5246ab9dbfaefc0adfe6b5c2394bfcb29760e5f82d7b7295e05f2d6",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_203848_jpg.rf.15f788692e0c99a5364dae958c8fe5d0.jpg": {
+      "sha256": "e310785bbe435369f6ba595df457debd54eec9a928995f9c777a1a98a340b12d",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_203412_jpg.rf.181e84de67b85ce08f4436bc6e2d8053.jpg": {
+      "sha256": "fd002af88916ad439fb274c867041885c0e574a6727702a586bf190b7bfe1c93",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233138_jpg.rf.1b7d5482272c01f5b8e73432496e7a86.jpg": {
+      "sha256": "07fda096e41252f94c157ec919add17a31f4cce2d5b433f0caa1b1ce0ba68be1",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221948_jpg.rf.1d9b6c26b669991c9a7735669fe6b881.jpg": {
+      "sha256": "43a9e3623f83d4ce73386c40b70a552676c3b34148fe00c038f0497e60997056",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_213533_jpg.rf.1db5594a41c8b8e1038d081af810e816.jpg": {
+      "sha256": "cabd9f82182f250d4a1cb8be2568269e0885ccc6514bf379b474cab7909ba517",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233713_jpg.rf.238702784ce33177759dca76fd83bc1f.jpg": {
+      "sha256": "45843c47ad646522983b66f5329d7f5a6ef376f89dbc89d884aaef8bdabe900f",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_232157_jpg.rf.233281d1f2fe6ba4cdea0ef60e95fa3f.jpg": {
+      "sha256": "205adfdd97b1a715cba1c04072425a700f7a9be1be23abe14196e388d04725aa",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_234012_jpg.rf.a6cde48fa7a02beb485682e29ff1bf97.jpg": {
+      "sha256": "db87a568da01d53401a30f3802dba878aa39e210bd158081d6b5153d81d240aa",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233546_jpg.rf.ac27a44bfc1eba739d276240c195f80b.jpg": {
+      "sha256": "f90300acd1810738cf21a89062011113a56ba65d95ae7731e4cd799a6039b127",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221644_jpg.rf.ae30ff186ac329ad67b97beb7b3aec10.jpg": {
+      "sha256": "d46b4a1c4852d620418331db068d9690344d3b26c3a5ddf5e75ed59751a373f9",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_220640_jpg.rf.b2a96ea37633ad012a3ec553bda69084.jpg": {
+      "sha256": "fe66371bbecb4c61df3bbd22096e0fadc879712d443f58c8735c2d640c64e556",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233737_jpg.rf.b446edab2acc83e96db52990e8aa6954.jpg": {
+      "sha256": "dd97e38c3cb815fe09883041351d74e3ccb2d97e7ccfbe27982302c44d52fd42",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_205923_jpg.rf.bb69789b852a784617e5d17bf113be79.jpg": {
+      "sha256": "4e802a85bf8425baa78dcf2e6f7b1351aee79c80a2ac5dccf3a0de44f295aace",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20220809_224852_jpg.rf.ca68e033d5d3de4f69dce439b3854ae9.jpg": {
+      "sha256": "e1d8a3dbede916fc7cfc6d9e593d192c1aba8f7ec55a5c5d151786210736dce2",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20220809_224452_jpg.rf.fad9e653ccdf4c6e38f211bfa39f8ef7.jpg": {
+      "sha256": "d463a21df1b86b01e239d96577b21406a8f306ab03417e2207b3fc544e9b0bcf",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "train/IMG_20210513_213551_jpg.rf.fdf8515e170a0c126580583cce9e9105.jpg": {
+      "sha256": "d5af071ab1af74e3e429fc6020fbb971cd5f01a9ef660934fe2a76f05276e9fc",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_224747_jpg.rf.7dd65b9e54168365cbd1a214a624d6d2.jpg": {
+      "sha256": "521dbef27506a9a4b9062ae31cb9b6f9f5a5dd370834a3086ae186055972cad5",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221435_jpg.rf.7dcdc8f657b4405514478acce3f9e858.jpg": {
+      "sha256": "e3855163ae48f6526598b4c8c164090db5cce4c3813307475f076faf9566a6bf",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233124_jpg.rf.88fbb6283feb8c8804ea9500c61aed8f.jpg": {
+      "sha256": "dc5fa1bbde67ac001878704c43389877caac7fc5509d8c96b2b1f06b29ff3462",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20220809_233522_jpg.rf.8b2bd267161768409a9cd5989d307ecd.jpg": {
+      "sha256": "20883d388526545e560490f56d62c16101d7ebdb4218d7e73fc4a58b08b2a14d",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_213608_jpg.rf.8b3286eb7382ba7897c75bc9d4f18e9b.jpg": {
+      "sha256": "b1d09f110279d2f17697ae994dacf6dc738c115e589aaea79a20809a3ed84660",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/IMG_20210513_221021_jpg.rf.9bfc689cd64f4dd6f5c9e21059af0675.jpg": {
+      "sha256": "f9c91b1759e46942eaf31be68b5c2baa0905f2d51a1db0056c28b07c979accbb",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233705_jpg.rf.7075632e0ef215f42545fffd3f0346cf.jpg": {
+      "sha256": "d55c39b8754a333b42e7efd7fb7810e7df1728f493e5ddac104d671a6da0237d",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_232739_jpg.rf.6d7be191cd10cd6155db1da36f9c2468.jpg": {
+      "sha256": "1aea530da6d8e61c6352b96cc2959646fcf7b7e6ea1eb93514e2a88aba908223",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_234017_jpg.rf.7bc1c5384ad642293a8b44f0fcd020dd.jpg": {
+      "sha256": "f1be2d5496f58790f6be42a17a4702b40f1a03f939fced39f052c5a9b36016ab",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233529_jpg.rf.7fc37b8ba05b62ce857209af24bfb1a8.jpg": {
+      "sha256": "741e425bf1b42d51ad7deb22653e73a01e3ff67932e26bf81fb3e008815dd942",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_224754_jpg.rf.8aaf5286f8abdd7edbfedcf9651f4da5.jpg": {
+      "sha256": "d82a69bdc0f32f8928d830a7997ab58fc15a62fc9d2ab7ecbb1ebfa847e56434",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "valid/IMG_20220809_233148_jpg.rf.8928a5b2f7d97b0eacc3bc09ea1bee4b.jpg": {
+      "sha256": "08a04ea70bae8f080933da89c25b4a11d6eb3ca4fcaccfd51843e490ffaa4883",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_234044_jpg.rf.8b11527b54bccc2791049b2f29b4ab4e.jpg": {
+      "sha256": "0677f3e2d0f897f8b3046406aa63b132db8211f010c34ce314998fb026502873",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233430_jpg.rf.90837cd12e5a9ab9c54f11996f6a9954.jpg": {
+      "sha256": "4ce55c4c9a00ac156fd1c49e48684136e77ad9ec0ead099f60756aff85b501bd",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233901_jpg.rf.93f05da2432cd409d273ebef7ffd525e.jpg": {
+      "sha256": "3041e547ba3d1459d8c02cb56d3dabcf851da84e7bcd6955330f7099687524e7",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_232756_jpg.rf.8e80369a4d18bfbea1827537fad4519a.jpg": {
+      "sha256": "059980866047a231beabe95d4da946a56119df7cee21153dfbe0894d5b451c47",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_234443_jpg.rf.b2651ee6b2ee428910b96b011fd4ad8d.jpg": {
+      "sha256": "c8e915c91e09c530e7e7ed82b26bf0e6e9f3e63c05ea0ff348db9f429cde28b2",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233558_jpg.rf.bb379cae03eb5e2afcba7303e96bad51.jpg": {
+      "sha256": "7ec41b81827c3deda321a554419ba13f280b8fd640fc93111447a4ca7371eb43",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233448_jpg.rf.c3e5cad4ad49863e72003f71e22a7198.jpg": {
+      "sha256": "b685122701b283f553e92877e428af6497b56291ea1cd5c0045bada06bbd2c30",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_234957_jpg.rf.c4e42306c4c43b5c554874f6acb05b5e.jpg": {
+      "sha256": "4ea38325fd1fa3c835c913cb121c97ae6bb4ec7c7c426881133a11ea4c9a2f90",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_232807_jpg.rf.ce59f5f2a0e5e628d12aa0fe854e7526.jpg": {
+      "sha256": "5424e7f3330f82e494608340b154006df739e0d76b7f52250cb836b22562e0c9",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_224328_jpg.rf.d4c662a5755beb2d513f1a26b8cf4328.jpg": {
+      "sha256": "1c57e215cc0b6e0cc0d1ba3b9ef83f2d3249fcb69c9d49373a3e392af22c3d81",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "valid/IMG_20220809_233325_jpg.rf.d48d9010ef7f131d403202af68ed25ef.jpg": {
+      "sha256": "ae1660799e2f37bc09b5acb70f8ddf5d892a2d4cc7659d45eeff5b18fb3496b3",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210513_213559_jpg.rf.d79a7ea6e4c45ff5a333cf8bcd3bc179.jpg": {
+      "sha256": "ad9f9e364bd18bd2b14b5a78301420f9894b5cbb5aff6b547eae19c55af0bba2",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_232747_jpg.rf.e8a873dedaaa65dee3b32c05c82542e5.jpg": {
+      "sha256": "b75f6be9c5c518ef1e25b626f796073ed768d06a84394a4d983a5f9d9919fdba",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_224548_jpg.rf.fe0452cfacaa58879ba8e0d2717c027d.jpg": {
+      "sha256": "daa19faa997c8bdc9a6761b4072d7e8eea4bf4bf2157524994bcf5841f84242a",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    },
+    "valid/IMG_20220809_233724_jpg.rf.0132c18e8d5a2a0fecd0a85ed76d7788.jpg": {
+      "sha256": "f65ea283cfe6cf099820f1af119ed9e2237962e4d7a52e1c2b7e8bace48511f9",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233537_jpg.rf.1e59086ae648dd149f88b7667199b7d5.jpg": {
+      "sha256": "f40d5b5c2ac16e77e90319f20240b5779e055b4bdac61ecb4bec23b733ea5b79",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233744_jpg.rf.25cd8b8d98d3d7a476d20e94fc77da4a.jpg": {
+      "sha256": "0ac6790a6df31387aa3e6173895a2749cdd40959864331ab93a5133fbc6a30e9",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233237_jpg.rf.2b19341d7b63935d8725dece2d99ec1a.jpg": {
+      "sha256": "de56e98344530dce311c858d4b95ce4aaba6f73f3fba0d93e2020ba56af50060",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210513_220649_jpg.rf.34314885f68ad3bc26e00ce641f8ee29.jpg": {
+      "sha256": "08ba13f39d0b8b3357c75d3860e22d6ed21eb808aae1d716be8037b4e8c04fce",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_202254_jpg.rf.3fb9c095471bd3da0351cdb7d3cdf94e.jpg": {
+      "sha256": "43b4401390ba0fee8b3165efc105798a00c32ecafead9b5eb1938d44fad7fb4d",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_232455_jpg.rf.39b4bf9b1e2b992422b329a5f3b3c433.jpg": {
+      "sha256": "5681bd9e57dd31acc86a4a4e8633666d2dd9c90e5265b1c5405ac510d55d0ff2",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_233318_jpg.rf.47e708513da04899fc949b7302c16ec2.jpg": {
+      "sha256": "ab57ade0f4adc0dcfed49e3b7c9da0de1884a39b1f2d1d21d97b1cad3ba42925",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210513_221702_jpg.rf.4b84a0ffc26dc367cdb52a0ce0f0e162.jpg": {
+      "sha256": "0833529a153e31ac864b35fb4606ca7a5d6db8b71326c19cc9e09bf983171e41",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210513_221133_jpg.rf.52ebfee000b677ba323b730b58e30fc8.jpg": {
+      "sha256": "c69d7a44203b7876c069a7351e813bd5b7a57ad3f42b37daf7a7d3fd1430eb63",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_234520_jpg.rf.578f50cf05ab1b8ffa79505a72e7c777.jpg": {
+      "sha256": "972955f8bcb5e9bab2e31927628623b0b9e2de97b0cd1e08f4e23aab3f9c401e",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_232210_jpg.rf.5a9d8a94cbf33daec27541ff7ea7fe7a.jpg": {
+      "sha256": "628b1aa01ad1a32fde537e82c99517a2c5bdb86b0e24c032b27bded3eed85bca",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20210513_221535_jpg.rf.5d89b18ad15ae32685e1a216118ed9ab.jpg": {
+      "sha256": "17ad650949a9ebbbbf1f8e4cec9a5bfd42f8dba087ba1dd8e19c48f71b1432aa",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_232605_jpg.rf.5ea705ed587e48aee094df904c8554ff.jpg": {
+      "sha256": "2efb0f6453551816b924861fc1d1771174619933b8c674ee7e3be49041a89a6e",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "valid/IMG_20220809_202216_jpg.rf.66608d732fbee596a288c2457810dfe9.jpg": {
+      "sha256": "3008426f5aaa2da15fbeea9362bbbd68d5b22267b14ed41923ae3b965ed45ef5",
+      "rotation": "half",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "test/IMG_20210513_221809_jpg.rf.0c30fcd7d4010e56335b1659afe07486.jpg": {
+      "sha256": "84d5ac77ab729803ce98ae204d850789253a2434c833a2ea1146c81b5bef891b",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "test/IMG_20210513_220821_jpg.rf.3ffee5c70c5e539ab7332a29c357a3bd.jpg": {
+      "sha256": "2115f80b60a6a39d017621e36b0e3c16850f8ef514eaa3dff9ad89e98ac17685",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "test/IMG_20210513_221941_jpg.rf.4de1f61a812e854d22ebad9844b99338.jpg": {
+      "sha256": "b5d58b42ab07a82c0af2c9b46d29f05a6e367c893dc1ca3899c4a882fa449cb6",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "test/IMG_20210513_222007_jpg.rf.b00c92b426e113084f2b105771b8e8bb.jpg": {
+      "sha256": "7ce44d3dd51beb0aa94af7ec10bf72bc3706d5c1f22b8b26bde239045c35eaa5",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "test/IMG_20220809_233853_jpg.rf.c08a43ff395bbf4cf20790b6eb11c59b.jpg": {
+      "sha256": "8847107dcbc6917908609bf5de1391af7f0b0fba682ae232fe2982cc96efc002",
+      "rotation": "cw",
+      "reason": "Per-image box-overlay alignment review including square images and 180-degree alternatives; image rotation only, annotation coordinates unchanged."
+    },
+    "train/1660301644719_jpg.rf.380b88eb824e1027d189402e24758ce7.jpg": {
+      "sha256": "f035562957372cadfd307bdcf32c57a5cf92a55ac6be9114f4a2034d157441b7",
+      "quarantine": "Visual alignment review: incomplete piece labels or ghost/misplaced boxes remain; needs reannotation, not a guessed orientation."
+    }
+  },
+  "overlap_review_iou": 0.5,
+  "fixed_capture_splits": {
+    "capture-day:2020-09-09": "train",
+    "capture-day:2022-08-15": "train",
+    "capture-day:2021-03-19": "train",
+    "capture-day:2020-09-12": "train",
+    "capture-day:2022-08-13": "train",
+    "capture-day:2020-08-29": "train",
+    "capture-day:2022-08-08": "train",
+    "capture-day:2021-03-30": "train",
+    "capture-day:2020-08-30": "train",
+    "capture-day:2021-03-31": "train",
+    "capture-day:2021-03-26": "train",
+    "capture-day:2022-08-10": "train",
+    "capture-day:2021-03-14": "train",
+    "capture-day:2021-04-22": "train",
+    "capture-day:2021-04-21": "train",
+    "capture-day:2021-04-25": "train",
+    "capture-day:2021-05-14": "train",
+    "capture-day:2021-03-18": "train",
+    "capture-day:2020-09-08": "train",
+    "unknown-family:inverse": "train",
+    "capture-day:2021-03-02": "train",
+    "capture-day:2022-08-09": "valid",
+    "capture-day:2021-05-13": "valid",
+    "capture-day:2022-08-12": "test",
+    "capture-day:2022-08-14": "test",
+    "capture-day:2020-08-28": "test"
+  },
+  "review_manifest_sha256": "d837d16bcf91eb655937ff51cc8b69af1d77f1b173a52149f4666ed07a4a8d5d"
+}

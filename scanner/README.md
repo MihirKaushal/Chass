@@ -11,13 +11,15 @@ scanner/
       ChessTopDown.v2-chess2.coco/  Original small baseline dataset (historically tracked)
       ChessV2.v1i.coco/            Original larger download (not tracked)
     curated/
-      chess-v2-v2/              Cleaned COCO export; raw inputs are never rewritten
+      chess-v2-v3/              Active, alignment-reviewed COCO export
+      chess-v2-v2/              Superseded audit snapshot; not for training
   artifacts/
     baseline/                  Original trained model, unchanged
     prepared/                  Original baseline manifest
     validation/ and test/      Original baseline evaluation
     chess-v2/                  Raw intake audit
-    curation/chess-v2-v2/      Clean audit, lineage, corrections, exclusions, visual review
+    curation/chess-v2-v3/      Active audit, lineage, corrections, exclusions, visual review
+    chess-v2-baseline/          New training run on the v3 dataset
 ```
 
 New raw data, curated copies, and artifacts are ignored by Git. The small Top Down
@@ -43,11 +45,11 @@ Run from the repository root using the isolated ML environment:
 .venv-scanner/bin/python -m pytest scanner/ml/tests
 ```
 
-See [ML Instructions](ml/README.md), [Curation Results](ml/CHESS_V2_CURATION.md),
+See [ML Instructions](ml/README.md), [Alignment Review](ml/CHESS_V2_ALIGNMENT.md),
 and the original [Model Card](ml/MODEL_CARD.md). To inspect uncertain examples:
 
 ```sh
-open scanner/artifacts/curation/chess-v2-v2/index.html
+open scanner/artifacts/curation/chess-v2-v3/index.html
 ```
 
 Do not train using the raw Chess V2 export or edit it in place. The curated manifest

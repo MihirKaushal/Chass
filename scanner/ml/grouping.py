@@ -94,7 +94,7 @@ def near_pairs(rows, *, max_hamming=4):
     return result
 
 
-def assign_splits(rows, pairs, seed=42):
+def assign_splits(rows, pairs, seed=42, *, fixed_capture_splits=None):
     groups = Groups(len(rows))
     for key in ("capture_group", "source_group", "pixel_sha256"):
         seen = {}
@@ -109,6 +109,8 @@ def assign_splits(rows, pairs, seed=42):
         members[groups.find(index)].append(index)
     if len(members) < 3:
         raise ValueError("At least three independent capture groups are required for safe splits.")
+    if fixed_capture_splits is not None:
+        return preserve_capture_splits(rows, members, fixed_capture_splits)
     fractions = np.array([0.7, 0.15, 0.15])
     target = fractions * len(rows)
     counts = np.zeros(3)
@@ -193,4 +195,37 @@ def assign_splits(rows, pairs, seed=42):
         "counts": dict(zip(("train", "valid", "test"), map(int, counts), strict=True)),
         "groups": len(members),
         "method": "Capture day/family, source name, pixel identity and perceptual candidates stay together.",
+    }
+
+
+def preserve_capture_splits(rows, members, fixed):
+    """Correct labels without moving previously exposed validation captures into test."""
+    splits = ("train", "valid", "test")
+    counts = Counter()
+    coverage = {split: set() for split in splits}
+    for indices in members.values():
+        assignments = {fixed.get(rows[index]["capture_group"]) for index in indices}
+        if len(assignments) != 1 or not assignments.issubset(splits):
+            raise ValueError(
+                "Fixed capture splits are missing, invalid, or conflict within a related group."
+            )
+        split = assignments.pop()
+        group_id = hashlib.sha256(
+            "\n".join(sorted(rows[index]["key"] for index in indices)).encode()
+        ).hexdigest()[:16]
+        for index in indices:
+            rows[index]["split"] = split
+            rows[index]["split_group"] = group_id
+            counts[split] += 1
+            coverage[split].update(a["label"] for a in rows[index].get("annotations", []))
+    labels = set().union(*coverage.values())
+    if any(not counts[split] or coverage[split] != labels for split in splits):
+        raise ValueError(
+            "Fixed capture splits require nonempty splits with every class represented."
+        )
+    return {
+        "target_fractions": [0.7, 0.15, 0.15],
+        "counts": {split: counts[split] for split in splits},
+        "groups": len(members),
+        "method": "Preserved prior capture assignments; all related frames must agree. No validation-to-test reassignment.",
     }
