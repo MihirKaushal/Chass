@@ -8,9 +8,13 @@ from collections import defaultdict
 from .data import CLASSES
 
 
-def assign_squares(prediction, width, height):
+def assign_squares(
+    prediction, width, height, *, classification_threshold=0.7, detection_threshold=0.5
+):
     if width <= 0 or height <= 0:
         raise ValueError("Positive board image dimensions are required.")
+    if not 0 <= classification_threshold <= 1 or not 0 <= detection_threshold <= 1:
+        raise ValueError("Review thresholds must be between 0 and 1.")
     candidates = defaultdict(list)
     outside = 0
     for index, (box, label, score) in enumerate(
@@ -31,7 +35,7 @@ def assign_squares(prediction, width, height):
         row, col = int(y), int(x)
         confidence = prediction.get("classifier_scores", prediction["scores"])[index]
         reasons = []
-        if confidence < 0.7 or score < 0.5:
+        if confidence < classification_threshold or score < detection_threshold:
             reasons.append("Low model confidence")
         if min(x % 1, 1 - x % 1, y % 1, 1 - y % 1) < 0.18:
             reasons.append("Piece center is close to a square boundary")
@@ -65,6 +69,10 @@ def assign_squares(prediction, width, height):
         "reviewSquares": review,
         "squareCandidates": squares,
         "outsideDetections": outside,
+        "reviewThresholds": {
+            "classification": classification_threshold,
+            "detection": detection_threshold,
+        },
         "warnings": [
             "Experimental recognition: check all 64 squares, including empty squares.",
             "Square assignment uses box centers, not verified piece bases. Tall or tilted pieces can map to a neighboring square.",

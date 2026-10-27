@@ -77,6 +77,24 @@ def test_square_assignment_flags_boundaries():
     assert "boundary" in result["reviewSquares"][0]["reasons"][0]
 
 
+def test_square_review_thresholds_preserve_ranked_alternatives():
+    choices = [{"label": "white-pawn", "score": 0.65}, {"label": "white-bishop", "score": 0.3}]
+    item = {
+        "boxes": [[20, 20, 80, 80]],
+        "labels": [10],
+        "scores": [0.9],
+        "classifier_scores": [0.65],
+        "alternatives": [choices],
+    }
+    result = assign_squares(item, 800, 800)
+    assert result["reviewThresholds"] == {"classification": 0.7, "detection": 0.5}
+    assert result["reviewSquares"][0]["reasons"] == ["Low model confidence"]
+    assert result["squareCandidates"][0]["candidates"][0]["alternatives"] == choices
+    assert not assign_squares(item, 800, 800, classification_threshold=0.6)["reviewSquares"]
+    with pytest.raises(ValueError, match="thresholds"):
+        assign_squares(item, 800, 800, detection_threshold=float("nan"))
+
+
 def test_real_square_metrics_penalize_missing_invented_and_wrong_pieces():
     actual = [[None] * 8 for _ in range(8)]
     actual[0][0], actual[0][1] = "black-king", "white-rook"

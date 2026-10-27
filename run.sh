@@ -29,7 +29,7 @@ bootstrap_backend() {
 
   # shellcheck disable=SC1091
   source "$VENV_DIR/bin/activate"
-  if ! python -c "import fastapi, uvicorn, pydantic, sqlalchemy, psycopg, firebase_admin" >/dev/null 2>&1; then
+  if ! python -c "import fastapi, uvicorn, pydantic, sqlalchemy, psycopg, firebase_admin, httpx" >/dev/null 2>&1; then
     echo "Installing backend dependencies..."
     pip install -r "$ROOT_DIR/backend/requirements.txt"
   fi
@@ -99,6 +99,9 @@ cleanup() {
   if [[ -n "${FRONTEND_PID:-}" ]]; then
     kill "$FRONTEND_PID" >/dev/null 2>&1 || true
   fi
+  if [[ -n "${SCANNER_PID:-}" ]]; then
+    kill "$SCANNER_PID" >/dev/null 2>&1 || true
+  fi
   wait >/dev/null 2>&1 || true
 }
 
@@ -131,6 +134,19 @@ bootstrap_stockfish
 bootstrap_fairy_stockfish
 
 trap cleanup INT TERM EXIT
+
+if [[ "${SCANNER_ENABLED:-auto}" != "false" ]] &&
+   [[ "${SCANNER_SERVICE_URL:-http://127.0.0.1:8001}" == "http://127.0.0.1:8001" ]] &&
+   [[ -x "$ROOT_DIR/.venv-scanner/bin/python" ]] &&
+   [[ -f "${SCANNER_DETECTOR:-$ROOT_DIR/scanner/artifacts/chess-v2-baseline/best.pt}" ]] &&
+   [[ -f "${SCANNER_CLASSIFIER:-$ROOT_DIR/scanner/artifacts/crop-classifier-v1/best.pt}" ]] &&
+   [[ -f "${SCANNER_SELECTION:-$ROOT_DIR/scanner/artifacts/improvements/experiment-v1/selection.json}" ]]; then
+  echo "Starting scanner recognition on http://127.0.0.1:8001 ..."
+  "$ROOT_DIR/scanner/run-local.sh" &
+  SCANNER_PID=$!
+else
+  echo "Scanner recognition: using configured service, or unavailable until models are installed."
+fi
 
 echo "Starting backend on http://localhost:$BACKEND_PORT ..."
 (
