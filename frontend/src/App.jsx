@@ -6,6 +6,7 @@ import {
   completeSetupHandoff,
   createReconnectInvite,
   createGame,
+  importScannedGame,
   getCatalog,
   getGame,
   getGameHistory,
@@ -1371,6 +1372,13 @@ function App() {
     navigate(`/game/${response.game.id}`, { replace: true });
   };
 
+  const handleScanImport = async (payload) => {
+    const response = await importScannedGame(payload);
+    saveGameSession(response.game.id, sessionFromResponse(response));
+    bootstrapGamesRef.current.set(response.game.id, response.game);
+    navigate(`/game/${response.game.id}`, { bypassBlocker: true });
+  };
+
   if (route.name === "join") {
     return (
       <JoinPage
@@ -1414,6 +1422,7 @@ function App() {
   if (route.name === "scanner") {
     return (
       <ScannerPage
+        onImport={handleScanImport}
         onHome={() => navigate("/")}
         onCustomize={() => navigate(customizeSession.returnPath())}
       />

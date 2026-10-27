@@ -14,6 +14,12 @@ import Button from "../components/ui/Button";
 import Dialog from "../components/ui/Dialog";
 import StatusBadge from "../components/ui/StatusBadge";
 import { navigate, useNavigationBlocker } from "../routing";
+import { validateScannedPosition } from "../api/gameApi";
+import {
+  defaultScannerDetails,
+  scannerImportPayload,
+  scannerDetailError,
+} from "../scannerReview";
 import {
   recognizePhoto,
   scannerServiceUrl,
@@ -22,7 +28,7 @@ import {
   scannerAvailability,
 } from "../scannerApi";
 
-function ScannerPage({ onHome, onCustomize }) {
+function ScannerPage({ onHome, onCustomize, onImport }) {
   const [board, setBoard] = useState(null);
   const [reviewSquares, setReviewSquares] = useState([]);
   const [boardHistory, setBoardHistory] = useState([]);
@@ -33,20 +39,84 @@ function ScannerPage({ onHome, onCustomize }) {
   const [hasPhoto, setHasPhoto] = useState(false);
   const [pendingDestination, setPendingDestination] = useState(null);
   const [connectionRetry, setConnectionRetry] = useState(0);
+  const [details, setDetails] = useState(defaultScannerDetails);
+  const [validation, setValidation] = useState(null);
+  const [validating, setValidating] = useState(false);
+  const [validationRetry, setValidationRetry] = useState(0);
+  const [importError, setImportError] = useState("");
+  const [creating, setCreating] = useState(false);
+  const [issueSquares, setIssueSquares] = useState([]);
   const requestRef = useRef(null);
   const serviceUrl = scannerServiceUrl(
     window.location.hostname,
     import.meta.env.VITE_SCANNER_API_URL || "",
+    import.meta.env.VITE_API_URL || "http://localhost:8000",
   );
   const [serviceStatus, setServiceStatus] = useState(
     serviceUrl ? "checking" : "unconfigured",
   );
-  const currentStep = !board ? 0 : confirmed && !reviewSquares.length ? 2 : 1;
+  const currentStep = !board ? 0 : !reviewSquares.length ? 2 : 1;
+
+  useEffect(() => {
+    if (!scan) return undefined;
+    const frame = window.requestAnimationFrame(() => {
+      document
+        .getElementById("scanner-review-title")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" });
+    });
+    return () => window.cancelAnimationFrame(frame);
+  }, [scan]);
 
   useNavigationBlocker((destination) => {
     setPendingDestination(destination);
     return false;
-  }, hasPhoto);
+  }, hasPhoto || creating);
+
+  useEffect(() => {
+    if (!board) return undefined;
+    let active = true;
+    const controller = new AbortController();
+    setValidation(null);
+    setImportError("");
+    const detailError = scannerDetailError(details);
+    if (detailError) {
+      setValidation({
+        valid: false,
+        issues: [{ message: detailError, field: "details", squares: [] }],
+      });
+      setValidating(false);
+      return undefined;
+    }
+    setValidating(true);
+    const timeout = window.setTimeout(() => controller.abort(), 45000);
+    const timer = window.setTimeout(() => {
+      validateScannedPosition(
+        scannerImportPayload(board, details),
+        controller.signal,
+      )
+        .then((result) => {
+          if (active) setValidation(result);
+        })
+        .catch((failure) => {
+          if (active)
+            setImportError(
+              controller.signal.aborted
+                ? "Position validation timed out. Retry once the game service is connected."
+                : failure.message,
+            );
+        })
+        .finally(() => {
+          window.clearTimeout(timeout);
+          if (active) setValidating(false);
+        });
+    }, 250);
+    return () => {
+      active = false;
+      window.clearTimeout(timer);
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [board, details, validationRetry]);
 
   useEffect(() => {
     if (!serviceUrl) {
@@ -55,7 +125,7 @@ function ScannerPage({ onHome, onCustomize }) {
     }
     let active = true;
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 5000);
+    const timeout = window.setTimeout(() => controller.abort(), 30000);
     setServiceStatus("checking");
     scannerAvailability(serviceUrl, controller.signal)
       .then((status) => {
@@ -92,6 +162,10 @@ function ScannerPage({ onHome, onCustomize }) {
     setBoardHistory([]);
     setReviewSquares([]);
     setConfirmed(false);
+    setDetails(defaultScannerDetails());
+    setValidation(null);
+    setIssueSquares([]);
+    setImportError("");
   };
 
   const recognize = async (file) => {
@@ -99,6 +173,7 @@ function ScannerPage({ onHome, onCustomize }) {
     const controller = new AbortController();
     requestRef.current = controller;
     setBusy(true);
+    setConfirmed(false);
     setError("");
     const timeout = window.setTimeout(() => controller.abort(), 90000);
     try {
@@ -109,6 +184,8 @@ function ScannerPage({ onHome, onCustomize }) {
       setReviewSquares(result.reviewSquares);
       setBoardHistory([]);
       setConfirmed(false);
+      setDetails(defaultScannerDetails());
+      setIssueSquares([]);
     } catch (failure) {
       if (requestRef.current === controller)
         setError(
@@ -136,6 +213,8 @@ function ScannerPage({ onHome, onCustomize }) {
   }, []);
 
   const editSquare = (row, col, tool) => {
+    setValidation(null);
+    setIssueSquares([]);
     setBoardHistory((current) =>
       [...current, { board, reviewSquares }].slice(-40),
     );
@@ -165,6 +244,32 @@ function ScannerPage({ onHome, onCustomize }) {
     setReviewSquares(previous.reviewSquares);
     setBoardHistory((current) => current.slice(0, -1));
     setConfirmed(false);
+    setValidation(null);
+    setIssueSquares([]);
+  };
+
+  const continueGame = async (mode) => {
+    if (
+      creating ||
+      busy ||
+      !confirmed ||
+      reviewSquares.length ||
+      !validation?.valid ||
+      validating
+    )
+      return;
+    setCreating(true);
+    setImportError("");
+    try {
+      await onImport(
+        scannerImportPayload(board, details, { mode, confirmed: true }),
+      );
+    } catch (failure) {
+      setImportError(
+        failure.message || "The game could not be created. Try again.",
+      );
+      setCreating(false);
+    }
   };
 
   return (
@@ -184,8 +289,8 @@ function ScannerPage({ onHome, onCustomize }) {
               </div>
               <h1>AI Chess Board Scanner</h1>
               <p>
-                Scan a physical board, check the pieces, and correct the
-                position. Continuing it as a Chass game is coming later.
+                Scan a physical board, review the pieces, and continue your game
+                on one device or in a private online room.
               </p>
               <AppLink
                 href="/rulebook#rulebook-scanner"
@@ -232,94 +337,131 @@ function ScannerPage({ onHome, onCustomize }) {
             )}
           </ol>
         </header>
-        <ScannerServiceStatus
-          status={serviceStatus}
-          onRetry={() => setConnectionRetry((value) => value + 1)}
-        />
-
-        <div
-          className={`scanner-workspace${board ? "" : " scanner-workspace-initial"}`}
-        >
-          <ScannerPhotoPanel
-            onRecognize={recognize}
-            onPhotoChange={invalidateScan}
-            busy={busy}
-            serviceAvailable={serviceStatus === "ready"}
+        <fieldset className="scanner-workflow" disabled={creating}>
+          <ScannerServiceStatus
+            status={serviceStatus}
+            onRetry={() => setConnectionRetry((value) => value + 1)}
           />
-          {board ? (
-            <ScannerBoardReview
-              board={board}
-              reviewSquares={reviewSquares}
-              onSquareEdit={editSquare}
-              onReviewSquare={(target) => {
-                setReviewSquares((current) =>
-                  current.filter(
-                    (square) =>
-                      square.row !== target.row || square.col !== target.col,
-                  ),
-                );
-                setConfirmed(false);
-              }}
-              onUndo={undoEdit}
-              canUndo={boardHistory.length > 0}
-              onReset={() => {
-                setBoard(scanBoard(scan));
-                setReviewSquares(scan.reviewSquares);
-                setBoardHistory([]);
-                setConfirmed(false);
-              }}
+
+          <div
+            className={`scanner-workspace${board ? "" : " scanner-workspace-initial"}`}
+          >
+            <ScannerPhotoPanel
+              onRecognize={recognize}
+              onPhotoChange={invalidateScan}
+              busy={busy}
+              serviceAvailable={serviceStatus === "ready"}
             />
-          ) : null}
-        </div>
-        <div className="scanner-request-status" aria-live="polite">
-          {error ? (
-            <p className="scanner-field-error" role="alert">
-              {error}
-            </p>
-          ) : busy ? (
-            <p>Recognizing pieces. You can replace the photo to cancel.</p>
-          ) : null}
-        </div>
-        {scan?.warnings?.length ? (
-          <div className="scanner-preview-banner">
-            <ScannerIcon name="info" />
-            <p>{scan.warnings.join(" ")}</p>
+            {board ? (
+              <fieldset className="scanner-workflow" disabled={busy}>
+                <ScannerBoardReview
+                  scan={scan}
+                  issueSquares={issueSquares}
+                  board={board}
+                  reviewSquares={reviewSquares}
+                  onSquareEdit={editSquare}
+                  onReviewSquare={(target) => {
+                    setReviewSquares((current) =>
+                      current.filter(
+                        (square) =>
+                          square.row !== target.row ||
+                          square.col !== target.col,
+                      ),
+                    );
+                    setConfirmed(false);
+                    setIssueSquares([]);
+                  }}
+                  onUndo={undoEdit}
+                  canUndo={boardHistory.length > 0}
+                  onReset={() => {
+                    setValidation(null);
+                    setBoard(scanBoard(scan));
+                    setReviewSquares(scan.reviewSquares);
+                    setBoardHistory([]);
+                    setConfirmed(false);
+                    setIssueSquares([]);
+                  }}
+                />
+              </fieldset>
+            ) : null}
           </div>
-        ) : null}
-
-        {board ? (
-          <>
-            <ScannerPositionDetails
-              confirmed={confirmed}
-              onConfirmationChange={setConfirmed}
-            />
-
-            <div className="scanner-label-export">
-              <Button
-                variant="secondary"
-                disabled={!confirmed || reviewSquares.length > 0}
-                onClick={() => {
-                  const labels = reviewedBoardLabels(scan, board);
-                  downloadScannerFile(
-                    new Blob([JSON.stringify(labels, null, 2)], {
-                      type: "application/json",
-                    }),
-                    "chass-reviewed-board.json",
-                  );
-                }}
-              >
-                Export Reviewed Labels
-              </Button>
-              <small>
-                For accuracy testing: check all 64 squares, resolve gold
-                markers, and confirm above. Keep the prepared photo with these
-                labels.
-              </small>
+          <div className="scanner-request-status" aria-live="polite">
+            {error ? (
+              <p className="scanner-field-error" role="alert">
+                {error}
+              </p>
+            ) : busy ? (
+              <p>Recognizing pieces. You can replace the photo to cancel.</p>
+            ) : null}
+          </div>
+          {scan?.warnings?.length ? (
+            <div className="scanner-preview-banner">
+              <ScannerIcon name="info" />
+              <p>{scan.warnings.join(" ")}</p>
             </div>
+          ) : null}
 
-            <ScannerContinuePanel />
-          </>
-        ) : null}
+          {board ? (
+            <fieldset className="scanner-workflow" disabled={busy}>
+              <ScannerPositionDetails
+                details={details}
+                remainingReviews={reviewSquares.length}
+                onChange={(next) => {
+                  setDetails(next);
+                  setConfirmed(false);
+                  setValidation(null);
+                  setIssueSquares([]);
+                }}
+                confirmed={confirmed}
+                onConfirmationChange={setConfirmed}
+              />
+
+              <div className="scanner-label-export">
+                <Button
+                  variant="secondary"
+                  disabled={!confirmed || reviewSquares.length > 0}
+                  onClick={() => {
+                    const labels = reviewedBoardLabels(scan, board);
+                    downloadScannerFile(
+                      new Blob([JSON.stringify(labels, null, 2)], {
+                        type: "application/json",
+                      }),
+                      "chass-reviewed-board.json",
+                    );
+                  }}
+                >
+                  Export Reviewed Labels
+                </Button>
+                <small>
+                  For accuracy testing: check all 64 squares, resolve gold
+                  markers, and confirm above. Keep the prepared photo with these
+                  labels.
+                </small>
+              </div>
+
+              <ScannerContinuePanel
+                confirmed={confirmed}
+                remainingReviews={reviewSquares.length}
+                validation={validation}
+                validating={validating}
+                busy={creating}
+                error={importError}
+                onContinue={continueGame}
+                onRetry={() => setValidationRetry((value) => value + 1)}
+                onIssue={(issue) => {
+                  setIssueSquares(issue.squares || []);
+                  document
+                    .getElementById(
+                      issue.field === "board"
+                        ? "scanner-review-title"
+                        : "scanner-position-title",
+                    )
+                    ?.scrollIntoView({ behavior: "smooth", block: "center" });
+                }}
+              />
+            </fieldset>
+          ) : null}
+        </fieldset>
       </main>
       <SiteFooter />
       <Dialog
@@ -328,7 +470,11 @@ function ScannerPage({ onHome, onCustomize }) {
         title="Leave Board Scanner?"
         eyebrow="Current Scan"
         closeLabel="Close leave scanner confirmation"
-        description="Your photo and corrections will be cleared when you leave. Download any prepared photo or reviewed labels you want to keep."
+        description={
+          creating
+            ? "Please wait while the game is created. Your scan will open as a game when it is ready."
+            : "Your photo and corrections will be cleared when you leave. Download any prepared photo or reviewed labels you want to keep."
+        }
         actions={
           <>
             <Button
@@ -339,6 +485,7 @@ function ScannerPage({ onHome, onCustomize }) {
             </Button>
             <Button
               variant="danger"
+              disabled={creating}
               onClick={() => {
                 const destination = pendingDestination;
                 setPendingDestination(null);

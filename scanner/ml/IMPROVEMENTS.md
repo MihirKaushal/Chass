@@ -4,10 +4,11 @@ The selected local pipeline is the existing SSDLite detector, cross-class duplic
 suppression, and a new ResNet18 piece-crop classifier. The game server and its
 deployment requirements are unchanged. Recognition remains experimental.
 
-**Integration update, 2026-10-27:** `/scanner` is now available from shared site
-navigation, with a matching Chass interface, service-availability status, and
-its own Rulebook section. This does not change the measured model results below
-or enable public inference hosting or scanned-game import.
+**Integration update, 2026-10-27:** `/scanner` now supports photo preparation,
+ranked uncertain-piece review, corrections, optional history details, and validated
+local/online human game import. It is available through shared navigation and has
+its own Rulebook section. Public recognition still requires a separate model host.
+See [Scanner MVP](../MVP.md). This does not change the measured model results below.
 
 ## Measured Results
 

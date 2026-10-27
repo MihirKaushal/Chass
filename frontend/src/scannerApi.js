@@ -6,11 +6,19 @@ const PIECE_CLASSES = new Set(
   ),
 );
 
-export function scannerServiceUrl(hostname, configured = "") {
+export function scannerServiceUrl(
+  hostname,
+  configured = "",
+  gameApi = "http://localhost:8000",
+) {
   if (configured.trim()) return configured.trim().replace(/\/+$/, "");
-  return ["localhost", "127.0.0.1"].includes(hostname)
-    ? "http://127.0.0.1:8001"
-    : "";
+  // Production photos go through the configured game API, never a visitor's localhost.
+  if (
+    !["localhost", "127.0.0.1"].includes(hostname) &&
+    /^https?:\/\/(localhost|127\.0\.0\.1)(:|\/|$)/.test(gameApi)
+  )
+    return "";
+  return `${gameApi.replace(/\/+$/, "")}/scanner`;
 }
 
 export async function scannerAvailability(url, signal, fetcher = fetch) {
@@ -22,7 +30,11 @@ export async function scannerAvailability(url, signal, fetcher = fetch) {
     });
     if (!response.ok) return "offline";
     const health = await response.json();
-    return health.ready === true ? "ready" : "offline";
+    return health.configured === false
+      ? "unconfigured"
+      : health.ready === true
+        ? "ready"
+        : "offline";
   } catch (error) {
     if (error.name === "AbortError") throw error;
     return "offline";
@@ -30,6 +42,14 @@ export async function scannerAvailability(url, signal, fetcher = fetch) {
 }
 
 export function validateScanResponse(result) {
+  const validSquare = (square) =>
+    square &&
+    Number.isInteger(square.row) &&
+    Number.isInteger(square.col) &&
+    square.row >= 0 &&
+    square.row < 8 &&
+    square.col >= 0 &&
+    square.col < 8;
   if (
     !Array.isArray(result?.board) ||
     result.board.length !== 8 ||
@@ -42,16 +62,48 @@ export function validateScanResponse(result) {
     !Array.isArray(result.reviewSquares) ||
     result.reviewSquares.some(
       (square) =>
-        !Number.isInteger(square.row) ||
-        !Number.isInteger(square.col) ||
-        square.row < 0 ||
-        square.row > 7 ||
-        square.col < 0 ||
-        square.col > 7,
+        !validSquare(square) ||
+        (square.reasons !== undefined &&
+          (!Array.isArray(square.reasons) ||
+            square.reasons.some((reason) => typeof reason !== "string"))),
     )
   ) {
     throw new Error("The scanner returned an invalid board. Please retry.");
   }
+  if (
+    (result.warnings !== undefined &&
+      (!Array.isArray(result.warnings) ||
+        result.warnings.some((warning) => typeof warning !== "string"))) ||
+    result.reviewSquares.length > 64 ||
+    (result.squareCandidates !== undefined &&
+      (!Array.isArray(result.squareCandidates) ||
+        result.squareCandidates.length > 64 ||
+        result.squareCandidates.some(
+          (square) =>
+            !validSquare(square) ||
+            !Array.isArray(square.candidates) ||
+            square.candidates.length > 100 ||
+            square.candidates.some(
+              (candidate) =>
+                !candidate ||
+                !PIECE_CLASSES.has(candidate.class) ||
+                (candidate.alternatives !== undefined &&
+                  (!Array.isArray(candidate.alternatives) ||
+                    candidate.alternatives.length > 12 ||
+                    candidate.alternatives.some(
+                      (option) =>
+                        !option ||
+                        !PIECE_CLASSES.has(option.label) ||
+                        !Number.isFinite(option.score) ||
+                        option.score < 0 ||
+                        option.score > 1,
+                    ))),
+            ),
+        )))
+  )
+    throw new Error(
+      "The scanner returned invalid review suggestions. Please retry.",
+    );
   return result;
 }
 

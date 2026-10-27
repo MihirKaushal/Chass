@@ -57,10 +57,66 @@ test("reviewed labels retain the prepared photo hash and use all 64 edited squar
 
 test("scanner does not silently send production photos to localhost", () => {
   assert.equal(scannerServiceUrl("playchass.vercel.app"), "");
-  assert.equal(scannerServiceUrl("localhost"), "http://127.0.0.1:8001");
+  assert.equal(scannerServiceUrl("localhost"), "http://localhost:8000/scanner");
+  assert.equal(
+    scannerServiceUrl("playchass.vercel.app", "", "https://game.example"),
+    "https://game.example/scanner",
+  );
   assert.equal(
     scannerServiceUrl("localhost", " https://scanner.example/ "),
     "https://scanner.example",
+  );
+});
+
+test("unconfigured proxy and malformed candidate payloads fail safely", async () => {
+  assert.equal(
+    await scannerAvailability(
+      "https://game.example/scanner",
+      undefined,
+      async () => ({
+        ok: true,
+        json: async () => ({ configured: false, ready: false }),
+      }),
+    ),
+    "unconfigured",
+  );
+  const base = {
+    board: Array.from({ length: 8 }, () => Array(8).fill(null)),
+    reviewSquares: [],
+  };
+  assert.throws(
+    () => validateScanResponse({ ...base, squareCandidates: "bad" }),
+    /invalid review/,
+  );
+  assert.throws(
+    () =>
+      validateScanResponse({
+        ...base,
+        squareCandidates: [{ row: 0, col: 0, candidates: [null] }],
+      }),
+    /invalid review/,
+  );
+  assert.throws(
+    () => validateScanResponse({ ...base, reviewSquares: [null] }),
+    /invalid board/,
+  );
+  assert.throws(
+    () => validateScanResponse({ ...base, warnings: [{}] }),
+    /invalid review/,
+  );
+  assert.throws(
+    () =>
+      validateScanResponse({
+        ...base,
+        squareCandidates: [
+          {
+            row: 0,
+            col: 0,
+            candidates: [{ class: "white-pawn", alternatives: [null] }],
+          },
+        ],
+      }),
+    /invalid review/,
   );
 });
 

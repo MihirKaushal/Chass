@@ -4,6 +4,7 @@ import { fileURLToPath } from "node:url";
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { createServer } from "vite";
+import { defaultScannerDetails } from "./scannerReview.js";
 
 let server;
 before(async () => {
@@ -61,7 +62,7 @@ test("rulebook includes a searchable scanner section and return link", async () 
   assert.match(html, /href="#rulebook-scanner"/);
   assert.match(html, /href="\/scanner"/);
   assert.match(html, /ResNet18/);
-  assert.match(html, /not available yet/);
+  assert.match(html, /experimental/);
 });
 
 test("scanner status and future game controls do not imply unavailable features work", async () => {
@@ -82,4 +83,81 @@ test("scanner status and future game controls do not imply unavailable features 
   );
   assert.equal((upcoming.match(/disabled=""/g) || []).length, 3);
   assert.doesNotMatch(upcoming, /<select|type="radio"/);
+});
+
+test("scanner launch requires confirmation, resolved flags and a valid position; bots stay disabled", async () => {
+  const path = "/src/components/scanner/ScannerContinuePanel.jsx";
+  const ready = {
+    confirmed: true,
+    remainingReviews: 0,
+    validation: { valid: true, issues: [] },
+  };
+  assert.equal(
+    ((await markup(path, ready)).match(/disabled=""/g) || []).length,
+    1,
+  );
+  for (const blocked of [
+    { confirmed: false },
+    { remainingReviews: 1 },
+    { validating: true },
+    { busy: true },
+    { validation: { valid: false, issues: [] } },
+  ]) {
+    assert.equal(
+      (
+        (await markup(path, { ...ready, ...blocked })).match(/disabled=""/g) ||
+        []
+      ).length,
+      3,
+    );
+  }
+});
+
+test("flagged squares expose selectable alternatives, empty and keep-current options", async () => {
+  const { scannerPreviewPiece } = await server.ssrLoadModule(
+    "/src/components/scanner/scannerPreview.js",
+  );
+  const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+  board[3][4] = scannerPreviewPiece("bishop", "white", 3, 4);
+  const html = await markup("/src/components/scanner/ScannerBoardReview.jsx", {
+    board,
+    reviewSquares: [
+      { row: 3, col: 4, label: "e5", reasons: ["Low model confidence"] },
+    ],
+    scan: {
+      squareCandidates: [
+        {
+          row: 3,
+          col: 4,
+          candidates: [
+            {
+              class: "white-bishop",
+              classifierScore: 0.55,
+              alternatives: [{ label: "white-queen", score: 0.4 }],
+            },
+          ],
+        },
+      ],
+    },
+  });
+  assert.match(html, /Review e5/);
+  assert.match(html, /White bishop/);
+  assert.match(html, /White queen/);
+  assert.match(html, /55%/);
+  assert.match(html, /This Square Is Empty/);
+  assert.match(html, /Keep Current Piece/);
+});
+
+test("optional history controls reflect the controlled position and block unresolved confirmation", async () => {
+  const html = await markup(
+    "/src/components/scanner/ScannerPositionDetails.jsx",
+    {
+      details: { ...defaultScannerDetails(), fullmoveNumber: 23 },
+      confirmed: false,
+      remainingReviews: 1,
+    },
+  );
+  assert.match(html, /value="23"/);
+  assert.match(html, /Halfmove clock/);
+  assert.match(html, /type="checkbox" disabled=""/);
 });
