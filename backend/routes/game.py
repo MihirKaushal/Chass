@@ -48,6 +48,7 @@ from backend.models.schemas import (
     GameResponse,
     GameSessionResponse,
     HistoryPageResponse,
+    ImportGameRequest,
     InviteResponse,
     JoinGameRequest,
     MatchAnalysisView,
@@ -419,6 +420,18 @@ async def create_game(payload: CreateGameRequest, request: Request) -> GameSessi
     if response.game.mode == "bot" and record is not None:
         await _ensure_bot_turn(record)
     return response
+
+
+@router.post("/import/validate")
+async def validate_imported_position(payload: ImportGameRequest, request: Request) -> dict:
+    rate_limiter.check(request, "scanner-validate", limit=120, window_seconds=60)
+    return await run_in_threadpool(game_service.validate_import, payload)
+
+
+@router.post("/import", response_model=GameSessionResponse)
+async def import_scanned_game(payload: ImportGameRequest, request: Request) -> GameSessionResponse:
+    rate_limiter.check(request, "create", limit=20, window_seconds=3600)
+    return await run_in_threadpool(game_service.import_game, payload)
 
 
 @router.post("/validate", response_model=ConfigurationValidationResponse)

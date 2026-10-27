@@ -92,6 +92,7 @@ from backend.models.schemas import (
     GameSessionResponse,
     HistoryPageResponse,
     HistoryPaginationView,
+    ImportGameRequest,
     InviteResponse,
     JoinGameRequest,
     MoveHistoryView,
@@ -1079,14 +1080,44 @@ class GameService:
         self.engine.evaluate_state(game_state)
         synchronize_match_predictor_setting(game_state)
 
+        return self._create_session(game_state, request.mode)
+
+    def validate_import(self, request: ImportGameRequest) -> dict:
+        state, issues = self.engine.imports.build(
+            request, self.engine, build_default_piece_definitions()
+        )
+        return {
+            "valid": not issues,
+            "issues": issues,
+            "gameStatus": state.game_status,
+            "warnings": [
+                "Earlier moves, captures and repetition history are unknown; recording begins here."
+            ],
+        }
+
+    def import_game(self, request: ImportGameRequest) -> GameSessionResponse:
+        if not request.reviewConfirmed:
+            raise HTTPException(
+                status_code=400,
+                detail="Review every square and confirm the position before continuing.",
+            )
+        state, issues = self.engine.imports.build(
+            request, self.engine, build_default_piece_definitions(), str(uuid.uuid4())
+        )
+        if issues:
+            raise HTTPException(status_code=400, detail=issues[0]["message"])
+        synchronize_match_predictor_setting(state)
+        return self._create_session(state, request.mode)
+
+    def _create_session(self, game_state: GameState, mode: str) -> GameSessionResponse:
         settings = get_settings()
         now = datetime.now(timezone.utc)
         game_expires_at = self._expiration_deadline(now)
 
-        if request.mode in {"local", "bot"}:
+        if mode in {"local", "bot"}:
             record = self.repository.create_game(
                 game_state,
-                mode=request.mode,
+                mode=mode,
                 expires_at=game_expires_at,
             )
             return GameSessionResponse(
@@ -1099,7 +1130,7 @@ class GameService:
                 playerColor=(
                     game_state.bot.human_color if game_state.bot is not None else None
                 ),
-                role="human" if request.mode == "bot" else "local",
+                role="human" if mode == "bot" else "local",
             )
 
         host_token = generate_token()
@@ -2089,6 +2120,21 @@ class GameService:
     def _reset_state(self, record: GameRecord, request: ResetGameRequest) -> GameState:
         game_state = record.state
 
+        if game_state.imported_position is not None:
+            reset, issues = self.engine.imports.build(
+                game_state.imported_position,
+                self.engine,
+                build_default_piece_definitions(),
+                game_state.id,
+            )
+            if issues:
+                raise HTTPException(status_code=400, detail=issues[0]["message"])
+            reset.history_epoch = game_state.history_epoch + 1
+            reset.configuration.match_predictor_enabled = (
+                game_state.configuration.match_predictor_enabled
+            )
+            return reset
+
         if game_state.variant == "gambit":
             config = (
                 game_state.gambit.config.model_copy(deep=True)
@@ -2267,6 +2313,11 @@ class GameService:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
         game_state = record.state
+        if game_state.imported_position is not None:
+            raise HTTPException(
+                status_code=409,
+                detail="Edit the scanned position before importing it. Create a new import to change its starting board.",
+            )
         if game_state.variant == "gambit":
             raise HTTPException(
                 status_code=409,

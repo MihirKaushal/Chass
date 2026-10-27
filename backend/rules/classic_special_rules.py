@@ -4,7 +4,7 @@ import hashlib
 import json
 from collections.abc import Iterable
 
-from backend.models import CaptureEvent, GameState, Move, MoveOption, Piece
+from backend.models import CaptureEvent, GameState, Move, MoveOption, MoveRecord, Piece
 from backend.rules.base import Rule, RuleContext
 from backend.rules.material import StartingMaterialRule
 from backend.rules.terrain import is_scorched
@@ -69,6 +69,22 @@ def _uses_classic_draw_rules(state: GameState) -> bool:
 
 def _last_double_pawn_move(state: GameState):
     if not state.history:
+        setup = state.imported_position
+        if setup and setup.en_passant and not any(state.turn_counts.values()):
+            # Explicit imported rights, not a fabricated entry in the visible move history.
+            col = ord(setup.en_passant[0]) - ord("a")
+            color = _opposing_color(setup.current_player)
+            origin, destination = (6, 4) if color == "white" else (1, 3)
+            return MoveRecord(
+                move_number=0,
+                player=color,
+                piece="pawn",
+                from_row=origin,
+                from_col=col,
+                to_row=destination,
+                to_col=col,
+                explanation="Imported en passant right",
+            )
         return None
     last_move = state.history[-1]
     if (
