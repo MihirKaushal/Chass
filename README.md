@@ -30,11 +30,12 @@ link-or-code multiplayer, custom boards and pieces, modular rules, and real-time
 
 ## Board Scanner Research
 
-The unlinked `/scanner` page prototypes photo upload, camera capture, crop/rotation,
-and manual board confirmation. A separate [offline ML pipeline](scanner/ml/README.md)
-audits the current COCO dataset, trains a 12-class piece detector, and generates
-held-out evaluation reports. Automatic photo-to-board reconstruction and website
-inference are not connected yet; ML packages are not installed on the game server.
+The unlinked `/scanner` page supports photo upload, camera capture, crop/rotation,
+and manual board correction. A separate [ML pipeline](scanner/ml/README.md) combines
+an SSDLite piece detector with a ResNet18 crop classifier and generates versioned
+evaluation reports. Experimental recognition runs through a local-only API;
+public inference hosting and scanned-game import are not enabled. ML packages
+are not installed on the game server. See [local testing and results](scanner/ml/IMPROVEMENTS.md).
 See the [Scanner Workspace](scanner/README.md) for organized raw/curated datasets,
 reviewed label cleanup, deduplication, capture-grouped splits, and audit reports.
 The [trained Chess V2 baseline](scanner/ml/CHESS_V2_MODEL_CARD.md) records its
