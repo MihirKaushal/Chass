@@ -1,5 +1,9 @@
 # Piece Error Analysis
 
+Follow-up: the [2026-10-26 improvement run](IMPROVEMENTS.md) implements the label
+overlay, duplicate experiment and crop classifier proposed here. This report
+preserves the original detector-only error analysis for comparison.
+
 Recorded **2026-10-26**, using the model trained **2026-10-25** on Chess V2 curated
 v3. Test: **338 photos, 6,283 annotated pieces, 7,513 predictions** at the frozen
 validation-selected confidence threshold **0.25**. No retraining or label changes.

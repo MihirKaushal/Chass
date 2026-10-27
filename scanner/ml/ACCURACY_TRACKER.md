@@ -1,15 +1,47 @@
 # Scanner Accuracy Tracker
 
-Last recorded: **2026-10-26**. Current model trained: **2026-10-25**.
+Last recorded: **2026-10-26**. Current classifier trained: **2026-10-26**;
+detector remains the **2026-10-25** checkpoint.
 This log separates measurable piece-box diagnostics from future square-level
-accuracy. It does not change the model, confidence threshold, or dataset splits.
+accuracy. Historical snapshots below remain intact.
+
+## Latest Improvement: Crop Classifier And Duplicate Resolution
+
+The new pipeline was selected on validation, then evaluated on the same 338-photo,
+6,283-piece curated-v3 test set. See [IMPROVEMENTS.md](IMPROVEMENTS.md) for training,
+all four ablations, corrected-label results, local testing and limitations.
+
+| Box-level measure | Previous detector | Selected combined pipeline |
+| --- | ---: | ---: |
+| Correct type + color among located pieces | 55.42% (3,082 / 5,561) | **96.32% (5,342 / 5,546)** |
+| Correctly typed pieces / all real pieces | 49.05% | **85.02%** |
+| Correct unique pieces / all predictions | 41.02% | **94.30%** |
+| Localization recall, ignoring type/color | 88.51% | **88.27%** |
+| Missed pieces | 722 | **737** |
+| Unmatched extra boxes | 1,952 | **119** |
+
+Classification and duplicate errors improved substantially; detector misses did
+not. Suppression loses 15 previously localized pieces. New per-piece conditional
+accuracies: bishop 95.14%, king 91.85%, knight 99.21%, pawn 98.47%, queen 97.20%,
+rook 95.26%. The data still has limited set diversity and small white-rook/pawn
+test samples. These are development-benchmark results, not an unseen-set guarantee.
+
+The v4 annotation-only overlay adds two visually verified missing test objects.
+Re-scoring both models on those same corrected labels gives 55.44% -> 96.32%
+conditional type/color accuracy. The original v3 comparison above is preserved
+to isolate model changes from annotation changes.
+
+Machine-readable records: [results JSON](benchmarks/chess-v2-v3-crops-v1/results.json),
+[metrics CSV](benchmarks/chess-v2-v3-crops-v1/metrics.csv), and
+[training history](benchmarks/chess-v2-v3-crops-v1/training-history.json).
+Use the `labels`, `pipeline`, and `split` columns to compare like-for-like results.
 
 ## The Three Requested Metrics
 
 | Question | Current result | Why |
 | --- | --- | --- |
-| Is each square correctly empty or occupied? | **Not measured** | No verified board geometry, 64-square ground truth, or predicted square assignments. |
-| On correctly detected occupied squares, is the piece type and color correct? | **Not measured at square level** | The closest box-level diagnostic is **55.42%** type-and-color accuracy among localized pieces. |
+| Is each square correctly empty or occupied? | **Not measured** | A prototype square mapper now exists, but there is no verified 64-square evaluation collection yet. |
+| On correctly detected occupied squares, is the piece type and color correct? | **Not measured at square level** | The closest current box-level diagnostic is **96.32%** type-and-color accuracy among localized pieces. |
 | Is each square completely correct: empty, or the exact piece and color? | **Not measured** | Requires both of the above and correct assignment to the actual square. |
 
 These unavailable metrics are `null` in JSON and blank in CSV, **not zero**.
@@ -17,7 +49,7 @@ The detector's background class is not a verified empty-square prediction.
 Neither image dimensions nor piece bounding boxes establish an 8x8 board grid;
 dividing every photo into 64 equal cells would give misleading accuracy.
 
-## Current Held-Out Test Results
+## Archived Detector-Only Test Results: 2026-10-25
 
 Benchmark: **Chess V2, curated v3**, 338 photos and 6,283 annotated pieces.
 Confidence threshold: **0.25**, selected on validation, not on test.
@@ -73,10 +105,10 @@ but very small test samples. Black bishops have the most misses by individual
 class (112). Black rook, white queen, and white king are the most frequent
 incorrect predicted labels when counting misclassification and extras together.
 
-Next priorities: targeted label audit, validation of duplicate resolution, then
-a classifier using original-resolution piece crops with balanced class sampling.
-Keep corrected datasets versioned and use a new unseen board-set holdout for
-the final assessment. See the full report for the two flagged missing annotations.
+These priorities were implemented in the 2026-10-26 improvement run above. Next:
+improve detector recall and piece-base/square assignment with varied new photos
+and a verified unseen board-set holdout. The two flagged missing annotations
+are now addressed by the versioned v4 overlay.
 
 Detailed counts and confusion matrices are stored as
 [JSON](benchmarks/chess-v2-v3-piece-errors/analysis.json) and

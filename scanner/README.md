@@ -1,7 +1,9 @@
 # Board Scanner Workspace
 
-The scanner is offline research tooling plus a separate `/scanner` UI prototype.
+The scanner is research tooling plus an experimental local `/scanner` workflow.
 No ML packages or datasets are deployed with the FastAPI game server.
+See [Improvements And Local Testing](ml/IMPROVEMENTS.md) for the trained two-stage
+pipeline, accuracy comparison and `./scanner/run-local.sh` startup instructions.
 
 ```text
 scanner/
@@ -20,6 +22,10 @@ scanner/
     chess-v2/                  Raw intake audit
     curation/chess-v2-v3/      Active audit, lineage, corrections, exclusions, visual review
     chess-v2-baseline/          New training run on the v3 dataset
+    crop-classifier-v1/         Trained ResNet18 classifier and training history
+    crops/chess-v2-v3-160/      Original-resolution piece crop cache
+    improvements/experiment-v1/ Frozen comparison, model selection and predictions
+    curation/chess-v2-v4/       Annotation-only overlay; two missing test pieces
 ```
 
 New raw data, curated copies, and artifacts are ignored by Git. The small Top Down
@@ -49,8 +55,9 @@ See [ML Instructions](ml/README.md), [Alignment Review](ml/CHESS_V2_ALIGNMENT.md
 the new [Chess V2 Model Card](ml/CHESS_V2_MODEL_CARD.md), and the original
 [Model Card](ml/MODEL_CARD.md). The [Accuracy Tracker](ml/ACCURACY_TRACKER.md)
 records dated metrics and chart-ready snapshots without confusing bounding-box
-results with square accuracy. The new baseline is trained locally; website
-inference remains unconnected. To inspect uncertain examples:
+results with square accuracy. Local website recognition is connected through a
+separate API on port 8001; game import and public inference hosting are not enabled.
+To inspect uncertain examples:
 
 ```sh
 open scanner/artifacts/curation/chess-v2-v3/index.html

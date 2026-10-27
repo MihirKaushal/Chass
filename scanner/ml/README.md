@@ -5,11 +5,12 @@ It learns from the existing COCO bounding boxes using TorchVision's pretrained
 SSDLite320 MobileNetV3-Large backbone and box regressor, with a new chess-specific
 classification head. Both the head and backbone are fine-tuned after head warmup.
 
-This is not yet a complete photo-to-game scanner. It returns piece types, colors,
-bounding boxes, and confidence scores. The current dataset has no verified board
-corners or 64-square labels, so the pipeline deliberately does not invent square
-positions, empty-square labels, FENs, or exact-board accuracy. The `/scanner` page
-is still a UI prototype; its recognition button is not connected to this model.
+The [2026-10-26 improvement](IMPROVEMENTS.md) adds an original-resolution ResNet18
+crop classifier, validation-selected duplicate suppression, and a separate local
+inference API connected to `/scanner`. It returns editable square assignments for
+manually cropped/rectified boards. Those assignments are experimental: the current
+dataset has no verified 64-square evaluation labels, so square and exact-board
+accuracy remain unmeasured. Continuing a scanned position as a game is not yet wired.
 
 The new trained run and its limitations are recorded in
 [CHESS_V2_MODEL_CARD.md](CHESS_V2_MODEL_CARD.md). The original small Top Down
