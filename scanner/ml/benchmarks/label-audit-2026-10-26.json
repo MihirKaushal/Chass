@@ -1,0 +1,3753 @@
+{
+  "recorded_on": "2026-10-26",
+  "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+  "scope": "Four contact sheets: 12 crops per class in train and valid (288 crops). Sampled across capture groups and images with seed 42. Not exhaustive semantic reannotation.",
+  "outcome": "No unambiguous class swaps established in this sample; dark or partially obscured heads remain uncertain. No train/valid labels changed. Two missing test objects separately confirmed at original resolution in the v4 review policy.",
+  "review_artifacts": "scanner/artifacts/improvements/label-audit/{train,valid}-{black,white}.jpg",
+  "samples": [
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 973,
+      "box_index": 3,
+      "file": "train/IMG20210314104453_jpg.rf.82e5bce12467418d3ace48204f0014b1.jpg",
+      "box": [
+        1263,
+        1544,
+        1478,
+        1759
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 1128,
+      "box_index": 3,
+      "file": "train/IMG_20220815_170819_DRO_jpg.rf.81fab4468b6355ebb1d89a345f2037c4.jpg",
+      "box": [
+        318,
+        971,
+        419,
+        1083
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 1051,
+      "box_index": 15,
+      "file": "train/IMG_20200912_234013_jpg.rf.96d9fcc119d9beab450749ab26617d7c.jpg",
+      "box": [
+        269,
+        2605,
+        450,
+        2734
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 95,
+      "box_index": 8,
+      "file": "train/IMG_20200908_235654_jpg.rf.3b0c11f4ddc52e7728a69a6830597d8f.jpg",
+      "box": [
+        1495,
+        1382,
+        1646,
+        1556
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 64,
+      "box_index": 59,
+      "file": "train/Inverse_2--35-_jpg.rf.33c26c9e705f7708d1975339032b08bb.jpg",
+      "box": [
+        1458,
+        1649,
+        1636,
+        1826
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 99,
+      "box_index": 41,
+      "file": "train/IMG_20210514_001655_jpg.rf.3d3b8b38e69c0b9594a0e3d433eab5af.png",
+      "box": [
+        1123,
+        862,
+        1236,
+        980
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 1103,
+      "box_index": 47,
+      "file": "train/IMG_20210421_211013_HDR_jpg.rf.77ba2f06136d45c0b47a5df84f8dfb1f.jpg",
+      "box": [
+        741,
+        883,
+        830,
+        981
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 736,
+      "box_index": 29,
+      "file": "train/IMG_20220810_175907_jpg.rf.ab84f3963e765dadaece5457bc63c537.jpg",
+      "box": [
+        862,
+        441,
+        953,
+        514
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 1039,
+      "box_index": 8,
+      "file": "train/IMG_20200909_204532_jpg.rf.949eaa0b1a1bfb00d49a247f71085bc2.jpg",
+      "box": [
+        1618,
+        2460,
+        1972,
+        2790
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 1009,
+      "box_index": 31,
+      "file": "train/IMG_20210422_222414_jpg.rf.8babd416ec7c3d626edd4a6e5eb7e525.png",
+      "box": [
+        582,
+        355,
+        647,
+        427
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 1316,
+      "box_index": 1,
+      "file": "train/IMG_20200830_204143_jpg.rf.2f715da00dffd800d69323d8781c45f8.jpg",
+      "box": [
+        2320,
+        701,
+        2506,
+        965
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-bishop",
+      "image_id": 6,
+      "box_index": 21,
+      "file": "train/IMG_20200829_041536_jpg.rf.27ba88d585035deb85898e9b4a6ead8f.jpg",
+      "box": [
+        2378,
+        970,
+        2555,
+        1231
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 439,
+      "box_index": 27,
+      "file": "train/IMG_20220808_142202_jpg.rf.dcaafac2cb8a22814c813556db2445e9.jpg",
+      "box": [
+        531,
+        105,
+        602,
+        227
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 281,
+      "box_index": 14,
+      "file": "train/IMG_20220815_211245_DRO_jpg.rf.634c101ef60d3daac4fe73215bd7a534.jpg",
+      "box": [
+        271,
+        753,
+        395,
+        867
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 325,
+      "box_index": 1,
+      "file": "train/IMG20210318212914_jpg.rf.722a49282052fd78150a0510d7f01530.jpg",
+      "box": [
+        1467,
+        1429,
+        1778,
+        1777
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 494,
+      "box_index": 8,
+      "file": "train/IMG20210319201759_jpg.rf.ea0c1bbd2b3966bd8a5223faebf716ca.jpg",
+      "box": [
+        2322,
+        2141,
+        2673,
+        2364
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 1127,
+      "box_index": 15,
+      "file": "train/IMG_20220810_180416_jpg.rf.8c34e1313e748f1daf86dd7a6bc2bdc4.png",
+      "box": [
+        158,
+        42,
+        321,
+        201
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 1367,
+      "box_index": 60,
+      "file": "train/IMG_20200912_235349_jpg.rf.545b50c04863ce88817acce551ce8eb9.jpg",
+      "box": [
+        1345,
+        256,
+        1548,
+        500
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 190,
+      "box_index": 7,
+      "file": "train/IMG_20200830_213947_jpg.rf.4e9584a43c094c4411016f5e021fb357.jpg",
+      "box": [
+        1539,
+        2053,
+        1743,
+        2195
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 895,
+      "box_index": 39,
+      "file": "train/IMG_20210425_001517_jpg.rf.faec93a10a20f354b57d753084d62895.png",
+      "box": [
+        847,
+        557,
+        968,
+        645
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 272,
+      "box_index": 10,
+      "file": "train/IMG_20210422_210033_HDR_jpg.rf.60057ff246029c4f051d7230dde9ae16.jpg",
+      "box": [
+        95,
+        662,
+        254,
+        784
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 946,
+      "box_index": 4,
+      "file": "train/IMG20210331001525_jpg.rf.7e1d32496a6591c1c681a68ff421dc7f.jpg",
+      "box": [
+        2395,
+        1769,
+        2753,
+        2086
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 1091,
+      "box_index": 5,
+      "file": "train/IMG20210326004257_jpg.rf.a1acf4168ce9744fc70ba659e1f677c8.jpg",
+      "box": [
+        1532,
+        1371,
+        1820,
+        1714
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-king",
+      "image_id": 219,
+      "box_index": 4,
+      "file": "train/IMG20210314103747_jpg.rf.5633561e6f8ca21fb78ff3ecda28d941.jpg",
+      "box": [
+        1645,
+        1910,
+        1984,
+        2226
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 259,
+      "box_index": 18,
+      "file": "train/IMG_20220813_224625_jpg.rf.5ee75f3d567eac6c14a389a8360ae12d.png",
+      "box": [
+        602,
+        587,
+        692,
+        671
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 101,
+      "box_index": 41,
+      "file": "train/IMG_20200908_233532_jpg.rf.3cdea45d41f4d1fd0ed98e02a283f7dc.jpg",
+      "box": [
+        2919,
+        1191,
+        3089,
+        1411
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 856,
+      "box_index": 9,
+      "file": "train/IMG_20210421_211107_HDR_jpg.rf.c737fa71ed0a52921cdb895519096ccd.jpg",
+      "box": [
+        223,
+        449,
+        328,
+        550
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 643,
+      "box_index": 25,
+      "file": "train/IMG_20220808_152312_jpg.rf.1870ff7f3d34ab927ab5fe97ff084121.png",
+      "box": [
+        424,
+        549,
+        508,
+        658
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 440,
+      "box_index": 16,
+      "file": "train/IMG20210330235314_jpg.rf.dc097019de9cc8d700f3bb7032f8933d.jpg",
+      "box": [
+        728,
+        1488,
+        975,
+        1710
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 1070,
+      "box_index": 4,
+      "file": "train/IMG20210318212004_jpg.rf.9aa27c99e2e45605c88e8588c40a2984.jpg",
+      "box": [
+        475,
+        2686,
+        727,
+        2960
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 433,
+      "box_index": 54,
+      "file": "train/IMG_20210514_000913_jpg.rf.db0dc11a5e83ec6ede0942c22d56ebf8.jpg",
+      "box": [
+        1438,
+        482,
+        1673,
+        657
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 52,
+      "box_index": 36,
+      "file": "train/IMG_20210422_213728_jpg.rf.312049771523048ca7b52141067cddfc.png",
+      "box": [
+        576,
+        636,
+        660,
+        732
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 509,
+      "box_index": 9,
+      "file": "train/IMG_20220815_211924_DRO_jpg.rf.f0d3acc22f809adb8623cd7d3f6b2d16.jpg",
+      "box": [
+        290,
+        712,
+        394,
+        803
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 750,
+      "box_index": 3,
+      "file": "train/IMG20210314105053_jpg.rf.ad2dbac0478492a9199db52155c99bf4.jpg",
+      "box": [
+        802,
+        1483,
+        1136,
+        1728
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 1290,
+      "box_index": 7,
+      "file": "train/IMG_20200909_000242_jpg.rf.159ce74db218e9e59d2ee8314649023e.jpg",
+      "box": [
+        3087,
+        465,
+        3230,
+        682
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-knight",
+      "image_id": 740,
+      "box_index": 19,
+      "file": "train/IMG_20220810_180006_jpg.rf.ac8744243969b2c06a8f15b9fc1c3b1a.jpg",
+      "box": [
+        319,
+        655,
+        430,
+        742
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 1133,
+      "box_index": 19,
+      "file": "train/IMG_20220808_142014_jpg.rf.8fc7653181365367f2eda8e7e7cf8698.jpg",
+      "box": [
+        254,
+        604,
+        332,
+        674
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 146,
+      "box_index": 9,
+      "file": "train/IMG_20200830_202833_jpg.rf.4315d869c8f46718b240d9537998e990.jpg",
+      "box": [
+        1563,
+        925,
+        1789,
+        1215
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 721,
+      "box_index": 37,
+      "file": "train/IMG_20210421_210216_HDR_jpg.rf.a6ff40e5057d45131add77644b886a55.jpg",
+      "box": [
+        245,
+        738,
+        318,
+        815
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 1001,
+      "box_index": 10,
+      "file": "train/IMG_20210514_001551_jpg.rf.89e289751560373b6df12afa713689a0.png",
+      "box": [
+        1161,
+        389,
+        1292,
+        533
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 822,
+      "box_index": 9,
+      "file": "train/IMG_20220813_223113_jpg.rf.be79d22b0cb124a581cd4a4ca0bd281e.png",
+      "box": [
+        535,
+        946,
+        619,
+        1037
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 1166,
+      "box_index": 4,
+      "file": "train/IMG_20220815_172708_DRO_jpg.rf.b2c54360e10b3a979d0d7039538f55f7.jpg",
+      "box": [
+        62,
+        873,
+        165,
+        964
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 912,
+      "box_index": 2,
+      "file": "train/IMG_20210425_001340_jpg.rf.fe0608db322bb6bc59d36910aec459a5.png",
+      "box": [
+        424,
+        199,
+        486,
+        270
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 971,
+      "box_index": 3,
+      "file": "train/IMG_20200829_012330_jpg.rf.81cb4e10f129f5afe02f1cbcc3ba3094.jpg",
+      "box": [
+        790,
+        234,
+        1097,
+        586
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 1,
+      "box_index": 18,
+      "file": "train/IMG_20200909_203158_jpg.rf.26463201768a9c5125810df0356d4610.jpg",
+      "box": [
+        1244,
+        1325,
+        1383,
+        1454
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 1151,
+      "box_index": 11,
+      "file": "train/Inverse_2--24-_jpg.rf.99dca4207d112ef68e892f5e0b3e5ef8.jpg",
+      "box": [
+        1593,
+        2510,
+        1707,
+        2629
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 306,
+      "box_index": 32,
+      "file": "train/IMG_20210422_213121_jpg.rf.6d5a1ca4efe1c5f141e67b44b3174954.png",
+      "box": [
+        335,
+        677,
+        406,
+        743
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-pawn",
+      "image_id": 369,
+      "box_index": 5,
+      "file": "train/IMG_20220810_181102_jpg.rf.cb9c6271783ae318d93a33a2e03a0e58.png",
+      "box": [
+        202,
+        924,
+        300,
+        1019
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 189,
+      "box_index": 1,
+      "file": "train/IMG20210302195733_jpg.rf.4df4554859deb0057b198e931ae08b97.jpg",
+      "box": [
+        322,
+        461,
+        1223,
+        1188
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 20,
+      "box_index": 19,
+      "file": "train/IMG_20220810_113534_DRO_jpg.rf.2a69ee19dfe965101972d3d5cc5a2f30.jpg",
+      "box": [
+        647,
+        939,
+        750,
+        1053
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 459,
+      "box_index": 4,
+      "file": "train/IMG20210318223340_jpg.rf.e09dc5c3134bdf51b1ef662114a5f07a.jpg",
+      "box": [
+        1602,
+        4514,
+        2223,
+        5099
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 24,
+      "box_index": 59,
+      "file": "train/IMG_20210425_001015_jpg.rf.2ac3de8a19615a4fb6b3add9dccbb55b.png",
+      "box": [
+        491,
+        842,
+        575,
+        978
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 1069,
+      "box_index": 33,
+      "file": "train/IMG_20210421_210018_HDR_jpg.rf.9b51ef16d870af830f0a7500170ce4d5.jpg",
+      "box": [
+        465,
+        424,
+        550,
+        510
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 507,
+      "box_index": 50,
+      "file": "train/IMG_20200908_233948_jpg.rf.ef6a5e300d8e56a89ffe01f2e95897ef.jpg",
+      "box": [
+        2025,
+        1173,
+        2202,
+        1412
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 3,
+      "box_index": 5,
+      "file": "train/IMG20210319201731_jpg.rf.2425c2c2d9bc369087ffe60ea33fbfbd.jpg",
+      "box": [
+        805,
+        3101,
+        1168,
+        3528
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 237,
+      "box_index": 9,
+      "file": "train/IMG_20200830_210636_jpg.rf.58b8c3e627c442e10ef49c152b184813.jpg",
+      "box": [
+        2238,
+        378,
+        2434,
+        642
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 1126,
+      "box_index": 3,
+      "file": "train/IMG20210314104857_jpg.rf.8714cfa5b59f7c7c40b64193087b9a9b.jpg",
+      "box": [
+        2113,
+        2594,
+        2523,
+        2971
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 670,
+      "box_index": 9,
+      "file": "train/Inverse_2--41-_jpg.rf.1d29273322648bd285f3bf0316bfb31f.jpg",
+      "box": [
+        2494,
+        528,
+        2682,
+        720
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 511,
+      "box_index": 16,
+      "file": "train/IMG_20220808_141117_jpg.rf.f040ec9b7cf77c58cd1b25f13ce9cb26.png",
+      "box": [
+        465,
+        260,
+        560,
+        359
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-queen",
+      "image_id": 999,
+      "box_index": 32,
+      "file": "train/IMG_20210422_210104_HDR_jpg.rf.896cd63ba19f9676ba3c1d4a751d25ee.jpg",
+      "box": [
+        512,
+        594,
+        582,
+        669
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 1391,
+      "box_index": 15,
+      "file": "train/IMG_20220808_140044_jpg.rf.6c774ff9722d4efb4f605ae0fc003540.jpg",
+      "box": [
+        321,
+        773,
+        437,
+        905
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 351,
+      "box_index": 16,
+      "file": "train/IMG_20200829_012025_jpg.rf.75a90b217e14c4f9acd071e513b2978c.jpg",
+      "box": [
+        1616,
+        356,
+        1970,
+        757
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 883,
+      "box_index": 25,
+      "file": "train/IMG_20210422_221914_jpg.rf.faaf948e02dd8b369e1127f9568eedc4.png",
+      "box": [
+        219,
+        666,
+        308,
+        738
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 1098,
+      "box_index": 16,
+      "file": "train/IMG_20220813_222548_jpg.rf.a2905e63dc91132c487f3539adf8173d.png",
+      "box": [
+        257,
+        675,
+        377,
+        760
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 982,
+      "box_index": 3,
+      "file": "train/IMG_20200830_213112_jpg.rf.8455c0224cd3c4c88b7bf6c1d3916f2b.jpg",
+      "box": [
+        2513,
+        570,
+        2721,
+        736
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 813,
+      "box_index": 42,
+      "file": "train/IMG_20200908_232352_jpg.rf.bc5036fba453fad92b130b52db0cc66b.jpg",
+      "box": [
+        1295,
+        108,
+        1453,
+        324
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 1293,
+      "box_index": 56,
+      "file": "train/IMG_20210425_001659_jpg.rf.1ef9a7602df0f19549caca196379d973.png",
+      "box": [
+        540,
+        632,
+        605,
+        710
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 1110,
+      "box_index": 29,
+      "file": "train/Inverse_2--43-_jpg.rf.6de9de330540e687de5c71fe6b02f047.jpg",
+      "box": [
+        2378,
+        1216,
+        2521,
+        1399
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 650,
+      "box_index": 37,
+      "file": "train/IMG_20210421_210518_HDR_jpg.rf.193a79b7be875e5587482f0e32e5c67c.jpg",
+      "box": [
+        829,
+        668,
+        938,
+        751
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 219,
+      "box_index": 6,
+      "file": "train/IMG20210314103747_jpg.rf.5633561e6f8ca21fb78ff3ecda28d941.jpg",
+      "box": [
+        1262,
+        2842,
+        1503,
+        3188
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 11,
+      "box_index": 4,
+      "file": "train/IMG20210331000415_jpg.rf.2682b9ae5c9dc84ae79a4442a14ab04d.jpg",
+      "box": [
+        341,
+        1495,
+        631,
+        1732
+      ]
+    },
+    {
+      "split": "train",
+      "class": "black-rook",
+      "image_id": 659,
+      "box_index": 14,
+      "file": "train/IMG20210319201843_jpg.rf.1bc4c4cd5e878414ae58e238ac64624f.jpg",
+      "box": [
+        1196,
+        356,
+        1453,
+        629
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 408,
+      "box_index": 32,
+      "file": "train/IMG_20210514_001242_jpg.rf.d5579020172737cac907f5362b0d97f0.png",
+      "box": [
+        1062,
+        750,
+        1210,
+        874
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 1100,
+      "box_index": 29,
+      "file": "train/IMG_20210422_210425_HDR_jpg.rf.a21f43443f3d4b28ed01760e76696f81.jpg",
+      "box": [
+        839,
+        637,
+        923,
+        708
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 75,
+      "box_index": 21,
+      "file": "train/IMG_20220810_180710_jpg.rf.35848c91496e79d3e0b715603a80cada.png",
+      "box": [
+        838,
+        684,
+        923,
+        771
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 332,
+      "box_index": 9,
+      "file": "train/IMG_20200912_231829_jpg.rf.7249f5831648db48b9a477f0deae5f99.jpg",
+      "box": [
+        3073,
+        1431,
+        3216,
+        1592
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 1188,
+      "box_index": 9,
+      "file": "train/Inverse_2--14-_jpg.rf.c3b01e433972ceb0ac4c3bf1d82ad489.jpg",
+      "box": [
+        1609,
+        1151,
+        1771,
+        1325
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 572,
+      "box_index": 31,
+      "file": "train/IMG_20200829_040125_jpg.rf.07585677b770a59e3df55237a228e3d3.jpg",
+      "box": [
+        1864,
+        1244,
+        2047,
+        1494
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 177,
+      "box_index": 0,
+      "file": "train/IMG_20200830_204450_jpg.rf.4ba8eb24638c38bc61b6fb32ea887132.jpg",
+      "box": [
+        1242,
+        1642,
+        1554,
+        1844
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 619,
+      "box_index": 4,
+      "file": "train/IMG_20210421_210235_HDR_jpg.rf.11e62e356fc501804736c9d7f9b2fc5a.jpg",
+      "box": [
+        764,
+        115,
+        850,
+        216
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 253,
+      "box_index": 49,
+      "file": "train/IMG_20200908_235327_jpg.rf.5bfe8419ba882a1ed5425557868f7be4.jpg",
+      "box": [
+        2268,
+        1530,
+        2417,
+        1732
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 440,
+      "box_index": 9,
+      "file": "train/IMG20210330235314_jpg.rf.dc097019de9cc8d700f3bb7032f8933d.jpg",
+      "box": [
+        723,
+        549,
+        952,
+        786
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 1347,
+      "box_index": 4,
+      "file": "train/IMG_20200909_204250_jpg.rf.3b8094443f545bab6f43579a3c9ad830.jpg",
+      "box": [
+        630,
+        2138,
+        1085,
+        2534
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-bishop",
+      "image_id": 163,
+      "box_index": 13,
+      "file": "train/IMG20210314100740_jpg.rf.47a4cd9b0e9a4e8509795602e04709ab.jpg",
+      "box": [
+        1555,
+        1887,
+        1984,
+        2203
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 561,
+      "box_index": 28,
+      "file": "train/IMG_20220810_114603_DRO_jpg.rf.03966dfc50cf83131039be110dc84435.jpg",
+      "box": [
+        595,
+        184,
+        689,
+        319
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 179,
+      "box_index": 1,
+      "file": "train/IMG20210314100405_jpg.rf.4b830e1780609d2eded7d2122db51085.jpg",
+      "box": [
+        1947,
+        1220,
+        2652,
+        1975
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 826,
+      "box_index": 2,
+      "file": "train/IMG_20200830_213624_jpg.rf.be9c2a794b064def0df8a37fc08bb78f.jpg",
+      "box": [
+        1439,
+        294,
+        1625,
+        492
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 715,
+      "box_index": 41,
+      "file": "train/IMG_20200908_234752_jpg.rf.a5a4ef739874db7a68d5b3d0a278842f.jpg",
+      "box": [
+        2444,
+        1491,
+        2623,
+        1652
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 734,
+      "box_index": 11,
+      "file": "train/IMG_20220808_141647_jpg.rf.a8aebf3a0a4ba6088046630f2f1b459f.png",
+      "box": [
+        610,
+        374,
+        738,
+        476
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 776,
+      "box_index": 30,
+      "file": "train/IMG_20210422_212028_jpg.rf.b4e0342dd4330ee135737eb804c73328.png",
+      "box": [
+        402,
+        456,
+        514,
+        557
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 463,
+      "box_index": 6,
+      "file": "train/IMG20210318011505_jpg.rf.e259367c189e6c20332b3ef155b2f7ef.jpg",
+      "box": [
+        1466,
+        3076,
+        1721,
+        3445
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 911,
+      "box_index": 54,
+      "file": "train/IMG_20200912_234838_jpg.rf.fe8dc9beed3a3d63af99a25265b06e7f.jpg",
+      "box": [
+        2579,
+        1300,
+        2772,
+        1507
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 496,
+      "box_index": 9,
+      "file": "train/IMG_20200909_205249_jpg.rf.e8aebe836e1a1b33a1078ed5639befb1.jpg",
+      "box": [
+        68,
+        2342,
+        468,
+        2773
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 649,
+      "box_index": 21,
+      "file": "train/IMG_20210421_211355_HDR_jpg.rf.1a05403267ebd8105cf89a93496136ff.jpg",
+      "box": [
+        108,
+        648,
+        237,
+        735
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 873,
+      "box_index": 25,
+      "file": "train/IMG20210331002054_jpg.rf.ca0666db28060d5e91ff953ed8d105b6.jpg",
+      "box": [
+        1541,
+        1744,
+        1809,
+        2037
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-king",
+      "image_id": 1333,
+      "box_index": 31,
+      "file": "train/IMG_20210425_001934_jpg.rf.3a8c968e2cda5b096a8ebea12012fb17.png",
+      "box": [
+        871,
+        376,
+        1000,
+        471
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 883,
+      "box_index": 6,
+      "file": "train/IMG_20210422_221914_jpg.rf.faaf948e02dd8b369e1127f9568eedc4.png",
+      "box": [
+        632,
+        780,
+        703,
+        875
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 300,
+      "box_index": 13,
+      "file": "train/IMG20210319202438_jpg.rf.6a663c6949467c459a785aea78a9eb00.jpg",
+      "box": [
+        1853,
+        2959,
+        2137,
+        3259
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 617,
+      "box_index": 57,
+      "file": "train/IMG_20210514_000901_jpg.rf.1064b169ada241b8882bd1883b86e60f.jpg",
+      "box": [
+        1254,
+        1379,
+        1382,
+        1564
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 12,
+      "box_index": 26,
+      "file": "train/IMG20210326005535_jpg.rf.25ef429fcfe2374957ca999413fc48dd.jpg",
+      "box": [
+        1184,
+        2322,
+        1402,
+        2589
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 970,
+      "box_index": 30,
+      "file": "train/IMG_20210421_210731_HDR_jpg.rf.835a8ce38b8c590cc27f6459b89ea4df.jpg",
+      "box": [
+        826,
+        573,
+        927,
+        652
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 787,
+      "box_index": 6,
+      "file": "train/IMG20210318221131_jpg.rf.b4eb296ed24d228ff2e3ad21e1ebdeb4.jpg",
+      "box": [
+        1764,
+        2512,
+        2153,
+        2908
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 886,
+      "box_index": 16,
+      "file": "train/IMG_20220813_224203_jpg.rf.fa0509c47e4a0cc5f0c244a03cddfabc.png",
+      "box": [
+        484,
+        761,
+        589,
+        855
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 510,
+      "box_index": 4,
+      "file": "train/IMG_20200830_204305_jpg.rf.f03c50624d8247783ede723fdb7f7604.jpg",
+      "box": [
+        1157,
+        1945,
+        1486,
+        2190
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 683,
+      "box_index": 10,
+      "file": "train/IMG20210331000933_jpg.rf.2025cb3420764142d5bd693bbe53dbb2.jpg",
+      "box": [
+        2403,
+        507,
+        2680,
+        784
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 141,
+      "box_index": 13,
+      "file": "train/IMG_20220808_144226_jpg.rf.43abe4b67095f87b7a410a55430f1fe6.png",
+      "box": [
+        695,
+        873,
+        816,
+        1006
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 307,
+      "box_index": 13,
+      "file": "train/IMG20210314104954_jpg.rf.6c6a6dbeb79269aeb5d13d8028ce89aa.jpg",
+      "box": [
+        2504,
+        1051,
+        2778,
+        1281
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-knight",
+      "image_id": 77,
+      "box_index": 29,
+      "file": "train/IMG_20210425_001209_jpg.rf.3793c43f0332af98fcee892672a5a562.png",
+      "box": [
+        215,
+        413,
+        312,
+        485
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 85,
+      "box_index": 30,
+      "file": "train/IMG_20220808_141036_jpg.rf.39287119e39c7bae8f0a58bea0428e11.png",
+      "box": [
+        273,
+        770,
+        347,
+        849
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 1378,
+      "box_index": 22,
+      "file": "train/IMG_20210422_221748_jpg.rf.5bbed74ff4faf1349dc09a412774e0eb.png",
+      "box": [
+        503,
+        665,
+        562,
+        721
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 611,
+      "box_index": 4,
+      "file": "train/IMG_20220810_115546_DRO_jpg.rf.0feaf7b73ccad720aca4ee7e6d8eb6b9.jpg",
+      "box": [
+        690,
+        387,
+        761,
+        467
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 1298,
+      "box_index": 7,
+      "file": "train/Inverse--47-_jpg.rf.1ae68be4246d5cf6d9eb2618184bf243.jpg",
+      "box": [
+        1110,
+        3199,
+        1274,
+        3373
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 311,
+      "box_index": 7,
+      "file": "train/IMG20210331001546_jpg.rf.6d10db52af7012881eb352d14a7687b8.jpg",
+      "box": [
+        2379,
+        2029,
+        2631,
+        2265
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 1323,
+      "box_index": 42,
+      "file": "train/IMG_20210425_001023_jpg.rf.35c05a8161bc80d7a27d76eedcae911d.png",
+      "box": [
+        323,
+        690,
+        388,
+        761
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 213,
+      "box_index": 4,
+      "file": "train/IMG_20200909_203311_jpg.rf.54dec8d55ede08cccd6301b6edbbb1d8.jpg",
+      "box": [
+        1992,
+        123,
+        2114,
+        281
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 923,
+      "box_index": 6,
+      "file": "train/IMG_20200912_231252_jpg.rf.7afcf5be9e3b6a87fed6288b80aba7b1.jpg",
+      "box": [
+        2418,
+        289,
+        2527,
+        431
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 666,
+      "box_index": 5,
+      "file": "train/IMG_20200829_011600_jpg.rf.1c719693a2ecf83b4c2e62ca0359503d.jpg",
+      "box": [
+        2306,
+        653,
+        2587,
+        963
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 1418,
+      "box_index": 22,
+      "file": "train/IMG_20210514_001430_jpg.rf.c596c507032bde78bd8424e753adcae2.jpg",
+      "box": [
+        627,
+        1374,
+        738,
+        1509
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 144,
+      "box_index": 5,
+      "file": "train/IMG_20200830_204147_jpg.rf.452c8c832289d45407b13e56858a4a70.jpg",
+      "box": [
+        948,
+        375,
+        1124,
+        575
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-pawn",
+      "image_id": 44,
+      "box_index": 7,
+      "file": "train/IMG_20200908_231339_jpg.rf.2f75d0614719450619e15aad2c12e4fb.jpg",
+      "box": [
+        1944,
+        759,
+        2077,
+        940
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 172,
+      "box_index": 5,
+      "file": "train/IMG_20220810_121521_DRO_jpg.rf.4bc5d94a522ce8857e527b62835dbb6f.jpg",
+      "box": [
+        711,
+        802,
+        792,
+        912
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 308,
+      "box_index": 7,
+      "file": "train/IMG20210314100811_jpg.rf.69eae4149906004b9305de0bafec962c.jpg",
+      "box": [
+        1307,
+        1556,
+        1563,
+        1827
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 169,
+      "box_index": 4,
+      "file": "train/IMG_20220808_140812_jpg.rf.4b5ee0fa108c24acf81c66bbf85631da.png",
+      "box": [
+        159,
+        469,
+        283,
+        560
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 1135,
+      "box_index": 36,
+      "file": "train/IMG_20210422_222419_jpg.rf.904fd7dc3b20ee73494812bf3d347d3c.png",
+      "box": [
+        441,
+        832,
+        518,
+        950
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 126,
+      "box_index": 4,
+      "file": "train/IMG_20200909_205015_jpg.rf.3f86772957eb399e98e560225a317326.jpg",
+      "box": [
+        921,
+        1451,
+        1669,
+        2038
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 528,
+      "box_index": 4,
+      "file": "train/IMG20210319201516_jpg.rf.f32d0af519dc23b1207c10daeb540b82.jpg",
+      "box": [
+        3669,
+        978,
+        4243,
+        1768
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 8,
+      "box_index": 15,
+      "file": "train/IMG20210330235729_jpg.rf.245cbe7c39ce5fd60b1f66eb7b7e977d.jpg",
+      "box": [
+        2363,
+        1967,
+        2758,
+        2313
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 1386,
+      "box_index": 7,
+      "file": "train/IMG_20200830_205725_jpg.rf.6335dd23a307833cee03f18d4e7e9139.jpg",
+      "box": [
+        1795,
+        685,
+        2034,
+        861
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 1004,
+      "box_index": 0,
+      "file": "train/IMG_20210421_210052_HDR_jpg.rf.8aa27d041ab1205df15dbd924153a92d.jpg",
+      "box": [
+        57,
+        121,
+        200,
+        237
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 435,
+      "box_index": 12,
+      "file": "train/IMG20210318212052_jpg.rf.d83b5817c1f0b20f5e9fd03e75f9ecba.jpg",
+      "box": [
+        1410,
+        468,
+        1683,
+        906
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 1138,
+      "box_index": 59,
+      "file": "train/IMG_20210514_001437_jpg.rf.96bf57b3b19d259077916b53894ffcfb.jpg",
+      "box": [
+        1020,
+        1036,
+        1189,
+        1222
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-queen",
+      "image_id": 1359,
+      "box_index": 8,
+      "file": "train/Inverse_2--42-_jpg.rf.52ea1bd4bcd11e4b74ef2afa176fd259.jpg",
+      "box": [
+        2122,
+        423,
+        2324,
+        649
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 122,
+      "box_index": 13,
+      "file": "train/IMG20210319023947_jpg.rf.3edb18a26b812f1aef2262ce86b9fafb.jpg",
+      "box": [
+        1873,
+        5175,
+        2264,
+        5657
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 148,
+      "box_index": 12,
+      "file": "train/IMG_20200909_205553_jpg.rf.4322d12414d856e121a3188fb517f5db.jpg",
+      "box": [
+        1337,
+        1171,
+        1878,
+        1689
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 468,
+      "box_index": 43,
+      "file": "train/IMG_20210422_213239_jpg.rf.e2ea21ac4cca65d1375ace0a334d92cc.png",
+      "box": [
+        584,
+        710,
+        651,
+        795
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 249,
+      "box_index": 2,
+      "file": "train/IMG_20200830_214105_jpg.rf.5d8776c0942e5a8cae7e64e3d97538b7.jpg",
+      "box": [
+        1016,
+        2021,
+        1155,
+        2149
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 35,
+      "box_index": 5,
+      "file": "train/IMG20210318210619_jpg.rf.2c23ee29380541a13509e216debeb708.jpg",
+      "box": [
+        1597,
+        1906,
+        1821,
+        2166
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 903,
+      "box_index": 4,
+      "file": "train/IMG_20220808_144406_jpg.rf.fb1da299bcee2496b6d54f14d75a5f3d.jpg",
+      "box": [
+        691,
+        323,
+        790,
+        427
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 133,
+      "box_index": 17,
+      "file": "train/IMG_20200912_235524_jpg.rf.410e13c12e7f26eac41c5aa7fbb7b670.jpg",
+      "box": [
+        2303,
+        869,
+        2462,
+        1048
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 533,
+      "box_index": 13,
+      "file": "train/IMG20210331001425_jpg.rf.f5ddaf0bda19d3786131180502bc758c.jpg",
+      "box": [
+        393,
+        2113,
+        654,
+        2363
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 930,
+      "box_index": 0,
+      "file": "train/IMG20210330234812_jpg.rf.7c3275ab040787fac093a5d02225e004.jpg",
+      "box": [
+        616,
+        926,
+        879,
+        1173
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 687,
+      "box_index": 2,
+      "file": "train/IMG_20200829_041612_jpg.rf.20bc39321b4a68c8a4c84d51b2bb9930.jpg",
+      "box": [
+        2828,
+        243,
+        3071,
+        571
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 1208,
+      "box_index": 27,
+      "file": "train/IMG_20200908_232750_jpg.rf.c6cc1e4507942ff7d96d1f3e0ac19fee.jpg",
+      "box": [
+        1518,
+        281,
+        1659,
+        444
+      ]
+    },
+    {
+      "split": "train",
+      "class": "white-rook",
+      "image_id": 919,
+      "box_index": 17,
+      "file": "train/Inverse_2--39-_jpg.rf.fef95a40c661e97e87f39e1fbb0936a8.jpg",
+      "box": [
+        2196,
+        940,
+        2368,
+        1118
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1566,
+      "box_index": 33,
+      "file": "valid/IMG20210513213845_jpg.rf.a2ea8137ace001aa87e3a49f4d063e5a.jpg",
+      "box": [
+        1309,
+        367,
+        1530,
+        724
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1442,
+      "box_index": 43,
+      "file": "valid/IMG_20220809_234847_jpg.rf.3cbadc2c59231bac65c38d8422fcdca2.jpg",
+      "box": [
+        759,
+        647,
+        862,
+        728
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1582,
+      "box_index": 57,
+      "file": "valid/IMG_20210513_220640_jpg.rf.b2a96ea37633ad012a3ec553bda69084.png",
+      "box": [
+        398,
+        375,
+        472,
+        447
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1534,
+      "box_index": 41,
+      "file": "valid/IMG_20220809_234605_jpg.rf.06d1b37893bb1e6a08232ae16cb24fce.jpg",
+      "box": [
+        497,
+        259,
+        601,
+        362
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1581,
+      "box_index": 37,
+      "file": "valid/IMG_20220809_231553_jpg.rf.b05ce5ac6db036f9c3886a9f4bf952ef.jpg",
+      "box": [
+        471,
+        391,
+        548,
+        509
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1585,
+      "box_index": 41,
+      "file": "valid/IMG_20220809_235037_jpg.rf.bc6b4173360a35dd390a7abc08fd841b.jpg",
+      "box": [
+        449,
+        905,
+        547,
+        1031
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1704,
+      "box_index": 54,
+      "file": "valid/IMG_20210513_221702_jpg.rf.4b84a0ffc26dc367cdb52a0ce0f0e162.png",
+      "box": [
+        514,
+        681,
+        583,
+        762
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1692,
+      "box_index": 38,
+      "file": "valid/IMG_20220809_235308_jpg.rf.24f496a2d0e69631589336221db77610.jpg",
+      "box": [
+        641,
+        209,
+        713,
+        309
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1549,
+      "box_index": 58,
+      "file": "valid/IMG_20210513_221822_jpg.rf.116d3d848a0d4dec0e1d0699d54220d7.jpg",
+      "box": [
+        465,
+        644,
+        554,
+        723
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1499,
+      "box_index": 43,
+      "file": "valid/IMG_20220809_235320_jpg.rf.d24fd381d199363c637cb784cd6ef0bc.jpg",
+      "box": [
+        325,
+        571,
+        438,
+        655
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1615,
+      "box_index": 30,
+      "file": "valid/IMG_20210513_221817_jpg.rf.8b6a15302c8e37ea542e7ba28e00b723.jpg",
+      "box": [
+        555,
+        349,
+        628,
+        428
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-bishop",
+      "image_id": 1573,
+      "box_index": 0,
+      "file": "valid/IMG_20220809_205648_jpg.rf.abab6b938b592d84931f430b99d4203c.png",
+      "box": [
+        796,
+        1048,
+        906,
+        1168
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1563,
+      "box_index": 30,
+      "file": "valid/IMG_20220809_210303_jpg.rf.2396413516665a65f3e2e7e065ec3a97.png",
+      "box": [
+        656,
+        514,
+        763,
+        613
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1526,
+      "box_index": 55,
+      "file": "valid/IMG_20210513_221652_jpg.rf.f7ace7782c7c8c55c90fed7f20a40908.png",
+      "box": [
+        442,
+        651,
+        526,
+        756
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1501,
+      "box_index": 56,
+      "file": "valid/IMG20210513215207_jpg.rf.d52523b4c3594f81af59bd439b568d9f.jpg",
+      "box": [
+        1225,
+        1458,
+        1486,
+        1704
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1589,
+      "box_index": 7,
+      "file": "valid/IMG_20220809_204617_jpg.rf.bedc97de09c65f1475dfa2eede3abe9b.jpg",
+      "box": [
+        846,
+        646,
+        958,
+        728
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1667,
+      "box_index": 7,
+      "file": "valid/IMG_20220809_205126_jpg.rf.dfa72f6f0a6f65fd0caa95ade9b30ef4.jpg",
+      "box": [
+        1077,
+        550,
+        1230,
+        626
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1512,
+      "box_index": 8,
+      "file": "valid/IMG_20220809_204036_jpg.rf.e7f61974c1f3739adb3aced1cd5ddb24.png",
+      "box": [
+        872,
+        150,
+        995,
+        290
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1698,
+      "box_index": 60,
+      "file": "valid/IMG_20210513_220649_jpg.rf.34314885f68ad3bc26e00ce641f8ee29.png",
+      "box": [
+        638,
+        663,
+        733,
+        768
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1464,
+      "box_index": 27,
+      "file": "valid/IMG_20220809_224554_jpg.rf.4e37d23c5ef5e68a77db61ea3c9d1d0a.png",
+      "box": [
+        437,
+        445,
+        552,
+        559
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1493,
+      "box_index": 10,
+      "file": "valid/IMG_20220809_203700_jpg.rf.74f38c3cbf2b71bf1ef668155b9366f0.png",
+      "box": [
+        302,
+        857,
+        409,
+        967
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1717,
+      "box_index": 7,
+      "file": "valid/IMG_20220809_202216_jpg.rf.66608d732fbee596a288c2457810dfe9.png",
+      "box": [
+        143,
+        50,
+        310,
+        180
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1561,
+      "box_index": 44,
+      "file": "valid/IMG_20210513_221948_jpg.rf.1d9b6c26b669991c9a7735669fe6b881.png",
+      "box": [
+        49,
+        553,
+        186,
+        640
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-king",
+      "image_id": 1627,
+      "box_index": 9,
+      "file": "valid/IMG_20220809_204411_jpg.rf.98132be9cb14f31634b782d22e7f1cf1.png",
+      "box": [
+        304,
+        578,
+        412,
+        672
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1477,
+      "box_index": 32,
+      "file": "valid/IMG_20220809_233117_jpg.rf.5f88d2b744e80109c18431f12f0ab0a3.png",
+      "box": [
+        920,
+        556,
+        1035,
+        653
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1538,
+      "box_index": 52,
+      "file": "valid/IMG_20210513_221015_jpg.rf.099e46f4dca6ed904d7f969eee7fba7a.png",
+      "box": [
+        249,
+        206,
+        330,
+        312
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1563,
+      "box_index": 23,
+      "file": "valid/IMG_20220809_210303_jpg.rf.2396413516665a65f3e2e7e065ec3a97.png",
+      "box": [
+        318,
+        417,
+        422,
+        521
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1694,
+      "box_index": 30,
+      "file": "valid/IMG_20220809_233237_jpg.rf.2b19341d7b63935d8725dece2d99ec1a.png",
+      "box": [
+        376,
+        328,
+        468,
+        422
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1655,
+      "box_index": 8,
+      "file": "valid/IMG_20220809_205832_jpg.rf.b32809366f7961df624f6ce7a8dd1849.jpg",
+      "box": [
+        416,
+        667,
+        524,
+        778
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1535,
+      "box_index": 34,
+      "file": "valid/IMG_20220809_235007_jpg.rf.07d8418fcca4133184ada2ae360cc80b.png",
+      "box": [
+        523,
+        680,
+        614,
+        800
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1482,
+      "box_index": 34,
+      "file": "valid/IMG_20220809_232225_jpg.rf.6c6e2591059e43346c0cf55814a52139.png",
+      "box": [
+        901,
+        525,
+        1035,
+        622
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1644,
+      "box_index": 11,
+      "file": "valid/IMG_20220809_201232_jpg.rf.8eabdf4222c5977552db8d4d9f38b953.jpg",
+      "box": [
+        932,
+        554,
+        1026,
+        634
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1593,
+      "box_index": 34,
+      "file": "valid/IMG_20220809_235240_jpg.rf.c44476cd9a60a18f1c0edeb0eeecabcf.jpg",
+      "box": [
+        280,
+        531,
+        410,
+        628
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1527,
+      "box_index": 11,
+      "file": "valid/IMG_20220809_205012_jpg.rf.f8248f2c2fcc922447a693e79d725fd3.jpg",
+      "box": [
+        941,
+        436,
+        1045,
+        519
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1672,
+      "box_index": 36,
+      "file": "valid/IMG_20220809_234850_jpg.rf.ef6151a09b85d5afed4deac7ae2fa5c0.jpg",
+      "box": [
+        585,
+        940,
+        676,
+        1035
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-knight",
+      "image_id": 1524,
+      "box_index": 8,
+      "file": "valid/IMG_20220809_231748_jpg.rf.f66e3d949bb804d8f838a8d790e9df67.jpg",
+      "box": [
+        924,
+        553,
+        1009,
+        633
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1507,
+      "box_index": 20,
+      "file": "valid/IMG_20220809_234310_jpg.rf.dd6a598055dd121c91080fb58a94c416.png",
+      "box": [
+        835,
+        561,
+        917,
+        634
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1720,
+      "box_index": 48,
+      "file": "valid/IMG_20210513_220821_jpg.rf.3ffee5c70c5e539ab7332a29c357a3bd.png",
+      "box": [
+        864,
+        764,
+        951,
+        839
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1607,
+      "box_index": 12,
+      "file": "valid/IMG_20220809_234556_jpg.rf.80faf81bf54b70921e1c3619055a1ed5.jpg",
+      "box": [
+        632,
+        690,
+        686,
+        764
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1656,
+      "box_index": 4,
+      "file": "valid/IMG_20220809_233558_jpg.rf.bb379cae03eb5e2afcba7303e96bad51.png",
+      "box": [
+        592,
+        118,
+        675,
+        221
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1701,
+      "box_index": 19,
+      "file": "valid/IMG_20220809_234152_jpg.rf.3d7abadb8625a5557d141dc331c3e45e.jpg",
+      "box": [
+        270,
+        188,
+        365,
+        277
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1638,
+      "box_index": 11,
+      "file": "valid/IMG_20220809_233705_jpg.rf.7075632e0ef215f42545fffd3f0346cf.png",
+      "box": [
+        835,
+        666,
+        928,
+        756
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1533,
+      "box_index": 16,
+      "file": "valid/IMG_20220809_233914_jpg.rf.0661b4f30dd7af7d411ff8c8440b9949.jpg",
+      "box": [
+        135,
+        739,
+        230,
+        822
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1727,
+      "box_index": 33,
+      "file": "valid/IMG_20220809_235030_jpg.rf.c58e78eeb66c955d7f174326f9c387e8.jpg",
+      "box": [
+        952,
+        713,
+        1051,
+        782
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1436,
+      "box_index": 15,
+      "file": "valid/IMG20210513213918_jpg.rf.37bd6478f28740894981f673b7eb8525.jpg",
+      "box": [
+        1030,
+        1062,
+        1186,
+        1209
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1703,
+      "box_index": 5,
+      "file": "valid/IMG_20220809_233318_jpg.rf.47e708513da04899fc949b7302c16ec2.png",
+      "box": [
+        499,
+        563,
+        587,
+        647
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1647,
+      "box_index": 13,
+      "file": "valid/IMG_20220809_233430_jpg.rf.90837cd12e5a9ab9c54f11996f6a9954.png",
+      "box": [
+        590,
+        906,
+        685,
+        1003
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-pawn",
+      "image_id": 1648,
+      "box_index": 14,
+      "file": "valid/IMG_20220809_233901_jpg.rf.93f05da2432cd409d273ebef7ffd525e.png",
+      "box": [
+        921,
+        630,
+        1033,
+        718
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1697,
+      "box_index": 45,
+      "file": "valid/IMG20210513213953_jpg.rf.2a3afd4cd7b7280bcf36f7628dff273a.jpg",
+      "box": [
+        190,
+        1897,
+        551,
+        2145
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1708,
+      "box_index": 38,
+      "file": "valid/IMG_20220809_234520_jpg.rf.578f50cf05ab1b8ffa79505a72e7c777.png",
+      "box": [
+        522,
+        525,
+        610,
+        622
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1621,
+      "box_index": 36,
+      "file": "valid/IMG_20210513_220851_jpg.rf.8fda3f19f9f5c3bd37ce447abe6d1117.jpg",
+      "box": [
+        579,
+        856,
+        666,
+        994
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1443,
+      "box_index": 37,
+      "file": "valid/IMG_20210513_221157_jpg.rf.3e0571dfc21bb2f2ced13fec93dd503e.png",
+      "box": [
+        823,
+        736,
+        958,
+        854
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1439,
+      "box_index": 37,
+      "file": "valid/IMG20210513215102_jpg.rf.3ad8830da0a998b3ecde2b90508a2f60.jpg",
+      "box": [
+        659,
+        2063,
+        937,
+        2355
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1600,
+      "box_index": 32,
+      "file": "valid/IMG_20220809_205550_jpg.rf.fcbedff73ad0cfee09a4f11084b0dc43.png",
+      "box": [
+        784,
+        343,
+        914,
+        457
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1707,
+      "box_index": 38,
+      "file": "valid/IMG_20220809_232624_jpg.rf.5399d26993525c48994b6725885606f6.jpg",
+      "box": [
+        851,
+        301,
+        978,
+        416
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1475,
+      "box_index": 39,
+      "file": "valid/IMG20210513215230_jpg.rf.5dffae9f2d7ac6b96dbf5d48bcd73db1.jpg",
+      "box": [
+        351,
+        1565,
+        709,
+        1790
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1589,
+      "box_index": 32,
+      "file": "valid/IMG_20220809_204617_jpg.rf.bedc97de09c65f1475dfa2eede3abe9b.jpg",
+      "box": [
+        423,
+        302,
+        523,
+        412
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1518,
+      "box_index": 32,
+      "file": "valid/IMG_20220809_202520_jpg.rf.ed37802e131796a349eae04165cc350f.jpg",
+      "box": [
+        954,
+        555,
+        1089,
+        656
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1463,
+      "box_index": 57,
+      "file": "valid/IMG_20210513_221029_jpg.rf.4d479fbbfa38bc096ed4521bda2decf7.png",
+      "box": [
+        107,
+        653,
+        232,
+        749
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-queen",
+      "image_id": 1724,
+      "box_index": 30,
+      "file": "valid/IMG_20210513_222007_jpg.rf.b00c92b426e113084f2b105771b8e8bb.png",
+      "box": [
+        513,
+        523,
+        598,
+        606
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1566,
+      "box_index": 42,
+      "file": "valid/IMG20210513213845_jpg.rf.a2ea8137ace001aa87e3a49f4d063e5a.jpg",
+      "box": [
+        343,
+        1536,
+        610,
+        1761
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1542,
+      "box_index": 24,
+      "file": "valid/IMG_20220809_234717_jpg.rf.0bca54a682a8c83eb9faa9faef33f19f.jpg",
+      "box": [
+        333,
+        716,
+        433,
+        816
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1462,
+      "box_index": 43,
+      "file": "valid/IMG20210513213923_jpg.rf.505dc5c8ca7a68fae9af2a949102e29f.jpg",
+      "box": [
+        1572,
+        2193,
+        1755,
+        2418
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1677,
+      "box_index": 31,
+      "file": "valid/IMG20210513215459_jpg.rf.fce244e9f514fad6e607bac32771a93a.jpg",
+      "box": [
+        1570,
+        2377,
+        1812,
+        2690
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1497,
+      "box_index": 25,
+      "file": "valid/IMG_20220809_235000_jpg.rf.cbacf1e7cf0c4b1bbf94583f186d6a03.jpg",
+      "box": [
+        587,
+        881,
+        692,
+        999
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1452,
+      "box_index": 36,
+      "file": "valid/IMG_20220809_233922_jpg.rf.45783c903f183cc54dadda94229e3c71.jpg",
+      "box": [
+        282,
+        762,
+        392,
+        861
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1705,
+      "box_index": 47,
+      "file": "valid/IMG_20210513_221133_jpg.rf.52ebfee000b677ba323b730b58e30fc8.png",
+      "box": [
+        668,
+        83,
+        758,
+        190
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1522,
+      "box_index": 28,
+      "file": "valid/IMG_20220809_203649_jpg.rf.ef226887c8882989b7c1bf37574322c6.png",
+      "box": [
+        318,
+        973,
+        403,
+        1076
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1585,
+      "box_index": 26,
+      "file": "valid/IMG_20220809_235037_jpg.rf.bc6b4173360a35dd390a7abc08fd841b.jpg",
+      "box": [
+        650,
+        903,
+        736,
+        1016
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1561,
+      "box_index": 52,
+      "file": "valid/IMG_20210513_221948_jpg.rf.1d9b6c26b669991c9a7735669fe6b881.png",
+      "box": [
+        727,
+        330,
+        818,
+        407
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1567,
+      "box_index": 36,
+      "file": "valid/IMG_20220809_234012_jpg.rf.a6cde48fa7a02beb485682e29ff1bf97.png",
+      "box": [
+        358,
+        770,
+        448,
+        876
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "black-rook",
+      "image_id": 1543,
+      "box_index": 28,
+      "file": "valid/IMG_20220809_205417_jpg.rf.0c855fe0987efc1a25bbb53da063a110.jpg",
+      "box": [
+        703,
+        477,
+        774,
+        545
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1672,
+      "box_index": 21,
+      "file": "valid/IMG_20220809_234850_jpg.rf.ef6151a09b85d5afed4deac7ae2fa5c0.jpg",
+      "box": [
+        116,
+        564,
+        218,
+        649
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1561,
+      "box_index": 34,
+      "file": "valid/IMG_20210513_221948_jpg.rf.1d9b6c26b669991c9a7735669fe6b881.png",
+      "box": [
+        321,
+        658,
+        400,
+        738
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1604,
+      "box_index": 21,
+      "file": "valid/IMG_20220809_224747_jpg.rf.7dd65b9e54168365cbd1a214a624d6d2.png",
+      "box": [
+        833,
+        444,
+        911,
+        534
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1572,
+      "box_index": 20,
+      "file": "valid/IMG_20220809_205721_jpg.rf.aa6cb7d41979959e1857ea467df80c96.png",
+      "box": [
+        219,
+        616,
+        322,
+        721
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1700,
+      "box_index": 22,
+      "file": "valid/IMG_20220809_234857_jpg.rf.3ba3f7634056d75de57f0d7e0889440b.jpg",
+      "box": [
+        215,
+        687,
+        294,
+        755
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1519,
+      "box_index": 20,
+      "file": "valid/IMG_20220809_210311_jpg.rf.ef01bff5a32e8a2ea77d1241f24e5a0c.png",
+      "box": [
+        466,
+        1008,
+        570,
+        1121
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1440,
+      "box_index": 21,
+      "file": "valid/IMG_20220809_205841_jpg.rf.3cdccfaa31350559df8ca98eae7bfc25.jpg",
+      "box": [
+        780,
+        741,
+        877,
+        854
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1660,
+      "box_index": 20,
+      "file": "valid/IMG_20220809_231559_jpg.rf.c5074fda827bbcb2286ee5f392c26f91.jpg",
+      "box": [
+        735,
+        515,
+        823,
+        616
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1442,
+      "box_index": 21,
+      "file": "valid/IMG_20220809_234847_jpg.rf.3cbadc2c59231bac65c38d8422fcdca2.jpg",
+      "box": [
+        304,
+        457,
+        380,
+        563
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1492,
+      "box_index": 3,
+      "file": "valid/IMG_20220809_230037_jpg.rf.7317cdc1142ca493ea47fe5bffa29cdb.jpg",
+      "box": [
+        460,
+        531,
+        548,
+        627
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1433,
+      "box_index": 20,
+      "file": "valid/IMG_20220809_205934_jpg.rf.354162f3f67db13f7001912b3dbbf070.png",
+      "box": [
+        349,
+        783,
+        443,
+        886
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-bishop",
+      "image_id": 1610,
+      "box_index": 24,
+      "file": "valid/IMG_20220809_234809_jpg.rf.8458dfb571cefaae1e421635b63917da.jpg",
+      "box": [
+        613,
+        581,
+        711,
+        681
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1475,
+      "box_index": 46,
+      "file": "valid/IMG20210513215230_jpg.rf.5dffae9f2d7ac6b96dbf5d48bcd73db1.jpg",
+      "box": [
+        610,
+        679,
+        951,
+        977
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1692,
+      "box_index": 19,
+      "file": "valid/IMG_20220809_235308_jpg.rf.24f496a2d0e69631589336221db77610.jpg",
+      "box": [
+        725,
+        498,
+        828,
+        602
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1577,
+      "box_index": 37,
+      "file": "valid/IMG_20210513_221644_jpg.rf.ae30ff186ac329ad67b97beb7b3aec10.png",
+      "box": [
+        190,
+        242,
+        307,
+        353
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1439,
+      "box_index": 20,
+      "file": "valid/IMG20210513215102_jpg.rf.3ad8830da0a998b3ecde2b90508a2f60.jpg",
+      "box": [
+        1815,
+        1163,
+        2139,
+        1413
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1615,
+      "box_index": 40,
+      "file": "valid/IMG_20210513_221817_jpg.rf.8b6a15302c8e37ea542e7ba28e00b723.jpg",
+      "box": [
+        440,
+        539,
+        527,
+        629
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1705,
+      "box_index": 58,
+      "file": "valid/IMG_20210513_221133_jpg.rf.52ebfee000b677ba323b730b58e30fc8.png",
+      "box": [
+        354,
+        316,
+        448,
+        423
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1598,
+      "box_index": 19,
+      "file": "valid/IMG_20220809_235401_jpg.rf.fb19baa3615d8888e42aa35d08628edb.jpg",
+      "box": [
+        683,
+        508,
+        787,
+        597
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1704,
+      "box_index": 35,
+      "file": "valid/IMG_20210513_221702_jpg.rf.4b84a0ffc26dc367cdb52a0ce0f0e162.png",
+      "box": [
+        298,
+        555,
+        395,
+        641
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1526,
+      "box_index": 52,
+      "file": "valid/IMG_20210513_221652_jpg.rf.f7ace7782c7c8c55c90fed7f20a40908.png",
+      "box": [
+        630,
+        534,
+        736,
+        613
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1677,
+      "box_index": 39,
+      "file": "valid/IMG20210513215459_jpg.rf.fce244e9f514fad6e607bac32771a93a.jpg",
+      "box": [
+        1532,
+        1009,
+        1823,
+        1279
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1463,
+      "box_index": 53,
+      "file": "valid/IMG_20210513_221029_jpg.rf.4d479fbbfa38bc096ed4521bda2decf7.png",
+      "box": [
+        638,
+        664,
+        731,
+        763
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-king",
+      "image_id": 1688,
+      "box_index": 18,
+      "file": "valid/IMG_20220809_235235_jpg.rf.221b99cd45a4f61b12537c6331c5a650.jpg",
+      "box": [
+        253,
+        55,
+        403,
+        188
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1452,
+      "box_index": 33,
+      "file": "valid/IMG_20220809_233922_jpg.rf.45783c903f183cc54dadda94229e3c71.jpg",
+      "box": [
+        527,
+        516,
+        625,
+        616
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1661,
+      "box_index": 15,
+      "file": "valid/IMG_20220809_235045_jpg.rf.c6c1029915d82f8b2852ee8363f8a65f.jpg",
+      "box": [
+        560,
+        303,
+        661,
+        397
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1657,
+      "box_index": 32,
+      "file": "valid/IMG_20220809_233448_jpg.rf.c3e5cad4ad49863e72003f71e22a7198.png",
+      "box": [
+        183,
+        304,
+        318,
+        411
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1531,
+      "box_index": 17,
+      "file": "valid/IMG_20220809_234618_jpg.rf.0364d3a657af5331d050a7e93c6b121a.jpg",
+      "box": [
+        623,
+        421,
+        721,
+        509
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1470,
+      "box_index": 37,
+      "file": "valid/IMG_20220809_233402_jpg.rf.5ad81d5150448cd578268753801bce70.png",
+      "box": [
+        792,
+        661,
+        916,
+        767
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1683,
+      "box_index": 18,
+      "file": "valid/IMG_20220809_235409_jpg.rf.0c531701ad5d57d4053dc87ecab56d6d.jpg",
+      "box": [
+        296,
+        857,
+        402,
+        977
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1588,
+      "box_index": 28,
+      "file": "valid/IMG_20220809_230525_jpg.rf.be85b486163dbec9863a9617d1295db8.jpg",
+      "box": [
+        732,
+        469,
+        817,
+        576
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1585,
+      "box_index": 18,
+      "file": "valid/IMG_20220809_235037_jpg.rf.bc6b4173360a35dd390a7abc08fd841b.jpg",
+      "box": [
+        813,
+        201,
+        899,
+        302
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1613,
+      "box_index": 27,
+      "file": "valid/IMG_20220809_233124_jpg.rf.88fbb6283feb8c8804ea9500c61aed8f.png",
+      "box": [
+        685,
+        177,
+        783,
+        294
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1624,
+      "box_index": 30,
+      "file": "valid/IMG_20220809_232953_jpg.rf.93d8a49b7e18c02bc9c9348576ea61df.jpg",
+      "box": [
+        780,
+        670,
+        894,
+        768
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1674,
+      "box_index": 24,
+      "file": "valid/IMG_20220809_230021_jpg.rf.f82c5fe05d684f95dc2befafc99ede99.jpg",
+      "box": [
+        298,
+        1045,
+        389,
+        1180
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-knight",
+      "image_id": 1499,
+      "box_index": 16,
+      "file": "valid/IMG_20220809_235320_jpg.rf.d24fd381d199363c637cb784cd6ef0bc.jpg",
+      "box": [
+        442,
+        375,
+        535,
+        470
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1724,
+      "box_index": 6,
+      "file": "valid/IMG_20210513_222007_jpg.rf.b00c92b426e113084f2b105771b8e8bb.png",
+      "box": [
+        860,
+        328,
+        942,
+        395
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1522,
+      "box_index": 21,
+      "file": "valid/IMG_20220809_203649_jpg.rf.ef226887c8882989b7c1bf37574322c6.png",
+      "box": [
+        215,
+        871,
+        293,
+        955
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1584,
+      "box_index": 12,
+      "file": "valid/IMG_20210513_221147_jpg.rf.b9eac69a317246abf078d15e4880fdca.jpg",
+      "box": [
+        80,
+        51,
+        165,
+        143
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1577,
+      "box_index": 6,
+      "file": "valid/IMG_20210513_221644_jpg.rf.ae30ff186ac329ad67b97beb7b3aec10.png",
+      "box": [
+        103,
+        157,
+        183,
+        239
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1473,
+      "box_index": 1,
+      "file": "valid/IMG_20210513_222052_jpg.rf.5d56b6207d3fccfffdc382044f501a2d.jpg",
+      "box": [
+        79,
+        237,
+        166,
+        315
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1496,
+      "box_index": 24,
+      "file": "valid/IMG20210513213508_jpg.rf.cc62ca6addf97868f94775b4b2aeb784.jpg",
+      "box": [
+        2346,
+        1602,
+        2557,
+        1799
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1442,
+      "box_index": 7,
+      "file": "valid/IMG_20220809_234847_jpg.rf.3cbadc2c59231bac65c38d8422fcdca2.jpg",
+      "box": [
+        677,
+        741,
+        769,
+        820
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1489,
+      "box_index": 26,
+      "file": "valid/IMG20210513213020_jpg.rf.71d9f3fab78e7545f4a0c285b3945093.jpg",
+      "box": [
+        1701,
+        1001,
+        1870,
+        1173
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1546,
+      "box_index": 27,
+      "file": "valid/IMG20210513213028_jpg.rf.0f0cc255287f8d809937f032a36d7dd6.jpg",
+      "box": [
+        2075,
+        2482,
+        2271,
+        2696
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1578,
+      "box_index": 3,
+      "file": "valid/IMG20210513213440_jpg.rf.b108868dba5664ba6cf890152bea4b46.jpg",
+      "box": [
+        2230,
+        1032,
+        2422,
+        1210
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1490,
+      "box_index": 63,
+      "file": "valid/IMG20210513214913_jpg.rf.70c53e38486bd7d481126826e1cfbc5a.jpg",
+      "box": [
+        1267,
+        2078,
+        1475,
+        2329
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-pawn",
+      "image_id": 1499,
+      "box_index": 11,
+      "file": "valid/IMG_20220809_235320_jpg.rf.d24fd381d199363c637cb784cd6ef0bc.jpg",
+      "box": [
+        832,
+        274,
+        933,
+        357
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1426,
+      "box_index": 11,
+      "file": "valid/IMG_20210513_221830_jpg.rf.2d4b8d5d7ccc53f97daa9c112d8a3080.png",
+      "box": [
+        142,
+        730,
+        277,
+        844
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1600,
+      "box_index": 33,
+      "file": "valid/IMG_20220809_205550_jpg.rf.fcbedff73ad0cfee09a4f11084b0dc43.png",
+      "box": [
+        78,
+        706,
+        218,
+        800
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1449,
+      "box_index": 2,
+      "file": "valid/IMG_20210513_221007_jpg.rf.44946a19bb8e757306d3038033a48e6f.png",
+      "box": [
+        320,
+        286,
+        432,
+        398
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1631,
+      "box_index": 28,
+      "file": "valid/IMG_20210513_221021_jpg.rf.9bfc689cd64f4dd6f5c9e21059af0675.png",
+      "box": [
+        699,
+        682,
+        807,
+        797
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1682,
+      "box_index": 2,
+      "file": "valid/IMG20210513214906_jpg.rf.084050b687160662e08ceed62d262362.jpg",
+      "box": [
+        176,
+        536,
+        571,
+        892
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1487,
+      "box_index": 30,
+      "file": "valid/IMG_20220809_224338_jpg.rf.6cf24a0e2f5c845c39cf8793e5522b8b.png",
+      "box": [
+        210,
+        891,
+        353,
+        1034
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1720,
+      "box_index": 4,
+      "file": "valid/IMG_20210513_220821_jpg.rf.3ffee5c70c5e539ab7332a29c357a3bd.png",
+      "box": [
+        752,
+        531,
+        868,
+        628
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1548,
+      "box_index": 3,
+      "file": "valid/IMG_20210513_220840_jpg.rf.1068b7768a14b25f10296d05a141680e.png",
+      "box": [
+        685,
+        745,
+        805,
+        887
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1723,
+      "box_index": 4,
+      "file": "valid/IMG20210513215215_jpg.rf.667327709635ade4fe06ef1156510225.jpg",
+      "box": [
+        2440,
+        2433,
+        2785,
+        2819
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1443,
+      "box_index": 57,
+      "file": "valid/IMG_20210513_221157_jpg.rf.3e0571dfc21bb2f2ced13fec93dd503e.png",
+      "box": [
+        611,
+        167,
+        706,
+        294
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1698,
+      "box_index": 4,
+      "file": "valid/IMG_20210513_220649_jpg.rf.34314885f68ad3bc26e00ce641f8ee29.png",
+      "box": [
+        764,
+        649,
+        878,
+        744
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-queen",
+      "image_id": 1465,
+      "box_index": 2,
+      "file": "valid/IMG_20210513_220829_jpg.rf.521108a4136167eb09f6a20959ddbdee.png",
+      "box": [
+        654,
+        531,
+        760,
+        630
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1648,
+      "box_index": 36,
+      "file": "valid/IMG_20220809_233901_jpg.rf.93f05da2432cd409d273ebef7ffd525e.png",
+      "box": [
+        454,
+        394,
+        542,
+        485
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1426,
+      "box_index": 0,
+      "file": "valid/IMG_20210513_221830_jpg.rf.2d4b8d5d7ccc53f97daa9c112d8a3080.png",
+      "box": [
+        606,
+        452,
+        681,
+        524
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1526,
+      "box_index": 45,
+      "file": "valid/IMG_20210513_221652_jpg.rf.f7ace7782c7c8c55c90fed7f20a40908.png",
+      "box": [
+        206,
+        185,
+        305,
+        283
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1497,
+      "box_index": 0,
+      "file": "valid/IMG_20220809_235000_jpg.rf.cbacf1e7cf0c4b1bbf94583f186d6a03.jpg",
+      "box": [
+        570,
+        471,
+        661,
+        568
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1705,
+      "box_index": 0,
+      "file": "valid/IMG_20210513_221133_jpg.rf.52ebfee000b677ba323b730b58e30fc8.png",
+      "box": [
+        253,
+        348,
+        341,
+        426
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1577,
+      "box_index": 40,
+      "file": "valid/IMG_20210513_221644_jpg.rf.ae30ff186ac329ad67b97beb7b3aec10.png",
+      "box": [
+        222,
+        790,
+        310,
+        887
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1629,
+      "box_index": 3,
+      "file": "valid/IMG_20220809_235242_jpg.rf.999bd3ba6e94964512c06e35879f47ab.jpg",
+      "box": [
+        812,
+        831,
+        919,
+        936
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1694,
+      "box_index": 24,
+      "file": "valid/IMG_20220809_233237_jpg.rf.2b19341d7b63935d8725dece2d99ec1a.png",
+      "box": [
+        238,
+        785,
+        338,
+        899
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1616,
+      "box_index": 38,
+      "file": "valid/IMG_20220809_233522_jpg.rf.8b2bd267161768409a9cd5989d307ecd.png",
+      "box": [
+        313,
+        139,
+        409,
+        254
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1449,
+      "box_index": 1,
+      "file": "valid/IMG_20210513_221007_jpg.rf.44946a19bb8e757306d3038033a48e6f.png",
+      "box": [
+        346,
+        726,
+        441,
+        823
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1707,
+      "box_index": 32,
+      "file": "valid/IMG_20220809_232624_jpg.rf.5399d26993525c48994b6725885606f6.jpg",
+      "box": [
+        611,
+        570,
+        713,
+        658
+      ]
+    },
+    {
+      "split": "valid",
+      "class": "white-rook",
+      "image_id": 1467,
+      "box_index": 3,
+      "file": "valid/IMG_20220809_230040_jpg.rf.4ecc13d82eeb39993fd4a21ef0214f11.jpg",
+      "box": [
+        463,
+        413,
+        573,
+        520
+      ]
+    }
+  ]
+}
