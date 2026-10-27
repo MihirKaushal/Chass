@@ -30,8 +30,10 @@ link-or-code multiplayer, custom boards and pieces, modular rules, and real-time
 
 ## Board Scanner Research
 
-The unlinked `/scanner` page supports photo upload, camera capture, crop/rotation,
-and manual board correction. A separate [ML pipeline](scanner/ml/README.md) combines
+The **Scanner** tab opens `/scanner`, with photo upload, camera capture, crop/rotation,
+and manual board correction after recognition. Shared navigation, a connection
+status, and a dedicated Rulebook guide keep the experimental workflow part of Chass.
+A separate [ML pipeline](scanner/ml/README.md) combines
 an SSDLite piece detector with a ResNet18 crop classifier and generates versioned
 evaluation reports. Experimental recognition runs through a local-only API;
 public inference hosting and scanned-game import are not enabled. ML packages

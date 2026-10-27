@@ -1,6 +1,12 @@
 # Board Scanner Workspace
 
 The scanner is research tooling plus an experimental local `/scanner` workflow.
+Open **Scanner** from the shared Chass navigation. Its Rulebook section explains
+photo preparation, manual review, privacy, and current limitations. The page shows
+recognition availability; uploads and crop/rotation work without the service,
+while recognition requires `./scanner/run-local.sh`. Game import is still disabled.
+Visiting Scanner preserves an existing Customizer draft. Leaving Scanner with a
+photo loaded asks for confirmation because photos and corrections are not saved.
 No ML packages or datasets are deployed with the FastAPI game server.
 See [Improvements And Local Testing](ml/IMPROVEMENTS.md) for the trained two-stage
 pipeline, accuracy comparison and `./scanner/run-local.sh` startup instructions.

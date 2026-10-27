@@ -943,7 +943,7 @@ function RulebookLauncher() {
         <div className="rulebook-hero-copy">
           <span className="eyebrow">Complete Reference</span>
           <h2 id="rulebook-launcher-title">The Chass Rulebook</h2>
-          <p>Explore every engine, bot, piece, win condition, ability, and Gambit system in one searchable guide.</p>
+          <p>Explore the rules, pieces, engines, bots, and Board Scanner in one searchable guide.</p>
         </div>
         <div className="rulebook-launcher-action">
           <AppLink
