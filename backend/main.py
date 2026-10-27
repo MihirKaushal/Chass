@@ -21,6 +21,7 @@ from backend.routes import (
     game_service,
     match_analysis_service,
 )
+from backend.routes.scanner import router as scanner_router
 
 logger = logging.getLogger(__name__)
 
@@ -142,3 +143,4 @@ def health() -> dict[str, object]:
 
 
 app.include_router(game_router)
+app.include_router(scanner_router)

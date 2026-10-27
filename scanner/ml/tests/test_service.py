@@ -21,6 +21,27 @@ class FakePipeline:
         return {"board": [[None] * 8 for _ in range(8)], "reviewSquares": []}
 
 
+def test_hosted_service_requires_secret_without_revealing_it(monkeypatch):
+    monkeypatch.setenv("SCANNER_SERVICE_TOKEN", "private-test-token")
+    with TestClient(service.create_app(FakePipeline())) as client:
+        assert client.get("/health").status_code == 401
+        response = client.post("/scan", content=photo(), headers={"content-type": "image/png"})
+        assert response.status_code == 401 and "private-test-token" not in response.text
+        headers = {"authorization": "Bearer private-test-token", "content-type": "image/png"}
+        assert client.get("/health", headers=headers).json()["ready"]
+        assert client.post("/scan", content=photo(), headers=headers).status_code == 200
+
+
+def test_public_service_refuses_to_start_without_required_secret(monkeypatch):
+    monkeypatch.setenv("SCANNER_REQUIRE_TOKEN", "true")
+    monkeypatch.delenv("SCANNER_SERVICE_TOKEN", raising=False)
+    with (
+        pytest.raises(RuntimeError, match="SCANNER_SERVICE_TOKEN"),
+        TestClient(service.create_app(FakePipeline())),
+    ):
+        pass
+
+
 def test_local_service_returns_board_without_storing_photo():
     with TestClient(service.create_app(FakePipeline())) as client:
         assert client.get("/health").json() == {

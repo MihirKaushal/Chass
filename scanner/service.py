@@ -1,4 +1,4 @@
-"""Local-only experimental inference. Run separately from the deployed game API."""
+"""Experimental inference, hosted separately from the game API with optional token auth."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import hashlib
 import io
 import logging
 import os
+import secrets
 import warnings
 from contextlib import asynccontextmanager
 
@@ -54,6 +55,11 @@ def create_app(pipeline=None):
 
     @asynccontextmanager
     async def lifespan(app):
+        if (
+            os.getenv("SCANNER_REQUIRE_TOKEN") == "true"
+            and not os.getenv("SCANNER_SERVICE_TOKEN", "").strip()
+        ):
+            raise RuntimeError("Set SCANNER_SERVICE_TOKEN before exposing the inference service.")
         app.state.pipeline = pipeline
         app.state.busy = False
         if pipeline is None:
@@ -64,11 +70,11 @@ def create_app(pipeline=None):
                     default_pipeline, os.environ.get("SCANNER_DEVICE", "auto")
                 )
             except (OSError, ValueError, RuntimeError):
-                logger.exception("Local scanner model could not be loaded")
+                logger.exception("Scanner model could not be loaded")
         yield
         app.state.pipeline = None
 
-    app = FastAPI(title="Chass local experimental scanner", lifespan=lifespan)
+    app = FastAPI(title="Chass experimental scanner", lifespan=lifespan)
     app.add_middleware(
         CORSMiddleware,
         allow_origins=origins,
@@ -77,16 +83,25 @@ def create_app(pipeline=None):
         allow_credentials=False,
     )
 
+    def authorize(request):
+        token = os.getenv("SCANNER_SERVICE_TOKEN", "").strip()
+        if token and not secrets.compare_digest(
+            request.headers.get("authorization", "").encode(), f"Bearer {token}".encode()
+        ):
+            raise HTTPException(401, "Scanner service authentication required.")
+
     @app.get("/health")
-    async def health():
+    async def health(request: Request):
+        authorize(request)
         ready = app.state.pipeline is not None
         return {"ready": ready, "experimental": True, "imagesStored": False}
 
     @app.post("/scan")
     async def scan(request: Request):
+        authorize(request)
         origin = request.headers.get("origin")
         if origin and origin not in origins:
-            raise HTTPException(403, "This browser origin is not allowed by the local scanner.")
+            raise HTTPException(403, "This browser origin is not allowed by the scanner.")
         if request.headers.get("content-type", "").split(";")[0] not in {
             "image/jpeg",
             "image/png",
@@ -95,7 +110,7 @@ def create_app(pipeline=None):
             raise HTTPException(415, "Send a JPG, PNG, or WebP photo.")
         if app.state.pipeline is None:
             raise HTTPException(
-                503, "Scanner models are not loaded. Check the local scanner terminal."
+                503, "Scanner models are not loaded. Check the scanner service logs."
             )
         if app.state.busy:
             raise HTTPException(429, "A scan is already running. Please retry shortly.")
@@ -131,7 +146,7 @@ def create_app(pipeline=None):
                     "imageHeight": image.height,
                 }
             except Exception as error:
-                logger.exception("Local scanner inference failed")
+                logger.exception("Scanner inference failed")
                 raise HTTPException(
                     503, "Recognition failed. Please retry with a clear top-down photo."
                 ) from error
