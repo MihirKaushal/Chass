@@ -35,6 +35,11 @@
   margin-top: 0;
 }
 
+.rulebook-scanner-link {
+  margin-top: var(--space-5);
+  text-decoration: none;
+}
+
 .rulebook-reference-hero {
   display: grid;
   gap: clamp(1rem, 2vw, 1.4rem);

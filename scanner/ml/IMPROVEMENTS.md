@@ -2,7 +2,12 @@
 
 The selected local pipeline is the existing SSDLite detector, cross-class duplicate
 suppression, and a new ResNet18 piece-crop classifier. The game server and its
-deployment requirements are unchanged. `/scanner` remains unlinked and experimental.
+deployment requirements are unchanged. Recognition remains experimental.
+
+**Integration update, 2026-10-27:** `/scanner` is now available from shared site
+navigation, with a matching Chass interface, service-availability status, and
+its own Rulebook section. This does not change the measured model results below
+or enable public inference hosting or scanned-game import.
 
 ## Measured Results
 

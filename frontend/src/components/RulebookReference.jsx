@@ -1,6 +1,8 @@
 import { useEffect, useState } from "react";
 
 import { matchesRulebookSearch } from "../rulebookSearch";
+import { SCANNER_REFERENCE } from "../scannerReference";
+import AppLink from "./AppLink";
 import {
   effectiveCatalogEntry,
   parameterDefaults,
@@ -129,6 +131,7 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
   ];
   const showAnalysisEngines = matchesRulebookSearch(query, analysisEngineCopy);
   const showChessBots = matchesRulebookSearch(query, chessBotCopy);
+  const showScanner = matchesRulebookSearch(query, SCANNER_REFERENCE);
   const affinityCopy = [
     "Affinity Squares",
     `The board marks ${draft.customRules.affinitySquareCount} centered squares, divided equally between White and Black.`,
@@ -178,6 +181,7 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
   const resultCount = visiblePieces.length
     + Number(showAnalysisEngines)
     + Number(showChessBots)
+    + Number(showScanner)
     + visibleVictoryModes.length
     + Number(showAffinity)
     + visibleAbilities.length
@@ -192,11 +196,12 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
           <div className="rulebook-hero-copy">
             <span className="eyebrow">Complete Reference</span>
             <h2>The Chass Rulebook</h2>
-            <p>Detailed behavior for every engine, bot, piece, win condition, ability, and Gambit system.</p>
+            <p>Rules, pieces, abilities, engines, bots, and the Board Scanner.</p>
           </div>
           <nav aria-label="Rulebook sections">
             <a href="#rulebook-match-analysis">Match Analysis</a>
             <a href="#rulebook-bots">Chess Bots</a>
+            <a href="#rulebook-scanner">Board Scanner</a>
             <a href="#rulebook-pieces">Pieces</a>
             <a href="#rulebook-victory">Win Conditions</a>
             <a href="#rulebook-custom-rules">Custom Rules</a>
@@ -212,7 +217,7 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
                 type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
-                placeholder="Search engines, bots, pieces, rules, or abilities"
+                placeholder="Search the rules, pieces, engines, or scanner"
               />
               {query ? <button type="button" onClick={() => setQuery("")} aria-label="Clear rulebook search">Clear</button> : null}
             </label>
@@ -283,6 +288,29 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
             </article>
           </div>
         ) : <EmptyState className="rulebook-empty">No matching Chess Bots reference.</EmptyState>}
+      </RulebookSection>
+
+      <RulebookSection
+        id="rulebook-scanner"
+        title={SCANNER_REFERENCE.title}
+        description={SCANNER_REFERENCE.description}
+        revealKey={revealKey}
+      >
+        {showScanner ? (
+          <>
+            <div className="predictor-reference-grid">
+              {SCANNER_REFERENCE.entries.map((entry) => (
+                <article key={entry.title}>
+                  <header><strong>{entry.title}</strong></header>
+                  <p>{entry.text}</p>
+                </article>
+              ))}
+            </div>
+            <AppLink href="/scanner" className="ui-button ui-button--secondary rulebook-scanner-link">
+              Open Board Scanner
+            </AppLink>
+          </>
+        ) : <EmptyState className="rulebook-empty">No matching Board Scanner reference.</EmptyState>}
       </RulebookSection>
 
       <RulebookSection id="rulebook-pieces" title="Piece Encyclopedia" description="Movement, value, and special behavior." revealKey={revealKey}>

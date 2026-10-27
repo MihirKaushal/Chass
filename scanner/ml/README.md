@@ -251,9 +251,12 @@ groups**, not individual images; useful group diversity matters more than an exa
 percentage. Keep a genuinely unseen board-set holdout. Preserve the current test
 set for longitudinal comparison and never train on it.
 
-The next engineering phase is verified corner/square ground truth, perspective
-rectification, detection-to-square assignment (or a separate 13-class square
-classifier), uncertain-square correction, and only then connecting `/scanner`.
+The experimental `/scanner` workflow now connects image preparation, recognition,
+uncertain-square correction, and reviewed-label export. It is available from the
+site navigation and documented in the Rulebook. The next engineering phase is
+verified corner/square ground truth, more reliable detection-to-square assignment
+(or a separate 13-class square classifier), and measured full-board accuracy
+before enabling scanned-game import.
 An image cannot reveal prior castling rights or en passant history; those remain
 explicit user confirmations. Store photos locally while collecting; do not put
 private photos or large raw exports into public Git history.

@@ -13,6 +13,26 @@ function RulebookPage({ onHome, onCustomize }) {
   const [retryKey, setRetryKey] = useState(0);
 
   useEffect(() => {
+    if (!catalog) return undefined;
+    let frame;
+    const revealSection = () => {
+      if (!/^#rulebook-[a-z-]+$/.test(window.location.hash)) return;
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(() => {
+        document.getElementById(window.location.hash.slice(1))?.scrollIntoView({
+          block: "start",
+        });
+      });
+    };
+    revealSection();
+    window.addEventListener("popstate", revealSection);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener("popstate", revealSection);
+    };
+  }, [catalog]);
+
+  useEffect(() => {
     let active = true;
     setError("");
     getCatalog()
