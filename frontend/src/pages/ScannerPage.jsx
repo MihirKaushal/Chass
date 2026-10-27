@@ -5,17 +5,24 @@ import ScannerPositionDetails from "../components/scanner/ScannerPositionDetails
 import ScannerContinuePanel from "../components/scanner/ScannerContinuePanel";
 import ScannerIcon from "../components/scanner/ScannerIcon";
 import ScannerPhotoPanel from "../components/scanner/ScannerPhotoPanel";
+import ScannerServiceStatus from "../components/scanner/ScannerServiceStatus";
 import { scannerPreviewPiece } from "../components/scanner/scannerPreview";
 import SiteFooter from "../components/SiteFooter";
+import LandingNav from "../components/LandingNav";
+import AppLink from "../components/AppLink";
 import Button from "../components/ui/Button";
+import Dialog from "../components/ui/Dialog";
+import StatusBadge from "../components/ui/StatusBadge";
+import { navigate, useNavigationBlocker } from "../routing";
 import {
   recognizePhoto,
   scannerServiceUrl,
   reviewedBoardLabels,
   downloadScannerFile,
+  scannerAvailability,
 } from "../scannerApi";
 
-function ScannerPage() {
+function ScannerPage({ onHome, onCustomize }) {
   const [board, setBoard] = useState(null);
   const [reviewSquares, setReviewSquares] = useState([]);
   const [boardHistory, setBoardHistory] = useState([]);
@@ -23,11 +30,47 @@ function ScannerPage() {
   const [scan, setScan] = useState(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [hasPhoto, setHasPhoto] = useState(false);
+  const [pendingDestination, setPendingDestination] = useState(null);
+  const [connectionRetry, setConnectionRetry] = useState(0);
   const requestRef = useRef(null);
   const serviceUrl = scannerServiceUrl(
     window.location.hostname,
     import.meta.env.VITE_SCANNER_API_URL || "",
   );
+  const [serviceStatus, setServiceStatus] = useState(
+    serviceUrl ? "checking" : "unconfigured",
+  );
+  const currentStep = !board ? 0 : confirmed && !reviewSquares.length ? 2 : 1;
+
+  useNavigationBlocker((destination) => {
+    setPendingDestination(destination);
+    return false;
+  }, hasPhoto);
+
+  useEffect(() => {
+    if (!serviceUrl) {
+      setServiceStatus("unconfigured");
+      return undefined;
+    }
+    let active = true;
+    const controller = new AbortController();
+    const timeout = window.setTimeout(() => controller.abort(), 5000);
+    setServiceStatus("checking");
+    scannerAvailability(serviceUrl, controller.signal)
+      .then((status) => {
+        if (active) setServiceStatus(status);
+      })
+      .catch(() => {
+        if (active) setServiceStatus("offline");
+      })
+      .finally(() => window.clearTimeout(timeout));
+    return () => {
+      active = false;
+      window.clearTimeout(timeout);
+      controller.abort();
+    };
+  }, [serviceUrl, connectionRetry]);
 
   const scanBoard = (result) =>
     result.board.map((rank, row) =>
@@ -38,7 +81,8 @@ function ScannerPage() {
       }),
     );
 
-  const invalidateScan = () => {
+  const invalidateScan = (photoPresent = true) => {
+    setHasPhoto(photoPresent);
     requestRef.current?.abort();
     requestRef.current = null;
     setBusy(false);
@@ -69,7 +113,7 @@ function ScannerPage() {
       if (requestRef.current === controller)
         setError(
           failure.name === "AbortError"
-            ? "Recognition timed out. Check the local scanner terminal and retry."
+            ? "Recognition timed out. Check the scanner connection and try again."
             : failure.message,
         );
     } finally {
@@ -126,47 +170,72 @@ function ScannerPage() {
   return (
     <div className="page-frame scanner-page">
       <main className="scanner-shell">
-        <div className="scanner-topbar">
-          <div className="scanner-brand">
-            <img src="/chass-mark.svg" alt="" />
-            <span>Chass!</span>
-            <span className="scanner-brand-divider" />
-            <span className="scanner-brand-section">Board Scanner</span>
-          </div>
-          <span className="scanner-preview-badge">
-            <span />
-            Experimental
-          </span>
-        </div>
-        <header className="scanner-heading">
-          <div>
-            <span className="scanner-overline">
-              Physical board, digital game
-            </span>
-            <h1>AI Chess Board Scanner</h1>
-            <p>
-              Bring a board photo. Check the pieces. Continue from your
-              position.
-            </p>
-          </div>
-          <div className="scanner-scope">
-            <span className="scanner-scope-mark">
-              <ScannerIcon name="align" />
-            </span>
+        <LandingNav
+          active="scanner"
+          onHome={onHome}
+          onCustomize={onCustomize}
+        />
+        <header className="scanner-hero">
+          <div className="scanner-heading">
             <div>
-              <strong>Standard 8 × 8</strong>
-              <span>Classic chess pieces</span>
+              <div className="scanner-hero-meta">
+                <span className="eyebrow">Chass! Vision</span>
+                <StatusBadge tone="info">Experimental</StatusBadge>
+              </div>
+              <h1>AI Chess Board Scanner</h1>
+              <p>
+                Scan a physical board, check the pieces, and correct the
+                position. Continuing it as a Chass game is coming later.
+              </p>
+              <AppLink
+                href="/rulebook#rulebook-scanner"
+                className="scanner-guide-link"
+              >
+                <ScannerIcon name="info" />
+                Scanner Guide In The Rulebook
+              </AppLink>
+            </div>
+            <div className="scanner-scope">
+              <span className="scanner-scope-mark">
+                <ScannerIcon name="align" />
+              </span>
+              <div>
+                <strong>Standard 8 × 8</strong>
+                <span>Classic chess pieces</span>
+              </div>
             </div>
           </div>
+          <ol className="scanner-progress" aria-label="Scanner progress">
+            {["Prepare Photo", "Review Pieces", "Confirm Position"].map(
+              (label, index) => (
+                <li
+                  key={label}
+                  className={
+                    index < currentStep
+                      ? "is-complete"
+                      : index === currentStep
+                        ? "is-current"
+                        : ""
+                  }
+                  aria-current={index === currentStep ? "step" : undefined}
+                >
+                  <span aria-hidden="true">
+                    {index < currentStep ? (
+                      <ScannerIcon name="check" />
+                    ) : (
+                      index + 1
+                    )}
+                  </span>
+                  {label}
+                </li>
+              ),
+            )}
+          </ol>
         </header>
-        <div className="scanner-preview-banner">
-          <ScannerIcon name="info" />
-          <p>
-            <strong>Local scanner testing.</strong> Review every square after
-            recognition. This model has limited training data, and game import
-            is not connected yet.
-          </p>
-        </div>
+        <ScannerServiceStatus
+          status={serviceStatus}
+          onRetry={() => setConnectionRetry((value) => value + 1)}
+        />
 
         <div
           className={`scanner-workspace${board ? "" : " scanner-workspace-initial"}`}
@@ -175,7 +244,7 @@ function ScannerPage() {
             onRecognize={recognize}
             onPhotoChange={invalidateScan}
             busy={busy}
-            serviceAvailable={Boolean(serviceUrl)}
+            serviceAvailable={serviceStatus === "ready"}
           />
           {board ? (
             <ScannerBoardReview
@@ -208,9 +277,7 @@ function ScannerPage() {
               {error}
             </p>
           ) : busy ? (
-            <p>
-              Recognizing pieces locally. You can replace the photo to cancel.
-            </p>
+            <p>Recognizing pieces. You can replace the photo to cancel.</p>
           ) : null}
         </div>
         {scan?.warnings?.length ? (
@@ -250,11 +317,39 @@ function ScannerPage() {
               </small>
             </div>
 
-            <ScannerContinuePanel confirmed={confirmed} />
+            <ScannerContinuePanel />
           </>
         ) : null}
       </main>
       <SiteFooter />
+      <Dialog
+        open={Boolean(pendingDestination)}
+        onClose={() => setPendingDestination(null)}
+        title="Leave Board Scanner?"
+        eyebrow="Current Scan"
+        closeLabel="Close leave scanner confirmation"
+        description="Your photo and corrections will be cleared when you leave. Download any prepared photo or reviewed labels you want to keep."
+        actions={
+          <>
+            <Button
+              variant="secondary"
+              onClick={() => setPendingDestination(null)}
+            >
+              Keep Editing
+            </Button>
+            <Button
+              variant="danger"
+              onClick={() => {
+                const destination = pendingDestination;
+                setPendingDestination(null);
+                navigate(destination, { bypassBlocker: true });
+              }}
+            >
+              Leave Scanner
+            </Button>
+          </>
+        }
+      />
     </div>
   );
 }
