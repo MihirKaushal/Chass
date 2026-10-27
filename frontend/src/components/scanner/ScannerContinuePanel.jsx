@@ -98,10 +98,13 @@ function ScannerContinuePanel({ confirmed }) {
         <div>
           <strong>
             {confirmed
-              ? "Example position confirmed"
+              ? "Position confirmed"
               : "Review and confirm your position"}
           </strong>
-          <p>Game import will be connected after the scanner preview.</p>
+          <p>
+            Game import is not connected yet. Recognition and manual review are
+            available for local testing.
+          </p>
         </div>
         <Button
           disabled

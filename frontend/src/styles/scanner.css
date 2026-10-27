@@ -180,6 +180,34 @@
   gap: 1.25rem;
 }
 
+.scanner-workspace.scanner-workspace-initial {
+  grid-template-columns: minmax(0, 1fr);
+  max-width: 48rem;
+  margin-inline: auto;
+}
+
+.scanner-request-status {
+  min-height: 3.5rem;
+  padding-block: 0.5rem;
+}
+
+.scanner-request-status p {
+  margin: 0;
+}
+
+.scanner-label-export {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+  margin-block: 1rem;
+}
+
+.scanner-label-export small {
+  flex: 1 1 20rem;
+  color: var(--ink-soft, #355779);
+}
+
 .scanner-panel {
   min-width: 0;
   padding: 1.5rem;
