@@ -1,0 +1,14 @@
+{
+  "seed": 42,
+  "size": 160,
+  "context": 0.15,
+  "batch_size": 48,
+  "samples_per_epoch": 12000,
+  "epochs": 12,
+  "patience": 4,
+  "head_lr": 0.001,
+  "backbone_lr": 0.0001,
+  "threads": 4,
+  "workers": 2,
+  "device": "auto"
+}
