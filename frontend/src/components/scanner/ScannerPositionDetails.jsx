@@ -1,17 +1,15 @@
-import { useState } from "react";
 import Disclosure from "../ui/Disclosure";
 import FormField from "../ui/FormField";
 import ScannerIcon from "./ScannerIcon";
 
-function ScannerPositionDetails({ confirmed, onConfirmationChange }) {
-  const [currentPlayer, setCurrentPlayer] = useState("white");
-  const [castlingRights, setCastlingRights] = useState({
-    whiteKing: false,
-    whiteQueen: false,
-    blackKing: false,
-    blackQueen: false,
-  });
-  const [enPassant, setEnPassant] = useState("none");
+function ScannerPositionDetails({
+  confirmed,
+  onConfirmationChange,
+  details,
+  onChange,
+  remainingReviews = 0,
+}) {
+  const { currentPlayer, castlingRights, enPassant } = details;
 
   return (
     <section
@@ -30,7 +28,7 @@ function ScannerPositionDetails({ confirmed, onConfirmationChange }) {
       <div className="scanner-position-grid">
         <fieldset className="scanner-turn-field">
           <legend>Whose turn is it?</legend>
-          <p>Choose the player who moves next.</p>
+          <p>Defaults to White. Change this if Black moves next.</p>
           <div className="scanner-turn-options">
             {["white", "black"].map((color) => (
               <label
@@ -43,9 +41,11 @@ function ScannerPositionDetails({ confirmed, onConfirmationChange }) {
                   value={color}
                   checked={currentPlayer === color}
                   onChange={() => {
-                    setCurrentPlayer(color);
-                    setEnPassant("none");
-                    onConfirmationChange(false);
+                    onChange({
+                      ...details,
+                      currentPlayer: color,
+                      enPassant: null,
+                    });
                   }}
                 />
                 <span className={`scanner-color-dot ${color}`} />
@@ -57,7 +57,10 @@ function ScannerPositionDetails({ confirmed, onConfirmationChange }) {
         </fieldset>
         <div className="scanner-rights-field">
           <h3>Can either side still castle?</h3>
-          <p>Enable only if the King and that Rook have never moved.</p>
+          <p>
+            Optional; off by default. Enable only if the King and that Rook have
+            never moved and are on their home squares.
+          </p>
           <div className="scanner-castling-grid">
             {[
               { color: "White", prefix: "white" },
@@ -74,11 +77,13 @@ function ScannerPositionDetails({ confirmed, onConfirmationChange }) {
                       type="checkbox"
                       checked={castlingRights[`${prefix}${key}`]}
                       onChange={(event) => {
-                        setCastlingRights((current) => ({
-                          ...current,
-                          [`${prefix}${key}`]: event.target.checked,
-                        }));
-                        onConfirmationChange(false);
+                        onChange({
+                          ...details,
+                          castlingRights: {
+                            ...castlingRights,
+                            [`${prefix}${key}`]: event.target.checked,
+                          },
+                        });
                       }}
                     />
                     <span>{side}</span>
@@ -105,10 +110,14 @@ function ScannerPositionDetails({ confirmed, onConfirmationChange }) {
             description="Only available immediately after an opposing Pawn moves two squares. Select the square that a capturing Pawn would move onto."
           >
             <select
-              value={enPassant}
+              value={enPassant || "none"}
               onChange={(event) => {
-                setEnPassant(event.target.value);
-                onConfirmationChange(false);
+                onChange({
+                  ...details,
+                  enPassant:
+                    event.target.value === "none" ? null : event.target.value,
+                  halfmoveClock: 0,
+                });
               }}
             >
               <option value="none">None / not known</option>
@@ -122,13 +131,44 @@ function ScannerPositionDetails({ confirmed, onConfirmationChange }) {
               ))}
             </select>
           </FormField>
+          <FormField
+            label="Halfmove clock"
+            description="Moves by either player since the last Pawn move or capture. Leave blank for 0; 100 ends the game under Chass's fifty-move rule."
+          >
+            <input
+              type="number"
+              min="0"
+              max="99"
+              step="1"
+              value={details.halfmoveClock}
+              onChange={(event) =>
+                onChange({ ...details, halfmoveClock: event.target.value })
+              }
+            />
+          </FormField>
+          <FormField
+            label="Move number"
+            description="Optional full-move number for engine analysis. Leave blank for 1; earlier move records are not reconstructed."
+          >
+            <input
+              type="number"
+              min="1"
+              max="10000"
+              step="1"
+              value={details.fullmoveNumber}
+              onChange={(event) =>
+                onChange({ ...details, fullmoveNumber: event.target.value })
+              }
+            />
+          </FormField>
           <div className="scanner-history-note">
             <ScannerIcon name="info" />
             <div>
               <strong>Continue from this position</strong>
               <p>
                 A photo cannot recover earlier moves, captures, clocks, or draw
-                counters. Recording will start from the confirmed board.
+                counters. Move history, captured scores, and repetition tracking
+                start from this board. No earlier moves are invented.
               </p>
             </div>
           </div>
@@ -138,11 +178,16 @@ function ScannerPositionDetails({ confirmed, onConfirmationChange }) {
         <input
           type="checkbox"
           checked={confirmed}
+          disabled={remainingReviews > 0}
           onChange={(event) => onConfirmationChange(event.target.checked)}
         />
         <span>
           <strong>This board and the game details look right.</strong>
-          <small>Check piece colors, orientation, and whose turn it is.</small>
+          <small>
+            {remainingReviews > 0
+              ? `Resolve ${remainingReviews} flagged square${remainingReviews === 1 ? "" : "s"} first, then check all 64 squares.`
+              : "I checked all 64 squares, piece colors, orientation, and whose turn it is."}
+          </small>
         </span>
       </label>
     </section>

@@ -29,6 +29,8 @@ function victorySummary(victory = {}) {
 }
 
 function configuredTitle(configuration, catalog, rows, cols) {
+  if (configuration.presetId === "scanned-position")
+    return `${rows}x${cols} Scanned Position`;
   const gambit = configuration.gambit || {};
   if (gambit.enabled && gambit.draftEnabled) return `${rows}x${cols} Draft Gambit`;
   if (gambit.enabled) return `${rows}x${cols} Chass Gambit`;
@@ -52,6 +54,8 @@ export function buildGameBriefing({
   catalog,
 }) {
   const tags = [];
+  if (configuration.presetId === "scanned-position")
+    tags.push("History and captured scores begin at import");
   const enabledTypes = new Set(configuration.enabledPieces || []);
   const customPieceCount = (catalog?.pieces || []).filter(
     (piece) => piece.isCustom && enabledTypes.has(piece.type)

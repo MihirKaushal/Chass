@@ -6,11 +6,13 @@ SSDLite320 MobileNetV3-Large backbone and box regressor, with a new chess-specif
 classification head. Both the head and backbone are fine-tuned after head warmup.
 
 The [2026-10-26 improvement](IMPROVEMENTS.md) adds an original-resolution ResNet18
-crop classifier, validation-selected duplicate suppression, and a separate local
+crop classifier, validation-selected duplicate suppression, and a separate
 inference API connected to `/scanner`. It returns editable square assignments for
 manually cropped/rectified boards. Those assignments are experimental: the current
 dataset has no verified 64-square evaluation labels, so square and exact-board
-accuracy remain unmeasured. Continuing a scanned position as a game is not yet wired.
+accuracy remain unmeasured. The [scanner MVP](../MVP.md) now supports reviewed
+positions continuing as local or online human games. Public recognition requires
+a separately hosted model service; training and game-serving dependencies remain separate.
 
 The new trained run and its limitations are recorded in
 [CHESS_V2_MODEL_CARD.md](CHESS_V2_MODEL_CARD.md). The original small Top Down

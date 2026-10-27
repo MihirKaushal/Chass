@@ -48,6 +48,14 @@ export function createGame(payload) {
   });
 }
 
+export function importScannedGame(payload) {
+  return request("/game/import", { method: "POST", body: JSON.stringify(payload) });
+}
+
+export function validateScannedPosition(payload, signal) {
+  return request("/game/import/validate", { method: "POST", body: JSON.stringify(payload), signal });
+}
+
 export function getCatalog() {
   if (!catalogPromise) {
     catalogPromise = request("/game/catalog").catch((error) => {

@@ -4,7 +4,10 @@ The scanner is research tooling plus an experimental local `/scanner` workflow.
 Open **Scanner** from the shared Chass navigation. Its Rulebook section explains
 photo preparation, manual review, privacy, and current limitations. The page shows
 recognition availability; uploads and crop/rotation work without the service,
-while recognition requires `./scanner/run-local.sh`. Game import is still disabled.
+while recognition requires a running model service. `./run.sh` starts it when local
+models are present; `./scanner/run-local.sh` also works separately. Reviewed classic
+positions can now become local or online human games. See [MVP setup](MVP.md) for
+the complete workflow, limitations, and public deployment requirements.
 Visiting Scanner preserves an existing Customizer draft. Leaving Scanner with a
 photo loaded asks for confirmation because photos and corrections are not saved.
 No ML packages or datasets are deployed with the FastAPI game server.
@@ -61,8 +64,9 @@ See [ML Instructions](ml/README.md), [Alignment Review](ml/CHESS_V2_ALIGNMENT.md
 the new [Chess V2 Model Card](ml/CHESS_V2_MODEL_CARD.md), and the original
 [Model Card](ml/MODEL_CARD.md). The [Accuracy Tracker](ml/ACCURACY_TRACKER.md)
 records dated metrics and chart-ready snapshots without confusing bounding-box
-results with square accuracy. Local website recognition is connected through a
-separate API on port 8001; game import and public inference hosting are not enabled.
+results with square accuracy. Website recognition uses a separate model API on
+port 8001 locally. Reviewed positions can now continue as local or online human
+games; public recognition needs a separate model host. See [Scanner MVP](MVP.md).
 To inspect uncertain examples:
 
 ```sh

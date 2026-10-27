@@ -5,6 +5,7 @@ import PieceGlyph from "../PieceGlyph";
 import Button from "../ui/Button";
 import ScannerIcon from "./ScannerIcon";
 import { SCANNER_PIECES } from "./scannerPreview";
+import { squareAlternatives } from "../../scannerReview";
 
 function ScannerBoardReview({
   board,
@@ -14,10 +15,14 @@ function ScannerBoardReview({
   onUndo,
   canUndo,
   onReset,
+  scan,
+  issueSquares = [],
 }) {
   const [flipped, setFlipped] = useState(false);
   const [tool, setTool] = useState(null);
-  const [selectedSquare, setSelectedSquare] = useState(null);
+  const [selectedSquare, setSelectedSquare] = useState(
+    () => reviewSquares[0] || null,
+  );
   const selectedLabel = selectedSquare
     ? `${String.fromCharCode(97 + selectedSquare.col)}${8 - selectedSquare.row}`
     : "";
@@ -27,6 +32,15 @@ function ScannerBoardReview({
       (square) =>
         square.row === selectedSquare.row && square.col === selectedSquare.col,
     );
+  const alternatives = squareAlternatives(scan, selectedSquare);
+  const review = reviewSquares.find(
+    (square) =>
+      square.row === selectedSquare?.row && square.col === selectedSquare?.col,
+  );
+  const chooseAlternative = (piece) => {
+    onSquareEdit(selectedSquare.row, selectedSquare.col, piece);
+    setTool(null);
+  };
 
   const selectSquare = (row, col) => {
     setSelectedSquare({ row, col });
@@ -67,7 +81,7 @@ function ScannerBoardReview({
           onSquareClick={selectSquare}
           showCoordinates
           pieceDetailsMode="none"
-          extraTargets={reviewSquares}
+          extraTargets={[...reviewSquares, ...issueSquares]}
         />
       </div>
       <div
@@ -100,6 +114,78 @@ function ScannerBoardReview({
             Review {reviewSquares[0].label}
           </Button>
         ) : null}
+      </div>
+      <div className="scanner-alternatives" aria-live="polite">
+        <h3>
+          {selectedLabel ? `Review ${selectedLabel}` : "Inspect a square"}
+        </h3>
+        {selectedSquare ? (
+          <>
+            {review?.reasons?.map((reason) => (
+              <p key={reason}>{reason}</p>
+            ))}
+            {alternatives.length ? (
+              <>
+                <p>
+                  Model suggestions. Choose the piece you see in the photo;
+                  scores are not guaranteed accuracy.
+                </p>
+                <div className="scanner-alternative-options">
+                  {alternatives.map((option) => (
+                    <Button
+                      key={option.label}
+                      variant="secondary"
+                      size="small"
+                      onClick={() => chooseAlternative(option)}
+                    >
+                      <PieceGlyph
+                        type={option.type}
+                        color={option.color}
+                        symbol={
+                          SCANNER_PIECES.find(
+                            (piece) => piece.type === option.type,
+                          )?.symbols[option.color]
+                        }
+                      />
+                      <span>
+                        {option.color === "white" ? "White" : "Black"}{" "}
+                        {option.type}
+                      </span>
+                      <small>{Math.round(option.score * 100)}%</small>
+                    </Button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <p>
+                No model suggestions here. Use the piece palette below to add a
+                missed piece.
+              </p>
+            )}
+            <div className="scanner-review-choice-actions">
+              <Button
+                variant="secondary"
+                size="small"
+                onClick={() => chooseAlternative({ type: "erase" })}
+              >
+                This Square Is Empty
+              </Button>
+              {selectedNeedsReview ? (
+                <Button
+                  size="small"
+                  onClick={() => onReviewSquare(selectedSquare)}
+                >
+                  Keep Current Piece
+                </Button>
+              ) : null}
+            </div>
+          </>
+        ) : (
+          <p>
+            Gold squares need review. Click one to compare the model's top
+            options, or choose any square to correct a missed piece.
+          </p>
+        )}
       </div>
       <div className="scanner-piece-editor">
         <div className="scanner-editor-heading">
