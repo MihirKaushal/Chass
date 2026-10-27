@@ -5,7 +5,45 @@ import {
   validateScanResponse,
   recognizePhoto,
   reviewedBoardLabels,
+  scannerAvailability,
 } from "./scannerApi.js";
+
+test("scanner availability distinguishes missing setup, loaded models and offline service", async () => {
+  let requests = 0;
+  const ready = async () => {
+    requests += 1;
+    return { ok: true, json: async () => ({ ready: true }) };
+  };
+  assert.equal(await scannerAvailability("", undefined, ready), "unconfigured");
+  assert.equal(requests, 0);
+  assert.equal(
+    await scannerAvailability("http://localhost:8001", undefined, ready),
+    "ready",
+  );
+  assert.equal(
+    await scannerAvailability("local", undefined, async () => ({
+      ok: true,
+      json: async () => ({ ready: false }),
+    })),
+    "offline",
+  );
+  assert.equal(
+    await scannerAvailability("local", undefined, async () => ({ ok: false })),
+    "offline",
+  );
+  assert.equal(
+    await scannerAvailability("local", undefined, async () => {
+      throw new TypeError("network");
+    }),
+    "offline",
+  );
+  await assert.rejects(
+    scannerAvailability("local", undefined, async () => {
+      throw new DOMException("cancel", "AbortError");
+    }),
+    { name: "AbortError" },
+  );
+});
 
 test("reviewed labels retain the prepared photo hash and use all 64 edited squares", () => {
   const board = Array.from({ length: 8 }, () => Array(8).fill(null));

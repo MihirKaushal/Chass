@@ -13,6 +13,22 @@ export function scannerServiceUrl(hostname, configured = "") {
     : "";
 }
 
+export async function scannerAvailability(url, signal, fetcher = fetch) {
+  if (!url) return "unconfigured";
+  try {
+    const response = await fetcher(`${url}/health`, {
+      signal,
+      cache: "no-store",
+    });
+    if (!response.ok) return "offline";
+    const health = await response.json();
+    return health.ready === true ? "ready" : "offline";
+  } catch (error) {
+    if (error.name === "AbortError") throw error;
+    return "offline";
+  }
+}
+
 export function validateScanResponse(result) {
   if (
     !Array.isArray(result?.board) ||
@@ -84,7 +100,7 @@ export async function recognizePhoto(url, file, signal, fetcher = fetch) {
   } catch (error) {
     if (error.name === "AbortError") throw error;
     throw new Error(
-      "Local scanner is not reachable. Start the scanner service on port 8001, then retry.",
+      "The scanner service is not reachable. Check the connection and try again.",
     );
   }
   let result;

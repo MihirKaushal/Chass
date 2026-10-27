@@ -71,7 +71,7 @@ function ScannerPhotoPanel({
       return;
     }
     setFile(candidate);
-    onPhotoChange?.();
+    onPhotoChange?.(true);
     setOriginalFile(candidate);
     setEdits(null);
     setEditorOpen(true);
@@ -79,7 +79,7 @@ function ScannerPhotoPanel({
   };
 
   const removePhoto = () => {
-    onPhotoChange?.();
+    onPhotoChange?.(false);
     setFile(null);
     setOriginalFile(null);
     setEdits(null);
@@ -104,6 +104,24 @@ function ScannerPhotoPanel({
         </div>
         <span className="scanner-step-label">01</span>
       </header>
+      <input
+        ref={uploadRef}
+        className="scanner-hidden-input"
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
+        aria-label="Upload a board photo"
+        onChange={handleFileChange}
+      />
+      <div className="scanner-photo-actions">
+        <Button onClick={() => uploadRef.current?.click()}>
+          <ScannerIcon name="upload" />
+          {file ? "Replace Photo" : "Upload Photo"}
+        </Button>
+        <Button variant="secondary" onClick={() => setCameraOpen(true)}>
+          <ScannerIcon name="camera" />
+          Take A Photo
+        </Button>
+      </div>
       <div
         className={`scanner-photo-dropzone${dragging ? " is-dragging" : ""}${previewUrl ? " has-photo" : ""}`}
         onDragOver={(event) => {
@@ -143,12 +161,8 @@ function ScannerPhotoPanel({
             <span className="scanner-capture-mark">
               <ScannerIcon name="camera" />
             </span>
-            <strong>Your physical board, on Chass.</strong>
-            <p>
-              Drop a top-down photo here
-              <br />
-              or choose an image below.
-            </p>
+            <strong>Drop a top-down board photo here</strong>
+            <p>Include all 64 squares and keep the pieces centered.</p>
             <span className="scanner-file-types">
               JPG, PNG, WebP · Up to 10 MB
             </span>
@@ -161,24 +175,6 @@ function ScannerPhotoPanel({
           className="scanner-photo-corner bottom-right"
           aria-hidden="true"
         />
-      </div>
-      <input
-        ref={uploadRef}
-        className="scanner-hidden-input"
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        aria-label="Upload a board photo"
-        onChange={handleFileChange}
-      />
-      <div className="scanner-photo-actions">
-        <Button onClick={() => uploadRef.current?.click()}>
-          <ScannerIcon name="upload" />
-          {file ? "Replace Photo" : "Upload Photo"}
-        </Button>
-        <Button variant="secondary" onClick={() => setCameraOpen(true)}>
-          <ScannerIcon name="camera" />
-          Take A Photo
-        </Button>
       </div>
       {file ? (
         <div className="scanner-photo-file">
@@ -209,7 +205,7 @@ function ScannerPhotoPanel({
           onClick={() => onRecognize?.(file)}
           title={
             !serviceAvailable
-              ? "Local scanner service is not configured."
+              ? "Recognition is unavailable. Check the connection status above."
               : !edits
                 ? "Apply Crop & Rotate first, with White at the bottom."
                 : undefined
@@ -231,9 +227,8 @@ function ScannerPhotoPanel({
       <p className="scanner-preview-note">
         <ScannerIcon name="info" />
         <span>
-          {!serviceAvailable
-            ? "Recognition is available in local testing only. Photos are not sent until you choose Recognize Pieces."
-            : "Apply the crop to the 8 x 8 playing grid, with White's home rank at the bottom. Recognition runs in your local scanner service; photos are not saved."}
+          Apply the crop to the 8 x 8 playing grid, with White's home rank at
+          the bottom, before recognizing pieces.
         </span>
       </p>
       <div className="scanner-photo-tips">
@@ -265,7 +260,7 @@ function ScannerPhotoPanel({
           initialEdits={edits}
           onClose={() => setEditorOpen(false)}
           onApply={(prepared, settings) => {
-            onPhotoChange?.();
+            onPhotoChange?.(true);
             setFile(prepared);
             setEdits(settings);
             setEditorOpen(false);
