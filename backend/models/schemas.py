@@ -41,6 +41,7 @@ from backend.configuration_limits import (
     TIME_SECONDS_MIN,
     default_barricade_count,
 )
+from backend.models.domain import ImportedPosition
 
 
 class Position(BaseModel):
@@ -652,6 +653,11 @@ class GameConfigurationPayload(BaseModel):
 class BotGameConfigPayload(BaseModel):
     profileId: str = Field(min_length=1, max_length=64)
     humanColor: Literal["white", "black", "random"] = "white"
+
+
+class ImportGameRequest(ImportedPosition):
+    mode: Literal["local", "online"] = "local"
+    reviewConfirmed: bool = False
 
 
 class CreateGameRequest(BaseModel):

@@ -243,6 +243,8 @@ def _castling_rights(state: GameState) -> str:
 
 def _en_passant_square(state: GameState) -> str:
     if not state.history:
+        if state.imported_position and not any(state.turn_counts.values()):
+            return state.imported_position.en_passant or "-"
         return "-"
     move = state.history[-1]
     if (
@@ -279,6 +281,8 @@ def classic_position_fen(state: GameState) -> str:
         if state.history
         else 1
     )
+    if state.imported_position:
+        fullmove_number = state.imported_position.fullmove_number + state.turn_counts["black"]
     return " ".join(
         (
             "/".join(ranks),

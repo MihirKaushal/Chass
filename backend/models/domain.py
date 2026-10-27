@@ -479,6 +479,48 @@ class GambitState(BaseModel):
         return self
 
 
+ScannedPieceLabel = Literal[
+    "white-pawn",
+    "white-knight",
+    "white-bishop",
+    "white-rook",
+    "white-queen",
+    "white-king",
+    "black-pawn",
+    "black-knight",
+    "black-bishop",
+    "black-rook",
+    "black-queen",
+    "black-king",
+]
+
+
+class ImportedCastlingRights(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    white_king: bool = Field(default=False, alias="whiteKing")
+    white_queen: bool = Field(default=False, alias="whiteQueen")
+    black_king: bool = Field(default=False, alias="blackKing")
+    black_queen: bool = Field(default=False, alias="blackQueen")
+
+
+class ImportedPosition(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    board: list[list[ScannedPieceLabel | None]] = Field(min_length=8, max_length=8)
+    current_player: Color = Field(default="white", alias="currentPlayer")
+    castling_rights: ImportedCastlingRights = Field(
+        default_factory=ImportedCastlingRights, alias="castlingRights"
+    )
+    en_passant: str | None = Field(default=None, pattern=r"^[a-h][36]$", alias="enPassant")
+    halfmove_clock: int = Field(default=0, ge=0, le=99, alias="halfmoveClock")
+    fullmove_number: int = Field(default=1, ge=1, le=10000, alias="fullmoveNumber")
+
+    @model_validator(mode="after")
+    def validate_ranks(self) -> "ImportedPosition":
+        if any(len(rank) != 8 for rank in self.board):
+            raise ValueError("A scanned position must have exactly 8 rows and 8 columns.")
+        return self
+
+
 class GameState(BaseModel):
     id: str
     board: Board
@@ -492,6 +534,7 @@ class GameState(BaseModel):
     piece_definitions: dict[str, PieceDefinition] = Field(default_factory=dict)
     configuration: GameConfiguration = Field(default_factory=GameConfiguration)
     classic: ClassicRuleState = Field(default_factory=ClassicRuleState)
+    imported_position: ImportedPosition | None = None
     center_dominion: CenterDominionState = Field(default_factory=CenterDominionState)
     check_race: CheckRaceState = Field(default_factory=CheckRaceState)
     affinity: AffinityState = Field(default_factory=AffinityState)

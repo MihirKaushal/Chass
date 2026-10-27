@@ -8,6 +8,7 @@ from backend.rules.base import Rule, RuleContext, ValidationResult
 from backend.rules.builtin_rules import classic_chess_rules, opposing_color, variant_rules
 from backend.rules.configuration import ConfigurationRuleEngine
 from backend.rules.gambit_rules import GambitRuleSet
+from backend.rules.imported_position import ImportedPositionRules
 from backend.rules.movement import generate_piece_attacks, generate_piece_moves
 from backend.rules.variant_system import (
     FINISHED_STATUSES,
@@ -39,6 +40,7 @@ class RuleEngine:
         self.gambit = GambitRuleSet()
         self.actions = VariantActionRules()
         self.configuration = ConfigurationRuleEngine()
+        self.imports = ImportedPositionRules()
         self.center_dominion = next(
             rule for rule in ordered_rules if rule.id == "center_dominion"
         )

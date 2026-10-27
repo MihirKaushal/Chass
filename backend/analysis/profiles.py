@@ -426,6 +426,8 @@ def _castling_rights(state: GameState, profile: AnalysisProfile) -> str:
 
 def _en_passant_square(state: GameState) -> str:
     if not state.history:
+        if state.imported_position and not any(state.turn_counts.values()):
+            return state.imported_position.en_passant or "-"
         return "-"
     move = state.history[-1]
     if move.action_type != "move" or move.piece != "pawn" or abs(move.to_row - move.from_row) != 2:
@@ -466,7 +468,11 @@ def analysis_position_fen(state: GameState, profile: AnalysisProfile) -> str:
     fields.extend(
         [
             str(state.classic.halfmove_clock),
-            str(max(1, (len(state.history) // 2) + 1)),
+            str(
+                state.imported_position.fullmove_number + state.turn_counts["black"]
+                if state.imported_position
+                else max(1, (len(state.history) // 2) + 1)
+            ),
         ]
     )
     return " ".join(fields)
