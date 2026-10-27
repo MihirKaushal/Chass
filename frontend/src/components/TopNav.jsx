@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { onlinePlayerStatus, onlinePlayerSummary, roomLabel } from "../playHeader";
-import AppLink from "./AppLink";
+import SiteNavLinks from "./SiteNavLinks";
 import Button from "./ui/Button";
 import StatusBadge from "./ui/StatusBadge";
 
@@ -126,18 +126,7 @@ function TopNav({
       </button>
 
       <nav className="tab-nav" aria-label="Game sections">
-        <button type="button" className="tab site-nav-button" onClick={onHome}>
-          Home
-        </button>
-        <button type="button" className="tab site-nav-button" onClick={onCustomize}>
-          Customize
-        </button>
-        <AppLink
-          className="tab site-nav-button"
-          href="/rulebook"
-        >
-          Rulebook
-        </AppLink>
+        <SiteNavLinks tabs onHome={onHome} onCustomize={onCustomize} />
       </nav>
 
       <div className="game-hud">

@@ -8,6 +8,11 @@ test("the Rulebook has a dedicated route", () => {
   assert.deepEqual(routeFromPath("/rulebook/"), { name: "rulebook" });
 });
 
+test("Scanner is a first-class same-tab route", () => {
+  assert.deepEqual(routeFromPath("/scanner"), { name: "scanner" });
+  assert.deepEqual(routeFromPath("/scanner/"), { name: "scanner" });
+});
+
 test("customize presets are parsed from the supplied search string", () => {
   assert.deepEqual(routeFromPath("/customize", "?preset=gambit"), {
     name: "customize",

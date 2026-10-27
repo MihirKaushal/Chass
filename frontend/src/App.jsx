@@ -54,6 +54,7 @@ import ScannerPage from "./pages/ScannerPage";
 import AbilitySelectionPage, { AbilityHandoffPage } from "./pages/AbilitySelectionPage";
 import { navigate, useNavigationBlocker, useRoute } from "./routing";
 import { customizeSession } from "./customizeSession";
+import { navigationDestination } from "./siteNavigation";
 
 
 const FINISHED_STATUSES = new Set([
@@ -1246,7 +1247,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           closeLabel="Close leave game confirmation"
           eyebrow="Current Game"
           title="Leave This Game?"
-          description={`Are you sure you want to leave this game and go to ${pendingLeaveDestination === "/" ? "Home" : pendingLeaveDestination === "/rulebook" ? "the Rulebook" : "Customize"}? Your current game may be lost.`}
+          description={`Are you sure you want to leave this game and go to ${navigationDestination(pendingLeaveDestination).destination}? Your current game may be lost.`}
           className="leave-game-dialog"
           actions={(
             <>
@@ -1261,7 +1262,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
                   navigate(destination, { bypassBlocker: true });
                 }}
               >
-                {pendingLeaveDestination === "/" ? "Leave And Go Home" : pendingLeaveDestination === "/rulebook" ? "Open Rulebook" : "Leave And Customize"}
+                {navigationDestination(pendingLeaveDestination).leaveLabel}
               </Button>
             </>
           )}
@@ -1411,7 +1412,12 @@ function App() {
   }
 
   if (route.name === "scanner") {
-    return <ScannerPage />;
+    return (
+      <ScannerPage
+        onHome={() => navigate("/")}
+        onCustomize={() => navigate(customizeSession.returnPath())}
+      />
+    );
   }
 
   return (

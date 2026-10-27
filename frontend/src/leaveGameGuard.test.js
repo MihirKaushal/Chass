@@ -62,3 +62,11 @@ test("reading the Rulebook preserves the customizer instead of prompting to disc
   assert.equal(shouldConfirmDiscardingCustomization(true, "/game/123"), true);
   assert.equal(shouldConfirmDiscardingCustomization(true, "/rulebook-other"), true);
 });
+
+test("visiting Scanner keeps the customizer draft without bypassing other leave guards", () => {
+  for (const destination of ["/scanner", "/scanner/", "/scanner?from=customize"]) {
+    assert.equal(shouldConfirmDiscardingCustomization(true, destination), false);
+  }
+  assert.equal(shouldConfirmDiscardingCustomization(true, "/scanner-other"), true);
+  assert.equal(shouldConfirmGameNavigation({ phase: "play", history: [] }), true);
+});

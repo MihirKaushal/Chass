@@ -4,5 +4,5 @@ export function shouldConfirmGameNavigation(game) {
 
 export function shouldConfirmDiscardingCustomization(configurationModified, destination = "") {
   const path = destination.split(/[?#]/, 1)[0];
-  return configurationModified === true && !/^\/rulebook\/?$/.test(path);
+  return configurationModified === true && !/^\/(rulebook|scanner)\/?$/.test(path);
 }
