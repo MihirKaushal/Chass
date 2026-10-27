@@ -5,6 +5,7 @@ import Button from "../ui/Button";
 import ScannerCameraDialog from "./ScannerCameraDialog";
 import ScannerIcon from "./ScannerIcon";
 import ScannerImageEditor from "./ScannerImageEditor";
+import { downloadScannerFile } from "../../scannerApi";
 
 const PHOTO_TIPS = [
   {
@@ -29,7 +30,12 @@ const PHOTO_TIPS = [
   },
 ];
 
-function ScannerPhotoPanel() {
+function ScannerPhotoPanel({
+  onRecognize,
+  onPhotoChange,
+  busy = false,
+  serviceAvailable = false,
+}) {
   const uploadRef = useRef(null);
   const [cameraOpen, setCameraOpen] = useState(false);
   const [file, setFile] = useState(null);
@@ -65,6 +71,7 @@ function ScannerPhotoPanel() {
       return;
     }
     setFile(candidate);
+    onPhotoChange?.();
     setOriginalFile(candidate);
     setEdits(null);
     setEditorOpen(true);
@@ -72,6 +79,7 @@ function ScannerPhotoPanel() {
   };
 
   const removePhoto = () => {
+    onPhotoChange?.();
     setFile(null);
     setOriginalFile(null);
     setEdits(null);
@@ -197,19 +205,35 @@ function ScannerPhotoPanel() {
         </Button>
         <Button
           size="small"
-          disabled
-          title="Image recognition is not connected in this preview."
+          disabled={!file || !edits || busy || !serviceAvailable}
+          onClick={() => onRecognize?.(file)}
+          title={
+            !serviceAvailable
+              ? "Local scanner service is not configured."
+              : !edits
+                ? "Apply Crop & Rotate first, with White at the bottom."
+                : undefined
+          }
         >
-          Recognize Pieces
+          {busy ? "Recognizing..." : "Recognize Pieces"}
           <ScannerIcon name="arrow" />
         </Button>
       </div>
+      {edits && file ? (
+        <Button
+          variant="text"
+          size="small"
+          onClick={() => downloadScannerFile(file, file.name)}
+        >
+          Save Prepared Photo
+        </Button>
+      ) : null}
       <p className="scanner-preview-note">
         <ScannerIcon name="info" />
         <span>
-          {file
-            ? "Photo preview only. The example board is not generated from this image."
-            : "Recognition is not connected yet. Use the example board to try the review controls."}
+          {!serviceAvailable
+            ? "Recognition is available in local testing only. Photos are not sent until you choose Recognize Pieces."
+            : "Apply the crop to the 8 x 8 playing grid, with White's home rank at the bottom. Recognition runs in your local scanner service; photos are not saved."}
         </span>
       </p>
       <div className="scanner-photo-tips">
@@ -241,6 +265,7 @@ function ScannerPhotoPanel() {
           initialEdits={edits}
           onClose={() => setEditorOpen(false)}
           onApply={(prepared, settings) => {
+            onPhotoChange?.();
             setFile(prepared);
             setEdits(settings);
             setEditorOpen(false);

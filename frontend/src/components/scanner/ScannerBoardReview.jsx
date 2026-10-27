@@ -46,7 +46,7 @@ function ScannerBoardReview({
         <span className="scanner-step-label">02</span>
       </header>
       <div className="scanner-board-toolbar">
-        <span className="scanner-example-badge">Example position</span>
+        <span className="scanner-example-badge">Scanned position</span>
         <Button
           variant="text"
           size="small"
@@ -79,13 +79,13 @@ function ScannerBoardReview({
         <div>
           <strong>
             {reviewSquares.length
-              ? `${reviewSquares.length} example ${reviewSquares.length === 1 ? "square" : "squares"} to review`
-              : "Example squares reviewed"}
+              ? `${reviewSquares.length} ${reviewSquares.length === 1 ? "square" : "squares"} to review`
+              : "Flagged squares reviewed"}
           </strong>
           <small>
             {reviewSquares.length
-              ? "Gold markers show how uncertain squares will appear."
-              : "You can still edit any square using the pieces below."}
+              ? "Gold markers flag uncertainty. Also check unmarked and empty squares for mistakes."
+              : "Check every square, including empty ones. The model can miss pieces."}
           </small>
         </div>
         {reviewSquares.length ? (
@@ -165,7 +165,7 @@ function ScannerBoardReview({
               setTool(null);
             }}
           >
-            Reset Example
+            Restore Scan
           </Button>
         </div>
         <div className="scanner-selected-square" aria-live="polite">
