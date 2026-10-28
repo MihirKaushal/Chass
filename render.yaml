@@ -52,3 +52,25 @@ services:
         value: "256"
       - key: CHASS_ENGINE_MOVETIME_MS
         value: "180"
+  - type: web
+    name: chass-scanner
+    runtime: docker
+    plan: free
+    dockerfilePath: ./scanner/deploy/Dockerfile.onnx
+    dockerContext: .
+    healthCheckPath: /ready
+    buildFilter:
+      paths:
+        - scanner/**
+        - render.yaml
+    envVars:
+      - fromGroup: chass-scanner-auth
+      - key: SCANNER_RUNTIME
+        value: onnx
+      - key: SCANNER_REQUIRE_TOKEN
+        value: "true"
+envVarGroups:
+  - name: chass-scanner-auth
+    envVars:
+      - key: SCANNER_SERVICE_TOKEN
+        generateValue: true

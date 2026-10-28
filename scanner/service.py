@@ -64,11 +64,16 @@ def create_app(pipeline=None):
         app.state.busy = False
         if pipeline is None:
             try:
-                from .ml.inference import default_pipeline
+                if os.getenv("SCANNER_RUNTIME", "torch") == "onnx":
+                    from .ml.onnx_inference import default_pipeline
 
-                app.state.pipeline = await asyncio.to_thread(
-                    default_pipeline, os.environ.get("SCANNER_DEVICE", "auto")
-                )
+                    app.state.pipeline = await asyncio.to_thread(default_pipeline)
+                else:
+                    from .ml.inference import default_pipeline
+
+                    app.state.pipeline = await asyncio.to_thread(
+                        default_pipeline, os.environ.get("SCANNER_DEVICE", "auto")
+                    )
             except (OSError, ValueError, RuntimeError):
                 logger.exception("Scanner model could not be loaded")
         yield
@@ -89,6 +94,13 @@ def create_app(pipeline=None):
             request.headers.get("authorization", "").encode(), f"Bearer {token}".encode()
         ):
             raise HTTPException(401, "Scanner service authentication required.")
+
+    @app.get("/ready", include_in_schema=False)
+    async def ready():
+        # Render's health probe cannot attach the private service token.
+        if app.state.pipeline is None:
+            raise HTTPException(503, "Not ready")
+        return {"ready": True}
 
     @app.get("/health")
     async def health(request: Request):

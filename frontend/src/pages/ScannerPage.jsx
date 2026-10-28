@@ -125,7 +125,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     }
     let active = true;
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 30000);
+    const timeout = window.setTimeout(() => controller.abort(), 75000);
     setServiceStatus("checking");
     scannerAvailability(serviceUrl, controller.signal)
       .then((status) => {

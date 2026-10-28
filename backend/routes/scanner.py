@@ -46,7 +46,9 @@ async def health(request: Request):
     if not url:
         return {"ready": False, "configured": False}
     try:
-        async with httpx.AsyncClient(timeout=5, follow_redirects=False) as client:
+        async with httpx.AsyncClient(
+            timeout=httpx.Timeout(65, connect=5), follow_redirects=False
+        ) as client:
             response = await client.get(f"{url}/health", headers=headers)
         data = response.json() if response.status_code == 200 else {}
         ready = isinstance(data, dict) and data.get("ready") is True
