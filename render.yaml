@@ -7,6 +7,9 @@ services:
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
     envVars:
+      - fromGroup: chass-scanner-auth
+      - key: SCANNER_SERVICE_URL
+        value: https://chass-scanner.onrender.com
       - key: ENVIRONMENT
         value: production
       - key: TOKEN_SECRET
@@ -69,6 +72,8 @@ services:
         value: onnx
       - key: SCANNER_REQUIRE_TOKEN
         value: "true"
+      - key: SCANNER_MAX_PIXELS
+        value: "4194304"
 envVarGroups:
   - name: chass-scanner-auth
     envVars:
