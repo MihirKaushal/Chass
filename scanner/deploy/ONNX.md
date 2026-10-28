@@ -45,6 +45,11 @@ attribution README. Do not upload raw photos, datasets, environment files or cre
 - Linux CPython 3.13 ONNX Runtime wheel availability checked for `manylinux_2_28_x86_64`.
 - No model accuracy claim is added: export parity is not an accuracy benchmark.
 
-Public deployment health and end-to-end recognition must still be checked after
-Render builds the Linux container. If it cannot fit the free plan, stop and investigate;
-do not silently move to paid compute or put the model into the game server.
+The Render service URL is `https://chass-scanner.onrender.com`; the browser continues
+to use `https://chass-api.onrender.com/scanner`, not the private service token.
+Render builds the Linux container from the repository. Recheck readiness and a real
+recognition request after every model/runtime update. If it cannot fit the free
+plan, stop and investigate; do not silently move to paid compute or put the model
+into the game server. Production accepts prepared crops up to 2048 x 2048 pixels
+to bound decoding memory; the website's crop editor already emits images within
+that limit.

@@ -38,7 +38,17 @@ On a fresh checkout, restore the three validated model artifacts and install `sc
 
 ## Public Website Setup
 
-The browser uses the existing `VITE_API_URL` and calls `/scanner/health` and `/scanner/scan` on the game API. The game API proxies photos to a separate model service. **Publishing the frontend alone does not host the models.** No public hosting or paid resources were created by this change.
+The browser uses the existing `VITE_API_URL` and calls `/scanner/health` and `/scanner/scan` on the game API. The game API proxies photos to a separate model service. **Publishing the frontend alone does not host the models.**
+
+The public deployment now has a separate free Render service at
+`https://chass-scanner.onrender.com`. It uses the same validated weights exported to
+ONNX, avoiding PyTorch's memory overhead. `render.yaml` manages both services and
+the shared private token through the `chass-scanner-auth` environment group. No
+token belongs in Vercel. See [ONNX serving and update instructions](deploy/ONNX.md).
+This does not require keeping this computer running. Free-tier cold starts and
+shared workspace quotas still apply.
+
+The steps below describe alternate hosts or rebuilding the deployment from scratch:
 
 1. Push the code and redeploy Vercel and Render. Keep `VITE_API_URL` pointing at your game API. Remove any old direct `VITE_SCANNER_API_URL` override unless deliberately testing a separate service.
 2. Choose a host for the model service. Keep PyTorch separate from the lightweight game service; confirm the host's memory limits and pricing before deploying. A portable, allowlisted bundle is prepared at `scanner/artifacts/deployment-mvp/`, including the selected weights and Dockerfile. Docker is not installed here, so its container build needs verification on the chosen Linux host.
