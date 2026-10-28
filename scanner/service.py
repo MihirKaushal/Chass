@@ -15,7 +15,8 @@ from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from PIL import Image, ImageOps, UnidentifiedImageError
 
-MAX_BYTES, MAX_PIXELS = 10 * 1024 * 1024, 24_000_000
+MAX_BYTES = 10 * 1024 * 1024
+MAX_PIXELS = min(24_000_000, max(128 * 128, int(os.getenv("SCANNER_MAX_PIXELS", "24000000"))))
 logger = logging.getLogger(__name__)
 
 
@@ -29,7 +30,9 @@ def decode_photo(content):
                 if original.format not in {"JPEG", "PNG", "WEBP"}:
                     raise ValueError("Choose a JPG, PNG, or WebP image.")
                 if original.width * original.height > MAX_PIXELS:
-                    raise ValueError("Image exceeds 24 megapixels; resize it before scanning.")
+                    raise ValueError(
+                        "Image exceeds the scanner's pixel limit; apply the board crop before scanning."
+                    )
                 if min(original.size) < 128:
                     raise ValueError("Image is too small; use at least 128 pixels per side.")
                 image = ImageOps.exif_transpose(original).convert("RGB")
