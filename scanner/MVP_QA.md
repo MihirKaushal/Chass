@@ -2,6 +2,11 @@
 
 Date: 2026-10-27. These are integration checks, not new model-accuracy measurements.
 
+Subsequent public-deployment work added an ONNX runtime and five tests (137 scanner
+tests total), verified parity on 40 validation photos, and built the Linux image
+successfully on Render's free service. See [public serving notes](deploy/ONNX.md).
+The original checks below describe the earlier PyTorch MVP baseline.
+
 ## Automated Checks
 
 | Suite | Result |

@@ -39,7 +39,9 @@ an SSDLite piece detector with a ResNet18 crop classifier and generates versione
 evaluation reports. Recognition uses a separate model service behind a bounded,
 authenticated game-API gateway. ML packages are not installed on the game server.
 `./run.sh` starts local recognition when the trained artifacts are installed.
-Public recognition requires model hosting: see [Scanner MVP setup](scanner/MVP.md).
+Public recognition runs on a separate free Render service using validated ONNX
+exports of the same models. See [Scanner MVP setup](scanner/MVP.md) and
+[model deployment/update instructions](scanner/deploy/ONNX.md).
 See the [Scanner Workspace](scanner/README.md) for organized raw/curated datasets,
 reviewed label cleanup, deduplication, capture-grouped splits, and audit reports.
 The [trained Chess V2 baseline](scanner/ml/CHESS_V2_MODEL_CARD.md) records its

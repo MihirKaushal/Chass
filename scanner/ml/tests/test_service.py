@@ -150,7 +150,7 @@ def test_photo_size_format_and_decode_safety(monkeypatch):
     with pytest.raises(ValueError):
         service.decode_photo(photo(format="GIF"))
     monkeypatch.setattr(service, "MAX_PIXELS", 100)
-    with pytest.raises(ValueError, match="megapixels"):
+    with pytest.raises(ValueError, match="pixel limit"):
         service.decode_photo(photo())
 
 

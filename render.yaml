@@ -6,6 +6,14 @@ services:
     buildCommand: pip install -r backend/requirements.txt && bash scripts/install_stockfish.sh && bash scripts/install_fairy_stockfish.sh
     startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
     healthCheckPath: /health
+    buildFilter:
+      paths:
+        - backend/**
+        - scripts/install_stockfish.sh
+        - scripts/install_fairy_stockfish.sh
+        - .python-version
+        - runtime.txt
+        - render.yaml
     envVars:
       - fromGroup: chass-scanner-auth
       - key: SCANNER_SERVICE_URL
@@ -64,7 +72,11 @@ services:
     healthCheckPath: /ready
     buildFilter:
       paths:
-        - scanner/**
+        - scanner/service.py
+        - scanner/ml/*.py
+        - scanner/models/onnx/**
+        - scanner/deploy/Dockerfile.onnx
+        - scanner/deploy/requirements-onnx.txt
         - render.yaml
     envVars:
       - fromGroup: chass-scanner-auth
