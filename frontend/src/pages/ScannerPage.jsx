@@ -125,7 +125,8 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     }
     let active = true;
     const controller = new AbortController();
-    const timeout = window.setTimeout(() => controller.abort(), 75000);
+    // Both free services can be asleep: allow the game API, then the model, to wake.
+    const timeout = window.setTimeout(() => controller.abort(), 150000);
     setServiceStatus("checking");
     scannerAvailability(serviceUrl, controller.signal)
       .then((status) => {
