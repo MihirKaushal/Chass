@@ -1,0 +1,12 @@
+FROM python:3.13-slim
+RUN useradd --create-home --uid 1000 scanner
+WORKDIR /app
+COPY scanner/deploy/requirements-onnx.txt /app/requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
+COPY --chown=scanner:scanner scanner/__init__.py scanner/service.py /app/scanner/
+COPY --chown=scanner:scanner scanner/ml /app/scanner/ml
+COPY --chown=scanner:scanner scanner/models/onnx /app/models
+USER scanner
+ENV SCANNER_RUNTIME=onnx SCANNER_REQUIRE_TOKEN=true SCANNER_ONNX_DIR=/app/models
+EXPOSE 10000
+CMD ["python", "-m", "uvicorn", "scanner.service:app", "--host", "0.0.0.0", "--port", "10000", "--workers", "1"]

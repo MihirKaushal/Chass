@@ -24,6 +24,7 @@ class FakePipeline:
 def test_hosted_service_requires_secret_without_revealing_it(monkeypatch):
     monkeypatch.setenv("SCANNER_SERVICE_TOKEN", "private-test-token")
     with TestClient(service.create_app(FakePipeline())) as client:
+        assert client.get("/ready").json() == {"ready": True}
         assert client.get("/health").status_code == 401
         response = client.post("/scan", content=photo(), headers={"content-type": "image/png"})
         assert response.status_code == 401 and "private-test-token" not in response.text
