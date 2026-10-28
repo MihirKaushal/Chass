@@ -53,3 +53,22 @@ plan, stop and investigate; do not silently move to paid compute or put the mode
 into the game server. Production accepts prepared crops up to 2048 x 2048 pixels
 to bound decoding memory; the website's crop editor already emits images within
 that limit.
+
+## Public Deployment Check (2026-10-28)
+
+- Website: `https://playchass.vercel.app/scanner`, showing Recognition Connected.
+- Public game gateway health: ready, configured, experimental; images not stored.
+- A real dataset photo sent through the public gateway returned HTTP 200 in
+  6.48 seconds, with 64 squares, 28 piece proposals, and review alternatives.
+  This is one warm-service request, not a latency or accuracy benchmark.
+- The model service's unauthenticated `/health` and `/scan` requests returned 401.
+  Only `/ready` exposes minimal public health information.
+- A reviewed-position validation request returned a valid active position.
+  No persistent public test game was created.
+- Automated checks: 329 backend tests passed (one emulator-dependent test skipped),
+  137 scanner tests passed, and 197 frontend tests passed; production frontend built.
+- Initial browser readiness allows 150 seconds because the game API and model
+  service may wake sequentially. Free-service cold starts can still require retrying.
+
+Recognition remains experimental. Users must review the board before importing it;
+the public runtime does not improve the trained model's recognition accuracy.
