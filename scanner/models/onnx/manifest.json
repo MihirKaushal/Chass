@@ -1,0 +1,65 @@
+{
+  "format_version": 1,
+  "selection": {
+    "pipeline": "combined",
+    "overlap": 0.4,
+    "threshold": 0.25,
+    "classifier_sha256": "898698856d0c44ec82338f84aab9f6a0b5cc726a67645279deb50be2d7b7e4ce",
+    "detector_sha256": "88e3093f50114d1c18356b7057027184a6a6f01b99810dd33d62c54ee650105f",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81"
+  },
+  "sha256": {
+    "detector": "81d2d1e4d45261f34c249da8c3a55db38f68d55e301872966d5798a6b43a3045",
+    "classifier": "d3cc1093b0e629bdfa7ec8330d4f05056f1da91272e3a23f8098d613979f2a9a"
+  },
+  "classes": [
+    "background",
+    "black-bishop",
+    "black-king",
+    "black-knight",
+    "black-pawn",
+    "black-queen",
+    "black-rook",
+    "white-bishop",
+    "white-king",
+    "white-knight",
+    "white-pawn",
+    "white-queen",
+    "white-rook"
+  ],
+  "input_size": 320,
+  "crop": {
+    "seed": 42,
+    "size": 160,
+    "context": 0.15,
+    "batch_size": 48,
+    "samples_per_epoch": 12000,
+    "epochs": 12,
+    "patience": 4,
+    "head_lr": 0.001,
+    "backbone_lr": 0.0001,
+    "threads": 4,
+    "workers": 2,
+    "device": "auto"
+  },
+  "detector_size": [
+    320,
+    320
+  ],
+  "box_weights": [
+    10.0,
+    10.0,
+    5.0,
+    5.0
+  ],
+  "box_clip": 4.135166556742356,
+  "score_threshold": 0.01,
+  "nms_threshold": 0.55,
+  "topk_candidates": 300,
+  "detections_per_image": 100,
+  "export_versions": {
+    "torch": "2.14.1",
+    "onnx": "1.23.2",
+    "onnxruntime": "1.31.1"
+  }
+}
