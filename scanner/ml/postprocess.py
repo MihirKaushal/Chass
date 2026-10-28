@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import math
 
-from .metrics import box_iou
+from .box_geometry import box_iou
 
 
 def resolve_duplicates(prediction, *, threshold=0.25, overlap=0.6):
