@@ -4,23 +4,28 @@ import StatusBadge from "../ui/StatusBadge";
 const COPY = {
   checking: {
     tone: "neutral",
-    label: "Checking Connection",
-    text: "You can prepare your photo while we check recognition availability.",
+    label: "Connecting",
+    text: "You can prepare your photo now.",
+  },
+  warming: {
+    tone: "neutral",
+    label: "Starting Scanner",
+    text: "Waking the service. This may take a minute or two.",
   },
   ready: {
     tone: "success",
-    label: "Recognition Connected",
-    text: "Your cropped photo is sent to the scanner service only when you choose Recognize Pieces.",
+    label: "Scanner Ready",
+    text: "",
   },
   offline: {
     tone: "warning",
     label: "Recognition Offline",
-    text: "Photo preparation still works. Start or reconnect the scanner service, then try again.",
+    text: "Could not connect. Your photo is still here; try again.",
   },
   unconfigured: {
     tone: "neutral",
     label: "Photo Preparation Only",
-    text: "Recognition is not enabled on this deployment yet. You can still upload, rotate, crop, and save a prepared photo.",
+    text: "Recognition is not configured for this site.",
   },
 };
 
@@ -31,9 +36,9 @@ function ScannerServiceStatus({ status, onRetry }) {
       className="scanner-service-status"
       aria-label="Recognition availability"
     >
-      <div role="status">
+      <div role="status" className="scanner-service-message">
         <StatusBadge tone={copy.tone}>{copy.label}</StatusBadge>
-        <p>{copy.text}</p>
+        {copy.text ? <p>{copy.text}</p> : null}
       </div>
       {status === "offline" ? (
         <Button variant="secondary" size="small" onClick={onRetry}>

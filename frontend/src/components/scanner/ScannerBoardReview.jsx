@@ -53,14 +53,9 @@ function ScannerBoardReview({
       aria-labelledby="scanner-review-title"
     >
       <header className="scanner-panel-header">
-        <div>
-          <span className="scanner-overline">Check every square</span>
-          <h2 id="scanner-review-title">Review the position</h2>
-        </div>
-        <span className="scanner-step-label">02</span>
+        <h2 id="scanner-review-title">Review Pieces</h2>
       </header>
       <div className="scanner-board-toolbar">
-        <span className="scanner-example-badge">Scanned position</span>
         <Button
           variant="text"
           size="small"
@@ -98,8 +93,8 @@ function ScannerBoardReview({
           </strong>
           <small>
             {reviewSquares.length
-              ? "Gold markers flag uncertainty. Also check unmarked and empty squares for mistakes."
-              : "Check every square, including empty ones. The model can miss pieces."}
+              ? "Gold markers need review. Check unmarked and empty squares too."
+              : "Check empty squares too; the model can miss pieces."}
           </small>
         </div>
         {reviewSquares.length ? (
@@ -127,8 +122,7 @@ function ScannerBoardReview({
             {alternatives.length ? (
               <>
                 <p>
-                  Model suggestions. Choose the piece you see in the photo;
-                  scores are not guaranteed accuracy.
+                  Choose the piece in your photo. Percentages show model confidence.
                 </p>
                 <div className="scanner-alternative-options">
                   {alternatives.map((option) => (
@@ -158,8 +152,7 @@ function ScannerBoardReview({
               </>
             ) : (
               <p>
-                No model suggestions here. Use the piece palette below to add a
-                missed piece.
+                No suggestions. Use the pieces below to make a correction.
               </p>
             )}
             <div className="scanner-review-choice-actions">
@@ -182,8 +175,7 @@ function ScannerBoardReview({
           </>
         ) : (
           <p>
-            Gold squares need review. Click one to compare the model's top
-            options, or choose any square to correct a missed piece.
+            Select a square to review or correct it.
           </p>
         )}
       </div>

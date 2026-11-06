@@ -263,9 +263,8 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
     <Dialog
       open
       className="scanner-image-editor"
-      title="Prepare your board photo"
-      eyebrow="Rotate & crop"
-      description="Rotate the board upright, then place each corner on the outer edge of the playing grid. Keep every square and piece visible."
+      title="Crop & Rotate"
+      description="Put White at the bottom. Drag the four corners to the playing grid, keeping every square visible."
       onClose={close}
       closeLabel="Close photo editor"
       actions={

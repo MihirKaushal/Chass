@@ -25,10 +25,7 @@ function ScannerContinuePanel({
       aria-busy={busy || validating}
     >
       <header className="scanner-panel-header">
-        <div>
-          <span className="eyebrow">Continue From This Position</span>
-          <h2 id="scanner-continue-title">Play On Chass</h2>
-        </div>
+        <h2 id="scanner-continue-title">Continue Game</h2>
         <StatusBadge tone={ready ? "success" : "neutral"}>
           {busy
             ? "Creating Game"
@@ -40,9 +37,7 @@ function ScannerContinuePanel({
         </StatusBadge>
       </header>
       <p className="scanner-continue-description">
-        Play on this device, or create a private online room. For online games
-        you play White and your friend joins as Black, regardless of whose turn
-        is next.
+        In an online room, you play White and your friend plays Black.
       </p>
       <div className="scanner-import-feedback" aria-live="polite">
         {validation?.issues?.length ? (
@@ -68,7 +63,7 @@ function ScannerContinuePanel({
           <p>
             {remainingReviews
               ? `Resolve ${remainingReviews} flagged square${remainingReviews === 1 ? "" : "s"} before continuing.`
-              : "Confirm the reviewed board and game details above before continuing."}
+              : "Confirm the board and game details above."}
           </p>
         ) : null}
       </div>

@@ -86,7 +86,7 @@
   box-shadow: var(--shadow-sm);
 }
 
-.scanner-hero-meta,
+.scanner-title-row,
 .scanner-guide-link {
   display: flex;
   align-items: center;
@@ -94,13 +94,9 @@
   flex-wrap: wrap;
 }
 
-.scanner-hero-meta {
-  margin-bottom: var(--space-3);
-}
-
 .scanner-guide-link {
   width: fit-content;
-  margin-top: var(--space-4);
+  flex: 0 0 auto;
   gap: var(--space-2);
   color: var(--accent);
   font-size: var(--text-md);
@@ -168,8 +164,8 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--space-4);
-  min-height: 6rem;
-  padding: var(--space-4) var(--space-5);
+  min-height: 4.5rem;
+  padding: var(--space-3) var(--space-5);
   margin-block: var(--space-5);
   border: 1px solid var(--border-subtle);
   border-radius: var(--radius-lg);
@@ -177,10 +173,17 @@
 }
 
 .scanner-service-status p {
-  margin: var(--space-2) 0 0;
+  margin: 0;
   color: var(--ink-muted);
   font-size: var(--text-md);
   line-height: 1.5;
+}
+
+.scanner-service-message {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-3);
 }
 
 .scanner-service-status > .ui-button {
@@ -221,39 +224,12 @@
   gap: var(--space-3);
 }
 
-.scanner-example-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.45rem;
-  width: fit-content;
-  border: 1px solid var(--border-accent);
-  border-radius: var(--radius-pill);
-  padding: 0.35rem 0.65rem;
-  color: var(--accent);
-  background: rgba(255, 255, 255, 0.4);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  white-space: nowrap;
-}
-
 .scanner-heading {
   display: flex;
   justify-content: space-between;
   align-items: center;
   gap: 1.5rem;
   padding: 0;
-}
-
-.scanner-overline {
-  display: block;
-  margin-bottom: 0.45rem;
-  color: var(--accent);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  letter-spacing: 0.09em;
-  text-transform: uppercase;
 }
 
 .scanner-heading h1 {
@@ -271,15 +247,6 @@
   line-height: 1.55;
 }
 
-.scanner-scope {
-  display: flex;
-  align-items: center;
-  gap: 0.7rem;
-  flex-shrink: 0;
-  font-size: var(--text-sm);
-}
-
-.scanner-scope-mark,
 .scanner-tip-icon {
   display: grid;
   place-items: center;
@@ -290,15 +257,6 @@
   border-radius: var(--radius-control);
   color: var(--accent);
   background: rgba(255, 255, 255, 0.3);
-}
-
-.scanner-scope > div {
-  display: grid;
-  gap: 0.25rem;
-}
-
-.scanner-scope > div > span {
-  color: var(--ink-muted);
 }
 
 .scanner-preview-banner {
@@ -357,22 +315,47 @@
 }
 
 .scanner-label-export {
-  display: flex;
-  align-items: center;
-  gap: 1rem;
-  flex-wrap: wrap;
-  margin-block: 1rem;
+  margin-block: var(--space-4);
+  border: 1px solid var(--border-subtle);
+  border-radius: var(--radius-control);
+  background: var(--panel);
 }
 
-.scanner-label-export small {
-  flex: 1 1 20rem;
-  color: var(--ink-soft, #355779);
+.scanner-label-export > summary {
+  padding: var(--space-3) var(--space-4);
+}
+
+.scanner-label-export > summary,
+.scanner-photo-tips > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  list-style: none;
+  color: var(--deep);
+  font-size: var(--text-md);
+  font-weight: 600;
+}
+
+.scanner-label-export > summary::-webkit-details-marker,
+.scanner-photo-tips > summary::-webkit-details-marker {
+  display: none;
+}
+
+.scanner-label-export > .ui-disclosure-body {
+  padding: 0 var(--space-4) var(--space-4);
+}
+
+.scanner-label-export p {
+  margin-top: 0;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
 }
 
 .scanner-panel {
   min-width: 0;
-  padding: 1.5rem;
-  border: 1px solid rgba(26, 54, 93, 0.23);
+  padding: var(--space-6);
+  border: 1px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   background: var(--panel);
   box-shadow: var(--shadow-sm);
@@ -388,13 +371,6 @@
   font-size: 1.3rem;
   line-height: 1.3;
   letter-spacing: -0.025em;
-}
-
-.scanner-step-label {
-  color: rgba(26, 54, 93, 0.35);
-  font-family: var(--font-mono);
-  font-size: 0.85rem;
-  padding-top: 0.1rem;
 }
 
 .scanner-photo-dropzone {
@@ -454,9 +430,9 @@
 }
 
 .scanner-file-types {
+  margin-top: var(--space-3);
   color: var(--ink-muted);
-  font-family: var(--font-mono);
-  font-size: 0.64rem;
+  font-size: var(--text-sm);
 }
 
 .scanner-photo-corner {
@@ -948,11 +924,21 @@
 }
 
 .scanner-photo-tips {
-  display: grid;
-  gap: 1rem;
   border-top: 1px solid var(--border-subtle);
-  margin-top: 1.3rem;
-  padding-top: 1.1rem;
+  margin-top: var(--space-4);
+  padding-top: var(--space-3);
+}
+
+.scanner-photo-tips > .ui-disclosure-body {
+  display: grid;
+  gap: var(--space-3);
+  padding-top: var(--space-3);
+}
+
+.scanner-privacy-note {
+  margin: var(--space-3) 0 0;
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
 }
 
 .scanner-panel h3 {
@@ -971,10 +957,6 @@
   height: 2.2rem;
 }
 
-.scanner-photo-tip strong {
-  font-size: var(--text-sm);
-}
-
 .scanner-photo-tip p {
   margin: 0.2rem 0 0;
   color: var(--ink-muted);
@@ -984,6 +966,7 @@
 
 .scanner-board-toolbar {
   margin-top: -0.5rem;
+  justify-content: flex-end;
 }
 
 .scanner-review-board {
@@ -1441,9 +1424,7 @@
   .scanner-heading {
     align-items: flex-start;
   }
-  .scanner-scope {
-    display: none;
-  }
+  .scanner-heading { flex-wrap: wrap; }
   .scanner-workspace,
   .scanner-position-grid {
     grid-template-columns: 1fr;

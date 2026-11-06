@@ -72,3 +72,20 @@ that limit.
 
 Recognition remains experimental. Users must review the board before importing it;
 the public runtime does not improve the trained model's recognition accuracy.
+
+## Cold-Start Recovery (2026-11-06)
+
+A live health check initially returned `ready: false`, then recovered after the
+model service woke up. A one-shot browser check left the page incorrectly stuck
+offline even though the service was available.
+
+- The browser now retries readiness every three seconds within a 150-second
+  total budget, cancelling any individual probe after 45 seconds.
+- Temporary HTML/loading responses, network errors, and not-ready results show
+  Starting Scanner while retrying. Configuration/authentication failures stop
+  without exposing upstream details or credentials.
+- Readiness is checked again before scanning, in case the photo editor was left
+  open long enough for the model to sleep. Photo POSTs are never auto-retried.
+- Retries stop on success, timeout, or navigation; there is no permanent keep-alive.
+- Regression tests cover cold starts, request cancellation, retry deadlines,
+  permanent failures, and the simplified scanner controls.

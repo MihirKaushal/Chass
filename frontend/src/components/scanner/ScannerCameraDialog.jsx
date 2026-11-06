@@ -115,7 +115,6 @@ function ScannerCameraDialog({ onCapture, onClose }) {
     <Dialog
       open
       className="scanner-camera-dialog"
-      eyebrow="Your camera"
       title="Take a board photo"
       description="Hold the camera above the board. Keep all four corners visible and the pieces inside their squares."
       onClose={close}
@@ -170,7 +169,7 @@ function ScannerCameraDialog({ onCapture, onClose }) {
             </strong>
             <p>
               {error ||
-                "Allow camera access when your browser asks. Only the camera is used; audio stays off."}
+                "Allow camera access to continue. Audio stays off."}
             </p>
           </div>
         ) : (
@@ -190,8 +189,7 @@ function ScannerCameraDialog({ onCapture, onClose }) {
       <p className="scanner-camera-note">
         <ScannerIcon name="info" />
         <span>
-          The camera turns off when you capture a photo or close this window.
-          Your photo stays on this device.
+          The camera turns off after capture. Nothing is uploaded yet.
         </span>
       </p>
     </Dialog>

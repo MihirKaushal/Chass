@@ -17,18 +17,11 @@ function ScannerPositionDetails({
       aria-labelledby="scanner-position-title"
     >
       <header className="scanner-panel-header">
-        <div>
-          <span className="scanner-overline">
-            What the photo cannot tell us
-          </span>
-          <h2 id="scanner-position-title">Confirm the game details</h2>
-        </div>
-        <span className="scanner-step-label">03</span>
+        <h2 id="scanner-position-title">Game Details</h2>
       </header>
       <div className="scanner-position-grid">
         <fieldset className="scanner-turn-field">
           <legend>Whose turn is it?</legend>
-          <p>Defaults to White. Change this if Black moves next.</p>
           <div className="scanner-turn-options">
             {["white", "black"].map((color) => (
               <label
@@ -58,8 +51,8 @@ function ScannerPositionDetails({
         <div className="scanner-rights-field">
           <h3>Can either side still castle?</h3>
           <p>
-            Optional; off by default. Enable only if the King and that Rook have
-            never moved and are on their home squares.
+            Off by default. Enable only if the King and Rook have never moved
+            and are on their home squares.
           </p>
           <div className="scanner-castling-grid">
             {[
@@ -99,15 +92,14 @@ function ScannerPositionDetails({
         className="scanner-en-passant"
         summary={
           <span>
-            <strong>En passant &amp; move history</strong>
-            <small>Optional details for a position already in progress</small>
+            <strong>En passant &amp; move counters (optional)</strong>
           </span>
         }
       >
         <div className="scanner-en-passant-grid">
           <FormField
             label="En passant target"
-            description="Only available immediately after an opposing Pawn moves two squares. Select the square that a capturing Pawn would move onto."
+            description="After an opposing Pawn's two-square move, select its passed-over square. Otherwise leave None."
           >
             <select
               value={enPassant || "none"}
@@ -133,7 +125,7 @@ function ScannerPositionDetails({
           </FormField>
           <FormField
             label="Halfmove clock"
-            description="Moves by either player since the last Pawn move or capture. Leave blank for 0; 100 ends the game under Chass's fifty-move rule."
+            description="Turns since a Pawn move or capture. Default: 0. At 100, Chass declares a draw."
           >
             <input
               type="number"
@@ -148,7 +140,7 @@ function ScannerPositionDetails({
           </FormField>
           <FormField
             label="Move number"
-            description="Optional full-move number for engine analysis. Leave blank for 1; earlier move records are not reconstructed."
+            description="Full-move number. Default: 1. Earlier moves are not reconstructed."
           >
             <input
               type="number"
@@ -164,11 +156,8 @@ function ScannerPositionDetails({
           <div className="scanner-history-note">
             <ScannerIcon name="info" />
             <div>
-              <strong>Continue from this position</strong>
               <p>
-                A photo cannot recover earlier moves, captures, clocks, or draw
-                counters. Move history, captured scores, and repetition tracking
-                start from this board. No earlier moves are invented.
+                History, captured scores, and repetition tracking start from this position.
               </p>
             </div>
           </div>
@@ -182,11 +171,11 @@ function ScannerPositionDetails({
           onChange={(event) => onConfirmationChange(event.target.checked)}
         />
         <span>
-          <strong>This board and the game details look right.</strong>
+          <strong>I checked all 64 squares and the game details.</strong>
           <small>
             {remainingReviews > 0
-              ? `Resolve ${remainingReviews} flagged square${remainingReviews === 1 ? "" : "s"} first, then check all 64 squares.`
-              : "I checked all 64 squares, piece colors, orientation, and whose turn it is."}
+              ? `Review ${remainingReviews} flagged square${remainingReviews === 1 ? "" : "s"} first.`
+              : "Include empty squares, piece colors, and whose turn it is."}
           </small>
         </span>
       </label>
