@@ -2,6 +2,7 @@
 
 import asyncio
 import json
+import logging
 import os
 from urllib.parse import urlsplit
 
@@ -13,6 +14,7 @@ from backend.rate_limit import rate_limiter
 router = APIRouter(prefix="/scanner", tags=["scanner"])
 MAX_BYTES = 10 * 1024 * 1024
 _slots = asyncio.Semaphore(2)
+logger = logging.getLogger(__name__)
 
 
 def service_config():
@@ -50,11 +52,22 @@ async def health(request: Request):
             timeout=httpx.Timeout(65, connect=5), follow_redirects=False
         ) as client:
             response = await client.get(f"{url}/health", headers=headers)
+        if response.status_code in {401, 403, 404}:
+            logger.warning("Scanner health configuration error (HTTP %s)", response.status_code)
+            return {"ready": False, "configured": True, "status": "unavailable"}
         data = response.json() if response.status_code == 200 else {}
         ready = isinstance(data, dict) and data.get("ready") is True
     except (httpx.HTTPError, ValueError):
         ready = False
-    return {"ready": ready, "configured": True, "experimental": True, "imagesStored": False}
+    # A sleeping host can return HTML or a transient error before the model starts.
+    # Let the browser retry readiness; do not mistake this for a permanent outage.
+    return {
+        "ready": ready,
+        "configured": True,
+        "status": "ready" if ready else "warming",
+        "experimental": True,
+        "imagesStored": False,
+    }
 
 
 @router.post("/scan")

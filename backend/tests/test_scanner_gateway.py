@@ -72,7 +72,8 @@ def test_gateway_timeout_does_not_impact_games(client, monkeypatch):
         raise httpx.ReadTimeout("timeout")
 
     transport(monkeypatch, handler)
-    assert not client.get("/scanner/health").json()["ready"]
+    health = client.get("/scanner/health").json()
+    assert not health["ready"] and health["status"] == "warming"
     assert (
         client.post(
             "/scanner/scan", content=b"photo", headers={"Content-Type": "image/png"}
@@ -80,3 +81,34 @@ def test_gateway_timeout_does_not_impact_games(client, monkeypatch):
         == 504
     )
     assert client.post("/game/create", json={"mode": "local"}).status_code == 200
+
+
+@pytest.mark.parametrize("kind", ["html", "http-error", "not-ready"])
+def test_health_handles_cold_host_response_then_recovers(client, monkeypatch, kind):
+    calls = 0
+
+    def handler(request):
+        nonlocal calls
+        calls += 1
+        if calls > 1:
+            return httpx.Response(200, json={"ready": True})
+        if kind == "html":
+            return httpx.Response(200, text="<html>Starting your service</html>")
+        if kind == "http-error":
+            return httpx.Response(503)
+        return httpx.Response(200, json={"ready": False})
+
+    transport(monkeypatch, handler)
+    first = client.get("/scanner/health").json()
+    assert first["status"] == "warming" and not first["ready"]
+    second = client.get("/scanner/health").json()
+    assert second["status"] == "ready" and second["ready"]
+
+
+@pytest.mark.parametrize("code", [401, 403, 404])
+def test_health_marks_configuration_failures_without_exposing_service_details(client, monkeypatch, code):
+    transport(monkeypatch, lambda request: httpx.Response(code, text="private upstream details"))
+    response = client.get("/scanner/health")
+    assert response.json() == {"ready": False, "configured": True, "status": "unavailable"}
+    assert "private upstream" not in response.text
+    assert "secret-test-token" not in response.text

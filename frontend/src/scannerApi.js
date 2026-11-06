@@ -28,16 +28,90 @@ export async function scannerAvailability(url, signal, fetcher = fetch) {
       signal,
       cache: "no-store",
     });
-    if (!response.ok) return "offline";
+    if (!response.ok)
+      return [401, 403, 404].includes(response.status) ? "unavailable" : "offline";
     const health = await response.json();
     return health.configured === false
       ? "unconfigured"
       : health.ready === true
         ? "ready"
-        : "offline";
+        : health.status === "unavailable"
+          ? "unavailable"
+          : "offline";
   } catch (error) {
     if (error.name === "AbortError") throw error;
     return "offline";
+  }
+}
+
+function abortablePause(ms, signal) {
+  return new Promise((resolve, reject) => {
+    signal.throwIfAborted();
+    const abort = () => {
+      clearTimeout(timer);
+      reject(signal.reason);
+    };
+    const timer = setTimeout(() => {
+      signal.removeEventListener("abort", abort);
+      resolve();
+    }, ms);
+    signal.addEventListener("abort", abort, { once: true });
+  });
+}
+
+export async function waitForScanner(
+  url,
+  {
+    signal,
+    fetcher = fetch,
+    onStatus = () => {},
+    timeoutMs = 150000,
+    retryDelayMs = 3000,
+    attemptTimeoutMs = 45000,
+  } = {},
+) {
+  signal?.throwIfAborted();
+  if (!url) return "unconfigured";
+  const connection = new AbortController();
+  const cancel = () => connection.abort(signal.reason);
+  signal?.addEventListener("abort", cancel, { once: true });
+  const deadline = setTimeout(() => connection.abort(), timeoutMs);
+  const notice = setTimeout(() => onStatus("warming"), 8000);
+  onStatus("checking");
+  try {
+    // Retry health only, never an uploaded photo. Stop after the startup budget
+    // rather than polling indefinitely and keeping a free service awake.
+    while (!connection.signal.aborted) {
+      const attempt = new AbortController();
+      const stopAttempt = () => attempt.abort(connection.signal.reason);
+      connection.signal.addEventListener("abort", stopAttempt, { once: true });
+      const attemptTimer = setTimeout(() => attempt.abort(), attemptTimeoutMs);
+      let status;
+      try {
+        status = await scannerAvailability(url, attempt.signal, fetcher);
+      } catch (error) {
+        if (error.name !== "AbortError") throw error;
+        status = "offline";
+      } finally {
+        clearTimeout(attemptTimer);
+        connection.signal.removeEventListener("abort", stopAttempt);
+      }
+      connection.signal.throwIfAborted();
+      if (status === "ready" || status === "unconfigured") return status;
+      if (status === "unavailable") return "offline";
+      clearTimeout(notice);
+      onStatus("warming");
+      await abortablePause(retryDelayMs, connection.signal);
+    }
+    return "offline";
+  } catch (error) {
+    signal?.throwIfAborted();
+    if (connection.signal.aborted) return "offline";
+    throw error;
+  } finally {
+    clearTimeout(deadline);
+    clearTimeout(notice);
+    signal?.removeEventListener("abort", cancel);
   }
 }
 
