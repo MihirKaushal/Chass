@@ -96,6 +96,24 @@ test("scanner status and future game controls do not imply unavailable features 
   assert.doesNotMatch(upcoming, /<select|type="radio"/);
 });
 
+test("scanner page leaves experimental labeling to the rulebook", async () => {
+  const previousWindow = Object.getOwnPropertyDescriptor(globalThis, "window");
+  Object.defineProperty(globalThis, "window", {
+    value: { location: { hostname: "localhost" } }, configurable: true,
+  });
+  try {
+    const html = await markup("/src/pages/ScannerPage.jsx", {});
+    assert.match(html, /AI Board Scanner/);
+    assert.match(html, /Try on-device recognition/);
+    assert.match(html, /Scanner Guide/);
+    assert.match(html, /your prepared photo is sent to the server instead/);
+    assert.doesNotMatch(html, /experimental/i);
+  } finally {
+    if (previousWindow) Object.defineProperty(globalThis, "window", previousWindow);
+    else delete globalThis.window;
+  }
+});
+
 test("photo panel keeps essential guidance and collapses extra tips without decorative headings", async () => {
   const html = await markup("/src/components/scanner/ScannerPhotoPanel.jsx");
   assert.match(html, /Board Photo/);

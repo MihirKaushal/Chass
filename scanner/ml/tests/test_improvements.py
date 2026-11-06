@@ -69,6 +69,8 @@ def test_square_assignment_orientation_and_collision_review():
     assert result["reviewSquares"][0]["label"] == "a8"
     assert any("Multiple" in reason for reason in result["reviewSquares"][0]["reasons"])
     assert len(result["squareCandidates"][0]["candidates"]) == 2
+    assert "Check all 64 squares, including empty squares." in result["warnings"]
+    assert all("experimental" not in warning.lower() for warning in result["warnings"])
 
 
 def test_square_assignment_flags_boundaries():
