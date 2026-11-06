@@ -74,7 +74,7 @@ def assign_squares(
             "detection": detection_threshold,
         },
         "warnings": [
-            "Experimental recognition: check all 64 squares, including empty squares.",
+            "Check all 64 squares, including empty squares.",
             "Square assignment uses box centers, not verified piece bases. Tall or tilted pieces can map to a neighboring square.",
         ],
     }

@@ -73,7 +73,7 @@ async function recognize(file) {
       datasetFingerprint: config.selection.dataset_fingerprint,
       modelSha256: config.sha256,
       classificationScoresAreCalibrated: false,
-      warnings: ["Experimental recognition: check all 64 squares, including empty squares.",
+      warnings: ["Check all 64 squares, including empty squares.",
         "Square assignment uses box centers; check tall pieces and neighboring squares."],
     };
   } finally {

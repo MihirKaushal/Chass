@@ -13,7 +13,6 @@ import AppLink from "../components/AppLink";
 import Button from "../components/ui/Button";
 import Dialog from "../components/ui/Dialog";
 import Disclosure from "../components/ui/Disclosure";
-import StatusBadge from "../components/ui/StatusBadge";
 import { navigate, useNavigationBlocker } from "../routing";
 import { validateScannedPosition } from "../api/gameApi";
 import { browserScannerSupported, recognizeInBrowser, recognizeWithFallback } from "../scanner/browserClient";
@@ -317,7 +316,6 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
             <div>
               <div className="scanner-title-row">
                 <h1>AI Board Scanner</h1>
-                <StatusBadge tone="info">Experimental</StatusBadge>
               </div>
               <p>
                 Turn a photo into a playable game. Standard 8 x 8 boards and
@@ -368,7 +366,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
             <label className="scanner-runtime-toggle">
               <input type="checkbox" checked={onDevice} disabled={busy || !browserScannerSupported()}
                 onChange={(event) => setOnDevice(event.target.checked)} />
-              Try on-device recognition (experimental)
+              Try on-device recognition
             </label>
             <p>Downloads models once (about 52 MB, plus the runtime). Speed depends on your device.
               If it fails, your prepared photo is sent to the server instead. Review all squares either way.</p>
