@@ -7,9 +7,13 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "test": "node --test src/*.test.js"
+    "test": "node --test src/*.test.js",
+    "scanner:assets": "node scripts/scanner-assets.mjs",
+    "prebuild": "node scripts/scanner-assets.mjs",
+    "predev": "node scripts/scanner-assets.mjs"
   },
   "dependencies": {
+    "onnxruntime-web": "1.31.1",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"
   },

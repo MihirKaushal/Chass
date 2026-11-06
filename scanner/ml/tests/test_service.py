@@ -25,6 +25,9 @@ def test_hosted_service_requires_secret_without_revealing_it(monkeypatch):
     monkeypatch.setenv("SCANNER_SERVICE_TOKEN", "private-test-token")
     with TestClient(service.create_app(FakePipeline())) as client:
         assert client.get("/ready").json() == {"ready": True}
+        readiness = client.get("/ready", headers={"origin": "https://playchass.vercel.app"})
+        assert readiness.headers["access-control-allow-origin"] == "*"
+        assert readiness.headers["cache-control"] == "no-store"
         assert client.get("/health").status_code == 401
         response = client.post("/scan", content=photo(), headers={"content-type": "image/png"})
         assert response.status_code == 401 and "private-test-token" not in response.text

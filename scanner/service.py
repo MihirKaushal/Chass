@@ -13,6 +13,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from PIL import Image, ImageOps, UnidentifiedImageError
 
 MAX_BYTES = 10 * 1024 * 1024
@@ -101,9 +102,12 @@ def create_app(pipeline=None):
     @app.get("/ready", include_in_schema=False)
     async def ready():
         # Render's health probe cannot attach the private service token.
-        if app.state.pipeline is None:
-            raise HTTPException(503, "Not ready")
-        return {"ready": True}
+        ready = app.state.pipeline is not None
+        return JSONResponse(
+            {"ready": ready},
+            status_code=200 if ready else 503,
+            headers={"Access-Control-Allow-Origin": "*", "Cache-Control": "no-store"},
+        )
 
     @app.get("/health")
     async def health(request: Request):

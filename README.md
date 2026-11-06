@@ -42,6 +42,10 @@ authenticated game-API gateway. ML packages are not installed on the game server
 Public recognition runs on a separate free Render service using validated ONNX
 exports of the same models. See [Scanner MVP setup](scanner/MVP.md) and
 [model deployment/update instructions](scanner/deploy/ONNX.md).
+An optional on-device ONNX worker caches public models and falls back to the server.
+King-focused fine-tuning and validation-selected thresholds are tracked in the
+[accuracy log](scanner/ml/ACCURACY_TRACKER.md); verified square-level evaluation
+uses a separate [manual-label collection](scanner/ml/BOARD_COLLECTION.md).
 See the [Scanner Workspace](scanner/README.md) for organized raw/curated datasets,
 reviewed label cleanup, deduplication, capture-grouped splits, and audit reports.
 The [trained Chess V2 baseline](scanner/ml/CHESS_V2_MODEL_CARD.md) records its

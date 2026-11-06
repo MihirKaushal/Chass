@@ -6,6 +6,24 @@ const PIECE_CLASSES = new Set(
   ),
 );
 
+export function scannerWakeUrl(serviceUrl, configured = "") {
+  const candidate = configured.trim() || (
+    serviceUrl === "https://chass-api.onrender.com/scanner"
+      ? "https://chass-scanner.onrender.com/ready"
+      : /^http:\/\/(localhost|127\.0\.0\.1):8000\/scanner$/.test(serviceUrl)
+        ? "http://127.0.0.1:8001/ready"
+        : ""
+  );
+  if (!candidate) return "";
+  try {
+    const url = new URL(candidate);
+    if (url.username || url.password || url.search || url.hash || url.pathname !== "/ready") return "";
+    return url.protocol === "https:" || (
+      url.protocol === "http:" && ["localhost", "127.0.0.1"].includes(url.hostname)
+    ) ? url.href : "";
+  } catch { return ""; }
+}
+
 export function scannerServiceUrl(
   hostname,
   configured = "",
@@ -68,6 +86,7 @@ export async function waitForScanner(
     timeoutMs = 150000,
     retryDelayMs = 3000,
     attemptTimeoutMs = 45000,
+    wakeUrl = "",
   } = {},
 ) {
   signal?.throwIfAborted();
@@ -77,6 +96,12 @@ export async function waitForScanner(
   signal?.addEventListener("abort", cancel, { once: true });
   const deadline = setTimeout(() => connection.abort(), timeoutMs);
   const notice = setTimeout(() => onStatus("warming"), 8000);
+  // Public readiness only: wake the model and game API concurrently, with no credentials.
+  if (wakeUrl && scannerWakeUrl("", wakeUrl)) {
+    fetcher(wakeUrl, {
+      signal: connection.signal, cache: "no-store", credentials: "omit",
+    }).catch(() => {});
+  }
   onStatus("checking");
   try {
     // Retry health only, never an uploaded photo. Stop after the startup budget
@@ -112,6 +137,7 @@ export async function waitForScanner(
     clearTimeout(deadline);
     clearTimeout(notice);
     signal?.removeEventListener("abort", cancel);
+    connection.abort();
   }
 }
 
@@ -179,6 +205,31 @@ export function validateScanResponse(result) {
       "The scanner returned invalid review suggestions. Please retry.",
     );
   return result;
+}
+
+export function addKingReviewHints(result) {
+  const review = new Map(result.reviewSquares.map((square) => [square.row * 8 + square.col,
+    { ...square, reasons: [...(square.reasons || [])] }]));
+  const warnings = [...(result.warnings || [])];
+  for (const color of ["white", "black"]) {
+    const label = `${color}-king`;
+    const found = result.board.flatMap((rank, row) => rank.flatMap((piece, col) =>
+      piece === label ? [{ row, col }] : []));
+    if (found.length === 1) continue;
+    const name = color[0].toUpperCase() + color.slice(1);
+    warnings.push(found.length ? `Multiple ${name} Kings detected. Keep the correct one.`
+      : `${name} King not found. Check the photo and add or correct it on the board.`);
+    const candidates = found.length ? found : (result.squareCandidates || []).filter((square) =>
+      square.candidates.some((piece) => piece.alternatives?.some((option) => option.label === label && option.score >= 0.1)));
+    for (const { row, col } of candidates) {
+      const key = row * 8 + col;
+      const square = review.get(key) || { row, col, label: `${"abcdefgh"[col]}${8 - row}`, reasons: [] };
+      square.reasons.push(found.length ? `Confirm this ${name} King` : `Check whether this is the missing ${name} King`);
+      review.set(key, square);
+    }
+  }
+  // Never create or relabel a piece based on chess constraints alone.
+  return { ...result, reviewSquares: [...review.values()].sort((a, b) => a.row - b.row || a.col - b.col), warnings };
 }
 
 export function reviewedBoardLabels(scan, board) {
