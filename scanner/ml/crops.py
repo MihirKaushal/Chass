@@ -32,7 +32,7 @@ def piece_crop(image, box, *, context=0.15, size=160):
     if bounds[2] <= bounds[0] or bounds[3] <= bounds[1]:
         raise ValueError("The crop does not intersect the image.")
     return ImageOps.pad(
-        image.convert("RGB").crop(bounds),
+        image.crop(bounds).convert("RGB"),
         (size, size),
         method=Image.Resampling.BILINEAR,
         color=(127, 127, 127),

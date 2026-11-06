@@ -1,0 +1,22 @@
+{
+  "seed": 42,
+  "size": 160,
+  "context": 0.15,
+  "batch_size": 48,
+  "samples_per_epoch": 12000,
+  "epochs": 6,
+  "patience": 3,
+  "head_lr": 0.00005,
+  "backbone_lr": 0.00001,
+  "threads": 4,
+  "workers": 2,
+  "device": "auto",
+  "initialize_from": "scanner/artifacts/crop-classifier-v1/best.pt",
+  "class_multipliers": {
+    "black-king": 2,
+    "white-king": 2,
+    "black-pawn": 1.2,
+    "black-bishop": 1.2,
+    "white-queen": 1.2
+  }
+}

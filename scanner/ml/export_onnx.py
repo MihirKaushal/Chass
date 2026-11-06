@@ -27,7 +27,7 @@ class DetectorHead(torch.nn.Module):
         return outputs["bbox_regression"][0], outputs["cls_logits"][0], anchors
 
 
-def export(output):
+def export(output, dynamic_batch=False):
     output.mkdir(parents=True, exist_ok=False)
     pipeline = default_pipeline("cpu")
     size = pipeline.detector_checkpoint["config"].get("input_size", 320)
@@ -54,6 +54,9 @@ def export(output):
                 opset_version=17,
                 dynamo=False,
                 external_data=False,
+                dynamic_axes={"image": {0: "batch"}, "logits": {0: "batch"}}
+                if dynamic_batch and name == "classifier"
+                else None,
             )
             expected = model(sample)
         onnx.checker.check_model(str(path))
@@ -90,4 +93,6 @@ def export(output):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", type=Path, required=True)
-    export(parser.parse_args().output)
+    parser.add_argument("--dynamic-batch", action="store_true")
+    args = parser.parse_args()
+    export(args.output, args.dynamic_batch)

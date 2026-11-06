@@ -94,7 +94,11 @@ def detections(regression, logits, anchors, config):
 
 
 class OnnxScannerPipeline:
-    def __init__(self, folder):
+    def __init__(self, folder, *, batch_size=1):
+        if batch_size not in (1, 2, 4):
+            raise ValueError("Classifier batch size must be 1, 2, or 4.")
+        self.batch_size = batch_size
+        loading = time.perf_counter()
         folder = Path(folder)
         self.config = json.loads((folder / "manifest.json").read_text())
         if self.config["format_version"] != 1 or self.config["classes"] != list(CLASSES):
@@ -115,13 +119,29 @@ class OnnxScannerPipeline:
             self.sessions[name] = ort.InferenceSession(
                 str(path), sess_options=options, providers=["CPUExecutionProvider"]
             )
+        shape = self.sessions["classifier"].get_inputs()[0].shape
+        if isinstance(shape[0], int) and shape[0] != batch_size:
+            raise ValueError("Export a dynamic-batch classifier before changing batch size.")
+        self.load_ms = round((time.perf_counter() - loading) * 1000, 2)
 
-    def predict(self, image, *, rectified=False):
-        started = time.perf_counter()
-        image = ImageOps.exif_transpose(image).convert("RGB")
+    def detect(self, image):
         raw = self.sessions["detector"].run(
             None, {"image": resize_bilinear(image, self.config["input_size"])}
         )
+        height, width = self.config["detector_size"]
+        scale = np.asarray([image.width / width, image.height / height] * 2, dtype=np.float32)
+        return [(score, label, box * scale) for score, label, box in detections(*raw, self.config)]
+
+    def predict(self, image, *, rectified=False, tiled=False):
+        started = time.perf_counter()
+        timings = {}
+        image = ImageOps.exif_transpose(image).convert("RGB")
+        tensor = resize_bilinear(image, self.config["input_size"])
+        timings["prepareMs"] = (time.perf_counter() - started) * 1000
+        stamp = time.perf_counter()
+        raw = self.sessions["detector"].run(None, {"image": tensor})
+        timings["detectorMs"] = (time.perf_counter() - stamp) * 1000
+        stamp = time.perf_counter()
         selected = [
             item for item in detections(*raw, self.config) if item[0] >= self.selection["threshold"]
         ]
@@ -132,9 +152,24 @@ class OnnxScannerPipeline:
             "labels": [label for _, label, _ in selected],
             "scores": [score for score, _, _ in selected],
         }
+        if tiled:
+            # Experiment only: overlapping zooms recover detail without changing the trained input.
+            w, h = round(image.width * 0.65), round(image.height * 0.65)
+            for left, top in (
+                (0, 0),
+                (image.width - w, 0),
+                (0, image.height - h),
+                (image.width - w, image.height - h),
+            ):
+                for score, label, box in self.detect(image.crop((left, top, left + w, top + h))):
+                    if score >= self.selection["threshold"]:
+                        prediction["boxes"].append((box + [left, top, left, top]).tolist())
+                        prediction["labels"].append(label)
+                        prediction["scores"].append(score)
         prediction = resolve_duplicates(
             prediction, threshold=self.selection["threshold"], overlap=self.selection["overlap"]
         )
+        timings["postprocessMs"] = (time.perf_counter() - stamp) * 1000
         prediction["detector_labels"] = prediction["labels"]
         prediction["labels"], prediction["classifier_scores"], prediction["alternatives"] = (
             [],
@@ -144,21 +179,26 @@ class OnnxScannerPipeline:
         config = self.config["crop"]
         mean = np.asarray([0.485, 0.456, 0.406], dtype=np.float32)[:, None, None]
         std = np.asarray([0.229, 0.224, 0.225], dtype=np.float32)[:, None, None]
-        # One crop at a time bounds peak memory independently of the piece count.
-        for box in prediction["boxes"]:
-            crop = piece_crop(image, box, context=config["context"], size=config["size"])
-            pixels = np.asarray(crop, dtype=np.float32).transpose(2, 0, 1) / np.float32(255)
-            tensor = np.ascontiguousarray(((pixels - mean) / std)[None])
-            probabilities = softmax(self.sessions["classifier"].run(None, {"image": tensor})[0])[0]
-            choices = np.argsort(-probabilities, kind="stable")[:3]
-            prediction["labels"].append(int(choices[0]) + 1)
-            prediction["classifier_scores"].append(float(probabilities[choices[0]]))
-            prediction["alternatives"].append(
-                [
-                    {"label": CLASSES[index + 1], "score": float(probabilities[index])}
-                    for index in choices
-                ]
-            )
+        timings["cropMs"], timings["classifierMs"] = 0, 0
+        for offset in range(0, len(prediction["boxes"]), self.batch_size):
+            stamp = time.perf_counter()
+            tensors = []
+            for box in prediction["boxes"][offset : offset + self.batch_size]:
+                crop = piece_crop(image, box, context=config["context"], size=config["size"])
+                pixels = np.asarray(crop, dtype=np.float32).transpose(2, 0, 1) / np.float32(255)
+                tensors.append((pixels - mean) / std)
+            tensor = np.ascontiguousarray(np.stack(tensors))
+            timings["cropMs"] += (time.perf_counter() - stamp) * 1000
+            stamp = time.perf_counter()
+            probabilities = softmax(self.sessions["classifier"].run(None, {"image": tensor})[0])
+            timings["classifierMs"] += (time.perf_counter() - stamp) * 1000
+            for row in probabilities:
+                choices = np.argsort(-row, kind="stable")[:3]
+                prediction["labels"].append(int(choices[0]) + 1)
+                prediction["classifier_scores"].append(float(row[choices[0]]))
+                prediction["alternatives"].append(
+                    [{"label": CLASSES[index + 1], "score": float(row[index])} for index in choices]
+                )
         result = {
             "prediction": prediction,
             "pipeline": "combined",
@@ -168,8 +208,12 @@ class OnnxScannerPipeline:
             "rectified": rectified,
         }
         if rectified:
+            stamp = time.perf_counter()
             result.update(assign_squares(prediction, image.width, image.height))
+            timings["squareMappingMs"] = (time.perf_counter() - stamp) * 1000
         result["inferenceMs"] = round((time.perf_counter() - started) * 1000)
+        result["timings"] = {key: round(max(0, value), 2) for key, value in timings.items()}
+        result["timings"]["proposals"] = len(prediction["boxes"])
         return result
 
 

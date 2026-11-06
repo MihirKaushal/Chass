@@ -132,8 +132,11 @@ def train(manifest_path, cache, output, config):
     counts = Counter(record["label"] for record in training.records)
     if set(counts) != set(range(1, 13)):
         raise ValueError("All twelve piece classes must appear in training.")
+    multipliers = config.get("class_multipliers", {})
+    if any(key not in CLASSES[1:] or not 0 < value <= 4 for key, value in multipliers.items()):
+        raise ValueError("Use known class weights between 0 and 4.")
     sampler = WeightedRandomSampler(
-        [1 / counts[r["label"]] for r in training.records],
+        [multipliers.get(CLASSES[r["label"]], 1) / counts[r["label"]] for r in training.records],
         config["samples_per_epoch"],
         replacement=True,
         generator=torch.Generator().manual_seed(seed),
@@ -145,7 +148,14 @@ def train(manifest_path, cache, output, config):
     }
     train_loader = DataLoader(training, sampler=sampler, **loader_options)
     valid_loader = DataLoader(validation, shuffle=False, **loader_options)
-    model = build_classifier(pretrained=True).to(device)
+    if config.get("initialize_from"):
+        model, previous = load_classifier(Path(config["initialize_from"]), device)
+        if previous["dataset_fingerprint"] != index["dataset_fingerprint"]:
+            raise ValueError("Fine-tuning checkpoint and dataset differ.")
+        if any(previous["config"][key] != config[key] for key in ("size", "context")):
+            raise ValueError("Fine-tuning crop geometry must match its checkpoint.")
+    else:
+        model = build_classifier(pretrained=True).to(device)
     # Keep the early visual features fixed; train the last two residual stages and head.
     for name, parameter in model.named_parameters():
         parameter.requires_grad_(name.startswith(("layer3.", "layer4.", "fc.")))
