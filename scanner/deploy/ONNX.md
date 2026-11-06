@@ -95,6 +95,10 @@ the public runtime does not improve the trained model's recognition accuracy.
 - No new paid service, Firebase change, periodic keepalive, or environment variable
   is required for the existing public domains. Other deployments may set public
   `VITE_SCANNER_WAKE_URL=https://their-model-host/ready` (never a token).
+- Locally, `./run.sh` / `./scanner/run-local.sh` prefer the published ONNX weights
+  when `.venv-scanner` contains ONNX Runtime. An explicit `SCANNER_RUNTIME=torch`
+  still allows research checkpoints; use the candidate selection/checkpoint
+  variables below to test the new classifier through Torch instead of the old baseline.
 
 For a new classifier export, set `SCANNER_SELECTION` to the candidate's
 `deployment-selection.json` and `SCANNER_CLASSIFIER` to its `best.pt` before running
