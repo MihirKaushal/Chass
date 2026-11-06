@@ -205,6 +205,7 @@ class OnnxScannerPipeline:
             "runtime": "onnx",
             "classificationScoresAreCalibrated": False,
             "datasetFingerprint": self.selection["dataset_fingerprint"],
+            "modelSha256": dict(self.config["sha256"]),
             "rectified": rectified,
         }
         if rectified:
