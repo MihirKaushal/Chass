@@ -1,0 +1,26 @@
+{
+  "image_id": 1439,
+  "annotated_pieces": 64,
+  "source_size": [
+    3000,
+    3000
+  ],
+  "source_bytes": 1054842,
+  "prepared_size": [
+    2048,
+    2048
+  ],
+  "inference_ms": 258,
+  "timings": {
+    "prepareMs": 10.47,
+    "detectorMs": 11.19,
+    "postprocessMs": 3.16,
+    "cropMs": 24.87,
+    "classifierMs": 207.83,
+    "squareMappingMs": 0.14,
+    "proposals": 64
+  },
+  "peak_rss_mib": 363.34375,
+  "torch_imported": false,
+  "platform": "macOS arm64, not a Linux memory guarantee"
+}

@@ -7,7 +7,8 @@ The public serving target is a separate **free Render Docker service** named
 
 - Uses ONNX Runtime CPU, not PyTorch, on the model server. Training remains PyTorch.
 - Published float32 graphs are in `scanner/models/onnx/`; checksums and source-model
-  fingerprints are verified at startup. No quantization or retraining was applied.
+  fingerprints are verified at startup. The current classifier is King-focused;
+  quantization and batching candidates were measured but not enabled.
 - One worker, one scan at a time, one classifier crop at a time, bounded image sizes.
 - `/ready` exposes only readiness for Render. `/health` and `/scan` require the
   shared `SCANNER_SERVICE_TOKEN`. Render generates it in `chass-scanner-auth`;
@@ -72,6 +73,34 @@ that limit.
 
 Recognition remains experimental. Users must review the board before importing it;
 the public runtime does not improve the trained model's recognition accuracy.
+
+## Speed And Recognition Update (2026-11-06)
+
+- The frontend wakes `/ready` on the scanner alongside the game API health request.
+  `/ready` allows cross-origin GET without credentials and exposes readiness only.
+  Authentication and origin checks on `/health` and `/scan` are unchanged.
+- The normal server path stays single-thread, static FP32, batch 1. Crop-before-RGB
+  conversion avoids repeated full-photo copies. Responses include `timings` for
+  preparation, detector, crop, classifier, square mapping and proposal count.
+- King-focused classifier and validation-selected threshold 0.20 improve the
+  existing test benchmark; see `../ml/benchmarks/optimization-2026-11-06/README.md`.
+- **Recognition Options** offers an opt-in on-device prototype. Models (~52 MiB)
+  and runtime (~28 MiB) are downloaded only when requested. Model downloads are
+  hash-verified and cached; old model versions are removed from that cache.
+  Inference uses a worker. Unsupported/failed/timed-out inference falls back to the
+  normal API with an explicit notice. Cancelling never starts a fallback upload.
+- Frontend `predev`/`prebuild` stages the already-public weights plus the matching
+  ONNX Web runtime. If Vercel receives only `frontend/`, the build downloads from
+  an immutable public Git revision. No private tokens or raw photos are embedded.
+- No new paid service, Firebase change, periodic keepalive, or environment variable
+  is required for the existing public domains. Other deployments may set public
+  `VITE_SCANNER_WAKE_URL=https://their-model-host/ready` (never a token).
+
+For a new classifier export, set `SCANNER_SELECTION` to the candidate's
+`deployment-selection.json` and `SCANNER_CLASSIFIER` to its `best.pt` before running
+the exporter and parity checker. The dated report explains the 0.005 classifier
+confidence tolerance used for the current export; exact labels and reviews must
+still match. Keep previous deployment weights accessible for rollback.
 
 ## Cold-Start Recovery (2026-11-06)
 

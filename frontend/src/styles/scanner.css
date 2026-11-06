@@ -352,6 +352,19 @@
   font-size: var(--text-sm);
 }
 
+.scanner-runtime-toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  font-weight: 600;
+  margin-bottom: var(--space-2);
+}
+
+.scanner-runtime-options p {
+  max-width: 70ch;
+  margin-bottom: 0;
+}
+
 .scanner-panel {
   min-width: 0;
   padding: var(--space-6);

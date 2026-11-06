@@ -16,6 +16,7 @@ import Disclosure from "../components/ui/Disclosure";
 import StatusBadge from "../components/ui/StatusBadge";
 import { navigate, useNavigationBlocker } from "../routing";
 import { validateScannedPosition } from "../api/gameApi";
+import { browserScannerSupported, recognizeInBrowser, recognizeWithFallback } from "../scanner/browserClient";
 import {
   defaultScannerDetails,
   scannerImportPayload,
@@ -27,6 +28,8 @@ import {
   reviewedBoardLabels,
   downloadScannerFile,
   waitForScanner,
+  scannerWakeUrl,
+  addKingReviewHints,
 } from "../scannerApi";
 
 function ScannerPage({ onHome, onCustomize, onImport }) {
@@ -36,6 +39,8 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
   const [confirmed, setConfirmed] = useState(false);
   const [scan, setScan] = useState(null);
   const [busy, setBusy] = useState(false);
+  const [onDevice, setOnDevice] = useState(false);
+  const [recognitionStatus, setRecognitionStatus] = useState("");
   const [error, setError] = useState("");
   const [hasPhoto, setHasPhoto] = useState(false);
   const [pendingDestination, setPendingDestination] = useState(null);
@@ -56,6 +61,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
   const [serviceStatus, setServiceStatus] = useState(
     serviceUrl ? "checking" : "unconfigured",
   );
+  const wakeUrl = scannerWakeUrl(serviceUrl, import.meta.env.VITE_SCANNER_WAKE_URL || "");
   const currentStep = !board ? 0 : !reviewSquares.length ? 2 : 1;
 
   useEffect(() => {
@@ -128,6 +134,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     const controller = new AbortController();
     waitForScanner(serviceUrl, {
       signal: controller.signal,
+      wakeUrl,
       onStatus: (status) => {
         if (active) setServiceStatus(status);
       },
@@ -142,7 +149,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
       active = false;
       controller.abort();
     };
-  }, [serviceUrl, connectionRetry]);
+  }, [serviceUrl, wakeUrl, connectionRetry]);
 
   const scanBoard = (result) =>
     result.board.map((rank, row) =>
@@ -176,23 +183,33 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     const controller = new AbortController();
     requestRef.current = controller;
     setBusy(true);
+    setRecognitionStatus("Connecting to scanner...");
     setConfirmed(false);
     setError("");
     let timeout;
     try {
-      // A prepared photo may sit open long enough for the model to fall asleep.
-      const status = await waitForScanner(serviceUrl, {
-        signal: controller.signal,
-        onStatus: (next) => {
-          if (requestRef.current === controller) setServiceStatus(next);
+      const result = addKingReviewHints(await recognizeWithFallback({
+        enabled: onDevice, file, signal: controller.signal,
+        onStatus: (message) => {
+          if (requestRef.current === controller) setRecognitionStatus(message);
         },
-      });
-      if (requestRef.current !== controller) return;
-      setServiceStatus(status);
-      if (status !== "ready")
-        throw new Error("Scanner unavailable. Retry Connection, then scan again.");
-      timeout = window.setTimeout(() => controller.abort(), 90000);
-      const result = await recognizePhoto(serviceUrl, file, controller.signal);
+        browser: recognizeInBrowser,
+        server: async () => {
+          // A prepared photo may sit open long enough for the model to fall asleep.
+          const status = await waitForScanner(serviceUrl, {
+            signal: controller.signal, wakeUrl,
+            onStatus: (next) => {
+              if (requestRef.current === controller) setServiceStatus(next);
+            },
+          });
+          controller.signal.throwIfAborted();
+          if (requestRef.current === controller) setServiceStatus(status);
+          if (status !== "ready") throw new Error("Scanner unavailable. Retry Connection, then scan again.");
+          if (requestRef.current === controller) setRecognitionStatus("Recognizing pieces...");
+          timeout = window.setTimeout(() => controller.abort(), 90000);
+          return recognizePhoto(serviceUrl, file, controller.signal);
+        },
+      }));
       if (requestRef.current !== controller) return;
       setScan(result);
       setBoard(scanBoard(result));
@@ -347,6 +364,15 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
             status={serviceStatus}
             onRetry={() => setConnectionRetry((value) => value + 1)}
           />
+          <Disclosure className="scanner-label-export scanner-runtime-options" summary="Recognition Options">
+            <label className="scanner-runtime-toggle">
+              <input type="checkbox" checked={onDevice} disabled={busy || !browserScannerSupported()}
+                onChange={(event) => setOnDevice(event.target.checked)} />
+              Try on-device recognition (experimental)
+            </label>
+            <p>Downloads models once (about 52 MB, plus the runtime). Speed depends on your device.
+              If it fails, your prepared photo is sent to the server instead. Review all squares either way.</p>
+          </Disclosure>
 
           <div
             className={`scanner-workspace${board ? "" : " scanner-workspace-initial"}`}
@@ -355,7 +381,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
               onRecognize={recognize}
               onPhotoChange={invalidateScan}
               busy={busy}
-              serviceAvailable={serviceStatus === "ready"}
+              serviceAvailable={serviceStatus === "ready" || onDevice}
             />
             {board ? (
               <fieldset className="scanner-workflow" disabled={busy}>
@@ -396,7 +422,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                 {error}
               </p>
             ) : busy ? (
-              <p>{serviceStatus === "ready" ? "Recognizing pieces..." : "Connecting to scanner..."}</p>
+              <p>{recognitionStatus}</p>
             ) : null}
           </div>
           {scan?.warnings?.length ? (
