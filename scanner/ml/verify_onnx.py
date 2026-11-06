@@ -12,7 +12,9 @@ from .inference import default_pipeline
 from .onnx_inference import OnnxScannerPipeline
 
 
-def verify(manifest_path, model_dir, limit, report_path):
+def verify(manifest_path, model_dir, limit, report_path, score_tolerance=0.002):
+    if not 0 < score_tolerance <= 0.01:
+        raise ValueError("Classifier confidence tolerance must be in (0, 0.01].")
     manifest = read_manifest(manifest_path)
     records = [record for record in manifest["records"] if record["split"] == "valid"][:limit]
     if not records:
@@ -30,7 +32,11 @@ def verify(manifest_path, model_dir, limit, report_path):
         )
         first, second = expected["prediction"], actual["prediction"]
         assert first["labels"] == second["labels"], f"Label mismatch: {record['id']}"
-        for key, tolerance in (("boxes", 0.05), ("scores", 0.0001), ("classifier_scores", 0.002)):
+        for key, tolerance in (
+            ("boxes", 0.05),
+            ("scores", 0.0001),
+            ("classifier_scores", score_tolerance),
+        ):
             np.testing.assert_allclose(
                 first[key], second[key], rtol=0, atol=tolerance, err_msg=f"{key}: {record['id']}"
             )
@@ -53,6 +59,7 @@ def verify(manifest_path, model_dir, limit, report_path):
         "board_and_review_parity": True,
         "top_three_label_parity": True,
         "max_score_difference": maximum_score_error,
+        "classifier_score_tolerance": score_tolerance,
         "max_box_difference_pixels": maximum_box_error,
         "note": "Runtime parity only, not an independent accuracy benchmark.",
     }
@@ -69,6 +76,7 @@ if __name__ == "__main__":
     )
     parser.add_argument("--models", type=Path, default=Path("scanner/models/onnx"))
     parser.add_argument("--limit", type=int, default=40)
+    parser.add_argument("--score-tolerance", type=float, default=0.002)
     parser.add_argument("--report", type=Path, default=Path("scanner/artifacts/onnx-parity.json"))
     args = parser.parse_args()
-    verify(args.manifest, args.models, args.limit, args.report)
+    verify(args.manifest, args.models, args.limit, args.report, args.score_tolerance)

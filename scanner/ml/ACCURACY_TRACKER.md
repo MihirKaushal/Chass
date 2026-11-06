@@ -1,11 +1,45 @@
 # Scanner Accuracy Tracker
 
-Last recorded: **2026-10-26**. Current classifier trained: **2026-10-26**;
+Last recorded: **2026-11-06**. Current classifier trained: **2026-11-06**;
 detector remains the **2026-10-25** checkpoint.
 This log separates measurable piece-box diagnostics from future square-level
 accuracy. Historical snapshots below remain intact.
 
-## Latest Improvement: Crop Classifier And Duplicate Resolution
+## Latest Improvement: King-Focused Fine-Tuning And Recall
+
+Selection used validation only; the chosen checkpoint/threshold was locked before
+evaluating the existing 338-photo, 6,283-piece test set. The detector is unchanged.
+Training used class-balanced sampling with extra King weight, four fine-tuning
+epochs (early stopping), and the original train/validation partitions. Threshold
+0.20 and overlap suppression 0.40 beat the previous 0.25/0.40 configuration.
+
+| Box-level measure | Previous combined | Selected update |
+| --- | ---: | ---: |
+| Correct type + color among located pieces | 96.32% | **97.95% (5,629 / 5,747)** |
+| Correctly typed pieces / all real pieces | 85.02% | **89.59%** |
+| Correct unique pieces / all predictions | 94.30% | **95.47%** |
+| Localization recall | 88.27% | **91.47%** |
+| Missed pieces | 737 | **536 (27.3% fewer)** |
+| Unmatched extra boxes | 119 | **149** |
+| Black King type/color accuracy, when localized | 85.64% | **95.34%** |
+| White King type/color accuracy, when localized | 95.48% | **98.96%** |
+
+Tradeoffs: more false extra boxes (119 -> 149); local 30-photo median runtime
+124.7 -> 135.5 ms (+8.6%). These are not Render latency numbers. The same test set
+has been used across development iterations, so treat it as a regression benchmark,
+not fresh evidence of generalization. No independent physical-set collection has
+been supplied yet. Square occupancy, exact-square and exact-board accuracy remain
+**unmeasured**, not inferred from these bounding-box metrics.
+
+INT8/batch experiments were not promoted: slower on the measured Mac CPU. Tiled
+detection was not promoted: more recall but substantially more false extra boxes.
+See [dated results and commands](benchmarks/optimization-2026-11-06/README.md),
+[validation candidates](benchmarks/optimization-2026-11-06/validation.json),
+[locked test](benchmarks/optimization-2026-11-06/test.json),
+[runtime trials](benchmarks/optimization-2026-11-06/runtime.json) and
+[verified-board collection instructions](BOARD_COLLECTION.md).
+
+## Previous Improvement: Crop Classifier And Duplicate Resolution
 
 The new pipeline was selected on validation, then evaluated on the same 338-photo,
 6,283-piece curated-v3 test set. See [IMPROVEMENTS.md](IMPROVEMENTS.md) for training,
@@ -41,7 +75,7 @@ Use the `labels`, `pipeline`, and `split` columns to compare like-for-like resul
 | Question | Current result | Why |
 | --- | --- | --- |
 | Is each square correctly empty or occupied? | **Not measured** | A prototype square mapper now exists, but there is no verified 64-square evaluation collection yet. |
-| On correctly detected occupied squares, is the piece type and color correct? | **Not measured at square level** | The closest current box-level diagnostic is **96.32%** type-and-color accuracy among localized pieces. |
+| On correctly detected occupied squares, is the piece type and color correct? | **Not measured at square level** | The closest current box-level diagnostic is **97.95%** type-and-color accuracy among localized pieces. |
 | Is each square completely correct: empty, or the exact piece and color? | **Not measured** | Requires both of the above and correct assignment to the actual square. |
 
 These unavailable metrics are `null` in JSON and blank in CSV, **not zero**.

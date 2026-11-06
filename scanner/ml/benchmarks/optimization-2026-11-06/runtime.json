@@ -1,0 +1,191 @@
+[
+  {
+    "model": "scanner/models/onnx",
+    "batch_size": 1,
+    "tiled": false,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 90.32,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 452.3125,
+    "median_ms": 124.74166650008556,
+    "p95_ms": 200.73235839959122,
+    "metrics": {
+      "typed_piece_recall": 0.8482647296206618,
+      "typed_prediction_precision": 0.9528558476881233,
+      "conditional_type_color_accuracy": 0.9677716390423573,
+      "missed_pieces": 153,
+      "unmatched_predictions": 17,
+      "annotated_pieces": 1239
+    }
+  },
+  {
+    "model": "scanner/artifacts/performance-2026-11-06/dynamic",
+    "batch_size": 1,
+    "tiled": false,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 63.77,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 420.90625,
+    "median_ms": 474.04112450021785,
+    "p95_ms": 789.5189127998492,
+    "metrics": {
+      "typed_piece_recall": 0.8482647296206618,
+      "typed_prediction_precision": 0.9528558476881233,
+      "conditional_type_color_accuracy": 0.9677716390423573,
+      "missed_pieces": 153,
+      "unmatched_predictions": 17,
+      "annotated_pieces": 1239
+    }
+  },
+  {
+    "model": "scanner/artifacts/performance-2026-11-06/dynamic",
+    "batch_size": 2,
+    "tiled": false,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 52.5,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 423.375,
+    "median_ms": 600.1041670006089,
+    "p95_ms": 990.9699374999035,
+    "metrics": {
+      "typed_piece_recall": 0.8482647296206618,
+      "typed_prediction_precision": 0.9528558476881233,
+      "conditional_type_color_accuracy": 0.9677716390423573,
+      "missed_pieces": 153,
+      "unmatched_predictions": 17,
+      "annotated_pieces": 1239
+    }
+  },
+  {
+    "model": "scanner/artifacts/performance-2026-11-06/dynamic",
+    "batch_size": 4,
+    "tiled": false,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 53.13,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 421.921875,
+    "median_ms": 602.1509999995942,
+    "p95_ms": 1021.1524541997276,
+    "metrics": {
+      "typed_piece_recall": 0.8482647296206618,
+      "typed_prediction_precision": 0.9528558476881233,
+      "conditional_type_color_accuracy": 0.9677716390423573,
+      "missed_pieces": 153,
+      "unmatched_predictions": 17,
+      "annotated_pieces": 1239
+    }
+  },
+  {
+    "model": "scanner/artifacts/performance-2026-11-06/int8",
+    "batch_size": 1,
+    "tiled": false,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 57.3,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 367.125,
+    "median_ms": 192.2794375000194,
+    "p95_ms": 313.75674375021845,
+    "metrics": {
+      "typed_piece_recall": 0.8466505246166263,
+      "typed_prediction_precision": 0.9510426110607434,
+      "conditional_type_color_accuracy": 0.9659300184162063,
+      "missed_pieces": 153,
+      "unmatched_predictions": 17,
+      "annotated_pieces": 1239
+    }
+  },
+  {
+    "model": "scanner/artifacts/performance-2026-11-06/int8",
+    "batch_size": 2,
+    "tiled": false,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 42.4,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 368.875,
+    "median_ms": 193.12454200007778,
+    "p95_ms": 310.1363065501118,
+    "metrics": {
+      "typed_piece_recall": 0.8466505246166263,
+      "typed_prediction_precision": 0.9510426110607434,
+      "conditional_type_color_accuracy": 0.9659300184162063,
+      "missed_pieces": 153,
+      "unmatched_predictions": 17,
+      "annotated_pieces": 1239
+    }
+  },
+  {
+    "model": "scanner/artifacts/performance-2026-11-06/int8",
+    "batch_size": 4,
+    "tiled": false,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 44.09,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 363.171875,
+    "median_ms": 191.35220849966572,
+    "p95_ms": 316.02321469995326,
+    "metrics": {
+      "typed_piece_recall": 0.8466505246166263,
+      "typed_prediction_precision": 0.9510426110607434,
+      "conditional_type_color_accuracy": 0.9659300184162063,
+      "missed_pieces": 153,
+      "unmatched_predictions": 17,
+      "annotated_pieces": 1239
+    }
+  },
+  {
+    "model": "scanner/models/onnx",
+    "batch_size": 1,
+    "tiled": true,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 87.78,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 456.25,
+    "median_ms": 221.0773545007214,
+    "p95_ms": 294.47140785023294,
+    "metrics": {
+      "typed_piece_recall": 0.8910411622276029,
+      "typed_prediction_precision": 0.8775834658187599,
+      "conditional_type_color_accuracy": 0.962510897994769,
+      "missed_pieces": 92,
+      "unmatched_predictions": 111,
+      "annotated_pieces": 1239
+    }
+  },
+  {
+    "model": "scanner/artifacts/performance-2026-11-06/king-onnx",
+    "batch_size": 1,
+    "tiled": false,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 53.6,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 452.578125,
+    "median_ms": 135.46647899966047,
+    "p95_ms": 209.2736479500672,
+    "metrics": {
+      "typed_piece_recall": 0.8732849071832123,
+      "typed_prediction_precision": 0.9474605954465849,
+      "conditional_type_color_accuracy": 0.9660714285714286,
+      "missed_pieces": 119,
+      "unmatched_predictions": 22,
+      "annotated_pieces": 1239
+    }
+  }
+]

@@ -1,0 +1,384 @@
+{
+  "baseline": {
+    "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+    "threshold": 0.25,
+    "overlap": 0.4,
+    "metrics": {
+      "typed_piece_recall": 0.8392940444720883,
+      "typed_prediction_precision": 0.9588736898205721,
+      "conditional_type_color_accuracy": 0.974981936416185,
+      "missed_pieces": 1790,
+      "unmatched_predictions": 186,
+      "localized_pieces": 11072,
+      "correct_type_color": 10795,
+      "annotated_pieces": 12862,
+      "predictions": 11258,
+      "typed_f1": 0.8951077943615257,
+      "black_king_accuracy": 0.9848942598187311,
+      "white_king_accuracy": 0.9720930232558139
+    },
+    "passes_gates": true
+  },
+  "candidates": [
+    {
+      "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+      "threshold": 0.15,
+      "overlap": 0.4,
+      "metrics": {
+        "typed_piece_recall": 0.9074016482662105,
+        "typed_prediction_precision": 0.9517247003180298,
+        "conditional_type_color_accuracy": 0.9739631144120838,
+        "missed_pieces": 879,
+        "unmatched_predictions": 280,
+        "localized_pieces": 11983,
+        "correct_type_color": 11671,
+        "annotated_pieces": 12862,
+        "predictions": 12263,
+        "typed_f1": 0.9290348258706468,
+        "black_king_accuracy": 0.9854651162790697,
+        "white_king_accuracy": 0.9728506787330317
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+      "threshold": 0.15,
+      "overlap": 0.5,
+      "metrics": {
+        "typed_piece_recall": 0.9081013839216296,
+        "typed_prediction_precision": 0.9461320372620494,
+        "conditional_type_color_accuracy": 0.9739014425081297,
+        "missed_pieces": 869,
+        "unmatched_predictions": 352,
+        "localized_pieces": 11993,
+        "correct_type_color": 11680,
+        "annotated_pieces": 12862,
+        "predictions": 12345,
+        "typed_f1": 0.9267267028999882,
+        "black_king_accuracy": 0.9854651162790697,
+        "white_king_accuracy": 0.972972972972973
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+      "threshold": 0.15,
+      "overlap": 0.6,
+      "metrics": {
+        "typed_piece_recall": 0.9081791323277872,
+        "typed_prediction_precision": 0.939893788220148,
+        "conditional_type_color_accuracy": 0.9739036184759046,
+        "missed_pieces": 868,
+        "unmatched_predictions": 434,
+        "localized_pieces": 11994,
+        "correct_type_color": 11681,
+        "annotated_pieces": 12862,
+        "predictions": 12428,
+        "typed_f1": 0.9237643337287466,
+        "black_king_accuracy": 0.9854651162790697,
+        "white_king_accuracy": 0.972972972972973
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+      "threshold": 0.2,
+      "overlap": 0.4,
+      "metrics": {
+        "typed_piece_recall": 0.8756802985538796,
+        "typed_prediction_precision": 0.9556253181741049,
+        "conditional_type_color_accuracy": 0.9743079584775086,
+        "missed_pieces": 1302,
+        "unmatched_predictions": 226,
+        "localized_pieces": 11560,
+        "correct_type_color": 11263,
+        "annotated_pieces": 12862,
+        "predictions": 11786,
+        "typed_f1": 0.9139078221356702,
+        "black_king_accuracy": 0.9851190476190477,
+        "white_king_accuracy": 0.9723502304147466
+      },
+      "passes_gates": true
+    },
+    {
+      "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+      "threshold": 0.2,
+      "overlap": 0.5,
+      "metrics": {
+        "typed_piece_recall": 0.8760690405846681,
+        "typed_prediction_precision": 0.9516891891891892,
+        "conditional_type_color_accuracy": 0.9742348262147674,
+        "missed_pieces": 1296,
+        "unmatched_predictions": 274,
+        "localized_pieces": 11566,
+        "correct_type_color": 11268,
+        "annotated_pieces": 12862,
+        "predictions": 11840,
+        "typed_f1": 0.9123147923245082,
+        "black_king_accuracy": 0.9851190476190477,
+        "white_king_accuracy": 0.9723502304147466
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+      "threshold": 0.2,
+      "overlap": 0.6,
+      "metrics": {
+        "typed_piece_recall": 0.8761467889908257,
+        "typed_prediction_precision": 0.9474524970573398,
+        "conditional_type_color_accuracy": 0.9742370536872136,
+        "missed_pieces": 1295,
+        "unmatched_predictions": 327,
+        "localized_pieces": 11567,
+        "correct_type_color": 11269,
+        "annotated_pieces": 12862,
+        "predictions": 11894,
+        "typed_f1": 0.9104055582485054,
+        "black_king_accuracy": 0.9851190476190477,
+        "white_king_accuracy": 0.9723502304147466
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+      "threshold": 0.25,
+      "overlap": 0.4,
+      "metrics": {
+        "typed_piece_recall": 0.8392940444720883,
+        "typed_prediction_precision": 0.9588736898205721,
+        "conditional_type_color_accuracy": 0.974981936416185,
+        "missed_pieces": 1790,
+        "unmatched_predictions": 186,
+        "localized_pieces": 11072,
+        "correct_type_color": 10795,
+        "annotated_pieces": 12862,
+        "predictions": 11258,
+        "typed_f1": 0.8951077943615257,
+        "black_king_accuracy": 0.9848942598187311,
+        "white_king_accuracy": 0.9720930232558139
+      },
+      "passes_gates": true
+    },
+    {
+      "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+      "threshold": 0.25,
+      "overlap": 0.5,
+      "metrics": {
+        "typed_piece_recall": 0.8395272896905613,
+        "typed_prediction_precision": 0.9563369054999558,
+        "conditional_type_color_accuracy": 0.9749887133182844,
+        "missed_pieces": 1787,
+        "unmatched_predictions": 216,
+        "localized_pieces": 11075,
+        "correct_type_color": 10798,
+        "annotated_pieces": 12862,
+        "predictions": 11291,
+        "typed_f1": 0.894133233966795,
+        "black_king_accuracy": 0.9848942598187311,
+        "white_king_accuracy": 0.9720930232558139
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/crop-classifier-v1/best.pt",
+      "threshold": 0.25,
+      "overlap": 0.6,
+      "metrics": {
+        "typed_piece_recall": 0.839605038096719,
+        "typed_prediction_precision": 0.9535540838852097,
+        "conditional_type_color_accuracy": 0.9749909714698447,
+        "missed_pieces": 1786,
+        "unmatched_predictions": 249,
+        "localized_pieces": 11076,
+        "correct_type_color": 10799,
+        "annotated_pieces": 12862,
+        "predictions": 11325,
+        "typed_f1": 0.8929590275767975,
+        "black_king_accuracy": 0.9848942598187311,
+        "white_king_accuracy": 0.9720930232558139
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "threshold": 0.15,
+      "overlap": 0.4,
+      "metrics": {
+        "typed_piece_recall": 0.9081013839216296,
+        "typed_prediction_precision": 0.9524586153469787,
+        "conditional_type_color_accuracy": 0.9747141784194275,
+        "missed_pieces": 879,
+        "unmatched_predictions": 280,
+        "localized_pieces": 11983,
+        "correct_type_color": 11680,
+        "annotated_pieces": 12862,
+        "predictions": 12263,
+        "typed_f1": 0.9297512437810945,
+        "black_king_accuracy": 0.9912790697674418,
+        "white_king_accuracy": 0.9819004524886877
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "threshold": 0.15,
+      "overlap": 0.5,
+      "metrics": {
+        "typed_piece_recall": 0.9088011195770487,
+        "typed_prediction_precision": 0.9468610773592547,
+        "conditional_type_color_accuracy": 0.974651880263487,
+        "missed_pieces": 869,
+        "unmatched_predictions": 352,
+        "localized_pieces": 11993,
+        "correct_type_color": 11689,
+        "annotated_pieces": 12862,
+        "predictions": 12345,
+        "typed_f1": 0.9274407902566747,
+        "black_king_accuracy": 0.9912790697674418,
+        "white_king_accuracy": 0.9819819819819819
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "threshold": 0.15,
+      "overlap": 0.6,
+      "metrics": {
+        "typed_piece_recall": 0.9088788679832064,
+        "typed_prediction_precision": 0.9406179594464114,
+        "conditional_type_color_accuracy": 0.9746539936634984,
+        "missed_pieces": 868,
+        "unmatched_predictions": 434,
+        "localized_pieces": 11994,
+        "correct_type_color": 11690,
+        "annotated_pieces": 12862,
+        "predictions": 12428,
+        "typed_f1": 0.9244760775009885,
+        "black_king_accuracy": 0.9912790697674418,
+        "white_king_accuracy": 0.9819819819819819
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "threshold": 0.2,
+      "overlap": 0.4,
+      "metrics": {
+        "typed_piece_recall": 0.8762245373969834,
+        "typed_prediction_precision": 0.9562192431698625,
+        "conditional_type_color_accuracy": 0.9749134948096886,
+        "missed_pieces": 1302,
+        "unmatched_predictions": 226,
+        "localized_pieces": 11560,
+        "correct_type_color": 11270,
+        "annotated_pieces": 12862,
+        "predictions": 11786,
+        "typed_f1": 0.9144758195391107,
+        "black_king_accuracy": 0.9910714285714286,
+        "white_king_accuracy": 0.9815668202764977
+      },
+      "passes_gates": true
+    },
+    {
+      "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "threshold": 0.2,
+      "overlap": 0.5,
+      "metrics": {
+        "typed_piece_recall": 0.8766132794277718,
+        "typed_prediction_precision": 0.9522804054054054,
+        "conditional_type_color_accuracy": 0.9748400484177763,
+        "missed_pieces": 1296,
+        "unmatched_predictions": 274,
+        "localized_pieces": 11566,
+        "correct_type_color": 11275,
+        "annotated_pieces": 12862,
+        "predictions": 11840,
+        "typed_f1": 0.9128815480527892,
+        "black_king_accuracy": 0.9910714285714286,
+        "white_king_accuracy": 0.9815668202764977
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "threshold": 0.2,
+      "overlap": 0.6,
+      "metrics": {
+        "typed_piece_recall": 0.8766910278339294,
+        "typed_prediction_precision": 0.9480410290902976,
+        "conditional_type_color_accuracy": 0.9748422235670442,
+        "missed_pieces": 1295,
+        "unmatched_predictions": 327,
+        "localized_pieces": 11567,
+        "correct_type_color": 11276,
+        "annotated_pieces": 12862,
+        "predictions": 11894,
+        "typed_f1": 0.9109710777185329,
+        "black_king_accuracy": 0.9910714285714286,
+        "white_king_accuracy": 0.9815668202764977
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "threshold": 0.25,
+      "overlap": 0.4,
+      "metrics": {
+        "typed_piece_recall": 0.8396827865028766,
+        "typed_prediction_precision": 0.9593178184402202,
+        "conditional_type_color_accuracy": 0.9754335260115607,
+        "missed_pieces": 1790,
+        "unmatched_predictions": 186,
+        "localized_pieces": 11072,
+        "correct_type_color": 10800,
+        "annotated_pieces": 12862,
+        "predictions": 11258,
+        "typed_f1": 0.8955223880597015,
+        "black_king_accuracy": 0.9909365558912386,
+        "white_king_accuracy": 0.9813953488372092
+      },
+      "passes_gates": true
+    },
+    {
+      "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "threshold": 0.25,
+      "overlap": 0.5,
+      "metrics": {
+        "typed_piece_recall": 0.8399160317213498,
+        "typed_prediction_precision": 0.9567797360729785,
+        "conditional_type_color_accuracy": 0.9754401805869074,
+        "missed_pieces": 1787,
+        "unmatched_predictions": 216,
+        "localized_pieces": 11075,
+        "correct_type_color": 10803,
+        "annotated_pieces": 12862,
+        "predictions": 11291,
+        "typed_f1": 0.8945472612097876,
+        "black_king_accuracy": 0.9909365558912386,
+        "white_king_accuracy": 0.9813953488372092
+      },
+      "passes_gates": false
+    },
+    {
+      "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "threshold": 0.25,
+      "overlap": 0.6,
+      "metrics": {
+        "typed_piece_recall": 0.8399937801275074,
+        "typed_prediction_precision": 0.9539955849889624,
+        "conditional_type_color_accuracy": 0.9754423979776092,
+        "missed_pieces": 1786,
+        "unmatched_predictions": 249,
+        "localized_pieces": 11076,
+        "correct_type_color": 10804,
+        "annotated_pieces": 12862,
+        "predictions": 11325,
+        "typed_f1": 0.8933724728159755,
+        "black_king_accuracy": 0.9909365558912386,
+        "white_king_accuracy": 0.9813953488372092
+      },
+      "passes_gates": false
+    }
+  ]
+}

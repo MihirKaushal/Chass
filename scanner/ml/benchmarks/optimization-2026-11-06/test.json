@@ -1,0 +1,42 @@
+{
+  "selection": {
+    "checkpoint": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+    "threshold": 0.2,
+    "overlap": 0.4,
+    "metrics": {
+      "typed_piece_recall": 0.8762245373969834,
+      "typed_prediction_precision": 0.9562192431698625,
+      "conditional_type_color_accuracy": 0.9749134948096886,
+      "missed_pieces": 1302,
+      "unmatched_predictions": 226,
+      "localized_pieces": 11560,
+      "correct_type_color": 11270,
+      "annotated_pieces": 12862,
+      "predictions": 11786,
+      "typed_f1": 0.9144758195391107,
+      "black_king_accuracy": 0.9910714285714286,
+      "white_king_accuracy": 0.9815668202764977
+    },
+    "passes_gates": true,
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "classifier_sha256": "7f7c96d7f0aa35a7388a5daa89253b9fdccf7c11c46ba664ea1579d109424ca5",
+    "selection_split": "valid",
+    "test_used_for_selection": false,
+    "promoted": false,
+    "reason": "Requires independent set and deployment memory/runtime checks."
+  },
+  "metrics": {
+    "typed_piece_recall": 0.8959095973261181,
+    "typed_prediction_precision": 0.9547150610583447,
+    "conditional_type_color_accuracy": 0.9794675482860623,
+    "missed_pieces": 536,
+    "unmatched_predictions": 149,
+    "localized_pieces": 5747,
+    "correct_type_color": 5629,
+    "annotated_pieces": 6283,
+    "predictions": 5896,
+    "typed_f1": 0.9243780277526891,
+    "black_king_accuracy": 0.9533678756476683,
+    "white_king_accuracy": 0.9895833333333334
+  }
+}
