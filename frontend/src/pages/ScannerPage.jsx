@@ -12,6 +12,7 @@ import LandingNav from "../components/LandingNav";
 import AppLink from "../components/AppLink";
 import Button from "../components/ui/Button";
 import Dialog from "../components/ui/Dialog";
+import Disclosure from "../components/ui/Disclosure";
 import StatusBadge from "../components/ui/StatusBadge";
 import { navigate, useNavigationBlocker } from "../routing";
 import { validateScannedPosition } from "../api/gameApi";
@@ -25,7 +26,7 @@ import {
   scannerServiceUrl,
   reviewedBoardLabels,
   downloadScannerFile,
-  scannerAvailability,
+  waitForScanner,
 } from "../scannerApi";
 
 function ScannerPage({ onHome, onCustomize, onImport }) {
@@ -125,20 +126,20 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     }
     let active = true;
     const controller = new AbortController();
-    // Both free services can be asleep: allow the game API, then the model, to wake.
-    const timeout = window.setTimeout(() => controller.abort(), 150000);
-    setServiceStatus("checking");
-    scannerAvailability(serviceUrl, controller.signal)
+    waitForScanner(serviceUrl, {
+      signal: controller.signal,
+      onStatus: (status) => {
+        if (active) setServiceStatus(status);
+      },
+    })
       .then((status) => {
         if (active) setServiceStatus(status);
       })
       .catch(() => {
         if (active) setServiceStatus("offline");
-      })
-      .finally(() => window.clearTimeout(timeout));
+      });
     return () => {
       active = false;
-      window.clearTimeout(timeout);
       controller.abort();
     };
   }, [serviceUrl, connectionRetry]);
@@ -154,6 +155,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
 
   const invalidateScan = (photoPresent = true) => {
     setHasPhoto(photoPresent);
+    if (requestRef.current) setConnectionRetry((value) => value + 1);
     requestRef.current?.abort();
     requestRef.current = null;
     setBusy(false);
@@ -176,8 +178,20 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     setBusy(true);
     setConfirmed(false);
     setError("");
-    const timeout = window.setTimeout(() => controller.abort(), 90000);
+    let timeout;
     try {
+      // A prepared photo may sit open long enough for the model to fall asleep.
+      const status = await waitForScanner(serviceUrl, {
+        signal: controller.signal,
+        onStatus: (next) => {
+          if (requestRef.current === controller) setServiceStatus(next);
+        },
+      });
+      if (requestRef.current !== controller) return;
+      setServiceStatus(status);
+      if (status !== "ready")
+        throw new Error("Scanner unavailable. Retry Connection, then scan again.");
+      timeout = window.setTimeout(() => controller.abort(), 90000);
       const result = await recognizePhoto(serviceUrl, file, controller.signal);
       if (requestRef.current !== controller) return;
       setScan(result);
@@ -284,32 +298,22 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
         <header className="scanner-hero">
           <div className="scanner-heading">
             <div>
-              <div className="scanner-hero-meta">
-                <span className="eyebrow">Chass! Vision</span>
+              <div className="scanner-title-row">
+                <h1>AI Board Scanner</h1>
                 <StatusBadge tone="info">Experimental</StatusBadge>
               </div>
-              <h1>AI Chess Board Scanner</h1>
               <p>
-                Scan a physical board, review the pieces, and continue your game
-                on one device or in a private online room.
+                Turn a photo into a playable game. Standard 8 x 8 boards and
+                classic pieces only.
               </p>
-              <AppLink
-                href="/rulebook#rulebook-scanner"
-                className="scanner-guide-link"
-              >
-                <ScannerIcon name="info" />
-                Scanner Guide In The Rulebook
-              </AppLink>
             </div>
-            <div className="scanner-scope">
-              <span className="scanner-scope-mark">
-                <ScannerIcon name="align" />
-              </span>
-              <div>
-                <strong>Standard 8 × 8</strong>
-                <span>Classic chess pieces</span>
-              </div>
-            </div>
+            <AppLink
+              href="/rulebook#rulebook-scanner"
+              className="scanner-guide-link"
+            >
+              <ScannerIcon name="info" />
+              Scanner Guide
+            </AppLink>
           </div>
           <ol className="scanner-progress" aria-label="Scanner progress">
             {["Prepare Photo", "Review Pieces", "Confirm Position"].map(
@@ -392,7 +396,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                 {error}
               </p>
             ) : busy ? (
-              <p>Recognizing pieces. You can replace the photo to cancel.</p>
+              <p>{serviceStatus === "ready" ? "Recognizing pieces..." : "Connecting to scanner..."}</p>
             ) : null}
           </div>
           {scan?.warnings?.length ? (
@@ -417,7 +421,8 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                 onConfirmationChange={setConfirmed}
               />
 
-              <div className="scanner-label-export">
+              <Disclosure className="scanner-label-export" summary="Export For Accuracy Testing">
+                <p>Keep the prepared photo and reviewed labels together.</p>
                 <Button
                   variant="secondary"
                   disabled={!confirmed || reviewSquares.length > 0}
@@ -433,12 +438,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                 >
                   Export Reviewed Labels
                 </Button>
-                <small>
-                  For accuracy testing: check all 64 squares, resolve gold
-                  markers, and confirm above. Keep the prepared photo with these
-                  labels.
-                </small>
-              </div>
+              </Disclosure>
 
               <ScannerContinuePanel
                 confirmed={confirmed}
@@ -469,12 +469,11 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
         open={Boolean(pendingDestination)}
         onClose={() => setPendingDestination(null)}
         title="Leave Board Scanner?"
-        eyebrow="Current Scan"
         closeLabel="Close leave scanner confirmation"
         description={
           creating
-            ? "Please wait while the game is created. Your scan will open as a game when it is ready."
-            : "Your photo and corrections will be cleared when you leave. Download any prepared photo or reviewed labels you want to keep."
+            ? "Please wait while your game is created."
+            : "Your photo and corrections will be cleared. Save any exports you want to keep."
         }
         actions={
           <>

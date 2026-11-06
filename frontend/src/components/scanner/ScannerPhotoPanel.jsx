@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 
 import IconCloseButton from "../IconCloseButton";
 import Button from "../ui/Button";
+import Disclosure from "../ui/Disclosure";
 import ScannerCameraDialog from "./ScannerCameraDialog";
 import ScannerIcon from "./ScannerIcon";
 import ScannerImageEditor from "./ScannerImageEditor";
@@ -10,23 +11,19 @@ import { downloadScannerFile } from "../../scannerApi";
 const PHOTO_TIPS = [
   {
     icon: "top",
-    title: "Shoot from above",
-    text: "Keep the camera parallel to the board, with all four corners visible.",
+    text: "Shoot straight down with all 64 squares visible.",
   },
   {
     icon: "light",
-    title: "Use even lighting",
-    text: "Avoid glare, strong shadows, and blurred photos.",
+    text: "Use even lighting; avoid glare, shadows, and blur.",
   },
   {
     icon: "align",
-    title: "Center the pieces",
-    text: "Place each piece inside its square. Keep hands and captured pieces off the board.",
+    text: "Center the pieces. Keep hands and captured pieces off the board.",
   },
   {
     icon: "rotate",
-    title: "Rotate and crop before scanning",
-    text: "Put White's home rank at the bottom. Crop to the playing grid, keeping all 64 squares and pieces visible, without the surrounding table.",
+    text: "Put White's home rank at the bottom and crop to the playing grid.",
   },
 ];
 
@@ -98,11 +95,7 @@ function ScannerPhotoPanel({
       aria-labelledby="scanner-photo-title"
     >
       <header className="scanner-panel-header">
-        <div>
-          <span className="scanner-overline">Your photograph</span>
-          <h2 id="scanner-photo-title">Add a board photo</h2>
-        </div>
-        <span className="scanner-step-label">01</span>
+        <h2 id="scanner-photo-title">Board Photo</h2>
       </header>
       <input
         ref={uploadRef}
@@ -161,8 +154,7 @@ function ScannerPhotoPanel({
             <span className="scanner-capture-mark">
               <ScannerIcon name="camera" />
             </span>
-            <strong>Drop a top-down board photo here</strong>
-            <p>Include all 64 squares and keep the pieces centered.</p>
+            <strong>Drop a board photo here</strong>
             <span className="scanner-file-types">
               JPG, PNG, WebP · Up to 10 MB
             </span>
@@ -227,24 +219,20 @@ function ScannerPhotoPanel({
       <p className="scanner-preview-note">
         <ScannerIcon name="info" />
         <span>
-          Apply the crop to the 8 x 8 playing grid, with White's home rank at
-          the bottom, before recognizing pieces.
+          Crop to all 64 squares, with White's home rank at the bottom.
         </span>
       </p>
-      <div className="scanner-photo-tips">
-        <h3>For a clearer scan</h3>
+      <Disclosure className="scanner-photo-tips" summary="Photo Tips">
         {PHOTO_TIPS.map((tip) => (
-          <div className="scanner-photo-tip" key={tip.title}>
+          <div className="scanner-photo-tip" key={tip.icon}>
             <span className="scanner-tip-icon">
               <ScannerIcon name={tip.icon} />
             </span>
-            <div>
-              <strong>{tip.title}</strong>
-              <p>{tip.text}</p>
-            </div>
+            <p>{tip.text}</p>
           </div>
         ))}
-      </div>
+      </Disclosure>
+      <p className="scanner-privacy-note">Photos are sent only when you scan and are not stored.</p>
       {cameraOpen ? (
         <ScannerCameraDialog
           onClose={() => setCameraOpen(false)}

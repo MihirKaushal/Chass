@@ -72,6 +72,17 @@ test("scanner status and future game controls do not imply unavailable features 
   );
   assert.match(offline, /Recognition Offline/);
   assert.match(offline, /Retry Connection/);
+  assert.doesNotMatch(offline, /Start or reconnect the scanner service/);
+  const warming = await markup(
+    "/src/components/scanner/ScannerServiceStatus.jsx", { status: "warming" },
+  );
+  assert.match(warming, /Starting Scanner/);
+  assert.doesNotMatch(warming, /Offline|Retry Connection/);
+  const connected = await markup(
+    "/src/components/scanner/ScannerServiceStatus.jsx", { status: "ready" },
+  );
+  assert.match(connected, /Scanner Ready/);
+  assert.doesNotMatch(connected, /<p>/);
   const unconfigured = await markup(
     "/src/components/scanner/ScannerServiceStatus.jsx",
     { status: "unconfigured" },
@@ -83,6 +94,16 @@ test("scanner status and future game controls do not imply unavailable features 
   );
   assert.equal((upcoming.match(/disabled=""/g) || []).length, 3);
   assert.doesNotMatch(upcoming, /<select|type="radio"/);
+});
+
+test("photo panel keeps essential guidance and collapses extra tips without decorative headings", async () => {
+  const html = await markup("/src/components/scanner/ScannerPhotoPanel.jsx");
+  assert.match(html, /Board Photo/);
+  assert.match(html, /White&#x27;s home rank at the bottom/);
+  assert.match(html, /Photos are sent only when you scan and are not stored/);
+  assert.match(html, /<details class="ui-disclosure scanner-photo-tips">/);
+  assert.match(html, /Photo Tips/);
+  assert.doesNotMatch(html, /Your photograph|scanner-step-label|scanner-overline/);
 });
 
 test("scanner launch requires confirmation, resolved flags and a valid position; bots stay disabled", async () => {
