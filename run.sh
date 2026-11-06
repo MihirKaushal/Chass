@@ -138,9 +138,11 @@ trap cleanup INT TERM EXIT
 if [[ "${SCANNER_ENABLED:-auto}" != "false" ]] &&
    [[ "${SCANNER_SERVICE_URL:-http://127.0.0.1:8001}" == "http://127.0.0.1:8001" ]] &&
    [[ -x "$ROOT_DIR/.venv-scanner/bin/python" ]] &&
-   [[ -f "${SCANNER_DETECTOR:-$ROOT_DIR/scanner/artifacts/chess-v2-baseline/best.pt}" ]] &&
-   [[ -f "${SCANNER_CLASSIFIER:-$ROOT_DIR/scanner/artifacts/crop-classifier-v1/best.pt}" ]] &&
-   [[ -f "${SCANNER_SELECTION:-$ROOT_DIR/scanner/artifacts/improvements/experiment-v1/selection.json}" ]]; then
+   { [[ -f "${SCANNER_ONNX_DIR:-$ROOT_DIR/scanner/models/onnx}/manifest.json" ]] &&
+     "$ROOT_DIR/.venv-scanner/bin/python" -c 'import onnxruntime' >/dev/null 2>&1 ||
+     { [[ -f "${SCANNER_DETECTOR:-$ROOT_DIR/scanner/artifacts/chess-v2-baseline/best.pt}" ]] &&
+       [[ -f "${SCANNER_CLASSIFIER:-$ROOT_DIR/scanner/artifacts/crop-classifier-v1/best.pt}" ]] &&
+       [[ -f "${SCANNER_SELECTION:-$ROOT_DIR/scanner/artifacts/improvements/experiment-v1/selection.json}" ]]; }; }; then
   echo "Starting scanner recognition on http://127.0.0.1:8001 ..."
   "$ROOT_DIR/scanner/run-local.sh" &
   SCANNER_PID=$!
