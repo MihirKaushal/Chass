@@ -1,0 +1,109 @@
+{
+  "date": "2026-11-06",
+  "image_sha256": "27b52de2c5461d32ca611870e0059b9ef52d90b98b1aca2f7642179cfd660e7d",
+  "image_size": [
+    1024,
+    1024
+  ],
+  "route": "https://chass-api.onrender.com/scanner/scan",
+  "before_commit": "db38ede",
+  "after_commit": "91f144e",
+  "before": [
+    {
+      "request_ms": 10322.871,
+      "inference_ms": 9630,
+      "proposals": 59,
+      "timings": null,
+      "model_sha256": null
+    },
+    {
+      "request_ms": 10538.589,
+      "inference_ms": 9929,
+      "proposals": 59,
+      "timings": null,
+      "model_sha256": null
+    },
+    {
+      "request_ms": 10363.774,
+      "inference_ms": 9602,
+      "proposals": 59,
+      "timings": null,
+      "model_sha256": null
+    }
+  ],
+  "after": [
+    {
+      "request_ms": 22379.478,
+      "inference_ms": 10604,
+      "proposals": 62,
+      "timings": {
+        "prepareMs": 107.35,
+        "detectorMs": 103.04,
+        "postprocessMs": 97.73,
+        "cropMs": 669.83,
+        "classifierMs": 9620.22,
+        "squareMappingMs": 0.52,
+        "proposals": 62
+      },
+      "model_sha256": {
+        "detector": "81d2d1e4d45261f34c249da8c3a55db38f68d55e301872966d5798a6b43a3045",
+        "classifier": "48ca6c8ef3f8abbb60c2d35d372df95668e2dbb7672ebd5c0bcf76fd4562afc5"
+      }
+    },
+    {
+      "request_ms": 10934.828,
+      "inference_ms": 10266,
+      "proposals": 62,
+      "timings": {
+        "prepareMs": 73.44,
+        "detectorMs": 101.85,
+        "postprocessMs": 98.77,
+        "cropMs": 504.08,
+        "classifierMs": 9483.05,
+        "squareMappingMs": 0.44,
+        "proposals": 62
+      },
+      "model_sha256": {
+        "detector": "81d2d1e4d45261f34c249da8c3a55db38f68d55e301872966d5798a6b43a3045",
+        "classifier": "48ca6c8ef3f8abbb60c2d35d372df95668e2dbb7672ebd5c0bcf76fd4562afc5"
+      }
+    },
+    {
+      "request_ms": 10835.391,
+      "inference_ms": 9989,
+      "proposals": 62,
+      "timings": {
+        "prepareMs": 98.86,
+        "detectorMs": 101.09,
+        "postprocessMs": 101.2,
+        "cropMs": 409.77,
+        "classifierMs": 9274.18,
+        "squareMappingMs": 0.31,
+        "proposals": 62
+      },
+      "model_sha256": {
+        "detector": "81d2d1e4d45261f34c249da8c3a55db38f68d55e301872966d5798a6b43a3045",
+        "classifier": "48ca6c8ef3f8abbb60c2d35d372df95668e2dbb7672ebd5c0bcf76fd4562afc5"
+      }
+    }
+  ],
+  "before_median_ms": 10363.774,
+  "after_median_ms": 10934.828,
+  "observations": [
+    "Every measured scan returned HTTP 200 and 64 squares.",
+    "Direct unauthenticated model /health and /scan returned 401.",
+    "Public model fingerprints matched the published manifest.",
+    "Before sampling, both hosts were warmed until gateway ready. Both were ready again before after sampling. The 22.4-second outlier is retained; its source cannot be determined from these measurements.",
+    "Tiny same-photo sample, not a latency distribution or independent accuracy test.",
+    "Cold-start before/after improvement was not measured; concurrent wakeup verified by unit tests and live CORS readiness.",
+    "Browser UI and actual GPU execution could not be verified because browser access host was unavailable."
+  ],
+  "tests": {
+    "backend_passed": 335,
+    "backend_skipped": 1,
+    "scanner_passed": 150,
+    "frontend_passed": 209,
+    "production_build": "passed",
+    "production_dependency_audit_vulnerabilities": 0
+  }
+}

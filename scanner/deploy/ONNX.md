@@ -106,6 +106,12 @@ the exporter and parity checker. The dated report explains the 0.005 classifier
 confidence tolerance used for the current export; exact labels and reviews must
 still match. Keep previous deployment weights accessible for rollback.
 
+Live verification after this update: model fingerprints matched, real public scans
+returned 64 squares, and protected endpoints still rejected unauthenticated requests.
+The three-request median was 10.364 -> 10.935 seconds, **not a server-speed win**;
+new recall settings processed 62 rather than 59 proposals. See the dated benchmark
+for every sample, the retained outlier, memory checks, and the browser QA limitation.
+
 ## Cold-Start Recovery (2026-11-06)
 
 A live health check initially returned `ready: false`, then recovered after the

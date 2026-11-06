@@ -100,3 +100,32 @@ Training config: `scanner/ml/configs/king-focused.json`. Use fresh output paths.
 Do not repeatedly tune against the test set. See `scanner/ml/BOARD_COLLECTION.md`
 for the next independent collection and exact 64-square evaluation workflow.
 Previous deployment weights are preserved in Git commit `db38ede` for rollback.
+
+## Public Verification
+
+After deployment, the public game API returned the new model fingerprints and
+64 squares on each of three same-photo requests. Vercel served the matching model
+manifest, 44,721,170-byte classifier and WebAssembly runtime with correct MIME types.
+Scanner `/ready` has public no-store CORS; direct unauthenticated `/health` and
+`/scan` still return 401. No production test games or persistent photos were created.
+
+| Same 1024x1024 photo | Before | After |
+| --- | ---: | ---: |
+| End-to-end samples, seconds | 10.323, 10.539, 10.364 | 22.379, 10.935, 10.835 |
+| Median end-to-end, seconds | 10.364 | 10.935 |
+| Inference samples, seconds | 9.630, 9.929, 9.602 | 10.604, 10.266, 9.989 |
+| Proposals per request | 59 | 62 |
+
+The 22.4-second outlier is retained, not discarded; its source is unknown. This
+tiny sample does not establish a stable latency distribution. Server scanning did
+**not** become faster (median +5.5%); better recall processes more crops. The classifier
+takes about 9.3-9.6 seconds on this Render service. Parallel wakeup and optional local
+inference address waiting, but a true before/after cold-start benchmark was not run.
+
+Dense 3000x3000 validation image, 64 annotated pieces, through the real local service
+resize path: 2048x2048 input to inference, 64 proposals, 363.3 MiB peak process RSS,
+no Torch imported. This is still a macOS measurement, not Linux memory telemetry.
+
+Checks: 335 backend tests passed (one emulator-dependent skip), 150 scanner tests,
+209 frontend tests, successful production build, no production npm audit findings.
+Full raw measurements and fingerprints: [public-verification.json](public-verification.json).
