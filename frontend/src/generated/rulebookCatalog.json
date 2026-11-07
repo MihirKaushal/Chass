@@ -1,0 +1,1205 @@
+{
+  "schemaVersion": 2,
+  "pieces": [
+    {
+      "type": "pawn",
+      "name": "Pawn",
+      "icon": "\u265f",
+      "symbols": {
+        "white": "\u2659",
+        "black": "\u265f"
+      },
+      "points": 1,
+      "isCustom": false,
+      "description": "A low-cost foot soldier that advances toward the opposite edge.",
+      "movement": "Moves one square forward, or two from its starting square. Captures one square diagonally forward and promotes on the final rank.",
+      "rules": [],
+      "descriptionTemplate": null,
+      "movementTemplate": null,
+      "ruleTemplates": [],
+      "tunableParameters": [],
+      "configuredParameters": [],
+      "visualKey": "pawn"
+    },
+    {
+      "type": "rook",
+      "name": "Rook",
+      "icon": "\u265c",
+      "symbols": {
+        "white": "\u2656",
+        "black": "\u265c"
+      },
+      "points": 5,
+      "isCustom": false,
+      "description": "A heavy line piece that controls ranks and files and can be sacrificed to clear a Barricade.",
+      "movement": "Moves any number of clear squares horizontally or vertically. It may sacrifice itself to demolish the first visible Barricade on that line.",
+      "rules": [],
+      "descriptionTemplate": null,
+      "movementTemplate": null,
+      "ruleTemplates": [],
+      "tunableParameters": [],
+      "configuredParameters": [],
+      "visualKey": "rook"
+    },
+    {
+      "type": "knight",
+      "name": "Knight",
+      "icon": "\u265e",
+      "symbols": {
+        "white": "\u2658",
+        "black": "\u265e"
+      },
+      "points": 3,
+      "isCustom": false,
+      "description": "A mobile piece whose unusual route reaches around normal blockers.",
+      "movement": "Moves in an L shape: two squares in one direction and one perpendicular. A Barricade blocks jumps that cross its area.",
+      "rules": [],
+      "descriptionTemplate": null,
+      "movementTemplate": null,
+      "ruleTemplates": [],
+      "tunableParameters": [],
+      "configuredParameters": [],
+      "visualKey": "knight"
+    },
+    {
+      "type": "bishop",
+      "name": "Bishop",
+      "icon": "\u265d",
+      "symbols": {
+        "white": "\u2657",
+        "black": "\u265d"
+      },
+      "points": 3,
+      "isCustom": false,
+      "description": "A long-range piece permanently tied to one square color.",
+      "movement": "Moves any number of clear squares diagonally.",
+      "rules": [],
+      "descriptionTemplate": null,
+      "movementTemplate": null,
+      "ruleTemplates": [],
+      "tunableParameters": [],
+      "configuredParameters": [],
+      "visualKey": "bishop"
+    },
+    {
+      "type": "queen",
+      "name": "Queen",
+      "icon": "\u265b",
+      "symbols": {
+        "white": "\u2655",
+        "black": "\u265b"
+      },
+      "points": 9,
+      "isCustom": false,
+      "description": "The strongest standard piece, combining rook and bishop mobility.",
+      "movement": "Moves any number of clear squares in any straight direction.",
+      "rules": [],
+      "descriptionTemplate": null,
+      "movementTemplate": null,
+      "ruleTemplates": [],
+      "tunableParameters": [],
+      "configuredParameters": [],
+      "visualKey": "queen"
+    },
+    {
+      "type": "king",
+      "name": "King",
+      "icon": "\u265a",
+      "symbols": {
+        "white": "\u2654",
+        "black": "\u265a"
+      },
+      "points": null,
+      "isCustom": false,
+      "description": "The royal piece. Its importance depends on the selected victory rule.",
+      "movement": "Moves one square in any direction and may not enter an attacked square.",
+      "rules": [],
+      "descriptionTemplate": null,
+      "movementTemplate": null,
+      "ruleTemplates": [],
+      "tunableParameters": [],
+      "configuredParameters": [],
+      "visualKey": "king"
+    },
+    {
+      "type": "maharani",
+      "name": "Maharani",
+      "icon": "\u2726",
+      "symbols": {
+        "white": "\u2727",
+        "black": "\u2726"
+      },
+      "points": 13,
+      "isCustom": true,
+      "description": "A royal powerhouse combining queen and knight mobility with a controlled 1-blocker jump.",
+      "movement": "Moves like a queen or knight. On a queen line it may cross exactly 1 occupied square, but never a Barricade.",
+      "rules": [
+        "Queen movement",
+        "Knight movement",
+        "May cross exactly 1 blocker"
+      ],
+      "descriptionTemplate": "A royal powerhouse combining queen and knight mobility with a controlled {blockersCrossed}-blocker jump.",
+      "movementTemplate": "Moves like a queen or knight. On a queen line it may cross exactly {blockersCrossed} occupied square(s), but never a Barricade.",
+      "ruleTemplates": [
+        "Queen movement",
+        "Knight movement",
+        "May cross exactly {blockersCrossed} blocker(s)"
+      ],
+      "tunableParameters": [
+        {
+          "id": "blockersCrossed",
+          "label": "Blockers Crossed",
+          "description": "Occupied squares a queen-line jump must cross before landing.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "blocker"
+        }
+      ],
+      "configuredParameters": [
+        {
+          "id": "blockersCrossed",
+          "label": "Blockers Crossed",
+          "description": "Occupied squares a queen-line jump must cross before landing.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "blocker",
+          "value": 1
+        }
+      ],
+      "visualKey": "maharani"
+    },
+    {
+      "type": "catapult",
+      "name": "Catapult",
+      "icon": "\u25c8",
+      "symbols": {
+        "white": "\u25c7",
+        "black": "\u25c6"
+      },
+      "points": 5,
+      "isCustom": true,
+      "description": "A forward siege piece with projectile paths that skip 1 or 2 squares, then recover.",
+      "movement": "Moves up to 1 clear square forward or diagonally forward. It captures directly ahead or fires along those three lanes.",
+      "rules": [
+        "Projectile over 1 square: recover for 2 own turns",
+        "Projectile over 2 squares: recover for 4 own turns",
+        "Barricades block projectiles"
+      ],
+      "descriptionTemplate": "A forward siege piece with projectile paths that skip {shortProjectileSkip} or {longProjectileSkip} square(s), then recover.",
+      "movementTemplate": "Moves up to {movementDistance} clear square(s) forward or diagonally forward. It captures directly ahead or fires along those three lanes.",
+      "ruleTemplates": [
+        "Projectile over {shortProjectileSkip} square(s): recover for {shortRecoveryTurns} own turn(s)",
+        "Projectile over {longProjectileSkip} square(s): recover for {longRecoveryTurns} own turn(s)",
+        "Barricades block projectiles"
+      ],
+      "tunableParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum number of forward squares the Catapult may move.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square"
+        },
+        {
+          "id": "shortProjectileSkip",
+          "label": "Short Projectile Skip",
+          "description": "Squares crossed before the short projectile reaches its target.",
+          "default": 1,
+          "min": 1,
+          "max": 14,
+          "unit": "square"
+        },
+        {
+          "id": "shortRecoveryTurns",
+          "label": "Short Recovery",
+          "description": "Own turns required before firing or moving after the short shot.",
+          "default": 2,
+          "min": 0,
+          "max": 50,
+          "unit": "turn"
+        },
+        {
+          "id": "longProjectileSkip",
+          "label": "Long Projectile Skip",
+          "description": "Squares crossed before the long projectile reaches its target.",
+          "default": 2,
+          "min": 1,
+          "max": 14,
+          "unit": "square"
+        },
+        {
+          "id": "longRecoveryTurns",
+          "label": "Long Recovery",
+          "description": "Own turns required before firing or moving after the long shot.",
+          "default": 4,
+          "min": 0,
+          "max": 50,
+          "unit": "turn"
+        }
+      ],
+      "configuredParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum number of forward squares the Catapult may move.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square",
+          "value": 1
+        },
+        {
+          "id": "shortProjectileSkip",
+          "label": "Short Projectile Skip",
+          "description": "Squares crossed before the short projectile reaches its target.",
+          "default": 1,
+          "min": 1,
+          "max": 14,
+          "unit": "square",
+          "value": 1
+        },
+        {
+          "id": "shortRecoveryTurns",
+          "label": "Short Recovery",
+          "description": "Own turns required before firing or moving after the short shot.",
+          "default": 2,
+          "min": 0,
+          "max": 50,
+          "unit": "turn",
+          "value": 2
+        },
+        {
+          "id": "longProjectileSkip",
+          "label": "Long Projectile Skip",
+          "description": "Squares crossed before the long projectile reaches its target.",
+          "default": 2,
+          "min": 1,
+          "max": 14,
+          "unit": "square",
+          "value": 2
+        },
+        {
+          "id": "longRecoveryTurns",
+          "label": "Long Recovery",
+          "description": "Own turns required before firing or moving after the long shot.",
+          "default": 4,
+          "min": 0,
+          "max": 50,
+          "unit": "turn",
+          "value": 4
+        }
+      ],
+      "visualKey": "catapult"
+    },
+    {
+      "type": "barricade",
+      "name": "Barricade",
+      "icon": "\u25a6",
+      "symbols": {
+        "white": "\u25a6",
+        "black": "\u25a6",
+        "neutral": "\u25a6"
+      },
+      "points": 0,
+      "isCustom": true,
+      "description": "A neutral wall that blocks movement and projectiles without attacking anything.",
+      "movement": "Either player may move it up to 1 clear square when one of their pieces is within 1 square. It cannot capture or be captured normally. A visible Rook may sacrifice itself to remove it.",
+      "rules": [
+        "Neutral",
+        "Blocks jumps and projectiles",
+        "Controlled by a friendly piece within 1 square",
+        "A Rook can sacrifice itself to demolish it"
+      ],
+      "descriptionTemplate": "A neutral wall that blocks movement and projectiles without attacking anything.",
+      "movementTemplate": "Either player may move it up to {movementDistance} clear square(s) when one of their pieces is within {controlRange} square(s). It cannot capture or be captured normally. A visible Rook may sacrifice itself to remove it.",
+      "ruleTemplates": [
+        "Neutral",
+        "Blocks jumps and projectiles",
+        "Controlled by a friendly piece within {controlRange} square(s)",
+        "A Rook can sacrifice itself to demolish it"
+      ],
+      "tunableParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum clear distance either player may reposition the wall.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square"
+        },
+        {
+          "id": "controlRange",
+          "label": "Control Range",
+          "description": "Distance within which a player's piece allows that player to move it.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square"
+        }
+      ],
+      "configuredParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum clear distance either player may reposition the wall.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square",
+          "value": 1
+        },
+        {
+          "id": "controlRange",
+          "label": "Control Range",
+          "description": "Distance within which a player's piece allows that player to move it.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square",
+          "value": 1
+        }
+      ],
+      "visualKey": "barricade"
+    },
+    {
+      "type": "hypnotizer",
+      "name": "Hypnotizer",
+      "icon": "\u25c9",
+      "symbols": {
+        "white": "\u25ce",
+        "black": "\u25c9"
+      },
+      "points": 6,
+      "isCustom": true,
+      "description": "A conversion specialist that recruits one adjacent enemy after sustained contact.",
+      "movement": "Moves up to 2 clear squares forward or sideways. It cannot move backward or capture normally.",
+      "rules": [
+        "One recruitment target",
+        "Kings cannot be recruited",
+        "Weak pieces recruit after 3 contact turns",
+        "Medium pieces recruit after 4 contact turns",
+        "Strong pieces recruit after 5 contact turns",
+        "Contact progress resets if separated"
+      ],
+      "descriptionTemplate": "A conversion specialist that recruits one adjacent enemy after sustained contact.",
+      "movementTemplate": "Moves up to {movementDistance} clear square(s) forward or sideways. It cannot move backward or capture normally.",
+      "ruleTemplates": [
+        "One recruitment target",
+        "Kings cannot be recruited",
+        "Weak pieces recruit after {weakContactTurns} contact turn(s)",
+        "Medium pieces recruit after {mediumContactTurns} contact turn(s)",
+        "Strong pieces recruit after {strongContactTurns} contact turn(s)",
+        "Contact progress resets if separated"
+      ],
+      "tunableParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum clear distance it may move forward or sideways.",
+          "default": 2,
+          "min": 1,
+          "max": 8,
+          "unit": "square"
+        },
+        {
+          "id": "weakContactTurns",
+          "label": "Weak Piece Contact",
+          "description": "Contact turns needed to recruit a piece worth 3 points or fewer.",
+          "default": 3,
+          "min": 1,
+          "max": 50,
+          "unit": "turn"
+        },
+        {
+          "id": "mediumContactTurns",
+          "label": "Medium Piece Contact",
+          "description": "Contact turns needed to recruit a piece worth 4 or 5 points.",
+          "default": 4,
+          "min": 1,
+          "max": 50,
+          "unit": "turn"
+        },
+        {
+          "id": "strongContactTurns",
+          "label": "Strong Piece Contact",
+          "description": "Contact turns needed to recruit a piece worth 6 points or more.",
+          "default": 5,
+          "min": 1,
+          "max": 50,
+          "unit": "turn"
+        }
+      ],
+      "configuredParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum clear distance it may move forward or sideways.",
+          "default": 2,
+          "min": 1,
+          "max": 8,
+          "unit": "square",
+          "value": 2
+        },
+        {
+          "id": "weakContactTurns",
+          "label": "Weak Piece Contact",
+          "description": "Contact turns needed to recruit a piece worth 3 points or fewer.",
+          "default": 3,
+          "min": 1,
+          "max": 50,
+          "unit": "turn",
+          "value": 3
+        },
+        {
+          "id": "mediumContactTurns",
+          "label": "Medium Piece Contact",
+          "description": "Contact turns needed to recruit a piece worth 4 or 5 points.",
+          "default": 4,
+          "min": 1,
+          "max": 50,
+          "unit": "turn",
+          "value": 4
+        },
+        {
+          "id": "strongContactTurns",
+          "label": "Strong Piece Contact",
+          "description": "Contact turns needed to recruit a piece worth 6 points or more.",
+          "default": 5,
+          "min": 1,
+          "max": 50,
+          "unit": "turn",
+          "value": 5
+        }
+      ],
+      "visualKey": "hypnotizer"
+    },
+    {
+      "type": "diplomat",
+      "name": "Diplomat",
+      "icon": "\u269c",
+      "symbols": {
+        "white": "\u269c",
+        "black": "\u269c"
+      },
+      "points": 5,
+      "isCustom": true,
+      "description": "A protected peacekeeper that temporarily pacifies nearby enemy pieces.",
+      "movement": "Moves up to 1 clear square in any direction. It cannot capture or be captured. After 2 contact turns, it pacifies an enemy for 4 of that enemy's turns.",
+      "rules": [
+        "Uncapturable",
+        "Can pacify any enemy piece, including a King",
+        "Pacifies after 2 contact turns",
+        "Pacification lasts 4 affected-player turns",
+        "Retires after 5 pacifications"
+      ],
+      "descriptionTemplate": "A protected peacekeeper that temporarily pacifies nearby enemy pieces.",
+      "movementTemplate": "Moves up to {movementDistance} clear square(s) in any direction. It cannot capture or be captured. After {contactTurns} contact turn(s), it pacifies an enemy for {pacifiedTurns} of that enemy's turns.",
+      "ruleTemplates": [
+        "Uncapturable",
+        "Can pacify any enemy piece, including a King",
+        "Pacifies after {contactTurns} contact turn(s)",
+        "Pacification lasts {pacifiedTurns} affected-player turn(s)",
+        "Retires after {retireAfterPacifications} pacification(s)"
+      ],
+      "tunableParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum clear distance the Diplomat may move in any direction.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square"
+        },
+        {
+          "id": "contactTurns",
+          "label": "Contact To Pacify",
+          "description": "Consecutive contact turns required to pacify an enemy.",
+          "default": 2,
+          "min": 1,
+          "max": 50,
+          "unit": "turn"
+        },
+        {
+          "id": "pacifiedTurns",
+          "label": "Pacification Duration",
+          "description": "Affected player's turns that the target remains pacified.",
+          "default": 4,
+          "min": 1,
+          "max": 50,
+          "unit": "turn"
+        },
+        {
+          "id": "retireAfterPacifications",
+          "label": "Retirement Threshold",
+          "description": "Successful pacifications before the Diplomat retires.",
+          "default": 5,
+          "min": 1,
+          "max": 50,
+          "unit": "pacification"
+        }
+      ],
+      "configuredParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum clear distance the Diplomat may move in any direction.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square",
+          "value": 1
+        },
+        {
+          "id": "contactTurns",
+          "label": "Contact To Pacify",
+          "description": "Consecutive contact turns required to pacify an enemy.",
+          "default": 2,
+          "min": 1,
+          "max": 50,
+          "unit": "turn",
+          "value": 2
+        },
+        {
+          "id": "pacifiedTurns",
+          "label": "Pacification Duration",
+          "description": "Affected player's turns that the target remains pacified.",
+          "default": 4,
+          "min": 1,
+          "max": 50,
+          "unit": "turn",
+          "value": 4
+        },
+        {
+          "id": "retireAfterPacifications",
+          "label": "Retirement Threshold",
+          "description": "Successful pacifications before the Diplomat retires.",
+          "default": 5,
+          "min": 1,
+          "max": 50,
+          "unit": "pacification",
+          "value": 5
+        }
+      ],
+      "visualKey": "diplomat"
+    },
+    {
+      "type": "cannibal",
+      "name": "Cannibal",
+      "icon": "\u25d7",
+      "symbols": {
+        "white": "\u25d6",
+        "black": "\u25d7"
+      },
+      "points": 6,
+      "isCustom": true,
+      "description": "A shape-stealing piece that consumes pieces behind it, including allies, then borrows their movement for 5 of its own moves.",
+      "movement": "Normally moves up to 1 clear square in any direction, but consumes only up to 1 square directly or diagonally backward. After consuming, it uses the victim's movement for 5 Cannibal moves and cannot capture during that form.",
+      "rules": [
+        "May consume allied or enemy pieces only behind it",
+        "Borrows the consumed piece's movement for 5 Cannibal moves",
+        "Cannot capture while using borrowed movement",
+        "Consuming another Cannibal grants Queen mobility",
+        "Cannot be revived by Necromancy"
+      ],
+      "descriptionTemplate": "A shape-stealing piece that consumes pieces behind it, including allies, then borrows their movement for {borrowedMovementMoves} of its own moves.",
+      "movementTemplate": "Normally moves up to {movementDistance} clear square(s) in any direction, but consumes only up to {consumeDistance} square(s) directly or diagonally backward. After consuming, it uses the victim's movement for {borrowedMovementMoves} Cannibal moves and cannot capture during that form.",
+      "ruleTemplates": [
+        "May consume allied or enemy pieces only behind it",
+        "Borrows the consumed piece's movement for {borrowedMovementMoves} Cannibal move(s)",
+        "Cannot capture while using borrowed movement",
+        "Consuming another Cannibal grants Queen mobility",
+        "Cannot be revived by Necromancy"
+      ],
+      "tunableParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Base Movement Distance",
+          "description": "Maximum clear distance it may move before borrowing mobility.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square"
+        },
+        {
+          "id": "consumeDistance",
+          "label": "Consume Distance",
+          "description": "Maximum clear backward distance from which it may consume a piece.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square"
+        },
+        {
+          "id": "borrowedMovementMoves",
+          "label": "Borrowed Movement",
+          "description": "Cannibal moves for which the consumed piece's movement remains active.",
+          "default": 5,
+          "min": 1,
+          "max": 50,
+          "unit": "move"
+        }
+      ],
+      "configuredParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Base Movement Distance",
+          "description": "Maximum clear distance it may move before borrowing mobility.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square",
+          "value": 1
+        },
+        {
+          "id": "consumeDistance",
+          "label": "Consume Distance",
+          "description": "Maximum clear backward distance from which it may consume a piece.",
+          "default": 1,
+          "min": 1,
+          "max": 8,
+          "unit": "square",
+          "value": 1
+        },
+        {
+          "id": "borrowedMovementMoves",
+          "label": "Borrowed Movement",
+          "description": "Cannibal moves for which the consumed piece's movement remains active.",
+          "default": 5,
+          "min": 1,
+          "max": 50,
+          "unit": "move",
+          "value": 5
+        }
+      ],
+      "visualKey": "cannibal"
+    },
+    {
+      "type": "elephant",
+      "name": "Elephant",
+      "icon": "E",
+      "symbols": {
+        "white": "E",
+        "black": "e"
+      },
+      "points": 7,
+      "isCustom": true,
+      "description": "A forward-driving heavy piece that moves without capturing or charges through a short lane to remove its occupants.",
+      "movement": "Moves forward or sideways up to 4 clear squares without capturing. A charge travels exactly 2 squares and removes every permitted piece on those squares. It never moves backward.",
+      "rules": [
+        "A charge may remove up to 1 allied piece",
+        "Cannot charge through a Barricade, protected piece, or unavailable square",
+        "Cannot charge through its own King",
+        "Charging another Elephant eliminates both Elephants",
+        "Cannot be consumed by a Cannibal"
+      ],
+      "descriptionTemplate": "A forward-driving heavy piece that moves without capturing or charges through a short lane to remove its occupants.",
+      "movementTemplate": "Moves forward or sideways up to {movementDistance} clear square(s) without capturing. A charge travels exactly {chargeDistance} square(s) and removes every permitted piece on those squares. It never moves backward.",
+      "ruleTemplates": [
+        "A charge may remove up to {alliedChargeLimit} allied piece(s)",
+        "Cannot charge through a Barricade, protected piece, or unavailable square",
+        "Cannot charge through its own King",
+        "Charging another Elephant eliminates both Elephants",
+        "Cannot be consumed by a Cannibal"
+      ],
+      "tunableParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum clear distance for a non-capturing forward or sideways move.",
+          "default": 4,
+          "min": 1,
+          "max": 16,
+          "unit": "square"
+        },
+        {
+          "id": "chargeDistance",
+          "label": "Charge Distance",
+          "description": "Exact number of forward or sideways squares covered by a charge.",
+          "default": 2,
+          "min": 1,
+          "max": 16,
+          "unit": "square"
+        },
+        {
+          "id": "alliedChargeLimit",
+          "label": "Allied Charge Limit",
+          "description": "Maximum allied pieces that a single charge may remove. Cannot exceed Charge Distance.",
+          "default": 1,
+          "min": 0,
+          "max": 16,
+          "unit": "piece",
+          "maxParameter": "chargeDistance"
+        }
+      ],
+      "configuredParameters": [
+        {
+          "id": "movementDistance",
+          "label": "Movement Distance",
+          "description": "Maximum clear distance for a non-capturing forward or sideways move.",
+          "default": 4,
+          "min": 1,
+          "max": 16,
+          "unit": "square",
+          "value": 4
+        },
+        {
+          "id": "chargeDistance",
+          "label": "Charge Distance",
+          "description": "Exact number of forward or sideways squares covered by a charge.",
+          "default": 2,
+          "min": 1,
+          "max": 16,
+          "unit": "square",
+          "value": 2
+        },
+        {
+          "id": "alliedChargeLimit",
+          "label": "Allied Charge Limit",
+          "description": "Maximum allied pieces that a single charge may remove. Cannot exceed Charge Distance.",
+          "default": 1,
+          "min": 0,
+          "max": 16,
+          "unit": "piece",
+          "maxParameter": "chargeDistance",
+          "value": 1
+        }
+      ],
+      "visualKey": "elephant"
+    }
+  ],
+  "specialAbilities": [
+    {
+      "id": "necromancy",
+      "name": "Necromancy",
+      "icon": "\u2620",
+      "summary": "Spend earned score to recruit a captured enemy piece, then recharge for 9 turns.",
+      "summaryTemplate": "Spend earned score to recruit a captured enemy piece, then recharge for {cooldownTurns} turn(s).",
+      "cooldownTurns": 9,
+      "cooldownTurnsParameter": "cooldownTurns",
+      "tunableParameters": [
+        {
+          "id": "cooldownTurns",
+          "label": "Recharge",
+          "description": "Own turns before Necromancy can be used again.",
+          "default": 9,
+          "min": 0,
+          "max": 50,
+          "unit": "turn"
+        }
+      ],
+      "detailTemplates": [
+        "The recruited piece changes to your color.",
+        "Its price is its configured point value and spending lowers your score.",
+        "Kings, Cannibals, neutral pieces, and unaffordable pieces cannot be recruited.",
+        "Deployment requires an empty square in your home rows, consumes a turn, and starts a {cooldownTurns}-turn recharge."
+      ],
+      "details": [
+        "The recruited piece changes to your color.",
+        "Its price is its configured point value and spending lowers your score.",
+        "Kings, Cannibals, neutral pieces, and unaffordable pieces cannot be recruited.",
+        "Deployment requires an empty square in your home rows, consumes a turn, and starts a 9-turn recharge."
+      ],
+      "configuredParameters": [
+        {
+          "id": "cooldownTurns",
+          "label": "Recharge",
+          "description": "Own turns before Necromancy can be used again.",
+          "default": 9,
+          "min": 0,
+          "max": 50,
+          "unit": "turn",
+          "value": 9
+        }
+      ]
+    },
+    {
+      "id": "getaway",
+      "name": "Getaway",
+      "icon": "\u21c4",
+      "summary": "Escape checkmate up to 1 time per match by swapping the King with your Queen.",
+      "summaryTemplate": "Escape checkmate up to {usesPerGame} time(s) per match by swapping the King with your Queen.",
+      "usageLimit": 1,
+      "usageLimitParameter": "usesPerGame",
+      "tunableParameters": [
+        {
+          "id": "usesPerGame",
+          "label": "Uses Per Game",
+          "description": "Successful royal escapes available to each player.",
+          "default": 1,
+          "min": 1,
+          "max": 20,
+          "unit": "use"
+        }
+      ],
+      "detailTemplates": [
+        "Only a Queen of the same color can be the swap partner.",
+        "The swap is available only when it produces a legal position.",
+        "If no legal partner exists, checkmate ends the game normally.",
+        "Each player may complete {usesPerGame} successful Getaway use(s) per match."
+      ],
+      "details": [
+        "Only a Queen of the same color can be the swap partner.",
+        "The swap is available only when it produces a legal position.",
+        "If no legal partner exists, checkmate ends the game normally.",
+        "Each player may complete 1 successful Getaway use per match."
+      ],
+      "configuredParameters": [
+        {
+          "id": "usesPerGame",
+          "label": "Uses Per Game",
+          "description": "Successful royal escapes available to each player.",
+          "default": 1,
+          "min": 1,
+          "max": 20,
+          "unit": "use",
+          "value": 1
+        }
+      ]
+    },
+    {
+      "id": "eye_for_an_eye",
+      "name": "Eye for an Eye",
+      "icon": "\u2696",
+      "summary": "Wait 5 own turns before the first trade, then wait 10 own turns between uses.",
+      "summaryTemplate": "Wait {initialCooldownTurns} own turn(s) before the first trade, then wait {cooldownTurns} own turn(s) between uses.",
+      "cooldownTurns": 10,
+      "cooldownTurnsParameter": "cooldownTurns",
+      "initialCooldownDivisor": 2,
+      "tunableParameters": [
+        {
+          "id": "cooldownTurns",
+          "label": "Recharge",
+          "description": "Own turns between uses. The first use opens after half this value, rounded up.",
+          "default": 10,
+          "min": 0,
+          "max": 50,
+          "unit": "turn"
+        }
+      ],
+      "detailTemplates": [
+        "The first use becomes available after {initialCooldownTurns} own turn(s).",
+        "A successful trade consumes the turn and starts a {cooldownTurns}-turn cooldown.",
+        "Kings and neutral pieces cannot be selected.",
+        "Neither removal awards score and it cannot be used while in check.",
+        "A legal standard capture takes priority on the board; use the Special Actions panel when you intentionally want the trade instead."
+      ],
+      "details": [
+        "The first use becomes available after 5 own turns.",
+        "A successful trade consumes the turn and starts a 10-turn cooldown.",
+        "Kings and neutral pieces cannot be selected.",
+        "Neither removal awards score and it cannot be used while in check.",
+        "A legal standard capture takes priority on the board; use the Special Actions panel when you intentionally want the trade instead."
+      ],
+      "initialCooldownTurns": 5,
+      "configuredParameters": [
+        {
+          "id": "cooldownTurns",
+          "label": "Recharge",
+          "description": "Own turns between uses. The first use opens after half this value, rounded up.",
+          "default": 10,
+          "min": 0,
+          "max": 50,
+          "unit": "turn",
+          "value": 10
+        }
+      ]
+    },
+    {
+      "id": "kamikaze",
+      "name": "Kamikaze",
+      "icon": "\u2739",
+      "summary": "A final-rank Pawn may detonate across 2 horizontal squares instead of promoting.",
+      "summaryTemplate": "A final-rank Pawn may detonate across {blastRadius} horizontal square(s) instead of promoting.",
+      "tunableParameters": [
+        {
+          "id": "blastRadius",
+          "label": "Blast Radius",
+          "description": "Horizontal squares affected on each side of the Pawn.",
+          "default": 2,
+          "min": 1,
+          "max": 15,
+          "unit": "square"
+        }
+      ],
+      "detailTemplates": [
+        "The Pawn is sacrificed and enemies up to {blastRadius} horizontal square(s) away are removed.",
+        "A Barricade in range is destroyed, absorbs the blast in that direction, and protects every square beyond it.",
+        "An enemy King in range causes an immediate ability victory."
+      ],
+      "details": [
+        "The Pawn is sacrificed and enemies up to 2 horizontal squares away are removed.",
+        "A Barricade in range is destroyed, absorbs the blast in that direction, and protects every square beyond it.",
+        "An enemy King in range causes an immediate ability victory."
+      ],
+      "configuredParameters": [
+        {
+          "id": "blastRadius",
+          "label": "Blast Radius",
+          "description": "Horizontal squares affected on each side of the Pawn.",
+          "default": 2,
+          "min": 1,
+          "max": 15,
+          "unit": "square",
+          "value": 2
+        }
+      ]
+    },
+    {
+      "id": "episcopal",
+      "name": "Episcopal",
+      "icon": "\u271d",
+      "summary": "After 5 own turns, a Bishop may jump horizontally or vertically to any square matching its current board color. Using it starts a 10-turn recharge.",
+      "summaryTemplate": "After {initialCooldownTurns} own turn(s), a Bishop may jump horizontally or vertically to any square matching its current board color. Using it starts a {cooldownTurns}-turn recharge.",
+      "cooldownTurns": 10,
+      "cooldownTurnsParameter": "cooldownTurns",
+      "initialCooldownDivisor": 2,
+      "tunableParameters": [
+        {
+          "id": "cooldownTurns",
+          "label": "Recharge",
+          "description": "Own turns before another Episcopal jump is available.",
+          "default": 10,
+          "min": 0,
+          "max": 50,
+          "unit": "turn"
+        }
+      ],
+      "detailTemplates": [
+        "The Bishop may land on any empty square in its row or column that matches the board color beneath it, jumping over ordinary pieces and scorched squares.",
+        "It may instead capture an enemy non-King piece on that destination. Kings, allied pieces, Diplomats, protected pieces, Barricades, and scorched squares cannot be targeted.",
+        "A Barricade blocks the lane. The jump consumes the turn and must leave the Bishop's King safe.",
+        "The first jump becomes available after {initialCooldownTurns} own turn(s), half the configured recharge rounded up. The {cooldownTurns}-turn recharge is shared by every Bishop on that side."
+      ],
+      "details": [
+        "The Bishop may land on any empty square in its row or column that matches the board color beneath it, jumping over ordinary pieces and scorched squares.",
+        "It may instead capture an enemy non-King piece on that destination. Kings, allied pieces, Diplomats, protected pieces, Barricades, and scorched squares cannot be targeted.",
+        "A Barricade blocks the lane. The jump consumes the turn and must leave the Bishop's King safe.",
+        "The first jump becomes available after 5 own turns, half the configured recharge rounded up. The 10-turn recharge is shared by every Bishop on that side."
+      ],
+      "initialCooldownTurns": 5,
+      "configuredParameters": [
+        {
+          "id": "cooldownTurns",
+          "label": "Recharge",
+          "description": "Own turns before another Episcopal jump is available.",
+          "default": 10,
+          "min": 0,
+          "max": 50,
+          "unit": "turn",
+          "value": 10
+        }
+      ]
+    },
+    {
+      "id": "power_of_love",
+      "name": "Power of Love",
+      "icon": "\u2665",
+      "summary": "After losing a Queen, the King gains Queen mobility for 8 turns.",
+      "summaryTemplate": "After losing a Queen, the King gains Queen mobility for {durationTurns} turn(s).",
+      "tunableParameters": [
+        {
+          "id": "durationTurns",
+          "label": "Queen Mobility Duration",
+          "description": "Own turns for which the King's borrowed Queen mobility remains active.",
+          "default": 8,
+          "min": 1,
+          "max": 50,
+          "unit": "turn"
+        }
+      ],
+      "detailTemplates": [
+        "The King remains subject to check and may never move onto an attacked square.",
+        "Losing another Queen refreshes the {durationTurns}-turn duration instead of stacking it.",
+        "The empowered King can give check and checkmate normally."
+      ],
+      "details": [
+        "The King remains subject to check and may never move onto an attacked square.",
+        "Losing another Queen refreshes the 8-turn duration instead of stacking it.",
+        "The empowered King can give check and checkmate normally."
+      ],
+      "configuredParameters": [
+        {
+          "id": "durationTurns",
+          "label": "Queen Mobility Duration",
+          "description": "Own turns for which the King's borrowed Queen mobility remains active.",
+          "default": 8,
+          "min": 1,
+          "max": 50,
+          "unit": "turn",
+          "value": 8
+        }
+      ]
+    },
+    {
+      "id": "scorch",
+      "name": "Scorch",
+      "icon": "\u2668",
+      "summary": "Wait 5 own turns before the first use, then permanently scorch an empty square up to 2 times with a 10-turn recharge.",
+      "summaryTemplate": "Wait {initialCooldownTurns} own turn(s) before the first use, then permanently scorch an empty square up to {usesPerGame} time(s) with a {cooldownTurns}-turn recharge.",
+      "cooldownTurns": 10,
+      "cooldownTurnsParameter": "cooldownTurns",
+      "initialCooldownDivisor": 2,
+      "usageLimit": 2,
+      "usageLimitParameter": "usesPerGame",
+      "tunableParameters": [
+        {
+          "id": "cooldownTurns",
+          "label": "Recharge",
+          "description": "Own turns between uses. The first use opens after half this value, rounded up.",
+          "default": 10,
+          "min": 0,
+          "max": 50,
+          "unit": "turn"
+        },
+        {
+          "id": "usesPerGame",
+          "label": "Uses Per Game",
+          "description": "Squares each player may scorch. The default is the square root of board area divided by four, rounded to the nearest whole use.",
+          "default": 2,
+          "min": 1,
+          "max": 256,
+          "unit": "use",
+          "dynamicDefault": "board_sqrt_quarter"
+        },
+        {
+          "id": "minimumGap",
+          "label": "Minimum Gap",
+          "description": "Clear squares required in every direction around an existing scorched square.",
+          "default": 1,
+          "min": 0,
+          "max": 15,
+          "unit": "square"
+        }
+      ],
+      "detailTemplates": [
+        "The first use becomes available after {initialCooldownTurns} own turn(s).",
+        "Only an empty, unscorched square may be selected.",
+        "A scorched square cannot be occupied and blocks normal sliding movement.",
+        "Jumping pieces and projectiles may cross it, but no piece may land on it.",
+        "New scorched squares must remain more than {minimumGap} square(s) away in every direction from existing scorched squares.",
+        "Each player has {usesPerGame} use(s), and every activation starts a {cooldownTurns}-turn recharge."
+      ],
+      "details": [
+        "The first use becomes available after 5 own turns.",
+        "Only an empty, unscorched square may be selected.",
+        "A scorched square cannot be occupied and blocks normal sliding movement.",
+        "Jumping pieces and projectiles may cross it, but no piece may land on it.",
+        "New scorched squares must remain more than 1 square away in every direction from existing scorched squares.",
+        "Each player has 2 uses, and every activation starts a 10-turn recharge."
+      ],
+      "initialCooldownTurns": 5,
+      "configuredParameters": [
+        {
+          "id": "cooldownTurns",
+          "label": "Recharge",
+          "description": "Own turns between uses. The first use opens after half this value, rounded up.",
+          "default": 10,
+          "min": 0,
+          "max": 50,
+          "unit": "turn",
+          "value": 10
+        },
+        {
+          "id": "usesPerGame",
+          "label": "Uses Per Game",
+          "description": "Squares each player may scorch. The default is the square root of board area divided by four, rounded to the nearest whole use.",
+          "default": 2,
+          "min": 1,
+          "max": 256,
+          "unit": "use",
+          "dynamicDefault": "board_sqrt_quarter",
+          "value": 2
+        },
+        {
+          "id": "minimumGap",
+          "label": "Minimum Gap",
+          "description": "Clear squares required in every direction around an existing scorched square.",
+          "default": 1,
+          "min": 0,
+          "max": 15,
+          "unit": "square",
+          "value": 1
+        }
+      ]
+    }
+  ],
+  "victoryModes": [
+    {
+      "id": "checkmate",
+      "name": "Classic Checkmate",
+      "icon": "\u265a",
+      "summary": "Win by checking the enemy King with no legal escape."
+    },
+    {
+      "id": "king_capture",
+      "name": "King Capture",
+      "icon": "\u2694",
+      "summary": "Kings may be captured directly; taking one wins immediately."
+    },
+    {
+      "id": "timed",
+      "name": "Timed Match",
+      "icon": "\u23f1",
+      "summary": "Each player has a chess clock. Running out of time loses the game."
+    },
+    {
+      "id": "point_race",
+      "name": "Point Race",
+      "icon": "\u2605",
+      "summary": "The first player to reach the configured captured-piece score wins."
+    },
+    {
+      "id": "elimination",
+      "name": "Total Elimination",
+      "icon": "\u2716",
+      "summary": "Remove every opposing combat piece; uncapturable Diplomats do not count."
+    },
+    {
+      "id": "royal_score",
+      "name": "Royal Score",
+      "icon": "\u265b",
+      "summary": "Royal defeat ends play, but the player with the higher score wins."
+    },
+    {
+      "id": "center_dominion",
+      "name": "Center Dominion",
+      "icon": "\u25c6",
+      "summary": "Hold both center squares assigned to your color through the configured number of consecutive opponent turns. The marked center starts empty except for Barricades. Checkmate also wins."
+    },
+    {
+      "id": "royal_center",
+      "name": "Royal Center",
+      "icon": "\u2654",
+      "summary": "Move your King onto any of the four adaptive center squares. The marked center starts empty except for Barricades. Checkmate also wins."
+    },
+    {
+      "id": "check_race",
+      "name": "Check Race",
+      "icon": "!",
+      "summary": "Be the first player to check the opposing King the configured number of times. Checkmate also wins."
+    }
+  ],
+  "gambit": {
+    "name": "Chass Gambit",
+    "icon": "\u2691",
+    "summary": "A hidden army-building system that can be combined with custom pieces, board sizes, victory rules, and special abilities.",
+    "details": [
+      "Each player edits only the configured home rows.",
+      "Each army must contain exactly one King and stay within its point limit.",
+      "Armies remain hidden until both players lock in.",
+      "Optional custom rules can add affinity squares and command powers."
+    ],
+    "draftDetails": [
+      "Each army begins with its required King already assigned.",
+      "Players alternate public selections of the remaining pieces from one shared pool.",
+      "A player may lock below the maximum point budget at any time.",
+      "After both players lock, each army is arranged privately in its home rows."
+    ]
+  }
+}
