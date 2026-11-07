@@ -1,9 +1,33 @@
 # Scanner Accuracy Tracker
 
-Last recorded: **2026-11-06**. Current classifier trained: **2026-11-06**;
+Last recorded: **2026-11-07**. Current classifier trained: **2026-11-06**;
 detector remains the **2026-10-25** checkpoint.
 This log separates measurable piece-box diagnostics from future square-level
 accuracy. Historical snapshots below remain intact.
+
+## Product Review And Evaluation: 2026-11-07
+
+Production weights and thresholds are unchanged. New linked photo/square review,
+correction audit and timing capture support measuring the actual import workflow.
+Verified-board reports now include class confusion, misses/inventions, occupancy
+precision/recall, exact squares/boards, required corrections and review-flag quality.
+These metrics remain **unmeasured on real boards** until verified labels are collected.
+
+Offline results and decisions:
+
+- Frozen DINO ViT-S/8 plus a small ridge head: 88.15% versus current ResNet18 96.09%
+  on the same 768 class-capped validation crops. DINO was slower in this limited
+  local pilot and was **not promoted**. Unequal training budgets mean this is not
+  a general architecture ranking or an improvement over the full benchmark below.
+- Calibration blocked: 12,862 validation crops represent only two independent
+  capture groups. Do not split correlated crops to manufacture a calibration holdout.
+- Unchanged ONNX pipeline, 30-photo local CPU check: median 153.03 ms, p95 238.47 ms.
+  This is not a public-server measurement or a claimed speed improvement.
+- Geometry and lower-threshold missing-piece review experiments are implemented
+  offline but cannot be selected without verified 64-square validation boards.
+
+Details, source fingerprints and limitations:
+[2026-11-07 checkpoint](benchmarks/product-scanner-2026-11-07/README.md).
 
 ## Latest Improvement: King-Focused Fine-Tuning And Recall
 

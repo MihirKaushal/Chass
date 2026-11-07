@@ -3,6 +3,7 @@
 Chass! is a full-stack browser chess platform for classic games and configurable chess
 variants. It supports local two-player games, three-engine computer opponents, private
 link-or-code multiplayer, custom boards and pieces, modular rules, and real-time synchronization.
+Its AI Board Scanner turns a physical-board photo into a reviewed, playable position.
 
 **Live site:** [https://playchass.vercel.app](https://playchass.vercel.app)
 
@@ -27,13 +28,17 @@ link-or-code multiplayer, custom boards and pieces, modular rules, and real-time
 - Manual or automatic board flipping
 - Automatic cleanup after 24 hours without game activity
 - Responsive React interface for desktop and mobile
+- Computer-vision board import with linked photo inspection, uncertain-piece alternatives, and manual correction
 
-## Board Scanner Research
+## AI Board Scanner
 
 The **Scanner** tab opens `/scanner`, with photo upload, camera capture, crop/rotation,
-ranked alternatives for uncertain pieces, and manual board correction. Confirm turn,
+linked square/photo inspection, ranked alternatives for uncertain pieces, and manual board correction. Confirm turn,
 castling, en passant, and optional draw counters, then continue locally or through
 an online invite. Scanned-position bot games are not enabled yet.
+Collapsed Scan Details exposes model fingerprints, corrections, and separate startup,
+setup, and inference timings without crowding the play workflow. The Rulebook includes
+a dated performance chart and limitations, not a misleading per-photo accuracy claim.
 A separate [ML pipeline](scanner/ml/README.md) combines
 an SSDLite piece detector with a ResNet18 crop classifier and generates versioned
 evaluation reports. Recognition uses a separate model service behind a bounded,
@@ -50,6 +55,8 @@ See the [Scanner Workspace](scanner/README.md) for organized raw/curated dataset
 reviewed label cleanup, deduplication, capture-grouped splits, and audit reports.
 The [trained Chess V2 baseline](scanner/ml/CHESS_V2_MODEL_CARD.md) records its
 configuration, held-out metrics, error analysis, and reproducible local commands.
+The [scanner quality guide](scanner/QUALITY.md) records the evaluation workflow,
+offline comparison tools, promotion criteria, and next data-collection steps.
 
 ## Tech Stack
 
@@ -59,6 +66,7 @@ configuration, held-out metrics, error analysis, and reproducible local commands
 | Frontend | React 18, React Hooks, Vite 5, native WebSocket API |
 | Backend | FastAPI, Uvicorn, Pydantic 2 |
 | Analysis | Stockfish 18, Fairy-Stockfish, handcrafted evaluation, alpha-beta search, UCI, NNUE, W/D/L statistics |
+| Computer vision | PyTorch/torchvision training, SSDLite, ResNet18, ONNX Runtime server/browser inference, NumPy, Pillow |
 | Database | Cloud Firestore, Firebase Admin SDK, SQLAlchemy 2, SQLite |
 | Testing and quality | Pytest, HTTPX, Ruff, Vite production builds |
 | Hosting | Vercel, Render, Firebase |
