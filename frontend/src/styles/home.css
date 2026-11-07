@@ -5,6 +5,25 @@
   padding: clamp(1rem, 4vw, 3rem);
 }
 
+.home-page .landing-shell { padding: var(--space-4); }
+.home-page .landing-hero { padding: clamp(1.2rem, 2vw, 2rem); }
+.home-page .landing-mode-nav { margin-bottom: var(--space-4); }
+.home-page .landing-copy h1 { font-size: clamp(2.6rem, 6vw, 4.5rem); }
+.home-page .landing-copy p { margin-top: var(--space-3); font-size: 1rem; line-height: 1.5; }
+.home-page .mode-choice-grid { margin-top: var(--space-4); }
+.home-page .mode-choice-card { min-height: 0; padding: var(--space-4); }
+.home-page .mode-choice-actions { padding-top: var(--space-3); }
+.home-page .scanner-feature-card { padding: var(--space-4); margin-top: var(--space-4); }
+.home-page .scanner-feature-illustration { width: 120px; }
+
+/* Keep the default home screen and footer visible on laptop-height viewports. */
+@media (min-width: 900px) and (max-height: 850px) {
+  .home-page .landing-hero { padding: var(--space-5); }
+  .home-page .landing-copy h1 { font-size: 3.6rem; }
+  .home-page .landing-mode-nav { margin-bottom: var(--space-3); }
+  .home-page .scanner-feature-illustration { width: 96px; }
+}
+
 .landing-hero {
   width: min(1060px, 100%);
   position: relative;

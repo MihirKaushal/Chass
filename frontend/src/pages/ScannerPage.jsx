@@ -379,6 +379,21 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
               Scanner Guide
             </AppLink>
           </div>
+          <fieldset className="scanner-workflow scanner-connection-controls" disabled={creating}>
+            <ScannerServiceStatus
+              status={serviceStatus}
+              onRetry={() => setConnectionRetry((value) => value + 1)}
+            />
+            <Disclosure className="scanner-runtime-options" summary="Recognition Options">
+              <label className="scanner-runtime-toggle">
+                <input type="checkbox" checked={onDevice} disabled={busy || !browserScannerSupported()}
+                  onChange={(event) => setOnDevice(event.target.checked)} />
+                Try on-device recognition
+              </label>
+              <p>Downloads models once (about 52 MB, plus the runtime). Speed depends on your device.
+                If it fails, your prepared photo is sent to the server instead. Review all squares either way.</p>
+            </Disclosure>
+          </fieldset>
           <ol className="scanner-progress" aria-label="Scanner progress">
             {["Prepare Photo", "Review Pieces", "Confirm Position"].map(
               (label, index) => (
@@ -407,20 +422,6 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
           </ol>
         </header>
         <fieldset className="scanner-workflow" disabled={creating}>
-          <ScannerServiceStatus
-            status={serviceStatus}
-            onRetry={() => setConnectionRetry((value) => value + 1)}
-          />
-          <Disclosure className="scanner-label-export scanner-runtime-options" summary="Recognition Options">
-            <label className="scanner-runtime-toggle">
-              <input type="checkbox" checked={onDevice} disabled={busy || !browserScannerSupported()}
-                onChange={(event) => setOnDevice(event.target.checked)} />
-              Try on-device recognition
-            </label>
-            <p>Downloads models once (about 52 MB, plus the runtime). Speed depends on your device.
-              If it fails, your prepared photo is sent to the server instead. Review all squares either way.</p>
-          </Disclosure>
-
           {scan && board ? <ScannerScanDetails scan={scan} board={board}
             reviewSquares={reviewSquares} confirmed={confirmed} reviewMs={reviewMs}
             showDetections={showDetections} onShowDetections={setShowDetections} /> : null}

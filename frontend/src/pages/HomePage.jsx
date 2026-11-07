@@ -76,7 +76,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
   if (creatingMode) return <PageSkeleton variant="play" />;
 
   return (
-    <div className="page-frame">
+    <div className="page-frame home-page">
       <main className="landing-shell">
         <section className="landing-hero">
           <LandingNav active="home" onHome={() => {}} onCustomize={onCustomize} />
@@ -98,7 +98,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
                 <span className="mode-choice-icon"><RoomIcon type="local" /></span>
                 <h2>Local Room</h2>
               </header>
-              <p>Pass one screen between players. No invite required.</p>
+              <p>Pass one screen between players.</p>
               <div className="mode-choice-actions">
                 <Button
                   disabled={Boolean(creatingMode)}
@@ -125,7 +125,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
                 <span className="mode-choice-icon"><RoomIcon type="online" /></span>
                 <h2>Online Room</h2>
               </header>
-              <p>Create a private link and play from two browsers, anywhere.</p>
+              <p>Create a private link and play from two browsers.</p>
               <div className="mode-choice-actions">
                 <Button
                   disabled={Boolean(creatingMode)}

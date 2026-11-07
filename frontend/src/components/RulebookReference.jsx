@@ -39,7 +39,7 @@ function referenceDraft(catalog) {
 }
 
 function DefaultMarker({ visible = false }) {
-  return visible ? <small className="rulebook-default-marker">Default</small> : null;
+  return visible ? <sup className="rulebook-default-marker" title="Default value" aria-label="Default value">*</sup> : null;
 }
 
 function ConfiguredParameterList({ parameters, markDefaults = false }) {
@@ -237,7 +237,7 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
 
       {markDefaults ? (
         <p className="rulebook-default-note">
-          <DefaultMarker visible /> marks the starting value. These values can be changed in the Game Customizer.
+          <DefaultMarker visible /> Starting value; editable in the Game Customizer.
         </p>
       ) : null}
 

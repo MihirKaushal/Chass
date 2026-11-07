@@ -6,7 +6,7 @@
   align-items: center;
   gap: 1rem;
   flex-wrap: wrap;
-  margin-bottom: 1.25rem;
+  margin-bottom: var(--page-nav-gap);
   padding: 1rem 1.25rem;
   background: var(--panel);
   border: 2px solid rgba(26, 54, 93, 0.2);

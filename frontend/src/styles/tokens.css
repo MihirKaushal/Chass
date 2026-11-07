@@ -36,6 +36,11 @@
   --space-8: 2rem;
   --space-10: 2.5rem;
   --space-12: 3rem;
+  --page-max-width: 1540px;
+  --page-gutter: 1rem;
+  --page-content-width: min(var(--page-max-width), calc(100% - 2 * var(--page-gutter)));
+  --page-top-space: 1rem;
+  --page-nav-gap: 1rem;
   --radius-sm: 8px;
   --radius-control: 10px;
   --radius-md: 12px;

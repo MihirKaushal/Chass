@@ -1,14 +1,14 @@
 /* Unified game customizer */
 .customize-page-shell {
-  width: min(1580px, calc(100% - 2rem));
+  width: var(--page-content-width);
   min-width: 0;
   margin: 0 auto;
-  padding: 1rem 0 4rem;
+  padding: var(--page-top-space) 0 var(--space-6);
 }
 
 .customize-page-shell > .landing-mode-nav {
   width: fit-content;
-  margin: 0 auto 1rem;
+  margin: 0 0 var(--page-nav-gap);
   border: 1px solid var(--border-subtle);
   box-shadow: 0 8px 18px rgba(26, 54, 93, 0.1);
 }
