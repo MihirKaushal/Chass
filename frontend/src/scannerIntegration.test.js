@@ -65,6 +65,46 @@ test("rulebook includes a searchable scanner section and return link", async () 
   assert.match(html, /experimental/);
 });
 
+test("rulebook first render includes the full reference without waiting for any API", async () => {
+  const previousFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = () => {
+    requests += 1;
+    throw new Error("Backend is unavailable");
+  };
+  try {
+    const html = await markup("/src/pages/RulebookPage.jsx");
+    for (const section of ["match-analysis", "bots", "scanner", "pieces", "victory", "custom-rules", "abilities", "gambit"]) {
+      assert.match(html, new RegExp(`id="rulebook-${section}"`));
+      assert.match(html, new RegExp(`href="#rulebook-${section}"`));
+    }
+    for (const entry of ["Catapult", "Necromancy", "Royal Center", "Chass Gambit"]) {
+      assert.ok(html.includes(entry), entry);
+    }
+    assert.match(html, /aria-label="Default value">\*<\/sup>/);
+    assert.match(html, /Starting value; editable in the Game Customizer/);
+    assert.doesNotMatch(html, /skeleton|rulebook-load-error|>Default<\/span>/);
+    assert.equal(requests, 0);
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("shared footer links the developer name to GitHub", async () => {
+  const html = await markup("/src/components/SiteFooter.jsx");
+  assert.match(html, /Developed by <a href="https:\/\/github.com\/MihirKaushal">Mihir Kaushal<\/a>/);
+});
+
+test("home keeps concise room descriptions and exposes the scanner", async () => {
+  const html = await markup("/src/pages/HomePage.jsx");
+  assert.match(html, /Pass one screen between players\.<\/p>/);
+  assert.match(html, /Create a private link and play from two browsers\.<\/p>/);
+  assert.match(html, /Continue Your Physical Game/);
+  assert.match(html, /class="page-frame home-page"/);
+  assert.match(html, /class="site-footer"/);
+  assert.doesNotMatch(html, /No invite required|anywhere/);
+});
+
 test("scanner status and future game controls do not imply unavailable features work", async () => {
   const offline = await markup(
     "/src/components/scanner/ScannerServiceStatus.jsx",
@@ -108,6 +148,13 @@ test("scanner page leaves experimental labeling to the rulebook", async () => {
     assert.match(html, /Scanner Guide/);
     assert.match(html, /your prepared photo is sent to the server instead/);
     assert.doesNotMatch(html, /experimental/i);
+    const hero = html.match(/<header class="scanner-hero">([\s\S]*?)<\/header>/)?.[1];
+    assert.ok(hero, "Scanner retains one main header");
+    assert.match(hero, /scanner-service-status/);
+    assert.match(hero, /Recognition Options/);
+    assert.match(hero, /Scanner progress/);
+    assert.equal((html.match(/Recognition Options/g) || []).length, 1);
+    assert.equal((html.match(/scanner-service-status/g) || []).length, 1);
   } finally {
     if (previousWindow) Object.defineProperty(globalThis, "window", previousWindow);
     else delete globalThis.window;
@@ -238,5 +285,15 @@ test("rulebook performance is collapsed and does not imply board accuracy or cal
   assert.match(html, /97\.95%/);
   assert.match(html, /This is not whole-board accuracy/);
   assert.match(html, /not yet measured/);
+  assert.match(html, /89\.59%/);
+  assert.match(html, /91\.47%/);
+  assert.match(html, /1\.88%/);
+  assert.match(html, /8\.53%/);
+  assert.match(html, /149 extra detections/);
+  assert.match(html, /6,283/);
+  assert.match(html, /ResNet18/);
+  assert.match(html, /intersection over union/);
+  assert.match(html, /regression results, not a fresh test/);
+  assert.match(html, /not calibrated probabilities/);
   assert.doesNotMatch(html, /<details[^>]* open/);
 });

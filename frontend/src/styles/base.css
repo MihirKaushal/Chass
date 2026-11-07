@@ -46,6 +46,7 @@ textarea:focus-visible {
 
 .page-frame {
   min-height: 100vh;
+  min-height: 100dvh;
   display: flex;
   flex-direction: column;
 }
@@ -59,7 +60,8 @@ textarea:focus-visible {
 }
 
 .site-footer {
-  width: min(1580px, calc(100% - 2rem));
+  width: var(--page-content-width);
+  flex-shrink: 0;
   margin: auto auto 0;
   padding: 0.8rem 0 1rem;
   color: rgba(26, 54, 93, 0.68);
@@ -68,6 +70,20 @@ textarea:focus-visible {
   font-weight: 600;
   letter-spacing: 0.03em;
   text-align: left;
+}
+
+.site-footer a {
+  color: inherit;
+  text-decoration-color: var(--border-accent);
+  text-underline-offset: 0.2em;
+}
+
+.site-footer a:hover { color: var(--accent); }
+
+.app-shell.page-frame {
+  width: var(--page-content-width);
+  max-width: none;
+  padding: var(--page-top-space) 0 0;
 }
 
 .app-shell.page-frame .site-footer {

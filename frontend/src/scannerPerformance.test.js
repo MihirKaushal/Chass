@@ -19,3 +19,13 @@ test("published piece-progress chart reproduces saved box-level benchmark counts
   assert.equal(SCANNER_PERFORMANCE.correctAll, current.correct_type_color);
   assert.equal(SCANNER_PERFORMANCE.photos, original.baseline.images);
 });
+
+test("real-piece outcomes partition the benchmark and exclude hallucinated detections", () => {
+  const data = SCANNER_PERFORMANCE;
+  const current = data.history.at(-1);
+  const wrongLabel = current.located - data.correctAll;
+  assert.equal(wrongLabel, 118);
+  assert.equal(data.correctAll + wrongLabel + data.missed, data.pieces);
+  assert.equal(data.pieces - data.missed, current.located);
+  assert.equal((data.correctAll / data.pieces * 100).toFixed(2), "89.59");
+});
