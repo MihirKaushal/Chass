@@ -200,3 +200,43 @@ test("optional history controls reflect the controlled position and block unreso
   assert.match(html, /Halfmove clock/);
   assert.match(html, /type="checkbox" disabled=""/);
 });
+
+test("home scanner card is same-tab and does not add a research product", async () => {
+  const html = await markup("/src/components/scanner/ScannerFeatureCard.jsx");
+  assert.match(html, /Continue Your Physical Game/);
+  assert.match(html, /href="\/scanner"/);
+  assert.doesNotMatch(html, /target="_blank"|Research|experimental/);
+});
+
+test("selected photo crops use logical board coordinates even for an empty square", async () => {
+  const html = await markup("/src/components/scanner/ScannerBoardReview.jsx", {
+    board: Array.from({ length: 8 }, () => Array(8).fill(null)),
+    reviewSquares: [], selectedSquare: { row: 7, col: 7 }, photoUrl: "blob:prepared",
+    scan: { squareCandidates: [] },
+  });
+  assert.match(html, /Photo crop of h1/);
+  assert.match(html, /viewBox="7 7 1 1"/);
+  assert.match(html, /href="blob:prepared"/);
+});
+
+test("scan details start collapsed and distinguish server wait from inference", async () => {
+  const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+  const html = await markup("/src/components/scanner/ScannerScanDetails.jsx", {
+    scan: { board, runtime: "onnx", inferenceMs: 100,
+      clientTimings: { connectionMs: 1000, requestMs: 200, totalMs: 1200 } },
+    board, reviewSquares: [], confirmed: false, showDetections: false,
+  });
+  assert.match(html, /Scan Details/);
+  assert.match(html, /100 ms/);
+  assert.match(html, /Connection \/ startup wait/);
+  assert.match(html, /not measured probabilities/);
+  assert.doesNotMatch(html, /<details[^>]* open|Review complete|Active review time/);
+});
+
+test("rulebook performance is collapsed and does not imply board accuracy or calibrated scores", async () => {
+  const html = await markup("/src/components/scanner/ScannerPerformance.jsx");
+  assert.match(html, /97\.95%/);
+  assert.match(html, /This is not whole-board accuracy/);
+  assert.match(html, /not yet measured/);
+  assert.doesNotMatch(html, /<details[^>]* open/);
+});

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import { matchesRulebookSearch } from "../rulebookSearch";
 import { SCANNER_REFERENCE } from "../scannerReference";
+import ScannerPerformance from "./scanner/ScannerPerformance";
 import AppLink from "./AppLink";
 import {
   effectiveCatalogEntry,
@@ -306,6 +307,7 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
                 </article>
               ))}
             </div>
+            <ScannerPerformance />
             <AppLink href="/scanner" className="ui-button ui-button--secondary rulebook-scanner-link">
               Open Board Scanner
             </AppLink>

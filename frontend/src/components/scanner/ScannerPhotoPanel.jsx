@@ -6,6 +6,7 @@ import Disclosure from "../ui/Disclosure";
 import ScannerCameraDialog from "./ScannerCameraDialog";
 import ScannerIcon from "./ScannerIcon";
 import ScannerImageEditor from "./ScannerImageEditor";
+import { ScannerPhotoEvidence } from "./ScannerPhotoEvidence";
 import { downloadScannerFile } from "../../scannerApi";
 
 const PHOTO_TIPS = [
@@ -32,6 +33,9 @@ function ScannerPhotoPanel({
   onPhotoChange,
   busy = false,
   serviceAvailable = false,
+  scan = null,
+  selectedSquare = null,
+  showDetections = false,
 }) {
   const uploadRef = useRef(null);
   const [cameraOpen, setCameraOpen] = useState(false);
@@ -132,7 +136,8 @@ function ScannerPhotoPanel({
       >
         {previewUrl ? (
           <>
-            <img
+            {scan ? <ScannerPhotoEvidence src={previewUrl} scan={scan}
+              selectedSquare={selectedSquare} showDetections={showDetections} /> : <img
               className="scanner-photo-preview"
               src={previewUrl}
               alt="Uploaded physical chessboard for review"
@@ -142,7 +147,7 @@ function ScannerPhotoPanel({
                   "This image could not be opened. Try another JPG, PNG, or WebP photo.",
                 );
               }}
-            />
+            />}
             <IconCloseButton
               className="scanner-remove-photo"
               label="Remove photo"

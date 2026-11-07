@@ -6,6 +6,8 @@ import ScannerContinuePanel from "../components/scanner/ScannerContinuePanel";
 import ScannerIcon from "../components/scanner/ScannerIcon";
 import ScannerPhotoPanel from "../components/scanner/ScannerPhotoPanel";
 import ScannerServiceStatus from "../components/scanner/ScannerServiceStatus";
+import ScannerScanDetails from "../components/scanner/ScannerScanDetails";
+import { createReviewClock } from "../scannerInsights";
 import { scannerPreviewPiece } from "../components/scanner/scannerPreview";
 import SiteFooter from "../components/SiteFooter";
 import LandingNav from "../components/LandingNav";
@@ -37,6 +39,12 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
   const [boardHistory, setBoardHistory] = useState([]);
   const [confirmed, setConfirmed] = useState(false);
   const [scan, setScan] = useState(null);
+  const [preparedPhoto, setPreparedPhoto] = useState(null);
+  const [photoUrl, setPhotoUrl] = useState("");
+  const [selectedSquare, setSelectedSquare] = useState(null);
+  const [showDetections, setShowDetections] = useState(false);
+  const [reviewMs, setReviewMs] = useState(0);
+  const reviewClock = useRef(null);
   const [busy, setBusy] = useState(false);
   const [onDevice, setOnDevice] = useState(false);
   const [recognitionStatus, setRecognitionStatus] = useState("");
@@ -62,6 +70,26 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
   );
   const wakeUrl = scannerWakeUrl(serviceUrl, import.meta.env.VITE_SCANNER_WAKE_URL || "");
   const currentStep = !board ? 0 : !reviewSquares.length ? 2 : 1;
+
+  useEffect(() => {
+    if (!preparedPhoto) { setPhotoUrl(""); return undefined; }
+    const url = URL.createObjectURL(preparedPhoto);
+    setPhotoUrl(url);
+    return () => URL.revokeObjectURL(url);
+  }, [preparedPhoto]);
+
+  useEffect(() => {
+    if (!scan) return undefined;
+    const clock = reviewClock.current;
+    const update = () => {
+      if (document.hidden || confirmed || busy) clock.pause();
+      else clock.resume();
+    };
+    update();
+    setReviewMs(clock.elapsed());
+    document.addEventListener("visibilitychange", update);
+    return () => { clock.pause(); document.removeEventListener("visibilitychange", update); };
+  }, [scan, confirmed, busy]);
 
   useEffect(() => {
     if (!scan) return undefined;
@@ -167,6 +195,11 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     setBusy(false);
     setError("");
     setScan(null);
+    setPreparedPhoto(null);
+    setSelectedSquare(null);
+    setShowDetections(false);
+    reviewClock.current = null;
+    setReviewMs(0);
     setBoard(null);
     setBoardHistory([]);
     setReviewSquares([]);
@@ -186,31 +219,47 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     setConfirmed(false);
     setError("");
     let timeout;
+    const started = performance.now();
+    const clientTimings = {};
     try {
       const result = addKingReviewHints(await recognizeWithFallback({
         enabled: onDevice, file, signal: controller.signal,
         onStatus: (message) => {
           if (requestRef.current === controller) setRecognitionStatus(message);
         },
-        browser: recognizeInBrowser,
+        browser: async (...args) => {
+          const attempt = performance.now();
+          try { return await recognizeInBrowser(...args); }
+          catch (failure) { clientTimings.fallbackMs = performance.now() - attempt; throw failure; }
+        },
         server: async () => {
           // A prepared photo may sit open long enough for the model to fall asleep.
+          const connectionStarted = performance.now();
           const status = await waitForScanner(serviceUrl, {
             signal: controller.signal, wakeUrl,
             onStatus: (next) => {
               if (requestRef.current === controller) setServiceStatus(next);
             },
           });
+          clientTimings.connectionMs = performance.now() - connectionStarted;
           controller.signal.throwIfAborted();
           if (requestRef.current === controller) setServiceStatus(status);
           if (status !== "ready") throw new Error("Scanner unavailable. Retry Connection, then scan again.");
           if (requestRef.current === controller) setRecognitionStatus("Recognizing pieces...");
           timeout = window.setTimeout(() => controller.abort(), 90000);
-          return recognizePhoto(serviceUrl, file, controller.signal);
+          const requestStarted = performance.now();
+          const response = await recognizePhoto(serviceUrl, file, controller.signal);
+          clientTimings.requestMs = performance.now() - requestStarted;
+          return response;
         },
       }));
       if (requestRef.current !== controller) return;
-      setScan(result);
+      clientTimings.totalMs = performance.now() - started;
+      setScan({ ...result, clientTimings });
+      setPreparedPhoto(file);
+      setSelectedSquare(result.reviewSquares[0] || null);
+      reviewClock.current = createReviewClock();
+      setReviewMs(0);
       setBoard(scanBoard(result));
       setReviewSquares(result.reviewSquares);
       setBoardHistory([]);
@@ -372,6 +421,10 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
               If it fails, your prepared photo is sent to the server instead. Review all squares either way.</p>
           </Disclosure>
 
+          {scan && board ? <ScannerScanDetails scan={scan} board={board}
+            reviewSquares={reviewSquares} confirmed={confirmed} reviewMs={reviewMs}
+            showDetections={showDetections} onShowDetections={setShowDetections} /> : null}
+
           <div
             className={`scanner-workspace${board ? "" : " scanner-workspace-initial"}`}
           >
@@ -380,11 +433,17 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
               onPhotoChange={invalidateScan}
               busy={busy}
               serviceAvailable={serviceStatus === "ready" || onDevice}
+              scan={scan}
+              selectedSquare={selectedSquare}
+              showDetections={showDetections}
             />
             {board ? (
               <fieldset className="scanner-workflow" disabled={busy}>
                 <ScannerBoardReview
                   scan={scan}
+                  photoUrl={photoUrl}
+                  selectedSquare={selectedSquare}
+                  onSelectSquare={setSelectedSquare}
                   issueSquares={issueSquares}
                   board={board}
                   reviewSquares={reviewSquares}
@@ -451,7 +510,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                   variant="secondary"
                   disabled={!confirmed || reviewSquares.length > 0}
                   onClick={() => {
-                    const labels = reviewedBoardLabels(scan, board);
+                    const labels = reviewedBoardLabels(scan, board, { reviewMs: reviewClock.current?.elapsed() });
                     downloadScannerFile(
                       new Blob([JSON.stringify(labels, null, 2)], {
                         type: "application/json",
@@ -475,6 +534,9 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                 onRetry={() => setValidationRetry((value) => value + 1)}
                 onIssue={(issue) => {
                   setIssueSquares(issue.squares || []);
+                  if (issue.field === "board" && issue.squares?.length) {
+                    setSelectedSquare(issue.squares[0]);
+                  }
                   document
                     .getElementById(
                       issue.field === "board"

@@ -6,6 +6,7 @@ import Button from "../ui/Button";
 import ScannerIcon from "./ScannerIcon";
 import { SCANNER_PIECES } from "./scannerPreview";
 import { squareAlternatives } from "../../scannerReview";
+import { ScannerSquareCrop } from "./ScannerPhotoEvidence";
 
 function ScannerBoardReview({
   board,
@@ -16,13 +17,16 @@ function ScannerBoardReview({
   canUndo,
   onReset,
   scan,
+  photoUrl,
+  selectedSquare: controlledSquare,
+  onSelectSquare,
   issueSquares = [],
 }) {
   const [flipped, setFlipped] = useState(false);
   const [tool, setTool] = useState(null);
-  const [selectedSquare, setSelectedSquare] = useState(
-    () => reviewSquares[0] || null,
-  );
+  const [localSquare, setLocalSquare] = useState(() => reviewSquares[0] || null);
+  const selectedSquare = controlledSquare === undefined ? localSquare : controlledSquare;
+  const setSelectedSquare = onSelectSquare || setLocalSquare;
   const selectedLabel = selectedSquare
     ? `${String.fromCharCode(97 + selectedSquare.col)}${8 - selectedSquare.row}`
     : "";
@@ -116,13 +120,14 @@ function ScannerBoardReview({
         </h3>
         {selectedSquare ? (
           <>
+            <ScannerSquareCrop src={photoUrl} square={selectedSquare} />
             {review?.reasons?.map((reason) => (
               <p key={reason}>{reason}</p>
             ))}
             {alternatives.length ? (
               <>
                 <p>
-                  Choose the piece in your photo. Percentages show model confidence.
+                  Choose the piece in your photo. Percentages are model scores, not calibrated probabilities.
                 </p>
                 <div className="scanner-alternative-options">
                   {alternatives.map((option) => (
