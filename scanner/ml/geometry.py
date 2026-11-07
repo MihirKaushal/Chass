@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import math
-from collections import defaultdict
+from collections import Counter, defaultdict
 
 from .data import CLASSES
 
@@ -95,6 +95,8 @@ def square_metrics(predicted_boards, actual_boards):
         invented=0,
     )
     allowed = {None, *CLASSES[1:]}
+    confusion = Counter()
+    errors_per_board = []
     for predicted, actual in zip(predicted_boards, actual_boards, strict=True):
         for board in (predicted, actual):
             if (
@@ -104,6 +106,13 @@ def square_metrics(predicted_boards, actual_boards):
             ):
                 raise ValueError("Each verified board must have 64 valid class/empty labels.")
         counts["exact_boards"] += predicted == actual
+        errors_per_board.append(
+            sum(
+                a != b
+                for ar, pr in zip(actual, predicted, strict=True)
+                for a, b in zip(ar, pr, strict=True)
+            )
+        )
         for expected_row, found_row in zip(actual, predicted, strict=True):
             for expected, found in zip(expected_row, found_row, strict=True):
                 counts["squares"] += 1
@@ -113,6 +122,29 @@ def square_metrics(predicted_boards, actual_boards):
                 counts["occupied_correct"] += expected is not None and expected == found
                 counts["missed"] += expected is not None and found is None
                 counts["invented"] += expected is None and found is not None
+                confusion[expected or "empty", found or "empty"] += 1
+
+    def ratio(n, d):
+        return n / d if d else None
+
+    located = counts["occupied"] - counts["missed"]
+    per_class = []
+    for label in CLASSES[1:]:
+        support = sum(n for (a, _), n in confusion.items() if a == label)
+        predictions = sum(n for (_, p), n in confusion.items() if p == label)
+        correct = confusion[label, label]
+        per_class.append(
+            {
+                "class": label,
+                "support": support,
+                "predicted": predictions,
+                "correct": correct,
+                "recall": ratio(correct, support),
+                "precision": ratio(correct, predictions),
+                "missed": confusion[label, "empty"],
+                "invented": confusion["empty", label],
+            }
+        )
     return {
         **counts,
         "boards": len(actual_boards),
@@ -122,4 +154,13 @@ def square_metrics(predicted_boards, actual_boards):
         else None,
         "overall_13_class_square_accuracy": counts["exact_correct"] / counts["squares"],
         "exact_board_accuracy": counts["exact_boards"] / len(actual_boards),
+        "occupancy_recall": ratio(located, counts["occupied"]),
+        "occupancy_precision": ratio(located, located + counts["invented"]),
+        "conditional_occupied_type_color_accuracy": ratio(counts["occupied_correct"], located),
+        "errors_per_board": errors_per_board,
+        "mean_corrections_per_board": sum(errors_per_board) / len(actual_boards),
+        "per_class": per_class,
+        "confusion": [
+            {"actual": a, "predicted": p, "count": n} for (a, p), n in sorted(confusion.items())
+        ],
     }

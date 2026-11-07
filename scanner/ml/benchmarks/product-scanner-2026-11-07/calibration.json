@@ -1,0 +1,10 @@
+{
+  "status": "blocked",
+  "reason": "Need at least four independent validation groups.",
+  "validation_groups": 2,
+  "validation_crops": 12862,
+  "temperature": null,
+  "promoted": false,
+  "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+  "model_sha256": "7f7c96d7f0aa35a7388a5daa89253b9fdccf7c11c46ba664ea1579d109424ca5"
+}
