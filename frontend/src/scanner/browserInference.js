@@ -26,5 +26,8 @@ export async function inferImage(ort, sessions, image, config) {
       Object.values(output || {}).forEach((value) => value.dispose());
     }
   }
-  return assembleBoard(pieces, image.width, image.height);
+  return {
+    ...assembleBoard(pieces, image.width, image.height),
+    prediction: { boxes: pieces.map((piece) => piece.box) },
+  };
 }

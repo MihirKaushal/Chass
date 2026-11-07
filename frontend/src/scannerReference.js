@@ -9,7 +9,7 @@ export const SCANNER_REFERENCE = {
     },
     {
       title: "Review Every Square",
-      text: "Gold question marks indicate uncertain squares. Click one to see ranked alternatives and choose the piece in your photo, keep the current piece, or mark it empty. You can also use the palette and eraser to correct any square, even unflagged ones. Undo reverses edits; Restore Scan returns to the model's result. Every flagged square must be resolved, and you must check all 64 squares before continuing.",
+      text: "Select any square to highlight its location in the photo and inspect an enlarged crop. Gold markers need review; choose a suggestion, keep the current piece, or mark it empty. Use the palette and eraser for other corrections. Undo reverses edits; Restore Scan returns to recognition. Check all 64 squares, including empty ones, before continuing.",
     },
     {
       title: "Confirm The Position",
@@ -32,8 +32,16 @@ export const SCANNER_REFERENCE = {
       text: "The page checks the recognition service through the Chass game API. If it is offline or not configured, photo preparation still works; Retry Connection checks again. A cold model host may take longer for its first scan. Recognition uses a separate model service and must be configured by the site operator for public use.",
     },
     {
+      title: "Scan Details",
+      text: "The summary counts detected pieces, unresolved flags, and squares changed from the original result. Review complete means you confirmed the board, not that AI verified it. Expand Scan Details for model versions, detected outlines, corrections, and separate connection, setup, and recognition timings. Active review time excludes hidden-tab and confirmed-board time.",
+    },
+    {
+      title: "Performance & Limitations",
+      text: "The benchmark below tracks piece-recognition progress, missed pieces, and false detections. Whole-board accuracy, occupancy, review effort, and unfamiliar-set performance need independently checked 64-square labels. Model scores are not calibrated probabilities.",
+    },
+    {
       title: "Photos And Reviewed Labels",
-      text: "Photos stay in your browser until Recognize Pieces sends the cropped image through Chass to its model service. Images are processed in memory, not stored in the game database or sent to a third-party AI provider. Starting a game saves the reviewed position and game details, not the photo. Save Prepared Photo and Export Reviewed Labels download files for accuracy testing; they do not automatically train the model.",
+      text: "Server recognition sends the prepared photo through Chass and processes it in memory, without storing it or sending it to a third-party AI provider. On-device recognition downloads public models and processes locally; if it fails, it falls back to the server as described by the toggle. Starting a game saves the reviewed position, not the photo. Optional local exports include original predictions, corrections, model identifiers, and review time. Nothing is automatically uploaded for training. Exported labels must be checked again before benchmark use.",
     },
   ],
 };

@@ -4,6 +4,70 @@
   padding: 1rem 0 2rem;
 }
 
+.scanner-feature-card {
+  display: flex;
+  align-items: center;
+  gap: var(--space-5);
+  margin-top: var(--space-5);
+  padding: var(--space-5);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  background: linear-gradient(110deg, var(--surface), var(--panel));
+}
+.scanner-feature-card h2 { margin: 0; color: var(--deep); font-size: 1.2rem; }
+.scanner-feature-card p { margin: var(--space-2) 0 0; color: var(--ink-muted); line-height: 1.5; }
+.scanner-feature-card > .ui-button { flex-shrink: 0; margin-left: auto; }
+.scanner-feature-illustration { width: 150px; flex-shrink: 0; }
+.scanner-feature-illustration svg { width: 100%; stroke: var(--accent); stroke-width: 2; fill: none; }
+.scanner-feature-photo, .scanner-feature-light { fill: var(--bg); }
+.scanner-feature-dark { fill: var(--panel); }
+.scanner-feature-piece { fill: var(--accent-soft); }
+
+.scanner-scan-summary {
+  margin-bottom: var(--space-5);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  overflow: hidden;
+}
+.scanner-summary-line { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); padding: var(--space-4); min-height: 3.5rem; align-items: center; }
+.scanner-summary-line > span { font-size: var(--text-sm); }
+.scanner-reviewed-label { color: var(--success); font-weight: 600; }
+.scanner-scan-summary .scanner-scan-details { margin: 0; border: 0; border-top: 1px solid var(--border-subtle); border-radius: 0; }
+.scanner-detail-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--space-4); }
+.scanner-detail-grid dt { color: var(--ink-muted); font-size: var(--text-sm); }
+.scanner-detail-grid dd { margin: var(--space-1) 0 0; font-weight: 600; font-variant-numeric: tabular-nums; }
+.scanner-detail-grid dd small { display: block; font-weight: 400; overflow-wrap: anywhere; }
+.scanner-correction-list { display: flex; flex-wrap: wrap; gap: var(--space-2) var(--space-5); padding: 0; list-style: none; font-size: var(--text-sm); }
+
+.scanner-photo-evidence { position: absolute; width: 100%; height: 100%; padding: 1.3rem; }
+.scanner-photo-selection { fill: rgb(99 179 237 / 22%); stroke: var(--accent-soft); stroke-width: 0.055; }
+.scanner-detection-outline { fill: none; stroke: #ecc46a; stroke-width: 0.025; }
+.scanner-square-crop { margin: var(--space-3) 0; display: flex; align-items: center; gap: var(--space-3); }
+.scanner-square-crop svg { width: 100px; height: 100px; flex-shrink: 0; border: 2px solid var(--accent); border-radius: var(--radius-sm); background: var(--panel); }
+.scanner-square-crop figcaption { font-size: var(--text-sm); color: var(--ink-muted); }
+
+.scanner-performance { margin-block: var(--space-5); padding: var(--space-4); border: 1px solid var(--border-accent); border-radius: var(--radius-md); background: var(--surface); }
+.scanner-performance > summary { display: flex; justify-content: space-between; cursor: pointer; font-weight: 700; list-style: none; }
+.scanner-performance > summary::-webkit-details-marker { display: none; }
+.scanner-performance p, .scanner-performance li { font-size: var(--text-md); line-height: 1.6; }
+.scanner-pipeline-diagram { display: flex; flex-wrap: wrap; gap: var(--space-2); list-style: none; padding: 0; }
+.scanner-pipeline-diagram li { padding: var(--space-2) var(--space-3); border-radius: var(--radius-sm); color: var(--deep); background: var(--panel); }
+.scanner-pipeline-diagram li + li::before { content: "\2192"; margin-right: var(--space-2); color: var(--accent); }
+.scanner-benchmark-chart { display: grid; gap: var(--space-3); list-style: none; padding: 0; max-width: 650px; }
+.scanner-benchmark-chart li > div { display: flex; justify-content: space-between; gap: var(--space-3); }
+.scanner-benchmark-chart strong { font-variant-numeric: tabular-nums; }
+.scanner-benchmark-track { display: block; height: 0.5rem; border-radius: var(--radius-pill); background: var(--panel); overflow: hidden; }
+.scanner-benchmark-track > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
+
+@media (max-width: 760px) {
+  .scanner-feature-card { flex-wrap: wrap; }
+  .scanner-feature-illustration { width: 100px; }
+  .scanner-feature-card > div:nth-child(2) { flex: 1; min-width: 180px; }
+  .scanner-feature-card > .ui-button { margin-left: 0; }
+  .scanner-detail-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
 .scanner-workflow {
   min-width: 0;
   border: 0;

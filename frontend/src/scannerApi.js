@@ -1,3 +1,5 @@
+import { scanCorrections } from "./scannerInsights.js";
+
 const PIECE_CLASSES = new Set(
   ["white", "black"].flatMap((color) =>
     ["king", "queen", "rook", "bishop", "knight", "pawn"].map(
@@ -232,7 +234,7 @@ export function addKingReviewHints(result) {
   return { ...result, reviewSquares: [...review.values()].sort((a, b) => a.row - b.row || a.col - b.col), warnings };
 }
 
-export function reviewedBoardLabels(scan, board) {
+export function reviewedBoardLabels(scan, board, { reviewMs } = {}) {
   if (!/^[a-f0-9]{64}$/.test(scan?.imageSha256 || "")) {
     throw new Error(
       "Recognize the prepared photo before exporting its labels.",
@@ -250,7 +252,20 @@ export function reviewedBoardLabels(scan, board) {
         image_sha256: scan.imageSha256,
         orientation: "white_bottom",
         verified: true,
+        verification: "user_reviewed_not_independently_audited",
         board: labels,
+        recognition: {
+          board: scan.board,
+          reviewSquares: scan.reviewSquares,
+          model_sha256: scan.modelSha256 || null,
+          runtime: scan.runtime || null,
+          inference_ms: Number.isFinite(scan.inferenceMs) ? scan.inferenceMs : null,
+          client_timings: scan.clientTimings || null,
+        },
+        review: {
+          corrections: scanCorrections(scan, board),
+          active_ms: Number.isFinite(reviewMs) && reviewMs >= 0 ? Math.round(reviewMs) : null,
+        },
       },
     ],
   };

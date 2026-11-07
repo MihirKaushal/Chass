@@ -49,18 +49,26 @@ async function recognize(file) {
   ort.env.wasm.numThreads = 1;
   ort.env.wasm.wasmPaths = new URL("/scanner-runtime/", self.location.origin).href;
   const sessions = {};
+  const timings = { modelFetchMs: 0, runtimeSetupMs: 0 };
+  const providers = {};
   let provider = "wasm";
   try {
     if (self.navigator.gpu && await self.navigator.gpu.requestAdapter()) provider = "webgpu";
     for (const name of ["detector", "classifier"]) {
+      const fetching = performance.now();
       const bytes = await weights(name, config);
+      timings.modelFetchMs += performance.now() - fetching;
+      const setup = performance.now();
       try {
         sessions[name] = await ort.InferenceSession.create(bytes, { executionProviders: [provider] });
+        providers[name] = provider;
       } catch (error) {
         if (provider === "wasm") throw error;
         // Mixed graph support varies by GPU; the CPU path supports the full operator set.
         sessions[name] = await ort.InferenceSession.create(bytes, { executionProviders: ["wasm"] });
+        providers[name] = "wasm";
       }
+      timings.runtimeSetupMs += performance.now() - setup;
     }
     self.postMessage({ status: "Recognizing on this device..." });
     const started = performance.now();
@@ -69,6 +77,10 @@ async function recognize(file) {
       ...board,
       pipeline: "combined", runtime: "browser-onnx", rectified: true,
       inferenceMs: Math.round(performance.now() - started),
+      timings,
+      executionProviders: providers,
+      imageWidth: image.width,
+      imageHeight: image.height,
       imageSha256: await hash(await file.arrayBuffer()),
       datasetFingerprint: config.selection.dataset_fingerprint,
       modelSha256: config.sha256,

@@ -7,6 +7,7 @@ import LandingNav from "../components/LandingNav";
 import PageSkeleton from "../components/PageSkeleton";
 import SiteFooter from "../components/SiteFooter";
 import Button from "../components/ui/Button";
+import ScannerFeatureCard from "../components/scanner/ScannerFeatureCard";
 
 
 function RoomIcon({ type }) {
@@ -168,6 +169,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
             </article>
           </div>
 
+          <ScannerFeatureCard />
           {error ? <p className="landing-error">{error}</p> : null}
         </section>
       </main>
