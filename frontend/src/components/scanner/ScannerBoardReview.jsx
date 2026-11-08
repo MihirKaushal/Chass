@@ -5,7 +5,7 @@ import PieceGlyph from "../PieceGlyph";
 import Button from "../ui/Button";
 import ScannerIcon from "./ScannerIcon";
 import { SCANNER_PIECES } from "./scannerPreview";
-import { squareAlternatives } from "../../scannerReview";
+import { nextScannerReviewSquare, squareAlternatives } from "../../scannerReview";
 import { ScannerSquareCrop } from "./ScannerPhotoEvidence";
 
 function ScannerBoardReview({
@@ -37,18 +37,38 @@ function ScannerBoardReview({
         square.row === selectedSquare.row && square.col === selectedSquare.col,
     );
   const alternatives = squareAlternatives(scan, selectedSquare);
+  const currentPiece = selectedSquare ? board[selectedSquare.row][selectedSquare.col] : null;
+  const isCurrentPiece = (piece) =>
+    currentPiece?.type === piece.type && currentPiece?.color === piece.color;
+  const choices = currentPiece && !alternatives.some(isCurrentPiece)
+    ? [{ ...currentPiece, label: `${currentPiece.color}-${currentPiece.type}` }, ...alternatives]
+    : alternatives;
   const review = reviewSquares.find(
     (square) =>
       square.row === selectedSquare?.row && square.col === selectedSquare?.col,
   );
   const chooseAlternative = (piece) => {
     onSquareEdit(selectedSquare.row, selectedSquare.col, piece);
+    setSelectedSquare(nextScannerReviewSquare(reviewSquares, selectedSquare));
+    setTool(null);
+  };
+  const markCorrect = () => {
+    onReviewSquare(selectedSquare);
+    setSelectedSquare(nextScannerReviewSquare(reviewSquares, selectedSquare));
     setTool(null);
   };
 
   const selectSquare = (row, col) => {
     setSelectedSquare({ row, col });
-    if (tool) onSquareEdit(row, col, tool);
+    if (tool) {
+      onSquareEdit(row, col, tool);
+      const target = { row, col };
+      const next = nextScannerReviewSquare(reviewSquares, target);
+      if (next !== target) {
+        setSelectedSquare(next);
+        setTool(null);
+      }
+    }
   };
 
   return (
@@ -89,10 +109,11 @@ function ScannerBoardReview({
         />
       </div>
       <p id="scanner-keyboard-help" className="scanner-keyboard-help">
-        Arrow keys navigate. Enter selects or places a piece. Escape clears the editing tool.
+        Arrow keys navigate. Enter selects or places a piece. Escape or clicking the selected piece again clears the editing tool.
       </p>
       <div
         className={`scanner-review-status${reviewSquares.length ? " has-review" : ""}`}
+        role="status"
       >
         <span className="scanner-review-status-icon">
           <ScannerIcon name={reviewSquares.length ? "info" : "check"} />
@@ -101,12 +122,12 @@ function ScannerBoardReview({
           <strong>
             {reviewSquares.length
               ? `${reviewSquares.length} ${reviewSquares.length === 1 ? "square" : "squares"} to review`
-              : "Flagged squares reviewed"}
+              : "No more squares to review"}
           </strong>
           <small>
             {reviewSquares.length
               ? "Gold markers need review. Check unmarked and empty squares too."
-              : "Check empty squares too; the model can miss pieces."}
+              : "Recheck the entire board for missing pieces, wrong pieces, and incorrect colors, then confirm all 64 squares below."}
           </small>
         </div>
         {reviewSquares.length ? (
@@ -132,17 +153,18 @@ function ScannerBoardReview({
             {review?.reasons?.map((reason) => (
               <p key={reason}>{reason}</p>
             ))}
-            {alternatives.length ? (
+            {choices.length ? (
               <>
                 <p>
                   Choose the piece in your photo. Percentages are model scores, not calibrated probabilities.
                 </p>
                 <div className="scanner-alternative-options">
-                  {alternatives.map((option) => (
+                  {choices.map((option) => (
                     <Button
                       key={option.label}
                       variant="secondary"
                       size="small"
+                      className={isCurrentPiece(option) ? "is-current" : ""}
                       onClick={() => chooseAlternative(option)}
                     >
                       <PieceGlyph
@@ -154,11 +176,12 @@ function ScannerBoardReview({
                           )?.symbols[option.color]
                         }
                       />
-                      <span>
+                      <span className="scanner-alternative-label">
                         {option.color === "white" ? "White" : "Black"}{" "}
                         {option.type}
+                        {isCurrentPiece(option) ? <span className="scanner-current-label">(Current Piece)</span> : null}
                       </span>
-                      <small>{Math.round(option.score * 100)}%</small>
+                      {Number.isFinite(option.score) ? <small>{Math.round(option.score * 100)}%</small> : null}
                     </Button>
                   ))}
                 </div>
@@ -174,14 +197,14 @@ function ScannerBoardReview({
                 size="small"
                 onClick={() => chooseAlternative({ type: "erase" })}
               >
-                This Square Is Empty
+                This Square Is Empty{!currentPiece ? " (Current)" : ""}
               </Button>
               {selectedNeedsReview ? (
                 <Button
                   size="small"
-                  onClick={() => onReviewSquare(selectedSquare)}
+                  onClick={markCorrect}
                 >
-                  Keep Current Piece
+                  Mark {selectedLabel} Correct
                 </Button>
               ) : null}
             </div>
@@ -211,7 +234,11 @@ function ScannerBoardReview({
                     tool?.type === piece.type && tool.color === color
                   }
                   title={`${color === "white" ? "White" : "Black"} ${piece.name}`}
-                  onClick={() => setTool({ type: piece.type, color })}
+                  onClick={() => setTool((current) =>
+                    current?.type === piece.type && current.color === color
+                      ? null
+                      : { type: piece.type, color },
+                  )}
                 >
                   <PieceGlyph
                     type={piece.type}
@@ -228,7 +255,10 @@ function ScannerBoardReview({
             variant="secondary"
             size="small"
             disabled={!canUndo}
-            onClick={onUndo}
+            onClick={() => {
+              setTool(null);
+              onUndo();
+            }}
           >
             <ScannerIcon name="undo" />
             Undo
@@ -252,7 +282,7 @@ function ScannerBoardReview({
             size="small"
             onClick={() => {
               onReset();
-              setSelectedSquare(null);
+              setSelectedSquare(scan?.reviewSquares?.[0] || null);
               setTool(null);
             }}
           >
@@ -269,16 +299,6 @@ function ScannerBoardReview({
                 ? `${selectedLabel} selected. Choose a replacement above, then click the square.`
                 : "Click a square to inspect it, or choose a piece to start editing."}
           </span>
-          {selectedNeedsReview ? (
-            <Button
-              variant="text"
-              size="small"
-              onClick={() => onReviewSquare(selectedSquare)}
-            >
-              Mark {selectedLabel} Correct
-              <ScannerIcon name="check" />
-            </Button>
-          ) : null}
         </div>
       </div>
     </section>

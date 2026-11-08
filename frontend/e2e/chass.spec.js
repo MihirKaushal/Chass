@@ -90,6 +90,66 @@ test("scanner keyboard editor navigates without painting until Enter and support
   await expect(page.locator(".scanner-import-feedback")).toContainText(/King/);
 });
 
+test("scanner palette pieces toggle off without painting the next inspected square", async ({ page }) => {
+  await reviewScan(page);
+  const whiteQueen = page.getByRole("button", { name: "Place white queen" });
+  const blackQueen = page.getByRole("button", { name: "Place black queen" });
+  await whiteQueen.click();
+  await expect(whiteQueen).toHaveAttribute("aria-pressed", "true");
+  await blackQueen.click();
+  await expect(whiteQueen).toHaveAttribute("aria-pressed", "false");
+  await expect(blackQueen).toHaveAttribute("aria-pressed", "true");
+  await blackQueen.click();
+  await expect(blackQueen).toHaveAttribute("aria-pressed", "false");
+  await square(page, 3, 3).click();
+  await expect(square(page, 3, 3)).toHaveAttribute("aria-label", "d5");
+});
+
+test("scanner review advances after corrections or confirmation and supports undo", async ({ page }, testInfo) => {
+  await preparePhoto(page);
+  await page.route("**/scanner/scan", async (route) => {
+    const response = await route.fetch();
+    const data = await response.json();
+    data.reviewSquares.push(
+      { row: 5, col: 0, label: "a3", reasons: ["Check empty square"] },
+      { row: 6, col: 2, label: "c2", reasons: ["Check piece"] },
+    );
+    await route.fulfill({ response, json: data });
+  });
+  await page.getByRole("button", { name: "Recognize Pieces" }).click();
+  const heading = page.locator(".scanner-alternatives h3");
+  const confirmation = page.getByRole("checkbox", { name: /I checked all 64 squares/ });
+  await expect(heading).toHaveText("Review a3");
+  await page.getByRole("button", { name: "This Square Is Empty (Current)", exact: true }).click();
+  await expect(heading).toHaveText("Review c2");
+  await expect(page.getByRole("button", { name: /White pawn.*Current Piece/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Mark c2 Correct", exact: true })).toHaveCount(1);
+  await testInfo.attach("scanner-current-piece", { body: await page.locator(".scanner-alternatives").screenshot(), contentType: "image/png" });
+  await page.getByRole("button", { name: "Mark c2 Correct", exact: true }).click();
+  await expect(heading).toHaveText("Review f1");
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(heading).toHaveText("Review c2");
+  await page.getByRole("button", { name: "Mark c2 Correct", exact: true }).click();
+  await page.getByRole("button", { name: /White bishop.*90%/i }).click();
+  await expect(page.locator(".scanner-review-status")).toContainText("No more squares to review");
+  await expect(page.locator(".scanner-review-status")).toContainText("missing pieces, wrong pieces, and incorrect colors");
+  await expect(confirmation).toBeEnabled();
+  await expect(confirmation).not.toBeChecked();
+  await confirmation.check();
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(heading).toHaveText("Review f1");
+  await expect(confirmation).toBeDisabled();
+  await expect(confirmation).not.toBeChecked();
+  const bishopTool = page.getByRole("button", { name: "Place white bishop" });
+  await bishopTool.click();
+  await square(page, 7, 5).click();
+  await expect(bishopTool).toHaveAttribute("aria-pressed", "false");
+  await expect(page.locator(".scanner-review-status")).toContainText("No more squares to review");
+  await page.getByRole("button", { name: "Restore Scan", exact: true }).click();
+  await expect(heading).toHaveText("Review a3");
+  await expect(page.locator(".scanner-review-status")).toContainText("3 squares to review");
+});
+
 test("bad uploads and malformed scan responses remain recoverable", async ({ page }) => {
   await page.goto("/scanner");
   await page.getByLabel("Upload a board photo").setInputFiles({ name: "board.txt", mimeType: "text/plain", buffer: Buffer.from("no photo") });

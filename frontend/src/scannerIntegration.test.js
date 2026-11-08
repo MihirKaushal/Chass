@@ -216,7 +216,7 @@ test("scanner launch requires confirmation, resolved flags and a valid position;
   }
 });
 
-test("flagged squares expose selectable alternatives, empty and keep-current options", async () => {
+test("flagged squares label the current piece and provide one mark-correct action", async () => {
   const { scannerPreviewPiece } = await server.ssrLoadModule(
     "/src/components/scanner/scannerPreview.js",
   );
@@ -248,7 +248,23 @@ test("flagged squares expose selectable alternatives, empty and keep-current opt
   assert.match(html, /White queen/);
   assert.match(html, /55%/);
   assert.match(html, /This Square Is Empty/);
-  assert.match(html, /Keep Current Piece/);
+  assert.match(html, /\(Current Piece\)/);
+  assert.equal((html.match(/Mark e5 Correct/g) || []).length, 1);
+  assert.doesNotMatch(html, /Keep Current Piece/);
+});
+
+test("current-piece markers follow the corrected board rather than original predictions", async () => {
+  const board = Array.from({ length: 8 }, () => Array(8).fill(null));
+  board[3][4] = { type: "rook", color: "black", name: "Rook" };
+  const html = await markup("/src/components/scanner/ScannerBoardReview.jsx", {
+    board, reviewSquares: [], selectedSquare: { row: 3, col: 4 },
+    scan: { squareCandidates: [{ row: 3, col: 4, candidates: [{ class: "white-bishop", score: 0.8 }] }] },
+  });
+  assert.match(html, /Black rook<span class="scanner-current-label">\(Current Piece\)/);
+  assert.equal((html.match(/\(Current Piece\)/g) || []).length, 1);
+  assert.match(html, /No more squares to review/);
+  assert.match(html, /missing pieces, wrong pieces, and incorrect colors/);
+  assert.match(html, /confirm all 64 squares below/);
 });
 
 test("optional history controls reflect the controlled position and block unresolved confirmation", async () => {
