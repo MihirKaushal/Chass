@@ -76,7 +76,7 @@ def test_native_bot_is_the_available_fallback_and_health_is_ready(client):
         500,
         800,
     ]
-    assert client.get("/health").json()["botEngines"]["chass"] == "ready"
+    assert client.get("/health").json() == {"status": "ok"}
 
 
 def test_gambit_validation_routes_to_native_bot_before_hidden_deployment(client):

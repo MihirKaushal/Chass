@@ -182,7 +182,8 @@ After pushing this change:
 
 1. Redeploy the Render service or allow the Blueprint to deploy the commit.
 2. Confirm the build log reports both verified engine installations.
-3. Open `/health` and inspect `matchPredictorEngines.stockfish` and
+3. Authenticate to `/internal/diagnostics` using the separate server-only
+   `DIAGNOSTICS_TOKEN` ([instructions](VERIFICATION.md#private-diagnostics)) and inspect `matchPredictorEngines.stockfish` and
    `matchPredictorEngines.fairyStockfish`; the native provider appears under
    `matchPredictorEngines.chass`.
 4. Create an 8x8 standard-rule game and confirm Stockfish is selected.
@@ -194,7 +195,7 @@ After pushing this change:
 Fairy-Stockfish starts lazily on its first compatible validation or game. Before that first
 use, its detailed health value may be `not_started`. No new Vercel variable is required.
 
-Overall health values:
+Detailed analysis health values (public `/health` only returns `{"status":"ok"}`):
 
 - `ready`: at least one configured analysis provider is ready.
 - `starting`: an enabled engine has not started yet.

@@ -22,6 +22,8 @@ services:
         value: production
       - key: TOKEN_SECRET
         generateValue: true
+      - key: DIAGNOSTICS_TOKEN
+        generateValue: true
       # Keep this as "sql" until Firebase credentials are configured in Render.
       - key: PERSISTENCE_BACKEND
         sync: false

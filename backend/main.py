@@ -2,9 +2,12 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import os
+import secrets
 from contextlib import asynccontextmanager
+from time import perf_counter
 
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
 from google.api_core.exceptions import GoogleAPICallError
 from google.auth.exceptions import GoogleAuthError
@@ -14,6 +17,7 @@ from starlette.responses import JSONResponse
 from backend.config import get_settings
 from backend.db import init_db
 from backend.firebase_client import get_firestore_client, reset_firestore_client
+from backend.observability import metrics
 from backend.routes import (
     bot_turn_scheduler,
     clock_deadline_scheduler,
@@ -104,8 +108,7 @@ async def _persistence_unavailable(
         status_code=503,
         content={
             "detail": (
-                "Game storage is temporarily unavailable. "
-                "Please wait a moment and try again."
+                "Game storage is temporarily unavailable. Please wait a moment and try again."
             )
         },
         headers={"Retry-After": "5"},
@@ -116,14 +119,46 @@ app.add_exception_handler(GoogleAPICallError, _persistence_unavailable)
 app.add_exception_handler(GoogleAuthError, _persistence_unavailable)
 
 
+@app.middleware("http")
+async def observe_operations(request: Request, call_next):
+    operation = {"/scanner/scan": "scanner", "/game/import": "import"}.get(request.url.path)
+    if operation is None or request.method != "POST":
+        return await call_next(request)
+    started = perf_counter()
+    outcome = "error"
+    try:
+        response = await call_next(request)
+        outcome = "ok" if response.status_code < 400 else "error"
+        return response
+    except asyncio.CancelledError:
+        outcome = "cancelled"
+        raise
+    finally:
+        metrics.record(operation, outcome, (perf_counter() - started) * 1000)
+
+
 @app.get("/health")
-def health() -> dict[str, object]:
+def health() -> dict[str, str]:
+    return {"status": "ok"}
+
+
+@app.get("/internal/diagnostics", include_in_schema=False)
+def diagnostics(request: Request, response: Response) -> dict[str, object]:
+    response.headers["Cache-Control"] = "no-store"
+    token = os.getenv("DIAGNOSTICS_TOKEN", "").strip()
+    if len(token) < 32:
+        raise HTTPException(404, "Not found")
+    if not secrets.compare_digest(
+        request.headers.get("authorization", "").encode(), f"Bearer {token}".encode()
+    ):
+        raise HTTPException(401, "Authentication required")
+
     def engine_status(provider) -> str:
         if provider is None or not provider.enabled:
             return "disabled"
         return "ready" if provider.ready else "unavailable"
 
-    response = {
+    details = {
         "status": "ok",
         "environment": settings.environment,
         "persistence": settings.persistence_backend,
@@ -135,11 +170,12 @@ def health() -> dict[str, object]:
             "fairyStockfish": engine_status(match_analysis_service.fairy_provider),
             "chass": "ready",
         },
+        "metrics": metrics.snapshot(),
     }
     predictor_reason = match_analysis_service.health_reason()
     if predictor_reason:
-        response["matchPredictorReason"] = predictor_reason
-    return response
+        details["matchPredictorReason"] = predictor_reason
+    return details
 
 
 app.include_router(game_router)

@@ -28,6 +28,7 @@ from backend.models.schemas import (
     MatchOutcomeView,
     MatchPredictorCompatibilityView,
 )
+from backend.observability import metrics
 from backend.rules import RuleEngine
 
 logger = logging.getLogger(__name__)
@@ -501,6 +502,8 @@ class MatchAnalysisService:
         profile: AnalysisProfile,
     ) -> None:
         analysis_profile = profile
+        started = monotonic()
+        metric_outcome = "ok"
         try:
             # Let the authoritative move response clear the event loop first, then keep
             # legal-move factor generation off that loop entirely.
@@ -515,6 +518,7 @@ class MatchAnalysisService:
                     position_hash,
                 )
                 if not compatible:
+                    metrics.record("engine_fallback", "chass")
                     analysis_profile = CHASS_PROFILE
                     result = await self._native_analysis_view(
                         state,
@@ -597,8 +601,10 @@ class MatchAnalysisService:
             self._failures.pop((state.id, position_hash), None)
             await self._publish_if_current(result)
         except asyncio.CancelledError:
+            metric_outcome = "cancelled"
             raise
         except Exception as error:
+            metric_outcome = "error"
             logger.warning("Match Analysis failed: %s", error)
             active_provider = self._provider_for(analysis_profile)
             public_error = getattr(active_provider, "public_error", None)
@@ -619,6 +625,7 @@ class MatchAnalysisService:
             self._cache_failure(state.id, position_hash, unavailable)
             await self._publish_if_current(unavailable)
         finally:
+            metrics.record("analysis", metric_outcome, (monotonic() - started) * 1000)
             current_task = asyncio.current_task()
             if self._tasks.get(state.id) is current_task:
                 self._tasks.pop(state.id, None)
