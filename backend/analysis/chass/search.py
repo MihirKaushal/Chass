@@ -27,6 +27,7 @@ class SearchResult:
     immediate_winner: str | None = None
     best_action: ChassAction | None = None
     ranked_actions: tuple[RankedAction, ...] = ()
+    budget_exhausted: bool = False
 
 
 class SearchDeadline(Exception):
@@ -54,6 +55,7 @@ class ChassSearch:
         self.max_nodes = max(16, max_nodes)
         self._deadline = 0.0
         self._nodes = 0
+        self._budget_exhausted = False
         self._table: dict[tuple[str, int], float] = {}
         self._prepared_root_children: dict[str, GameState] = {}
 
@@ -69,6 +71,7 @@ class ChassSearch:
 
     def _check_budget(self) -> None:
         if perf_counter() >= self._deadline or self._nodes >= self.max_nodes:
+            self._budget_exhausted = True
             raise SearchDeadline
 
     def _apply(self, state: GameState, action: ChassAction) -> GameState | None:
@@ -340,6 +343,7 @@ class ChassSearch:
             return SearchResult(terminal, depth=0, nodes=0)
 
         self._nodes = 0
+        self._budget_exhausted = False
         self._table.clear()
         try:
             all_actions = legal_turn_actions(state, self.engine)
@@ -385,6 +389,7 @@ class ChassSearch:
                 nodes=self._nodes,
                 best_action=fallback[0].action,
                 ranked_actions=tuple(fallback),
+                budget_exhausted=self._budget_exhausted,
             )
 
         if not rankings:
@@ -417,4 +422,5 @@ class ChassSearch:
             immediate_winner=best.immediate_winner,
             best_action=best.action,
             ranked_actions=tuple(rankings),
+            budget_exhausted=self._budget_exhausted,
         )

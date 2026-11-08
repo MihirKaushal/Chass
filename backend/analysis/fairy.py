@@ -165,14 +165,23 @@ class FairyStockfishUciProvider(StockfishUciProvider):
             line = await self._readline()
             if line.startswith("info "):
                 parsed = parse_uci_info(line)
+                if parsed.get("bounded_score"):
+                    continue
+                if "centipawns" in parsed or "mate_in" in parsed:
+                    latest.pop("centipawns", None)
+                    latest.pop("mate_in", None)
                 latest.update({key: value for key, value in parsed.items() if value is not None})
             elif line.startswith("bestmove"):
                 bestmove = line.split(maxsplit=1)[1] if " " in line else ""
                 break
         if bestmove not in {"(none)", "0000"}:
+            if not bestmove:
+                raise ValueError("Fairy returned an incomplete bestmove")
             return None
         mate_in = latest.get("mate_in")
         if mate_in is None:
+            if latest.get("centipawns") != 0:
+                raise ValueError("Fairy returned no terminal draw evaluation")
             return "draw"
         if int(mate_in) > 0:
             return side_to_move

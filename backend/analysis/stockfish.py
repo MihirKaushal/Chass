@@ -45,39 +45,55 @@ class EngineMoveSearch:
 def parse_uci_info(line: str) -> dict[str, object]:
     tokens = line.split()
     parsed: dict[str, object] = {}
+    if tokens[:2] == ["info", "string"]:
+        return parsed
 
     def integer_after(name: str, offset: int = 1) -> int | None:
-        try:
-            return int(tokens[tokens.index(name) + offset])
-        except (ValueError, IndexError):
+        if name not in tokens:
             return None
+        try:
+            value = int(tokens[tokens.index(name) + offset])
+            if value < 0:
+                raise ValueError("Negative counter")
+            return value
+        except (ValueError, IndexError) as error:
+            raise ValueError(f"Malformed UCI {name}") from error
 
     parsed["depth"] = integer_after("depth")
     parsed["nodes"] = integer_after("nodes")
     multipv = integer_after("multipv")
     if multipv is not None:
+        if multipv < 1:
+            raise ValueError("Malformed UCI multipv")
         parsed["multipv"] = multipv
 
-    try:
-        score_index = tokens.index("score")
-        score_kind = tokens[score_index + 1]
-        score_value = int(tokens[score_index + 2])
+    if "score" in tokens:
+        try:
+            score_index = tokens.index("score")
+            score_kind = tokens[score_index + 1]
+            score_value = int(tokens[score_index + 2])
+        except (ValueError, IndexError) as error:
+            raise ValueError("Malformed UCI score") from error
         if score_kind == "cp":
             parsed["centipawns"] = score_value
             parsed["mate_in"] = None
         elif score_kind == "mate":
             parsed["centipawns"] = None
             parsed["mate_in"] = score_value
-    except (ValueError, IndexError):
-        pass
+        else:
+            raise ValueError("Unknown UCI score kind")
+        if "lowerbound" in tokens or "upperbound" in tokens:
+            parsed["bounded_score"] = True
 
-    try:
-        wdl_index = tokens.index("wdl")
-        parsed["win"] = int(tokens[wdl_index + 1])
-        parsed["draw"] = int(tokens[wdl_index + 2])
-        parsed["loss"] = int(tokens[wdl_index + 3])
-    except (ValueError, IndexError):
-        pass
+    if "wdl" in tokens:
+        try:
+            wdl_index = tokens.index("wdl")
+            values = [int(tokens[wdl_index + offset]) for offset in (1, 2, 3)]
+        except (ValueError, IndexError) as error:
+            raise ValueError("Malformed UCI wdl") from error
+        if any(value < 0 or value > 1000 for value in values) or sum(values) != 1000:
+            raise ValueError("Invalid UCI wdl distribution")
+        parsed.update(zip(("win", "draw", "loss"), values, strict=True))
 
     try:
         pv_index = tokens.index("pv")
@@ -284,14 +300,20 @@ class StockfishUciProvider:
                     line = await self._readline()
                     if line.startswith("info "):
                         parsed = parse_uci_info(line)
+                        if parsed.get("bounded_score"):
+                            continue
                         if "centipawns" in parsed or "mate_in" in parsed:
                             latest.pop("centipawns", None)
                             latest.pop("mate_in", None)
+                            for name in ("win", "draw", "loss"):
+                                latest.pop(name, None)
                         latest = {
                             **latest,
                             **{key: value for key, value in parsed.items() if value is not None},
                         }
                     elif line.startswith("bestmove"):
+                        if len(line.split()) < 2:
+                            raise ValueError("UCI bestmove is incomplete")
                         return
 
             await asyncio.wait_for(read_search(), timeout=timeout_seconds)
@@ -302,12 +324,17 @@ class StockfishUciProvider:
             self._last_error = (
                 f"{self.engine_label} analysis failed: {type(error).__name__}: {error}"
             ).rstrip()
+            logger.warning(
+                "UCI analysis rejected",
+                extra={"engine": self.engine_label, "error_type": type(error).__name__},
+            )
             self._public_error = "The analysis engine stopped unexpectedly. Retry in a moment."
             await self._terminate_locked()
             raise
 
         elapsed_ms = round((perf_counter() - started) * 1000)
         if "centipawns" not in latest and "mate_in" not in latest:
+            logger.warning("UCI evaluation missing", extra={"engine": self.engine_label})
             self._last_error = f"{self.engine_label} returned no position evaluation"
             self._public_error = (
                 "The analysis engine did not return a position estimate. Retry in a moment."
@@ -387,10 +414,16 @@ class StockfishUciProvider:
                     line = await self._readline()
                     if line.startswith("info "):
                         parsed = parse_uci_info(line)
+                        if parsed.get("bounded_score"):
+                            continue
                         variation = list(parsed.get("principal_variation", []))
                         if not variation:
                             continue
                         rank = int(parsed.get("multipv", 1))
+                        if rank > candidate_count or variation[0] not in search_moves:
+                            raise ValueError("UCI candidate is outside the requested legal moves")
+                        if parsed.get("centipawns") is None and parsed.get("mate_in") is None:
+                            raise ValueError("UCI candidate has no evaluation")
                         current = latest_by_rank.get(rank, {})
                         if "centipawns" in parsed or "mate_in" in parsed:
                             current.pop("centipawns", None)
@@ -403,6 +436,10 @@ class StockfishUciProvider:
                         tokens = line.split()
                         if len(tokens) > 1 and tokens[1] not in {"(none)", "0000"}:
                             best_move = tokens[1]
+                        if best_move not in search_moves:
+                            raise ValueError(
+                                "UCI bestmove is missing or outside the requested legal moves"
+                            )
                         return
 
             await asyncio.wait_for(read_search(), timeout=timeout_seconds)
@@ -413,6 +450,10 @@ class StockfishUciProvider:
             self._last_error = (
                 f"{self.engine_label} move search failed: {type(error).__name__}: {error}"
             ).rstrip()
+            logger.warning(
+                "UCI move search rejected",
+                extra={"engine": self.engine_label, "error_type": type(error).__name__},
+            )
             self._public_error = "The chess engine stopped unexpectedly. Retry in a moment."
             await self._terminate_locked()
             raise
@@ -433,8 +474,6 @@ class StockfishUciProvider:
                 )
             )
 
-        if best_move is None and candidates:
-            best_move = candidates[0].move
         if best_move is None:
             self._last_error = f"{self.engine_label} returned no legal bot move"
             self._public_error = "The chess engine did not return a move. Retry in a moment."
