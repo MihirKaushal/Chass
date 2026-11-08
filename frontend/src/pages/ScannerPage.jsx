@@ -296,7 +296,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     setValidation(null);
     setIssueSquares([]);
     setBoardHistory((current) =>
-      [...current, { board, reviewSquares }].slice(-40),
+      [...current, { board, reviewSquares, selectedSquare: { row, col } }].slice(-40),
     );
     setBoard((current) =>
       current.map((rank, rankIndex) =>
@@ -322,6 +322,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
     if (!previous) return;
     setBoard(previous.board);
     setReviewSquares(previous.reviewSquares);
+    setSelectedSquare(previous.selectedSquare);
     setBoardHistory((current) => current.slice(0, -1));
     setConfirmed(false);
     setValidation(null);
@@ -450,6 +451,9 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                   reviewSquares={reviewSquares}
                   onSquareEdit={editSquare}
                   onReviewSquare={(target) => {
+                    setBoardHistory((current) =>
+                      [...current, { board, reviewSquares, selectedSquare: target }].slice(-40),
+                    );
                     setReviewSquares((current) =>
                       current.filter(
                         (square) =>

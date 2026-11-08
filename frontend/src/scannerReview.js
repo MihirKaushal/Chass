@@ -1,5 +1,14 @@
 const TYPES = new Set(["pawn", "knight", "bishop", "rook", "queen", "king"]);
 
+export function nextScannerReviewSquare(reviewSquares, resolvedSquare) {
+  const index = reviewSquares.findIndex(
+    ({ row, col }) => row === resolvedSquare.row && col === resolvedSquare.col,
+  );
+  // Editing an unflagged square should not interrupt ordinary board editing.
+  if (index < 0) return resolvedSquare;
+  return reviewSquares[index + 1] || (index > 0 ? reviewSquares[0] : null);
+}
+
 export function defaultScannerDetails() {
   return {
     currentPlayer: "white",

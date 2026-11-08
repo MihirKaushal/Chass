@@ -6,7 +6,19 @@ import {
   scannerDetailError,
   scannerImportPayload,
   squareAlternatives,
+  nextScannerReviewSquare,
 } from "./scannerReview.js";
+
+test("review advances in order, wraps to earlier flags, and stops at completion", () => {
+  const squares = [{ row: 1, col: 0 }, { row: 6, col: 2 }, { row: 7, col: 5 }];
+  assert.equal(nextScannerReviewSquare(squares, squares[0]), squares[1]);
+  assert.equal(nextScannerReviewSquare(squares, squares[1]), squares[2]);
+  assert.equal(nextScannerReviewSquare(squares, squares[2]), squares[0]);
+  assert.equal(nextScannerReviewSquare([squares[2]], squares[2]), null);
+  const unflagged = { row: 3, col: 3 };
+  assert.equal(nextScannerReviewSquare(squares, unflagged), unflagged);
+  assert.equal(nextScannerReviewSquare([], unflagged), unflagged);
+});
 
 test("scanner uses conservative optional history defaults and serializes corrected squares", () => {
   const details = defaultScannerDetails();
