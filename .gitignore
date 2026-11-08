@@ -4,6 +4,7 @@ __pycache__/
 *.DS_Store
 .venv/
 .venv-scanner/
+.venv-scanner-verify/
 scanner/artifacts/
 scanner/data/
 .stockfish/
@@ -21,3 +22,6 @@ frontend/.env.local
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+.hypothesis/
+frontend/test-results/
+frontend/playwright-report/
