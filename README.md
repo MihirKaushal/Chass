@@ -58,6 +58,16 @@ configuration, held-out metrics, error analysis, and reproducible local commands
 The [scanner quality guide](scanner/QUALITY.md) records the evaluation workflow,
 offline comparison tools, promotion criteria, and next data-collection steps.
 
+### Training Data Credits
+
+- **Current scanner:** [Chess V2 by Public Wspace](https://universe.roboflow.com/public-wspace/chess-v2-qqtmk), Roboflow Universe, 2022, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Chass removed duplicate photos, corrected labels and orientation, and grouped related captures before splitting for training and evaluation.
+- **Initial baseline:** [Chess Top Down by chess](https://universe.roboflow.com/chess-gftva/chess-top-down), Roboflow Universe, 2022, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Used in the earlier baseline, not the current deployed models.
+
+The current training photos mainly show black and white pieces on green and white
+boards. Similar piece styles, colors, and top-down views are expected to give the
+best results; accuracy on unfamiliar sets is not established. Always review all
+64 squares, including empty ones, before continuing a game.
+
 ## Tech Stack
 
 | Area | Tools |

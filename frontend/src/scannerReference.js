@@ -22,6 +22,14 @@ export const SCANNER_REFERENCE = {
   ],
   performance: {
     method: "An SSDLite detector locates pieces, duplicate suppression removes competing boxes, and a fine-tuned ResNet18 classifies each crop by type and color. Box centers assign pieces to squares on the prepared board.",
+    trainingData: {
+      description: "Training photos mainly show black and white chess pieces on green and white boards. Similar piece styles, board colors, and top-down views are expected to give the best results. Other setups may need more manual correction; always check all 64 squares.",
+      sourceLabel: "Chess V2 by Public Wspace",
+      sourceUrl: "https://universe.roboflow.com/public-wspace/chess-v2-qqtmk",
+      license: "CC BY 4.0",
+      licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
+      preparation: "Chass uses a curated version with duplicate photos removed and labels and orientation corrected.",
+    },
     evaluation: "Predictions are matched to annotated boxes without using piece labels, with at least 50% overlap (intersection over union, or IoU). Type and color are then checked on matched pieces. The curated ChessV2 test collection has been reused during development, so these are regression results, not a fresh test of unseen chess sets.",
     uncertainty: "Review flags use default model-score thresholds: below 70% for type or 50% for detection. Boundary crossings, oversized boxes, and competing pieces also trigger review. Scores rank suggestions; they are not calibrated probabilities. Review complete means you confirmed the board, not that AI verified it.",
     timing: "Scan Details separates connection/startup wait, model setup, and recognition. Cold starts can delay the first scan; device and server timings are not directly comparable. If recognition is offline, photo preparation still works and Retry Connection checks again.",

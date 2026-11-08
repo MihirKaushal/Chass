@@ -99,8 +99,10 @@ test("all external Rulebook links open safely in new tabs while internal links s
   const html = await markup("/src/pages/RulebookPage.jsx");
   const anchors = html.match(/<a\b[^>]*>/g) || [];
   const external = anchors.filter((anchor) => /href="https?:\/\//.test(anchor));
-  assert.equal(external.length, 2);
+  assert.equal(external.length, 4);
   assert.ok(external.some((anchor) => anchor.includes("ACCURACY_TRACKER.md")));
+  assert.ok(external.some((anchor) => anchor.includes("https://universe.roboflow.com/public-wspace/chess-v2-qqtmk")));
+  assert.ok(external.some((anchor) => anchor.includes("https://creativecommons.org/licenses/by/4.0/")));
   for (const anchor of external) {
     assert.match(anchor, /target="_blank"/);
     assert.match(anchor, /rel="noopener noreferrer"/);
@@ -328,6 +330,13 @@ test("rulebook performance is collapsed and does not imply board accuracy or cal
   assert.match(html, /6,283/);
   assert.match(html, /ResNet18/);
   assert.match(html, /intersection over union/);
+  assert.match(html, /Training data/);
+  assert.match(html, /black and white chess pieces on green and white boards/);
+  assert.match(html, /expected to give the best results/);
+  assert.match(html, /always check all 64 squares/);
+  assert.match(html, /Chess V2 by Public Wspace/);
+  assert.match(html, /CC BY 4.0/);
+  assert.match(html, /duplicate photos removed and labels and orientation corrected/);
   assert.match(html, /regression results, not a fresh test/);
   assert.match(html, /not calibrated probabilities/);
   assert.doesNotMatch(html, /<details[^>]* open/);

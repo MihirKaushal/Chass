@@ -20,6 +20,11 @@ export default function ScannerPerformance() {
         {["Prepare photo", "Locate pieces", "Classify crops", "Assign squares", "Review & play"].map((step) => <li key={step}>{step}</li>)}
       </ol>
       <p>{copy.method}</p>
+      <h3>Training data</h3>
+      <p>{copy.trainingData.description}</p>
+      <p>Source: <ExternalLink href={copy.trainingData.sourceUrl}>{copy.trainingData.sourceLabel}</ExternalLink>
+        {" "}on Roboflow Universe, licensed under <ExternalLink href={copy.trainingData.licenseUrl}>{copy.trainingData.license}</ExternalLink>.
+        {" "}{copy.trainingData.preparation}</p>
       <h3>Piece recognition progress</h3>
       <p>Correct type and color <strong>among located pieces</strong>. Recorded {data.recordedOn} on {data.photos} photos
         with {count(data.pieces)} annotated pieces.</p>
