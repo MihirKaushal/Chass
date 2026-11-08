@@ -501,6 +501,20 @@ def test_partial_root_pass_is_not_reported_as_completed_depth(client, monkeypatc
     assert result.ranked_actions
 
 
+def test_search_reports_actual_budget_exhaustion(client, monkeypatch):
+    engine = RuleEngine()
+    original = ChassSearch._rank_root_actions
+
+    def expire(search, state, actions, *, depth):
+        search._deadline = 0
+        return original(search, state, actions, depth=depth)
+
+    monkeypatch.setattr(ChassSearch, "_rank_root_actions", expire)
+    result = ChassSearch(engine, ChassEvaluator(engine)).analyze(_default_state(client))
+    assert result.budget_exhausted is True
+    assert result.depth == 0 and result.best_action is not None
+
+
 def test_search_keeps_legal_actions_when_root_budget_is_exhausted(
     client,
     monkeypatch,

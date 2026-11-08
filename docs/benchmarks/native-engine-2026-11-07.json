@@ -1,0 +1,162 @@
+{
+  "recordedAt": "2026-11-08T04:21:55.800001+00:00",
+  "platform": "Darwin",
+  "architecture": "arm64",
+  "python": "3.13.12",
+  "engine": "Chass Engine 0.1 HCE",
+  "repeats": 3,
+  "searchBudgetMs": 180,
+  "note": "Wall-clock evaluation time includes legal-action preparation outside the search budget. Not a network benchmark or an Elo calibration.",
+  "cases": {
+    "classic": {
+      "meanMs": 230.67,
+      "maxMs": 253,
+      "budgetExhaustionRate": 0.0,
+      "runs": [
+        {
+          "elapsedMs": 233,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 253,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 206,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        }
+      ]
+    },
+    "rectangular": {
+      "meanMs": 255.67,
+      "maxMs": 269,
+      "budgetExhaustionRate": 0.0,
+      "runs": [
+        {
+          "elapsedMs": 240,
+          "depth": 1,
+          "nodes": 24,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 258,
+          "depth": 1,
+          "nodes": 24,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 269,
+          "depth": 1,
+          "nodes": 24,
+          "budgetExhausted": false
+        }
+      ]
+    },
+    "custom-pieces": {
+      "meanMs": 289,
+      "maxMs": 308,
+      "budgetExhaustionRate": 0.0,
+      "runs": [
+        {
+          "elapsedMs": 308,
+          "depth": 1,
+          "nodes": 19,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 279,
+          "depth": 1,
+          "nodes": 19,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 280,
+          "depth": 1,
+          "nodes": 19,
+          "budgetExhausted": false
+        }
+      ]
+    },
+    "affinity-dominion": {
+      "meanMs": 236,
+      "maxMs": 255,
+      "budgetExhaustionRate": 0.0,
+      "runs": [
+        {
+          "elapsedMs": 206,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 247,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 255,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        }
+      ]
+    },
+    "point-race": {
+      "meanMs": 101.33,
+      "maxMs": 103,
+      "budgetExhaustionRate": 0.0,
+      "runs": [
+        {
+          "elapsedMs": 103,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 101,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 100,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        }
+      ]
+    },
+    "abilities": {
+      "meanMs": 202,
+      "maxMs": 203,
+      "budgetExhaustionRate": 0.0,
+      "runs": [
+        {
+          "elapsedMs": 202,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 203,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        },
+        {
+          "elapsedMs": 201,
+          "depth": 1,
+          "nodes": 20,
+          "budgetExhausted": false
+        }
+      ]
+    }
+  }
+}

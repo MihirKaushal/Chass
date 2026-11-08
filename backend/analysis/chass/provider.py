@@ -76,6 +76,7 @@ class ChassAnalysisProvider:
             diagnostics={
                 "staticScore": round(detailed.score, 4),
                 "searchedScore": round(score, 4),
+                "budgetExhausted": search.budget_exhausted,
             },
         )
 
