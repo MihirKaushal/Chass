@@ -1543,9 +1543,10 @@ class GameService:
                 )
             if authorized.player is None or authorized.player.color != color:
                 raise HTTPException(status_code=403, detail=f"Only {color} can act right now.")
-        elif record.mode == "bot":
-            if record.state.bot is None or color != record.state.bot.human_color:
-                raise HTTPException(status_code=409, detail="Wait for the bot to act.")
+        elif record.mode == "bot" and (
+            record.state.bot is None or color != record.state.bot.human_color
+        ):
+            raise HTTPException(status_code=409, detail="Wait for the bot to act.")
         self._expected_version(record, request.expectedVersion)
         try:
             next_state, explanation = self.engine.apply_custom_action(
