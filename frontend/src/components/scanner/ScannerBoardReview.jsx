@@ -13,6 +13,7 @@ function ScannerBoardReview({
   reviewSquares,
   onSquareEdit,
   onReviewSquare,
+  onReviewAll,
   onUndo,
   canUndo,
   onReset,
@@ -131,16 +132,29 @@ function ScannerBoardReview({
           </small>
         </div>
         {reviewSquares.length ? (
-          <Button
-            size="small"
-            variant="text"
-            onClick={() => {
-              setTool(null);
-              setSelectedSquare(reviewSquares[0]);
-            }}
-          >
-            Review {reviewSquares[0].label}
-          </Button>
+          <div className="scanner-review-actions">
+            <Button
+              size="small"
+              variant="text"
+              onClick={() => {
+                setTool(null);
+                setSelectedSquare(reviewSquares[0]);
+              }}
+            >
+              Review {reviewSquares[0].label}
+            </Button>
+            <Button
+              size="small"
+              variant="secondary"
+              onClick={() => {
+                onReviewAll();
+                setTool(null);
+                setSelectedSquare(null);
+              }}
+            >
+              Mark All Pieces Reviewed
+            </Button>
+          </div>
         ) : null}
       </div>
       <div className="scanner-alternatives" aria-live="polite">
