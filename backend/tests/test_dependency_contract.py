@@ -26,4 +26,4 @@ def test_default_firestore_database_path_remains_literal():
 
 
 def test_render_python_matches_the_verified_local_runtime():
-    assert (PROJECT_ROOT / ".python-version").read_text().strip() == "3.13.12"
+    assert (PROJECT_ROOT / ".python-version").read_text().strip() == "3.13"
