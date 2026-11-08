@@ -7,7 +7,7 @@ import pytest
 from google.cloud.firestore_v1.base_query import FieldFilter
 
 from backend.models.schemas import CreateGameRequest, JoinGameRequest
-from backend.repositories import MoveAudit
+from backend.repositories import ConcurrentUpdateError, MoveAudit
 from backend.repositories.firestore_repository import (
     GAMES,
     INVITES,
@@ -25,6 +25,8 @@ pytestmark = pytest.mark.skipif(
 
 
 def test_firestore_emulator_game_lifecycle(monkeypatch):
+    assert os.getenv("FIREBASE_PROJECT_ID", "").startswith("demo-"), "Use an isolated demo project"
+    assert os.environ["FIRESTORE_EMULATOR_HOST"].split(":")[0] in {"localhost", "127.0.0.1"}
     monkeypatch.setenv("TOKEN_SECRET", "firestore-emulator-test-secret")
     repository = FirestoreGameRepository()
     service = GameService(RuleEngine(), repository)
@@ -51,6 +53,11 @@ def test_firestore_emulator_game_lifecycle(monkeypatch):
         expires_at=datetime.now(timezone.utc) + timedelta(hours=24),
     )
     assert saved.version == 2
+    with pytest.raises(ConcurrentUpdateError):
+        repository.save_game(record.state, expected_version=1)
+    history = repository.get_history_page(created.game.id, history_epoch=0, limit=1)
+    assert len(history.records) == 1
+    assert history.records[0].move_number == 1
 
     now = datetime.now(timezone.utc)
     repository.client.collection(GAMES).document(created.game.id).update(
