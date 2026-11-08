@@ -4,6 +4,7 @@ import {
   shouldCalibrateClassicOpening,
 } from "../matchPredictor";
 import Button from "./ui/Button";
+import StatusBadge from "./ui/StatusBadge";
 
 function factorValue(value) {
   const numeric = Number(value);
@@ -51,14 +52,18 @@ function MatchPredictor({
     >
       <header className="match-predictor-heading">
         <h3>Match Analysis</h3>
-        <b className={`predictor-evaluation${unavailable ? " is-unavailable" : ""}`}>
-          {loading ? <i aria-hidden="true" /> : null}
+        <StatusBadge
+          as="b"
+          tone={unavailable ? "warning" : "info"}
+          busy={loading}
+          className={`predictor-evaluation${unavailable ? " is-unavailable" : ""}`}
+        >
           {unavailable
             ? "Unavailable"
             : loading
               ? "Updating"
               : evaluationLabel(analysis, moveCount, { calibrateOpening })}
-        </b>
+        </StatusBadge>
       </header>
 
       {unavailable ? (

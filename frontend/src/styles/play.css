@@ -2665,6 +2665,8 @@
 
   .tab-nav {
     justify-self: start;
+    min-width: 0;
+    flex-wrap: wrap;
   }
 
   .play-settings {
@@ -2738,10 +2740,17 @@
     width: 100%;
   }
 
-  .online-player-summary {
+  .online-player-summary,
+  .bot-player-summary {
     width: 100%;
     min-inline-size: 0;
+    flex-wrap: wrap;
     text-align: left;
+    white-space: normal;
+  }
+
+  .online-player-summary > span,
+  .bot-player-summary > span {
     white-space: normal;
   }
 
@@ -2752,6 +2761,9 @@
   .tab-nav {
     grid-column: 1 / -1;
     justify-self: stretch;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    border-radius: var(--radius-control);
   }
 
   .tab-nav :is(button, a) {

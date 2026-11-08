@@ -146,6 +146,9 @@
   gap: var(--space-2);
   margin-top: var(--space-3);
 }
+
+.scanner-keyboard-help { color: var(--ink-muted); font-size: var(--text-sm); line-height: 1.5; }
+.scanner-review-board .square:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; z-index: 1; }
 .scanner-import-feedback {
   min-height: 3rem;
   margin-bottom: var(--space-3);

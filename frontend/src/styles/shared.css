@@ -12,6 +12,7 @@
   font: inherit;
   font-weight: 700;
   line-height: 1.15;
+  text-decoration: none;
   transition: transform var(--motion-fast), opacity var(--motion-fast), box-shadow var(--motion-fast);
 }
 
@@ -76,9 +77,11 @@
   visibility: visible;
 }
 
-.ui-button-progress > i {
+.ui-button-progress > i,
+.ui-status-spinner {
   width: 0.8rem;
   height: 0.8rem;
+  flex-shrink: 0;
   border: 2px solid currentColor;
   border-right-color: transparent;
   border-radius: 50%;
@@ -482,7 +485,8 @@
     transition: none;
   }
 
-  .ui-button-progress > i {
+  .ui-button-progress > i,
+  .ui-status-spinner {
     animation: none;
   }
 }

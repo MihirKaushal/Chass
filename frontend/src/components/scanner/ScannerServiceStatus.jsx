@@ -37,7 +37,7 @@ function ScannerServiceStatus({ status, onRetry }) {
       aria-label="Recognition availability"
     >
       <div role="status" className="scanner-service-message">
-        <StatusBadge tone={copy.tone}>{copy.label}</StatusBadge>
+        <StatusBadge tone={copy.tone} busy={status === "checking" || status === "warming"}>{copy.label}</StatusBadge>
         {copy.text ? <p>{copy.text}</p> : null}
       </div>
       {status === "offline" ? (
