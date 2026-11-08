@@ -120,7 +120,7 @@ test("home keeps concise room descriptions and exposes the scanner", async () =>
   assert.doesNotMatch(html, /No invite required|anywhere/);
 });
 
-test("scanner status and future game controls do not imply unavailable features work", async () => {
+test("scanner status and launch controls do not imply unavailable features work", async () => {
   const offline = await markup(
     "/src/components/scanner/ScannerServiceStatus.jsx",
     { status: "offline" },
@@ -146,11 +146,11 @@ test("scanner status and future game controls do not imply unavailable features 
   );
   assert.match(unconfigured, /Photo Preparation Only/);
   assert.doesNotMatch(unconfigured, /Retry Connection/);
-  const upcoming = await markup(
+  const panel = await markup(
     "/src/components/scanner/ScannerContinuePanel.jsx",
   );
-  assert.equal((upcoming.match(/disabled=""/g) || []).length, 3);
-  assert.doesNotMatch(upcoming, /<select|type="radio"/);
+  assert.equal((panel.match(/disabled=""/g) || []).length, 2);
+  assert.doesNotMatch(panel, /<select|type="radio"|Play Against A Bot/);
 });
 
 test("scanner page leaves experimental labeling to the rulebook", async () => {
@@ -188,17 +188,17 @@ test("photo panel keeps essential guidance and collapses extra tips without deco
   assert.doesNotMatch(html, /Your photograph|scanner-step-label|scanner-overline/);
 });
 
-test("scanner launch requires confirmation, resolved flags and a valid position; bots stay disabled", async () => {
+test("scanner launch offers only local and online play and requires a reviewed valid position", async () => {
   const path = "/src/components/scanner/ScannerContinuePanel.jsx";
   const ready = {
     confirmed: true,
     remainingReviews: 0,
     validation: { valid: true, issues: [] },
   };
-  assert.equal(
-    ((await markup(path, ready)).match(/disabled=""/g) || []).length,
-    1,
-  );
+  const panel = await markup(path, ready);
+  assert.match(panel, /Start Local Game/);
+  assert.match(panel, /Create Online Game/);
+  assert.doesNotMatch(panel, /Play Against A Bot|disabled=""/);
   for (const blocked of [
     { confirmed: false },
     { remainingReviews: 1 },
@@ -211,7 +211,7 @@ test("scanner launch requires confirmation, resolved flags and a valid position;
         (await markup(path, { ...ready, ...blocked })).match(/disabled=""/g) ||
         []
       ).length,
-      3,
+      2,
     );
   }
 });
