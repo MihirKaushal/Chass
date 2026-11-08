@@ -138,7 +138,9 @@ avoids requiring Firestore's billed TTL deletion feature.
 
 ## 7. Verify the Cutover
 
-1. Open the Render health endpoint and confirm `"persistence":"firestore"`.
+1. Confirm public `/health` responds, then use the authenticated
+   [`/internal/diagnostics` endpoint](VERIFICATION.md#private-diagnostics) to confirm
+   `"persistence":"firestore"`. Liveness alone does not prove database access.
 2. Create and move in a local game on the deployed frontend.
 3. Create an online room and copy its invitation.
 4. Join from an incognito window or second device.

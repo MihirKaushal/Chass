@@ -184,8 +184,10 @@ STOCKFISH_PATH=<optional executable override>
 FAIRY_STOCKFISH_PATH=<optional executable override>
 ```
 
-`/health` reports all three providers under `botEngines` while preserving `classicBot` for older
-deployment checks.
+`/health` is a minimal public liveness check. The authenticated `/internal/diagnostics`
+endpoint reports all three providers under `botEngines`; see the
+[verification guide](VERIFICATION.md#private-diagnostics). Real-binary checks can be run with
+`.venv/bin/python scripts/engine_smoke.py` without creating games or touching a database.
 
 ## Extension Path
 
