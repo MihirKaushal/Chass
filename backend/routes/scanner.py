@@ -8,7 +8,9 @@ from urllib.parse import urlsplit
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request
+from pydantic import ValidationError
 
+from backend.models.scanner import ScanResponse
 from backend.rate_limit import rate_limiter
 
 router = APIRouter(prefix="/scanner", tags=["scanner"])
@@ -70,7 +72,7 @@ async def health(request: Request):
     }
 
 
-@router.post("/scan")
+@router.post("/scan", response_model=ScanResponse, response_model_exclude_unset=True)
 async def recognize(request: Request):
     rate_limiter.check(request, "scanner-recognize", limit=40, window_seconds=3600)
     url, headers = service_config()
@@ -104,7 +106,13 @@ async def recognize(request: Request):
                     if len(result) + len(chunk) > 2 * 1024 * 1024:
                         raise HTTPException(502, "The scanner returned an oversized response.")
                     result.extend(chunk)
-                data = json.loads(result)
+                try:
+                    data = json.loads(result)
+                except (ValueError, UnicodeDecodeError) as error:
+                    raise HTTPException(
+                        502 if response.status_code == 200 else 503,
+                        "The scanner returned an invalid response. Please retry.",
+                    ) from error
                 if response.status_code != 200:
                     if response.status_code in {413, 415, 422, 429}:
                         detail = data.get("detail") if isinstance(data, dict) else None
@@ -117,9 +125,16 @@ async def recognize(request: Request):
                     raise HTTPException(
                         503, "Recognition is temporarily unavailable. Retry shortly."
                     )
-                if not isinstance(data, dict) or not isinstance(data.get("board"), list):
-                    raise HTTPException(502, "The scanner returned an invalid result.")
-                return data
+                try:
+                    return ScanResponse.model_validate(data)
+                except ValidationError as error:
+                    # Never log the upstream body, photo, or model suggestions.
+                    logger.warning(
+                        "Scanner contract validation failed (%s issues)", error.error_count()
+                    )
+                    raise HTTPException(
+                        502, "The scanner returned an invalid result. Please retry."
+                    ) from error
         except httpx.TimeoutException as error:
             raise HTTPException(
                 504, "Recognition timed out. The model may be waking up; retry shortly."
