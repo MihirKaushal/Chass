@@ -55,6 +55,9 @@ function ScannerBoardReview({
     <section
       className="scanner-panel scanner-review-panel"
       aria-labelledby="scanner-review-title"
+      onKeyDown={(event) => {
+        if (event.key === "Escape") setTool(null);
+      }}
     >
       <header className="scanner-panel-header">
         <h2 id="scanner-review-title">Review Pieces</h2>
@@ -80,9 +83,14 @@ function ScannerBoardReview({
           onSquareClick={selectSquare}
           showCoordinates
           pieceDetailsMode="none"
+          keyboardNavigation
+          describedBy="scanner-keyboard-help"
           extraTargets={[...reviewSquares, ...issueSquares]}
         />
       </div>
+      <p id="scanner-keyboard-help" className="scanner-keyboard-help">
+        Arrow keys navigate. Enter selects or places a piece. Escape clears the editing tool.
+      </p>
       <div
         className={`scanner-review-status${reviewSquares.length ? " has-review" : ""}`}
       >

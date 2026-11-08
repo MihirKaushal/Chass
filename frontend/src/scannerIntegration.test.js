@@ -132,6 +132,8 @@ test("scanner status and future game controls do not imply unavailable features 
     "/src/components/scanner/ScannerServiceStatus.jsx", { status: "warming" },
   );
   assert.match(warming, /Starting Scanner/);
+  assert.match(warming, /aria-busy="true"/);
+  assert.match(warming, /ui-status-spinner/);
   assert.doesNotMatch(warming, /Offline|Retry Connection/);
   const connected = await markup(
     "/src/components/scanner/ScannerServiceStatus.jsx", { status: "ready" },

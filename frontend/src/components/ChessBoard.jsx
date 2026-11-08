@@ -32,7 +32,10 @@ function ChessBoard({
   countdowns = [],
   terrain = [],
   globalActions = [],
+  keyboardNavigation = false,
+  describedBy,
 }) {
+  const [focusedSquare, setFocusedSquare] = useState({ row: 0, col: 0 });
   const [hoveredPiece, setHoveredPiece] = useState(null);
   const [selectedActionSource, setSelectedActionSource] = useState(null);
   const pendingPieceTapRef = useRef(null);
@@ -367,6 +370,22 @@ function ChessBoard({
                 type="button"
                 key={key}
                 className={className}
+                data-row={rowIndex}
+                data-col={colIndex}
+                aria-describedby={describedBy}
+                tabIndex={keyboardNavigation ? (focusedSquare.row === rowIndex && focusedSquare.col === colIndex ? 0 : -1) : undefined}
+                onKeyDown={(event) => {
+                  if (!keyboardNavigation) return;
+                  const directions = { ArrowUp: [-1, 0], ArrowDown: [1, 0], ArrowLeft: [0, -1], ArrowRight: [0, 1] };
+                  const direction = directions[event.key];
+                  if (!direction) return;
+                  event.preventDefault();
+                  const orientation = boardFlipped ? -1 : 1;
+                  const row = Math.max(0, Math.min(rows - 1, rowIndex + direction[0] * orientation));
+                  const col = Math.max(0, Math.min(cols - 1, colIndex + direction[1] * orientation));
+                  setFocusedSquare({ row, col });
+                  event.currentTarget.parentElement.querySelector(`[data-row="${row}"][data-col="${col}"]`)?.focus();
+                }}
                 onClick={(event) => handleSquareClick(rowIndex, colIndex, piece, { piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge }, event.detail)}
                 onDoubleClick={(event) => {
                   if (pieceDetailsMode !== "double-tap" || !piece) return;
@@ -375,7 +394,10 @@ function ChessBoard({
                 }}
                 onMouseEnter={() => pieceDetailsMode === "hover" && piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
                 onMouseLeave={() => pieceDetailsMode === "hover" && setHoveredPiece(null)}
-                onFocus={() => pieceDetailsMode === "hover" && piece && setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge })}
+                onFocus={() => {
+                  if (keyboardNavigation) setFocusedSquare({ row: rowIndex, col: colIndex });
+                  if (pieceDetailsMode === "hover" && piece) setHoveredPiece({ piece, visibleRowIndex, visibleColIndex, tooltipPlacement, tooltipEdge });
+                }}
                 onBlur={() => pieceDetailsMode === "hover" && setHoveredPiece(null)}
                 aria-disabled={!interactive}
                 aria-label={`${boardSquareLabel({ row: rowIndex, col: colIndex }, rows)}${

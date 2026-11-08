@@ -26,7 +26,7 @@ function ScannerContinuePanel({
     >
       <header className="scanner-panel-header">
         <h2 id="scanner-continue-title">Continue Game</h2>
-        <StatusBadge tone={ready ? "success" : "neutral"}>
+        <StatusBadge tone={ready ? "success" : "neutral"} busy={busy || validating}>
           {busy
             ? "Creating Game"
             : validating

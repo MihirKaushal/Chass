@@ -21,7 +21,7 @@ export default function ScannerFeatureCard() {
         <p>Scan your chessboard, review the pieces, and continue on Chass.</p>
       </div>
       <AppLink href="/scanner" className="ui-button ui-button--primary">
-        <ScannerIcon name="camera" /> Scan a Board
+        <span className="ui-button-content"><ScannerIcon name="camera" /> Scan a Board</span>
       </AppLink>
     </article>
   );

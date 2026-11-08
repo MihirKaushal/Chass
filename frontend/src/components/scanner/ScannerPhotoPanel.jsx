@@ -160,6 +160,7 @@ function ScannerPhotoPanel({
               <ScannerIcon name="camera" />
             </span>
             <strong>Drop a board photo here</strong>
+            <span>Standard 8 x 8 boards and classic pieces only.</span>
             <span className="scanner-file-types">
               JPG, PNG, WebP · Up to 10 MB
             </span>
