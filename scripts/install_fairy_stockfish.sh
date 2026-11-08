@@ -2,6 +2,7 @@
 set -euo pipefail
 
 ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+source "$ROOT_DIR/scripts/engine_download.sh"
 COMMIT="6d9d0f5724677dc3aba3c577b0b482b6ec11e44a"
 SOURCE_SHA256="42ad01ffd964b0801c9d5f8b1a3a6fea6dc7b0ba66e38740cff852c221aa0228"
 DESTINATION="${FAIRY_STOCKFISH_INSTALL_PATH:-$ROOT_DIR/.stockfish/fairy-stockfish}"
@@ -55,25 +56,10 @@ cleanup() {
 }
 trap cleanup EXIT
 
-URL="https://github.com/fairy-stockfish/Fairy-Stockfish/archive/$COMMIT.tar.gz"
+URL="https://codeload.github.com/fairy-stockfish/Fairy-Stockfish/tar.gz/$COMMIT"
 echo "Downloading pinned Fairy-Stockfish source for $(uname -s) $(uname -m)..."
-curl --fail --location --silent --show-error \
-  --connect-timeout 15 --retry 3 --retry-all-errors \
-  "$URL" --output "$ARCHIVE"
-
-if command -v shasum >/dev/null 2>&1; then
-  ACTUAL_SHA256="$(shasum -a 256 "$ARCHIVE" | awk '{print $1}')"
-elif command -v sha256sum >/dev/null 2>&1; then
-  ACTUAL_SHA256="$(sha256sum "$ARCHIVE" | awk '{print $1}')"
-else
-  echo "A SHA-256 utility is required to verify the Fairy-Stockfish source." >&2
-  exit 1
-fi
-
-if [[ "$ACTUAL_SHA256" != "$SOURCE_SHA256" ]]; then
-  echo "Fairy-Stockfish checksum verification failed." >&2
-  exit 1
-fi
+download_engine_archive "$ARCHIVE" "$SOURCE_SHA256" "$URL" \
+  "https://github.com/fairy-stockfish/Fairy-Stockfish/archive/$COMMIT.tar.gz"
 
 mkdir -p "$EXTRACTED"
 tar -xzf "$ARCHIVE" -C "$EXTRACTED"
