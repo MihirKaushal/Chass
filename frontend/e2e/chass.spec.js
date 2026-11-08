@@ -148,6 +148,23 @@ test("scanner review advances after corrections or confirmation and supports und
   await page.getByRole("button", { name: "Restore Scan", exact: true }).click();
   await expect(heading).toHaveText("Review a3");
   await expect(page.locator(".scanner-review-status")).toContainText("3 squares to review");
+  await page.getByRole("button", { name: "Place white queen", exact: true }).click();
+  await page.getByRole("button", { name: "Mark All Pieces Reviewed", exact: true }).click();
+  await expect(page.locator(".scanner-review-status")).toContainText("No more squares to review");
+  await expect(page.getByRole("button", { name: "Mark All Pieces Reviewed", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Place white queen", exact: true })).toHaveAttribute("aria-pressed", "false");
+  await expect(confirmation).toBeEnabled();
+  await expect(confirmation).not.toBeChecked();
+  await expect(square(page, 7, 5)).toHaveAttribute("aria-label", /white Pawn/);
+  await confirmation.check();
+  // Bulk review does not bypass the independent imported-position validator.
+  await expect(page.getByRole("button", { name: "Start Local Game", exact: true })).toBeDisabled();
+  await expect(page.locator(".scanner-import-feedback")).toContainText(/first or last rank/i);
+  await page.getByRole("button", { name: "Undo", exact: true }).click();
+  await expect(page.locator(".scanner-review-status")).toContainText("3 squares to review");
+  await expect(heading).toHaveText("Review a3");
+  await expect(confirmation).not.toBeChecked();
+  await expect(confirmation).toBeDisabled();
 });
 
 test("bad uploads and malformed scan responses remain recoverable", async ({ page }) => {

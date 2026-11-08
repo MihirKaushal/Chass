@@ -251,6 +251,7 @@ test("flagged squares label the current piece and provide one mark-correct actio
   assert.match(html, /\(Current Piece\)/);
   assert.equal((html.match(/Mark e5 Correct/g) || []).length, 1);
   assert.doesNotMatch(html, /Keep Current Piece/);
+  assert.match(html, /Mark All Pieces Reviewed/);
 });
 
 test("current-piece markers follow the corrected board rather than original predictions", async () => {
@@ -263,6 +264,7 @@ test("current-piece markers follow the corrected board rather than original pred
   assert.match(html, /Black rook<span class="scanner-current-label">\(Current Piece\)/);
   assert.equal((html.match(/\(Current Piece\)/g) || []).length, 1);
   assert.match(html, /No more squares to review/);
+  assert.doesNotMatch(html, /Mark All Pieces Reviewed/);
   assert.match(html, /missing pieces, wrong pieces, and incorrect colors/);
   assert.match(html, /confirm all 64 squares below/);
 });

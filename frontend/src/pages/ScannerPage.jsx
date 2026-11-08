@@ -450,6 +450,14 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                   board={board}
                   reviewSquares={reviewSquares}
                   onSquareEdit={editSquare}
+                  onReviewAll={() => {
+                    if (!reviewSquares.length) return;
+                    setBoardHistory((current) =>
+                      [...current, { board, reviewSquares, selectedSquare: selectedSquare || reviewSquares[0] }].slice(-40),
+                    );
+                    setReviewSquares([]);
+                    setConfirmed(false);
+                  }}
                   onReviewSquare={(target) => {
                     setBoardHistory((current) =>
                       [...current, { board, reviewSquares, selectedSquare: target }].slice(-40),

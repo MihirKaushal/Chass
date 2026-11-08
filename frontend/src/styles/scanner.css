@@ -1168,6 +1168,7 @@
 
 .scanner-review-status {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.55rem;
   border: 1px solid rgba(47, 118, 88, 0.2);
@@ -1196,6 +1197,14 @@
   gap: 0.2rem;
 }
 
+.scanner-review-status .scanner-review-actions {
+  flex: 1 0 100%;
+  display: flex;
+  justify-content: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
 .scanner-review-status strong {
   font-size: var(--text-sm);
 }
@@ -1206,7 +1215,7 @@
   line-height: 1.5;
 }
 
-.scanner-review-status .ui-button {
+.scanner-review-status .ui-button--text {
   padding-right: 0;
 }
 
@@ -1614,8 +1623,5 @@
   }
   .scanner-review-status {
     flex-wrap: wrap;
-  }
-  .scanner-review-status > .ui-button {
-    margin-left: 1.75rem;
   }
 }
