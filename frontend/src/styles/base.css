@@ -66,19 +66,21 @@ textarea:focus-visible {
   padding: 0.8rem 0 1rem;
   color: rgba(26, 54, 93, 0.68);
   font-family: var(--font-mono);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   font-weight: 600;
   letter-spacing: 0.03em;
   text-align: left;
 }
 
+.site-footer small { font-size: inherit; }
+
 .site-footer a {
-  color: inherit;
+  color: var(--accent);
   text-decoration-color: var(--border-accent);
   text-underline-offset: 0.2em;
 }
 
-.site-footer a:hover { color: var(--accent); }
+.site-footer a:hover { color: var(--deep); }
 
 .app-shell.page-frame {
   width: var(--page-content-width);

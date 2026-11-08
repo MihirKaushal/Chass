@@ -90,9 +90,24 @@ test("rulebook first render includes the full reference without waiting for any 
   }
 });
 
-test("shared footer links the developer name to GitHub", async () => {
+test("shared footer links the developer name to GitHub in a safe new tab", async () => {
   const html = await markup("/src/components/SiteFooter.jsx");
-  assert.match(html, /Developed by <a href="https:\/\/github.com\/MihirKaushal">Mihir Kaushal<\/a>/);
+  assert.match(html, /Developed by <a href="https:\/\/github.com\/MihirKaushal" target="_blank" rel="noopener noreferrer">Mihir Kaushal<\/a>/);
+});
+
+test("all external Rulebook links open safely in new tabs while internal links stay in Chass", async () => {
+  const html = await markup("/src/pages/RulebookPage.jsx");
+  const anchors = html.match(/<a\b[^>]*>/g) || [];
+  const external = anchors.filter((anchor) => /href="https?:\/\//.test(anchor));
+  assert.equal(external.length, 2);
+  assert.ok(external.some((anchor) => anchor.includes("ACCURACY_TRACKER.md")));
+  for (const anchor of external) {
+    assert.match(anchor, /target="_blank"/);
+    assert.match(anchor, /rel="noopener noreferrer"/);
+  }
+  for (const anchor of anchors.filter((anchor) => !external.includes(anchor))) {
+    assert.doesNotMatch(anchor, /target="_blank"/);
+  }
 });
 
 test("home keeps concise room descriptions and exposes the scanner", async () => {
