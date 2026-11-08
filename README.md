@@ -63,12 +63,12 @@ offline comparison tools, promotion criteria, and next data-collection steps.
 | Area | Tools |
 | --- | --- |
 | Languages | Python, JavaScript/JSX, CSS, SQL, Bash |
-| Frontend | React 18, React Hooks, Vite 5, native WebSocket API |
+| Frontend | React 18, React Hooks, Vite 7, native WebSocket API |
 | Backend | FastAPI, Uvicorn, Pydantic 2 |
 | Analysis | Stockfish 18, Fairy-Stockfish, handcrafted evaluation, alpha-beta search, UCI, NNUE, W/D/L statistics |
 | Computer vision | PyTorch/torchvision training, SSDLite, ResNet18, ONNX Runtime server/browser inference, NumPy, Pillow |
 | Database | Cloud Firestore, Firebase Admin SDK, SQLAlchemy 2, SQLite |
-| Testing and quality | Pytest, HTTPX, Ruff, Vite production builds |
+| Testing and quality | Pytest, Hypothesis, python-chess differential tests, Playwright, HTTPX, Ruff, GitHub Actions |
 | Hosting | Vercel, Render, Firebase |
 
 ### Main Packages
@@ -86,6 +86,11 @@ offline comparison tools, promotion criteria, and next data-collection steps.
   pieces, abilities, terrain, Affinity, alternate victories, and boards through 16x16.
 - **Pytest and HTTPX:** Backend API and multiplayer integration testing.
 - **Ruff:** Python linting and code-quality checks.
+- **Playwright, Hypothesis, and python-chess:** Browser workflows, generated invariant checks,
+  and independent classic-chess legality comparisons.
+
+See the [engineering case study](docs/ENGINEERING.md) for design decisions, verification
+evidence, and known limits; the [verification guide](docs/VERIFICATION.md) has reproducible commands.
 
 ## Architecture
 
@@ -166,7 +171,7 @@ run.sh              Local startup script
 Requirements:
 
 - Python 3.11+
-- Node.js 20+
+- Node.js 22.12+ (recommended) or 20.19+
 - npm
 - `curl`, `tar`, `make`, and a C++ compiler for the one-time engine installation
 
@@ -199,6 +204,8 @@ cd frontend
 npm ci
 npm test
 npm run build
+npx playwright install chromium
+npm run test:e2e
 ```
 
 The Rulebook renders from a bundled reference catalog, without waiting for the game
@@ -206,11 +213,17 @@ server. After changing piece, ability, or rule definitions, regenerate it from t
 repository root with `.venv/bin/python scripts/export_rulebook.py` and commit the
 updated JSON. Backend tests and `scripts/export_rulebook.py --check` detect drift.
 
+GitHub Actions additionally runs an isolated Firestore emulator lifecycle test, launches the
+real Stockfish/Fairy binaries, verifies the ONNX scanner response contract, and uploads
+browser screenshots/traces and a native-engine benchmark. No production credentials are needed.
+Browser recognition uses a deterministic fixture; that suite does not measure ML accuracy.
+
 ## API
 
 | Method | Endpoint | Purpose |
 | --- | --- | --- |
-| `GET` | `/health` | Service health check |
+| `GET` | `/health` | Minimal public liveness check |
+| `GET` | `/internal/diagnostics` | Server-only bearer-authenticated engine status and aggregate metrics |
 | `GET` | `/game/catalog` | Load pieces, abilities, victories, and presets |
 | `POST` | `/game/validate` | Validate a complete configuration and return incompatible options |
 | `POST` | `/game/create` | Create a local, online, or engine-routed bot game |
