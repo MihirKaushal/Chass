@@ -74,9 +74,6 @@ function ScannerContinuePanel({
         <Button disabled={!ready} onClick={() => onContinue("online")}>
           Create Online Game
         </Button>
-        <Button disabled title="Scanned-position bot games are coming later.">
-          Play Against A Bot (Later)
-        </Button>
       </div>
     </section>
   );
