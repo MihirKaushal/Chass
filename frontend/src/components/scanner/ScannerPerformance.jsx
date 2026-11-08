@@ -1,4 +1,5 @@
 import Disclosure from "../ui/Disclosure";
+import ExternalLink from "../ExternalLink";
 import { SCANNER_PERFORMANCE as data } from "../../scannerPerformance";
 import { SCANNER_REFERENCE } from "../../scannerReference";
 
@@ -67,7 +68,7 @@ export default function ScannerPerformance() {
       <h3>Speed and privacy</h3>
       <p>{copy.timing}</p>
       <p>{copy.privacy}</p>
-      <a href="https://github.com/MihirKaushal/Chass/blob/main/scanner/ml/ACCURACY_TRACKER.md">Benchmark definitions and experiment history</a>
+      <ExternalLink href="https://github.com/MihirKaushal/Chass/blob/main/scanner/ml/ACCURACY_TRACKER.md">Benchmark definitions and experiment history</ExternalLink>
     </Disclosure>
   );
 }
