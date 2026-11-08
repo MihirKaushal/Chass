@@ -11,6 +11,8 @@ services:
         - backend/**
         - scripts/install_stockfish.sh
         - scripts/install_fairy_stockfish.sh
+        - scripts/engine_download.sh
+        - .node-version
         - .python-version
         - runtime.txt
         - render.yaml

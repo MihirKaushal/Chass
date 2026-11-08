@@ -44,6 +44,17 @@ The regular suite skips this test when the emulator is absent; CI runs it in its
 
 ## Engines And Scanner
 
+Engine installers retry transient upstream errors and try a second official GitHub endpoint.
+Every archive must match its pinned SHA-256 before extraction. Verified downloads are cached
+under `${XDG_CACHE_HOME:-$HOME/.cache}/chass-engines` (override with `CHASS_ENGINE_CACHE_DIR`).
+Cache retention depends on the host; installation does not rely on a cache being preserved.
+If all endpoints fail, the build fails rather than silently deploying without the engines.
+The error includes the URL and whether download or checksum verification failed.
+
+Render reads the root `.node-version` (`22.x`); a dashboard `NODE_VERSION` overrides this.
+The frontend supports bounded Node 20.19+, 22.12+, and 24.x ranges, not arbitrary future majors.
+If an old `NODE_VERSION` override is set to 26, remove it or change it to `22.x`.
+
 ```sh
 bash scripts/install_stockfish.sh
 bash scripts/install_fairy_stockfish.sh
