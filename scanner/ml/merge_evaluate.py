@@ -75,13 +75,17 @@ def paired_bootstrap(candidate, control, repetitions=2000, seed=42):
     ]:
         raise ValueError("Paired bootstrap requires identical ordered image/group ground truth.")
     groups = defaultdict(lambda: defaultdict(lambda: np.zeros((2, 3))))
+    group_sources = defaultdict(set)
     for pair in zip(candidate, control, strict=True):
         for arm, row in enumerate(pair):
+            group_sources[row["group"]].add(row["source"])
             groups[row["source"]][row["group"]][arm] += [
                 row["correct_type_color"],
                 row["annotated_pieces"],
                 row["predictions"],
             ]
+    if any(len(sources) > 1 for sources in group_sources.values()):
+        raise ValueError("Source-stratified bootstrap cannot split a shared cross-source group.")
     rng = np.random.default_rng(seed)
     samples = []
     for _ in range(repetitions):

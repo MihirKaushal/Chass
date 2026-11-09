@@ -1,10 +1,30 @@
 import copy
+import json
 
 import pytest
 
 from scanner.ml.merge import manifest_for, partition
 from scanner.ml.merge_evaluate import decision, paired_bootstrap, summarize
+from scanner.ml.merge_report import verification
 from scanner.ml.transfer import sampling_weights, validate_transfer
+from scanner.ml.verify_onnx import validation_records
+
+
+def test_report_does_not_claim_missing_or_failed_parity_checks(tmp_path):
+    output = tmp_path / "report"
+    output.mkdir()
+    assert verification(tmp_path, output) == []
+    parity = {
+        "images": 40,
+        "board_and_review_parity": True,
+        "top_three_label_parity": False,
+        "max_score_difference": 0.01,
+        "max_box_difference_pixels": 0.001,
+    }
+    (tmp_path / "onnx-parity.json").write_text(json.dumps(parity))
+    lines = verification(tmp_path, output)
+    assert "ONNX parity passed: **False**" in "\n".join(lines)
+    assert json.loads((output / "onnx-parity.json").read_text()) == parity
 
 
 def row(index, source=1, split="train", group=None):
@@ -117,6 +137,10 @@ def test_bootstrap_keeps_paired_groups_and_refuses_different_ground_truth():
     assert result["macro_typed_f1_delta_95_percentile_interval"] == pytest.approx([0.3, 0.3])
     with pytest.raises(ValueError, match="identical ordered"):
         paired_bootstrap(candidate[::-1], control)
+    shared_candidate = [{**r, "group": "shared"} for r in candidate]
+    shared_control = [{**r, "group": "shared"} for r in control]
+    with pytest.raises(ValueError, match="shared cross-source group"):
+        paired_bootstrap(shared_candidate, shared_control)
 
 
 def test_promotion_rejects_regression_even_with_larger_average():
@@ -149,3 +173,14 @@ def test_promotion_rejects_regression_even_with_larger_average():
     assert not result["accuracy_gate_passed"]
     assert any("typed_piece_recall regressed" in message for message in result["failures"])
     assert not result["deployed_models_changed"]
+
+
+def test_parity_sampling_covers_each_source_without_using_test_images():
+    records = (
+        [row(i, source=0, split="valid") for i in range(10)]
+        + [row(10 + i, split="valid") for i in range(3)]
+        + [row(20, split="test")]
+    )
+    selected = validation_records({"records": records}, 2, per_source=True)
+    assert [r["id"] for r in selected] == [0, 9, 10, 12]
+    assert all(r["split"] == "valid" for r in selected)

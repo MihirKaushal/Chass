@@ -181,9 +181,10 @@ def train(
             ),
             "timing": timing,
         }
-        save_json(output / "untrained_head_validation.json", initial)
+        stage = "initialized_checkpoint" if config.get("initialize_from") else "untrained_head"
+        save_json(output / f"{stage}_validation.json", initial)
         print(
-            json.dumps({"stage": "untrained_head", "validation_map50": initial["map50"]}),
+            json.dumps({"stage": stage, "validation_map50": initial["map50"]}),
             flush=True,
         )
     for epoch in range(start_epoch, config["epochs"] + 1):

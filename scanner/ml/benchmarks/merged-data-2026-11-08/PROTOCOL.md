@@ -125,3 +125,37 @@ and candidate weights stay local under ignored `scanner/data/` and `scanner/arti
 Dataset credits remain [Chess V2 by Public Wspace](https://universe.roboflow.com/public-wspace/chess-v2-qqtmk)
 and [Chess Top Down by chess](https://universe.roboflow.com/chess-gftva/chess-top-down),
 Roboflow Universe, both CC BY 4.0.
+
+## Post-Selection Verification Commands
+
+Recorded after the locked evaluation. These checks do not change the training
+recipe, thresholds, or preregistered accuracy gates above. No command replaces
+the public model files.
+
+```sh
+export SCANNER_SELECTION=scanner/artifacts/merge-evaluation-2026-11-08/merged/selection.json
+export SCANNER_DETECTOR=scanner/artifacts/merge-experiment-2026-11-08/merged/detector/best.pt
+export SCANNER_CLASSIFIER=scanner/artifacts/merge-experiment-2026-11-08/merged/classifier/best.pt
+
+.venv-scanner/bin/python -m scanner.ml.export_onnx \
+  --output scanner/artifacts/merged-onnx-2026-11-08
+
+.venv-scanner/bin/python -m scanner.ml.verify_onnx \
+  --manifest scanner/artifacts/merged-2026-11-08/merged/manifest.json \
+  --models scanner/artifacts/merged-onnx-2026-11-08 \
+  --per-source --limit 20 \
+  --report scanner/artifacts/merge-evaluation-2026-11-08/onnx-parity.json
+
+unset SCANNER_SELECTION SCANNER_DETECTOR SCANNER_CLASSIFIER
+
+.venv-scanner/bin/python -m scanner.ml.runtime_experiment benchmark \
+  --models scanner/models/onnx scanner/artifacts/merged-onnx-2026-11-08 \
+  --manifest scanner/artifacts/merged-2026-11-08/merged/manifest.json \
+  --limit 40 --batch 1 \
+  --output scanner/artifacts/merge-evaluation-2026-11-08/runtime
+
+.venv-scanner/bin/python -m scanner.ml.merge_report \
+  --evaluation scanner/artifacts/merge-evaluation-2026-11-08 \
+  --training scanner/artifacts/merge-experiment-2026-11-08 \
+  --output scanner/ml/benchmarks/merged-data-2026-11-08
+```

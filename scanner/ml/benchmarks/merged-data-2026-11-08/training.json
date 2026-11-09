@@ -1,0 +1,258 @@
+{
+  "control": {
+    "detector": {
+      "config": {
+        "seed": 42,
+        "epochs": 6,
+        "warmup_epochs": 0,
+        "batch_size": 8,
+        "input_size": 320,
+        "anchor_scales": [
+          0.06,
+          0.12,
+          0.24,
+          0.4,
+          0.6,
+          0.8,
+          1.0
+        ],
+        "learning_rate": 0.0003,
+        "backbone_learning_rate": 3e-05,
+        "weight_decay": 0.0001,
+        "patience": 6,
+        "num_workers": 2,
+        "threads": 4,
+        "augment": true,
+        "samples_per_epoch": 1424,
+        "source_weights": {
+          "chess-v2": 1.0
+        },
+        "source_balanced_validation": true,
+        "initialize_from": "scanner/artifacts/chess-v2-baseline/best.pt",
+        "initialization_manifest": "scanner/artifacts/curation/chess-v2-v3/prepared/manifest.json"
+      },
+      "epochs": [
+        {
+          "epoch": 1,
+          "seconds": 76.91834862501128,
+          "selection_score": 0.5356866922609821
+        },
+        {
+          "epoch": 2,
+          "seconds": 67.18365479100612,
+          "selection_score": 0.541290587485825
+        },
+        {
+          "epoch": 3,
+          "seconds": 57.48158616697765,
+          "selection_score": 0.5462844716553503
+        },
+        {
+          "epoch": 4,
+          "seconds": 63.70310358298593,
+          "selection_score": 0.5416817890415703
+        },
+        {
+          "epoch": 5,
+          "seconds": 68.89157237499603,
+          "selection_score": 0.5393853577362091
+        },
+        {
+          "epoch": 6,
+          "seconds": 67.1387742079969,
+          "selection_score": 0.5380922081672783
+        }
+      ]
+    },
+    "classifier": {
+      "config": {
+        "seed": 42,
+        "size": 160,
+        "context": 0.15,
+        "batch_size": 48,
+        "samples_per_epoch": 12000,
+        "epochs": 6,
+        "patience": 6,
+        "head_lr": 5e-05,
+        "backbone_lr": 1e-05,
+        "threads": 4,
+        "workers": 2,
+        "device": "auto",
+        "initialize_from": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+        "class_multipliers": {
+          "black-king": 2,
+          "white-king": 2,
+          "black-pawn": 1.2,
+          "black-bishop": 1.2,
+          "white-queen": 1.2
+        },
+        "source_weights": {
+          "chess-v2": 1.0
+        },
+        "source_balanced_validation": true,
+        "initialization_manifest": "scanner/artifacts/curation/chess-v2-v3/prepared/manifest.json"
+      },
+      "epochs": [
+        {
+          "epoch": 1,
+          "seconds": 59.07900233299006,
+          "selection_score": 0.8001181014805299
+        },
+        {
+          "epoch": 2,
+          "seconds": 54.30671208302374,
+          "selection_score": 0.8096609433924944
+        },
+        {
+          "epoch": 3,
+          "seconds": 54.99416333399131,
+          "selection_score": 0.8109419684981982
+        },
+        {
+          "epoch": 4,
+          "seconds": 55.22981129199616,
+          "selection_score": 0.8175032638172579
+        },
+        {
+          "epoch": 5,
+          "seconds": 55.40401433300576,
+          "selection_score": 0.8083519098184313
+        },
+        {
+          "epoch": 6,
+          "seconds": 55.55441450001672,
+          "selection_score": 0.817513411253684
+        }
+      ]
+    }
+  },
+  "merged": {
+    "detector": {
+      "config": {
+        "seed": 42,
+        "epochs": 6,
+        "warmup_epochs": 0,
+        "batch_size": 8,
+        "input_size": 320,
+        "anchor_scales": [
+          0.06,
+          0.12,
+          0.24,
+          0.4,
+          0.6,
+          0.8,
+          1.0
+        ],
+        "learning_rate": 0.0003,
+        "backbone_learning_rate": 3e-05,
+        "weight_decay": 0.0001,
+        "patience": 6,
+        "num_workers": 2,
+        "threads": 4,
+        "augment": true,
+        "samples_per_epoch": 1424,
+        "source_weights": {
+          "chess-v2": 0.75,
+          "top-down": 0.25
+        },
+        "source_balanced_validation": true,
+        "initialize_from": "scanner/artifacts/chess-v2-baseline/best.pt",
+        "initialization_manifest": "scanner/artifacts/curation/chess-v2-v3/prepared/manifest.json"
+      },
+      "epochs": [
+        {
+          "epoch": 1,
+          "seconds": 55.40398324999842,
+          "selection_score": 0.5963767612800874
+        },
+        {
+          "epoch": 2,
+          "seconds": 58.17461099999491,
+          "selection_score": 0.5995749352173076
+        },
+        {
+          "epoch": 3,
+          "seconds": 54.565343916998245,
+          "selection_score": 0.64016551836993
+        },
+        {
+          "epoch": 4,
+          "seconds": 59.43726229100139,
+          "selection_score": 0.6279427732545966
+        },
+        {
+          "epoch": 5,
+          "seconds": 54.30121670800145,
+          "selection_score": 0.6473020076461297
+        },
+        {
+          "epoch": 6,
+          "seconds": 54.1161867089977,
+          "selection_score": 0.648849546777925
+        }
+      ]
+    },
+    "classifier": {
+      "config": {
+        "seed": 42,
+        "size": 160,
+        "context": 0.15,
+        "batch_size": 48,
+        "samples_per_epoch": 12000,
+        "epochs": 6,
+        "patience": 6,
+        "head_lr": 5e-05,
+        "backbone_lr": 1e-05,
+        "threads": 4,
+        "workers": 2,
+        "device": "auto",
+        "initialize_from": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+        "class_multipliers": {
+          "black-king": 2,
+          "white-king": 2,
+          "black-pawn": 1.2,
+          "black-bishop": 1.2,
+          "white-queen": 1.2
+        },
+        "source_weights": {
+          "chess-v2": 0.75,
+          "top-down": 0.25
+        },
+        "source_balanced_validation": true,
+        "initialization_manifest": "scanner/artifacts/curation/chess-v2-v3/prepared/manifest.json"
+      },
+      "epochs": [
+        {
+          "epoch": 1,
+          "seconds": 58.052171207993524,
+          "selection_score": 0.8513605588114084
+        },
+        {
+          "epoch": 2,
+          "seconds": 55.667088624992175,
+          "selection_score": 0.8698927228467206
+        },
+        {
+          "epoch": 3,
+          "seconds": 55.850397458008956,
+          "selection_score": 0.8836284977656881
+        },
+        {
+          "epoch": 4,
+          "seconds": 56.01465195801575,
+          "selection_score": 0.8932146605860474
+        },
+        {
+          "epoch": 5,
+          "seconds": 59.704366083984496,
+          "selection_score": 0.9025331554941598
+        },
+        {
+          "epoch": 6,
+          "seconds": 55.64237908399082,
+          "selection_score": 0.9159897942412055
+        }
+      ]
+    }
+  }
+}
