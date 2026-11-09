@@ -1,0 +1,27 @@
+# Python and local runtime files
+.venv/
+__pycache__/
+**/__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.db
+*.sqlite
+*.sqlite3
+
+# Local engine binaries and logs
+.stockfish/
+firebase-debug.log
+firestore-debug.log
+
+# Frontend dependencies and build output
+frontend/node_modules/
+frontend/dist/
+
+# Scanner datasets and generated model/evaluation artifacts
+scanner/data/
+scanner/artifacts/
+
+# OS metadata
+.DS_Store
