@@ -22,8 +22,9 @@ from torchvision import transforms
 from torchvision.models import ResNet18_Weights, resnet18
 
 from .crops import prepare_crops
-from .data import CLASSES, save_json
+from .data import CLASSES, read_manifest, save_json
 from .model import choose_device
+from .transfer import sampling_weights, validate_transfer
 
 ARCHITECTURE = "resnet18_piece_crops_v1"
 MEAN, STD = (0.485, 0.456, 0.406), (0.229, 0.224, 0.225)
@@ -135,8 +136,17 @@ def train(manifest_path, cache, output, config):
     multipliers = config.get("class_multipliers", {})
     if any(key not in CLASSES[1:] or not 0 < value <= 4 for key, value in multipliers.items()):
         raise ValueError("Use known class weights between 0 and 4.")
+    weights = [
+        multipliers.get(CLASSES[r["label"]], 1) / counts[r["label"]] for r in training.records
+    ]
+    if config.get("source_weights"):
+        weights = sampling_weights(
+            training.records,
+            config["source_weights"],
+            {CLASSES.index(name): weight for name, weight in multipliers.items()},
+        )
     sampler = WeightedRandomSampler(
-        [multipliers.get(CLASSES[r["label"]], 1) / counts[r["label"]] for r in training.records],
+        weights,
         config["samples_per_epoch"],
         replacement=True,
         generator=torch.Generator().manual_seed(seed),
@@ -148,10 +158,22 @@ def train(manifest_path, cache, output, config):
     }
     train_loader = DataLoader(training, sampler=sampler, **loader_options)
     valid_loader = DataLoader(validation, shuffle=False, **loader_options)
+    source_loaders = {}
+    if config.get("source_balanced_validation"):
+        for source in sorted({r["source_dataset"] for r in validation.records}):
+            subset = PieceCrops(cache, index, "valid")
+            subset.records = [r for r in subset.records if r["source_dataset"] == source]
+            source_loaders[source] = DataLoader(
+                subset, batch_size=config["batch_size"], shuffle=False, num_workers=0
+            )
     if config.get("initialize_from"):
         model, previous = load_classifier(Path(config["initialize_from"]), device)
         if previous["dataset_fingerprint"] != index["dataset_fingerprint"]:
-            raise ValueError("Fine-tuning checkpoint and dataset differ.")
+            if not config.get("initialization_manifest"):
+                raise ValueError("Fine-tuning checkpoint and dataset differ.")
+            validate_transfer(
+                previous, read_manifest(manifest_path), config["initialization_manifest"]
+            )
         if any(previous["config"][key] != config[key] for key in ("size", "context")):
             raise ValueError("Fine-tuning crop geometry must match its checkpoint.")
     else:
@@ -199,10 +221,21 @@ def train(manifest_path, cache, output, config):
             loss_sum += loss.item() * len(labels)
             count += len(labels)
         metrics = evaluate_classifier(model, valid_loader, device)
+        if source_loaders:
+            metrics["per_source"] = {
+                source: evaluate_classifier(model, loader, device)
+                for source, loader in source_loaders.items()
+            }
+        selection_score = (
+            sum(m["macro_f1"] for m in metrics["per_source"].values()) / len(source_loaders)
+            if source_loaders
+            else metrics["macro_f1"]
+        )
         row = {
             "epoch": epoch,
             "loss": loss_sum / count,
             "validation": metrics,
+            "selection_macro_f1": selection_score,
             "seconds": time.perf_counter() - epoch_start,
         }
         history.append(row)
@@ -216,8 +249,8 @@ def train(manifest_path, cache, output, config):
             "validation": metrics,
         }
         atomic_checkpoint(output / "last.pt", payload)
-        if metrics["macro_f1"] > best:
-            best, stale = metrics["macro_f1"], 0
+        if selection_score > best:
+            best, stale = selection_score, 0
             atomic_checkpoint(output / "best.pt", payload)
         else:
             stale += 1
@@ -229,6 +262,7 @@ def train(manifest_path, cache, output, config):
                     "loss": row["loss"],
                     "valid_accuracy": metrics["accuracy"],
                     "valid_macro_f1": metrics["macro_f1"],
+                    "selection_macro_f1": selection_score,
                     "seconds": row["seconds"],
                 }
             ),

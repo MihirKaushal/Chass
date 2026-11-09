@@ -7,11 +7,29 @@ import time
 from pathlib import Path
 
 import torch
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, WeightedRandomSampler
 
 from .data import CLASSES, CocoPieces, collate_detection, read_manifest, save_json
 from .metrics import coco_metrics, collect_predictions
-from .model import ARCHITECTURE, build_model, choose_device
+from .model import ARCHITECTURE, build_model, choose_device, load_checkpoint
+from .transfer import sampling_weights, validate_transfer
+
+
+def validation_metrics(predictions, records, source_balanced=False):
+    metrics = coco_metrics(predictions, records)
+    if source_balanced:
+        by_source = {}
+        for source in sorted({r["source_dataset"] for r in records}):
+            subset = [r for r in records if r["source_dataset"] == source]
+            ids = {r["id"] for r in subset}
+            by_source[source] = coco_metrics(
+                [p for p in predictions if p["image_id"] in ids], subset
+            )
+        metrics["per_source"] = by_source
+        metrics["selection_map50"] = sum(m["map50"] for m in by_source.values()) / len(by_source)
+    else:
+        metrics["selection_map50"] = metrics["map50"]
+    return metrics
 
 
 def save_checkpoint(path: Path, payload: dict) -> None:
@@ -80,9 +98,15 @@ def train(
         old = checkpoint["config"]
         if any(old[key] != config[key] for key in old if key != "epochs"):
             raise ValueError("Resume requires the original configuration; only epochs may change.")
-    model = build_model(
-        pretrained=checkpoint is None, anchor_scales=config.get("anchor_scales")
-    ).to(device)
+    if config.get("initialize_from") and not checkpoint:
+        model, previous = load_checkpoint(Path(config["initialize_from"]), device)
+        validate_transfer(previous, manifest, config["initialization_manifest"])
+        if previous["config"].get("anchor_scales") != config.get("anchor_scales"):
+            raise ValueError("Transfer must preserve detector anchor geometry.")
+    else:
+        model = build_model(
+            pretrained=checkpoint is None, anchor_scales=config.get("anchor_scales")
+        ).to(device)
     if checkpoint:
         model.load_state_dict(checkpoint["model"])
     backbone = list(model.backbone.parameters())
@@ -109,10 +133,27 @@ def train(
     generator = torch.Generator().manual_seed(config["seed"])
     if checkpoint and "loader_rng" in checkpoint:
         generator.set_state(checkpoint["loader_rng"])
+    sampler = None
+    if config.get("source_weights"):
+        samples = config.get("samples_per_epoch", len(train_data))
+        if (
+            type(samples) is not int
+            or samples < config["batch_size"]
+            or samples % config["batch_size"]
+        ):
+            raise ValueError("Fixed sample budget must be a positive multiple of batch size.")
+        sampler = WeightedRandomSampler(
+            sampling_weights(train_data.records, config["source_weights"]),
+            samples,
+            replacement=True,
+            generator=generator,
+        )
+        drop_last = False
     loader = DataLoader(
         train_data,
         batch_size=config["batch_size"],
-        shuffle=True,
+        shuffle=sampler is None,
+        sampler=sampler,
         num_workers=config["num_workers"],
         collate_fn=collate_detection,
         drop_last=drop_last,
@@ -134,7 +175,12 @@ def train(
     start_epoch = checkpoint["epoch"] + 1 if checkpoint else 1
     if not checkpoint:
         predictions, timing = collect_predictions(model, valid_data, device, config["batch_size"])
-        initial = {**coco_metrics(predictions, valid_data.records), "timing": timing}
+        initial = {
+            **validation_metrics(
+                predictions, valid_data.records, config.get("source_balanced_validation", False)
+            ),
+            "timing": timing,
+        }
         save_json(output / "untrained_head_validation.json", initial)
         print(
             json.dumps({"stage": "untrained_head", "validation_map50": initial["map50"]}),
@@ -173,10 +219,12 @@ def train(
                 totals[key] = totals.get(key, 0.0) + value.item()
             batches += 1
         predictions, timing = collect_predictions(model, valid_data, device, config["batch_size"])
-        metrics = coco_metrics(predictions, valid_data.records)
-        improved = metrics["map50"] > best
+        metrics = validation_metrics(
+            predictions, valid_data.records, config.get("source_balanced_validation", False)
+        )
+        improved = metrics["selection_map50"] > best
         if improved:
-            best, stale = metrics["map50"], 0
+            best, stale = metrics["selection_map50"], 0
         else:
             stale += 1
         row = {
@@ -185,6 +233,8 @@ def train(
             "losses": {key: value / batches for key, value in totals.items()},
             "validation_map50": metrics["map50"],
             "validation_map50_95": metrics["map50_95"],
+            "selection_map50": metrics["selection_map50"],
+            "per_source": metrics.get("per_source", {}),
             "seconds": time.perf_counter() - started,
         }
         history.append(row)

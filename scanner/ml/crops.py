@@ -82,8 +82,11 @@ def prepare_crops(manifest_path, output, *, size=160, context=0.15):
                         "split": record["split"],
                         "image_id": record["id"],
                         "box_index": position,
-                        "split_group": record.get("split_group"),
+                        "split_group": record.get("evaluation_group", record.get("split_group")),
                         "source_sha256": record["sha256"],
+                        "source_dataset": record.get(
+                            "source_dataset", manifest.get("dataset", "unknown")
+                        ),
                     }
                 )
         if number % 200 == 0:
