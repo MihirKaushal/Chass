@@ -1,0 +1,58 @@
+{
+  "recorded_on": "2026-11-08",
+  "seed": 42,
+  "design": "Paired fixed-budget continuation from the deployed Torch checkpoints, not from scratch.",
+  "initialization": {
+    "detector": {
+      "path": "scanner/artifacts/chess-v2-baseline/best.pt",
+      "sha256": "88e3093f50114d1c18356b7057027184a6a6f01b99810dd33d62c54ee650105f"
+    },
+    "classifier": {
+      "path": "scanner/artifacts/king-focused-2026-11-06/best.pt",
+      "sha256": "7f7c96d7f0aa35a7388a5daa89253b9fdccf7c11c46ba664ea1579d109424ca5"
+    }
+  },
+  "manifests": {
+    "control": "b568b096d8d17db74e5cfdab901a18a0d9351f2ca2d446ea9b1abdd3650f3cf7",
+    "merged": "433f0b8234f3ed13f86c7f3f071801b1b26473877c186f1a41f12f4ca1acc522"
+  },
+  "budgets": {
+    "detector_epochs": 6,
+    "detector_samples_per_epoch": 1424,
+    "classifier_epochs": 6,
+    "classifier_samples_per_epoch": 12000
+  },
+  "selection": "Detector checkpoint: equal-source mean validation mAP50. Classifier: equal-source mean validation macro-F1. Final detection threshold: equal-source mean typed F1 on validation only; overlap fixed at 0.4.",
+  "threshold_candidates": [
+    0.15,
+    0.2,
+    0.25,
+    0.3
+  ],
+  "overlap": 0.4,
+  "primary_metric": "Equal-source mean typed F1 = mean_source(2*correct_type_color/(annotations+predictions)).",
+  "secondary_metrics": [
+    "typed_piece_recall",
+    "typed_prediction_precision",
+    "localization_recall",
+    "conditional_type_color_accuracy",
+    "missed_pieces",
+    "unmatched_predictions",
+    "per_class_recall_and_confusion",
+    "king_recall",
+    "paired_group_bootstrap"
+  ],
+  "promotion_gate": {
+    "minimum_macro_typed_f1_gain": 0.01,
+    "maximum_source_recall_or_precision_drop": 0.02,
+    "maximum_king_recall_drop": 0.02,
+    "requires": "Beat both paired control and deployed baseline; pass gates on each source. Positive group-bootstrap lower bound against control. ONNX/runtime verification required separately."
+  },
+  "limitations": [
+    "One seed; cannot isolate all stochastic variation.",
+    "Top Down test has only 17 images, with no verified physical-set IDs.",
+    "No square/whole-board labels; no claim of improved whole-board accuracy.",
+    "Both source test collections have prior development exposure; regression evidence only.",
+    "75/25 source mixture is predeclared, not optimized using test results."
+  ]
+}
