@@ -1,0 +1,94 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1280 430" role="img">
+<title>Source-specific scanner comparison</title>
+<desc>Box-level regression metrics for deployed, control, and merged models. Not whole-board accuracy.</desc>
+<rect width="1280" height="430" fill="#fff"/>
+<g font-family="sans-serif" fill="#1a365d">
+<text x="640" y="28" font-size="20" text-anchor="middle">Two-source merge: fixed image holdouts, not whole-board accuracy</text>
+<rect x="450" y="46" width="14" height="14" fill="#6484a2"/>
+<text x="472" y="58" font-size="13" text-anchor="start">deployed</text>
+<rect x="595" y="46" width="14" height="14" fill="#c49b52"/>
+<text x="617" y="58" font-size="13" text-anchor="start">control</text>
+<rect x="740" y="46" width="14" height="14" fill="#2b6cb0"/>
+<text x="762" y="58" font-size="13" text-anchor="start">merged</text>
+<text x="225" y="99" font-size="15" text-anchor="middle">Correctly identified / real pieces</text>
+<path d="M55 340.0h340" stroke="#dce3ea"/>
+<text x="47" y="344.0" font-size="11" text-anchor="end">0%</text>
+<path d="M55 287.5h340" stroke="#dce3ea"/>
+<text x="47" y="291.5" font-size="11" text-anchor="end">25%</text>
+<path d="M55 235.0h340" stroke="#dce3ea"/>
+<text x="47" y="239.0" font-size="11" text-anchor="end">50%</text>
+<path d="M55 182.5h340" stroke="#dce3ea"/>
+<text x="47" y="186.5" font-size="11" text-anchor="end">75%</text>
+<path d="M55 130.0h340" stroke="#dce3ea"/>
+<text x="47" y="134.0" font-size="11" text-anchor="end">100%</text>
+<rect x="93.0" y="151.8589845615152" width="28" height="188.1410154384848" fill="#6484a2"/>
+<text x="107.0" y="144.8589845615152" font-size="11" text-anchor="middle">89.6</text>
+<rect x="126.0" y="150.55546713353493" width="28" height="189.44453286646507" fill="#c49b52"/>
+<text x="140.0" y="143.55546713353493" font-size="11" text-anchor="middle">90.2</text>
+<rect x="159.0" y="151.4579022759828" width="28" height="188.5420977240172" fill="#2b6cb0"/>
+<text x="173.0" y="144.4579022759828" font-size="11" text-anchor="middle">89.8</text>
+<text x="140.0" y="365" font-size="13" text-anchor="middle">chess-v2</text>
+<text x="140.0" y="385" font-size="11" text-anchor="middle">338 images / 6,283 pieces</text>
+<rect x="263.0" y="227.0967741935484" width="28" height="112.9032258064516" fill="#6484a2"/>
+<text x="277.0" y="220.0967741935484" font-size="11" text-anchor="middle">53.8</text>
+<rect x="296.0" y="218.06451612903226" width="28" height="121.93548387096774" fill="#c49b52"/>
+<text x="310.0" y="211.06451612903226" font-size="11" text-anchor="middle">58.1</text>
+<rect x="329.0" y="159.3548387096774" width="28" height="180.6451612903226" fill="#2b6cb0"/>
+<text x="343.0" y="152.3548387096774" font-size="11" text-anchor="middle">86.0</text>
+<text x="310.0" y="365" font-size="13" text-anchor="middle">top-down</text>
+<text x="310.0" y="385" font-size="11" text-anchor="middle">17 images / 93 pieces</text>
+<text x="645" y="99" font-size="15" text-anchor="middle">Correctly identified / predictions</text>
+<path d="M475 340.0h340" stroke="#dce3ea"/>
+<text x="467" y="344.0" font-size="11" text-anchor="end">0%</text>
+<path d="M475 287.5h340" stroke="#dce3ea"/>
+<text x="467" y="291.5" font-size="11" text-anchor="end">25%</text>
+<path d="M475 235.0h340" stroke="#dce3ea"/>
+<text x="467" y="239.0" font-size="11" text-anchor="end">50%</text>
+<path d="M475 182.5h340" stroke="#dce3ea"/>
+<text x="467" y="186.5" font-size="11" text-anchor="end">75%</text>
+<path d="M475 130.0h340" stroke="#dce3ea"/>
+<text x="467" y="134.0" font-size="11" text-anchor="end">100%</text>
+<rect x="513.0" y="139.5098371777476" width="28" height="200.4901628222524" fill="#6484a2"/>
+<text x="527.0" y="132.5098371777476" font-size="11" text-anchor="middle">95.5</text>
+<rect x="546.0" y="138.42845046570702" width="28" height="201.57154953429298" fill="#c49b52"/>
+<text x="560.0" y="131.42845046570702" font-size="11" text-anchor="middle">96.0</text>
+<rect x="579.0" y="138.94602851323828" width="28" height="201.05397148676172" fill="#2b6cb0"/>
+<text x="593.0" y="131.94602851323828" font-size="11" text-anchor="middle">95.7</text>
+<text x="560.0" y="365" font-size="13" text-anchor="middle">chess-v2</text>
+<text x="560.0" y="385" font-size="11" text-anchor="middle">338 images / 6,283 pieces</text>
+<rect x="683.0" y="213.49397590361446" width="28" height="126.50602409638556" fill="#6484a2"/>
+<text x="697.0" y="206.49397590361446" font-size="11" text-anchor="middle">60.2</text>
+<rect x="716.0" y="211.13636363636363" width="28" height="128.86363636363637" fill="#c49b52"/>
+<text x="730.0" y="204.13636363636363" font-size="11" text-anchor="middle">61.4</text>
+<rect x="749.0" y="157.3913043478261" width="28" height="182.6086956521739" fill="#2b6cb0"/>
+<text x="763.0" y="150.3913043478261" font-size="11" text-anchor="middle">87.0</text>
+<text x="730.0" y="365" font-size="13" text-anchor="middle">top-down</text>
+<text x="730.0" y="385" font-size="11" text-anchor="middle">17 images / 93 pieces</text>
+<text x="1065" y="99" font-size="15" text-anchor="middle">Typed F1</text>
+<path d="M895 340.0h340" stroke="#dce3ea"/>
+<text x="887" y="344.0" font-size="11" text-anchor="end">0%</text>
+<path d="M895 287.5h340" stroke="#dce3ea"/>
+<text x="887" y="291.5" font-size="11" text-anchor="end">25%</text>
+<path d="M895 235.0h340" stroke="#dce3ea"/>
+<text x="887" y="239.0" font-size="11" text-anchor="end">50%</text>
+<path d="M895 182.5h340" stroke="#dce3ea"/>
+<text x="887" y="186.5" font-size="11" text-anchor="end">75%</text>
+<path d="M895 130.0h340" stroke="#dce3ea"/>
+<text x="887" y="134.0" font-size="11" text-anchor="end">100%</text>
+<rect x="933.0" y="145.8806141719353" width="28" height="194.1193858280647" fill="#6484a2"/>
+<text x="947.0" y="138.8806141719353" font-size="11" text-anchor="middle">92.4</text>
+<rect x="966.0" y="144.68001312766657" width="28" height="195.31998687233343" fill="#c49b52"/>
+<text x="980.0" y="137.68001312766657" font-size="11" text-anchor="middle">93.0</text>
+<rect x="999.0" y="145.4028747433265" width="28" height="194.5971252566735" fill="#2b6cb0"/>
+<text x="1013.0" y="138.4028747433265" font-size="11" text-anchor="middle">92.7</text>
+<text x="980.0" y="365" font-size="13" text-anchor="middle">chess-v2</text>
+<text x="980.0" y="385" font-size="11" text-anchor="middle">338 images / 6,283 pieces</text>
+<rect x="1103.0" y="220.6818181818182" width="28" height="119.31818181818183" fill="#6484a2"/>
+<text x="1117.0" y="213.6818181818182" font-size="11" text-anchor="middle">56.8</text>
+<rect x="1136.0" y="214.69613259668506" width="28" height="125.30386740331492" fill="#c49b52"/>
+<text x="1150.0" y="207.69613259668506" font-size="11" text-anchor="middle">59.7</text>
+<rect x="1169.0" y="158.37837837837836" width="28" height="181.62162162162164" fill="#2b6cb0"/>
+<text x="1183.0" y="151.37837837837836" font-size="11" text-anchor="middle">86.5</text>
+<text x="1150.0" y="365" font-size="13" text-anchor="middle">top-down</text>
+<text x="1150.0" y="385" font-size="11" text-anchor="middle">17 images / 93 pieces</text>
+</g></svg>

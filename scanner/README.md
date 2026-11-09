@@ -67,6 +67,12 @@ records dated metrics and chart-ready snapshots without confusing bounding-box
 results with square accuracy. Website recognition uses a separate model API on
 port 8001 locally. Reviewed positions can now continue as local or online human
 games; public recognition needs a separate model host. See [Scanner MVP](MVP.md).
+
+The [combined-data experiment](ml/benchmarks/merged-data-2026-11-08/README.md)
+compares a versioned two-source merge against both deployment and an equal-budget
+single-source control. Its manifests, candidate weights and crop caches live in
+`artifacts/merged-2026-11-08/`, `artifacts/merge-experiment-2026-11-08/`, and
+`artifacts/merge-evaluation-2026-11-08/`; raw sources and public models are preserved.
 To inspect uncertain examples:
 
 ```sh

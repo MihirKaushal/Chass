@@ -1,9 +1,64 @@
 # Scanner Accuracy Tracker
 
-Last recorded: **2026-11-07**. Current classifier trained: **2026-11-06**;
+Last recorded: **2026-11-08**. Current deployed classifier trained: **2026-11-06**;
 detector remains the **2026-10-25** checkpoint.
 This log separates measurable piece-box diagnostics from future square-level
 accuracy. Historical snapshots below remain intact.
+
+## Combined-Data Experiment: 2026-11-08
+
+An offline mixed-source candidate passed the preregistered accuracy gate. **Public
+models and website metrics are unchanged.** The experiment fine-tuned both the
+detector and classifier, comparing Chess V2-only continuation against a 75/25
+Chess V2 / Top Down mixture with identical initialization and update budgets.
+Both arms completed six detector and six classifier epochs. Thresholds were
+selected on common validation data before test evaluation.
+
+The versioned merge adds 270 Top Down training images / 1,431 annotated pieces
+to the 1,419-image / 40,307-piece Chess V2 training split. One Top Down validation
+image was excluded after perceptual overlap with test; no original files were
+changed. Test contains 338 Chess V2 photos / 6,283 pieces and 17 Top Down photos /
+93 pieces. The comparison uses the same images for all three pipelines.
+
+| Box-level test metric | Deployed baseline | V2-only continuation control | Mixed-source candidate |
+| --- | ---: | ---: | ---: |
+| Chess V2: correctly located and typed / all real pieces | 89.59% | 90.21% | **89.78%** |
+| Top Down: correctly located and typed / all real pieces | 53.76% | 58.06% | **86.02%** |
+| Equal-source mean typed F1 (primary) | 74.63% | 76.34% | **89.58%** |
+| Pooled correctly located and typed / all real pieces | 89.07% | **89.74%** | 89.73% |
+| Chess V2 King typed recall | 89.51% | **92.37%** | 90.99% |
+| Top Down King typed recall | 24.14% | 41.38% | **82.76%** |
+
+Typed F1 balances misses, wrong labels and extra predictions; its equal-source
+average prevents the much larger Chess V2 test set from hiding Top Down failures.
+Mixed minus control macro typed F1: **+13.24 percentage points**; paired source-group
+bootstrap 95% percentile interval **+8.78 to +18.56 points**. Top Down misses fell
+from 18 to 7 versus deployment, with extras decreasing from 8 to 6. Chess V2 misses
+fell from 536 to 514 and extras from 149 to 123.
+
+The tradeoff must remain visible: V2-only continuation has slightly better Chess V2
+recall and King recall than the mixed candidate, and pooled recall is essentially
+tied (the mixed model correctly identifies one fewer piece than control). The
+strong evidence is broader **source coverage**, not a large pooled-accuracy gain.
+
+This is one seed on reused regression collections. There are only three Chess V2
+test capture groups; Top Down physical-set identities are unknown. The result
+does not establish generalization to unfamiliar household boards, calibrated
+confidence, empty-square accuracy, or exact-board accuracy. New independently
+verified physical sets remain necessary.
+
+The mixed candidate was exported locally to ONNX. All 40 validation photos
+(20 per source) retained identical board/review decisions and top-three labels
+versus PyTorch CPU. A separate same-photo 40-image CPU timing run measured median
+136.2 ms / p95 230.0 ms for deployment weights and median 139.8 ms / p95 222.3 ms
+for the candidate; peak process memory was 443.3 / 442.6 MiB respectively.
+These single-run Mac measurements show similar local cost, not hosted latency
+or a demonstrated speed improvement. Hosted/browser checks remain necessary
+before promotion. Candidate weights and ONNX files remain local and ignored.
+
+See [results and chart](benchmarks/merged-data-2026-11-08/README.md),
+[registered protocol](benchmarks/merged-data-2026-11-08/PROTOCOL.md), and
+[machine-readable metrics](benchmarks/merged-data-2026-11-08/results.json).
 
 ## Product Review And Evaluation: 2026-11-07
 

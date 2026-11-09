@@ -23,6 +23,23 @@ square-level metrics that cannot yet be measured.
 The [Piece Error Analysis](PIECE_ERROR_ANALYSIS.md) breaks down confused labels,
 missed pieces, duplicate predictions, and visually reviewed background candidates.
 
+## Combined-Data Experiment
+
+The [two-source experiment protocol](benchmarks/merged-data-2026-11-08/PROTOCOL.md)
+defines a versioned merge of curated Chess V2 and Chess Top Down, paired continuation
+training for both detector and classifier, and source-specific evaluation. It
+preserves original files and held-out splits rather than copying or editing raw
+archives. Separate `control` and `merged` manifests use identical evaluation images
+and equal training-update budgets. Candidate artifacts stay outside deployment.
+The [completed comparison](benchmarks/merged-data-2026-11-08/README.md) includes
+source-specific metrics, a chart, training histories and the promotion decision.
+
+Use `python -m scanner.ml.merge`, `scanner.ml.merge_experiment`,
+`scanner.ml.merge_evaluate`, and `scanner.ml.merge_report` in the isolated ML
+environment; the protocol records complete commands, metrics, and promotion gates.
+Earlier instructions below about keeping sources separate describe the historical
+single-source baseline, not a requirement that future experiments use one source.
+
 ## Setup
 
 Run from the repository root. Use Python 3.12 or 3.13 with these dependency pins; the baseline was

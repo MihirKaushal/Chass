@@ -12,11 +12,26 @@ from .inference import default_pipeline
 from .onnx_inference import OnnxScannerPipeline
 
 
-def verify(manifest_path, model_dir, limit, report_path, score_tolerance=0.002):
+def validation_records(manifest, limit, per_source=False):
+    if limit < 1:
+        raise ValueError("Parity limit must be positive.")
+    records = [record for record in manifest["records"] if record["split"] == "valid"]
+    if not per_source:
+        return records[:limit]
+    selected = []
+    for source in sorted({record["source_dataset"] for record in records}):
+        subset = [record for record in records if record["source_dataset"] == source]
+        selected.extend(
+            subset[i] for i in np.linspace(0, len(subset) - 1, min(limit, len(subset)), dtype=int)
+        )
+    return selected
+
+
+def verify(manifest_path, model_dir, limit, report_path, score_tolerance=0.002, per_source=False):
     if not 0 < score_tolerance <= 0.01:
         raise ValueError("Classifier confidence tolerance must be in (0, 0.01].")
     manifest = read_manifest(manifest_path)
-    records = [record for record in manifest["records"] if record["split"] == "valid"][:limit]
+    records = validation_records(manifest, limit, per_source)
     if not records:
         raise ValueError("No validation images are available.")
     reference, deployed = default_pipeline("cpu"), OnnxScannerPipeline(model_dir)
@@ -55,6 +70,7 @@ def verify(manifest_path, model_dir, limit, report_path, score_tolerance=0.002):
         "images": len(records),
         "dataset_fingerprint": manifest["fingerprint"],
         "split": "valid",
+        "sampling": "spread within each source" if per_source else "first validation images",
         "image_ids": [record["id"] for record in records],
         "board_and_review_parity": True,
         "top_three_label_parity": True,
@@ -76,7 +92,14 @@ if __name__ == "__main__":
     )
     parser.add_argument("--models", type=Path, default=Path("scanner/models/onnx"))
     parser.add_argument("--limit", type=int, default=40)
+    parser.add_argument(
+        "--per-source",
+        action="store_true",
+        help="Spread --limit samples within each source of a merged manifest.",
+    )
     parser.add_argument("--score-tolerance", type=float, default=0.002)
     parser.add_argument("--report", type=Path, default=Path("scanner/artifacts/onnx-parity.json"))
     args = parser.parse_args()
-    verify(args.manifest, args.models, args.limit, args.report, args.score_tolerance)
+    verify(
+        args.manifest, args.models, args.limit, args.report, args.score_tolerance, args.per_source
+    )
