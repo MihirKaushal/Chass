@@ -1,16 +1,16 @@
 {
   "format_version": 1,
   "selection": {
-    "pipeline": "combined",
+    "threshold": 0.15,
     "overlap": 0.4,
-    "threshold": 0.2,
-    "classifier_sha256": "7f7c96d7f0aa35a7388a5daa89253b9fdccf7c11c46ba664ea1579d109424ca5",
-    "detector_sha256": "88e3093f50114d1c18356b7057027184a6a6f01b99810dd33d62c54ee650105f",
-    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81"
+    "pipeline": "combined",
+    "dataset_fingerprint": "433f0b8234f3ed13f86c7f3f071801b1b26473877c186f1a41f12f4ca1acc522",
+    "detector_sha256": "b44a275283f60b5132a9e7487ed1de674e42dc29e64eeba41c5ab9fd0a25e704",
+    "classifier_sha256": "1977d07c3dc5ab09f1ef50b52bb9f1ea867f839eeb149b77d37c056393e9fc42"
   },
   "sha256": {
-    "detector": "81d2d1e4d45261f34c249da8c3a55db38f68d55e301872966d5798a6b43a3045",
-    "classifier": "48ca6c8ef3f8abbb60c2d35d372df95668e2dbb7672ebd5c0bcf76fd4562afc5"
+    "detector": "b093925476599886cbdd9bb82ad25481660c0ed0a34fa4d342be06c075f6db7e",
+    "classifier": "f01e8b240b6b843537d684e0abae8f187b7ecc821472c41ad62764beaf4cf8c8"
   },
   "classes": [
     "background",
@@ -35,20 +35,26 @@
     "batch_size": 48,
     "samples_per_epoch": 12000,
     "epochs": 6,
-    "patience": 3,
+    "patience": 6,
     "head_lr": 5e-05,
     "backbone_lr": 1e-05,
     "threads": 4,
     "workers": 2,
     "device": "auto",
-    "initialize_from": "scanner/artifacts/crop-classifier-v1/best.pt",
+    "initialize_from": "scanner/artifacts/king-focused-2026-11-06/best.pt",
     "class_multipliers": {
       "black-king": 2,
       "white-king": 2,
       "black-pawn": 1.2,
       "black-bishop": 1.2,
       "white-queen": 1.2
-    }
+    },
+    "source_weights": {
+      "chess-v2": 0.75,
+      "top-down": 0.25
+    },
+    "source_balanced_validation": true,
+    "initialization_manifest": "scanner/artifacts/curation/chess-v2-v3/prepared/manifest.json"
   },
   "detector_size": [
     320,
