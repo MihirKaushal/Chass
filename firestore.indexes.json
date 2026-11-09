@@ -1,0 +1,25 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "moves",
+      "queryScope": "COLLECTION",
+      "fields": [
+        {
+          "fieldPath": "history_key",
+          "order": "ASCENDING"
+        },
+        {
+          "fieldPath": "move_number",
+          "order": "DESCENDING"
+        }
+      ]
+    }
+  ],
+  "fieldOverrides": [
+    {
+      "collectionGroup": "games",
+      "fieldPath": "state_json",
+      "indexes": []
+    }
+  ]
+}

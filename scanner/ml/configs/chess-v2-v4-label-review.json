@@ -1,0 +1,21 @@
+{
+  "recorded_on": "2026-10-26",
+  "source_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+  "scope": "Two missing test annotations confirmed using full photos and enlarged original-resolution crops. Training/validation unchanged. This is not a complete semantic reannotation.",
+  "additions": [
+    {
+      "image_id": 1811,
+      "image_sha256": "d1075959e151b06254cc095f508f91ae0a2e624c88a6fa96d2385291cd3aee8c",
+      "label": "black-pawn",
+      "box": [1080, 845, 1173, 924],
+      "reason": "Visible spherical pawn head and narrow neck at lower-right board edge; no existing overlapping annotation. Bounds manually checked against the original crop."
+    },
+    {
+      "image_id": 1956,
+      "image_sha256": "6501c3694bce52eb145c2e306c37778a14c73a494cbcfdff256b9915624c9388",
+      "label": "black-queen",
+      "box": [985, 698, 1150, 796],
+      "reason": "Visible circular serrated queen crown and central knob at right board edge; no king cross or rook tower. Bounds manually checked against the original crop."
+    }
+  ]
+}

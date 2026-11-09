@@ -1,0 +1,507 @@
+from __future__ import annotations
+
+import hashlib
+from dataclasses import dataclass
+from typing import TYPE_CHECKING
+
+from backend.catalog import build_default_piece_definitions, classic_layout
+from backend.models import GameState, PieceDefinition
+from backend.models.schemas import PositionFactorView
+from backend.rules.variant_system import FINISHED_STATUSES, objective_center_squares
+
+if TYPE_CHECKING:
+    from backend.rules import RuleEngine
+
+CLASSIC_TYPES = frozenset({"pawn", "knight", "bishop", "rook", "queen", "king"})
+CLASSIC_PROMOTION_TYPES = frozenset({"knight", "bishop", "rook", "queen"})
+CLASSIC_POINTS: dict[str, int] = {
+    "pawn": 1,
+    "knight": 3,
+    "bishop": 3,
+    "rook": 5,
+    "queen": 9,
+    "king": 0,
+}
+CLASSIC_STARTING_COUNTS: dict[str, int] = {
+    "pawn": 8,
+    "knight": 2,
+    "bishop": 2,
+    "rook": 2,
+    "queen": 1,
+    "king": 1,
+}
+REQUIRED_CLASSIC_RULES = frozenset({"check", "checkmate", "stalemate"})
+DISABLED_CLASSIC_RULES = frozenset({"double_capture_rook", "score_target_win"})
+PIECE_TO_FEN = {
+    "pawn": "p",
+    "knight": "n",
+    "bishop": "b",
+    "rook": "r",
+    "queen": "q",
+    "king": "k",
+}
+
+
+@dataclass(frozen=True)
+class ClassicAnalysisEligibility:
+    eligible: bool
+    enabled: bool
+    reason: str | None = None
+
+
+def _definition_behavior_signature(definition: PieceDefinition) -> dict:
+    payload = definition.model_dump(mode="json", exclude={"points"})
+    return payload
+
+
+def definitions_use_classic_behavior(state: GameState) -> bool:
+    defaults = build_default_piece_definitions()
+    for piece_type in state.configuration.enabled_piece_types:
+        if piece_type not in CLASSIC_TYPES:
+            return False
+        current = state.piece_definitions.get(piece_type)
+        expected = defaults.get(piece_type)
+        if current is None or expected is None:
+            return False
+        if _definition_behavior_signature(current) != _definition_behavior_signature(expected):
+            return False
+    return True
+
+
+def _stockfish_position_reason(state: GameState) -> str | None:
+    positioned_pieces = [
+        (row_index, col_index, piece)
+        for row_index, row in enumerate(state.board.grid)
+        for col_index, piece in enumerate(row)
+        if piece is not None
+    ]
+    if any(
+        piece.color not in {"white", "black"} or piece.type not in CLASSIC_TYPES
+        for _, _, piece in positioned_pieces
+    ):
+        return "Only standard White and Black chess pieces can be analyzed."
+
+    enabled_types = set(state.configuration.enabled_piece_types)
+    if not enabled_types or not enabled_types <= CLASSIC_TYPES or "king" not in enabled_types:
+        return "Only standard chess piece types can be enabled."
+    if any(piece.type not in enabled_types for _, _, piece in positioned_pieces):
+        return "Every starting piece must use an enabled standard piece type."
+
+    has_pawns = any(piece.type == "pawn" for _, _, piece in positioned_pieces)
+    if has_pawns and not enabled_types.issuperset(CLASSIC_PROMOTION_TYPES):
+        return "All standard promotion pieces must remain enabled while Pawns are in play."
+
+    for color in ("white", "black"):
+        color_pieces = [
+            (row, col, piece)
+            for row, col, piece in positioned_pieces
+            if piece.color == color
+        ]
+        counts = {
+            piece_type: sum(piece.type == piece_type for _, _, piece in color_pieces)
+            for piece_type in CLASSIC_TYPES
+        }
+        if counts["king"] != 1:
+            return "Both sides must have exactly one King."
+        if len(color_pieces) > 16 or counts["pawn"] > CLASSIC_STARTING_COUNTS["pawn"]:
+            return "Each side must fit within standard chess material limits."
+
+        available_promotions = CLASSIC_STARTING_COUNTS["pawn"] - counts["pawn"]
+        required_promotions = sum(
+            max(0, counts[piece_type] - CLASSIC_STARTING_COUNTS[piece_type])
+            for piece_type in CLASSIC_PROMOTION_TYPES
+        )
+        if required_promotions > available_promotions:
+            return "The army contains more promoted material than standard chess permits."
+
+        pawn_home_row = 6 if color == "white" else 1
+        pawn_promotion_row = 0 if color == "white" else 7
+        if any(
+            piece.type == "pawn"
+            and (
+                row == pawn_promotion_row
+                or (not piece.has_moved and row != pawn_home_row)
+            )
+            for row, _, piece in color_pieces
+        ):
+            return "Unmoved Pawns must begin on their standard home rank for Stockfish analysis."
+
+        king_row, king_col, king = next(
+            (row, col, piece)
+            for row, col, piece in color_pieces
+            if piece.type == "king"
+        )
+        if king.has_moved:
+            continue
+        home_row = 7 if color == "white" else 0
+        for rook_row, rook_col, rook in color_pieces:
+            if (
+                rook.type != "rook"
+                or rook.has_moved
+                or rook_row != king_row
+                or abs(rook_col - king_col) < 3
+            ):
+                continue
+            if (king_row, king_col) != (home_row, 4) or rook_col not in {0, 7}:
+                return "Unmoved Kings and Rooks must use standard castling squares."
+
+    return None
+
+
+def classic_analysis_eligibility(
+    state: GameState,
+    *,
+    require_enabled: bool = True,
+) -> ClassicAnalysisEligibility:
+    enabled = state.configuration.match_predictor_enabled
+    if require_enabled and not enabled:
+        return ClassicAnalysisEligibility(
+            eligible=False,
+            enabled=False,
+            reason="Match Analysis was disabled for this game.",
+        )
+
+    if state.variant != "classic" or state.gambit is not None:
+        return ClassicAnalysisEligibility(
+            False,
+            enabled,
+            "Stockfish analysis requires standard Classic movement and turn rules.",
+        )
+    if state.board.rows != 8 or state.board.cols != 8:
+        return ClassicAnalysisEligibility(False, enabled, "Stockfish analysis requires an 8x8 board.")
+
+    configuration = state.configuration
+    if configuration.piece_parameters and any(configuration.piece_parameters.values()):
+        return ClassicAnalysisEligibility(False, enabled, "Classic piece behavior was changed.")
+    if not definitions_use_classic_behavior(state):
+        return ClassicAnalysisEligibility(False, enabled, "Classic piece movement was changed.")
+    if configuration.victory.mode not in {"checkmate", "timed"}:
+        return ClassicAnalysisEligibility(
+            False,
+            enabled,
+            "Classic checkmate or a standard timed match is required.",
+        )
+    if configuration.custom_rules.affinity_enabled:
+        return ClassicAnalysisEligibility(False, enabled, "Custom rules disable Stockfish analysis.")
+    if configuration.special_abilities.enabled:
+        return ClassicAnalysisEligibility(False, enabled, "Special abilities disable Stockfish analysis.")
+    if state.terrain:
+        return ClassicAnalysisEligibility(False, enabled, "Custom board terrain disables Stockfish analysis.")
+
+    rule_settings = {setting.id: setting for setting in state.rules}
+    if any(
+        rule_id not in rule_settings or not rule_settings[rule_id].enabled
+        for rule_id in REQUIRED_CLASSIC_RULES
+    ):
+        return ClassicAnalysisEligibility(False, enabled, "A required Classic rule was changed.")
+    if any(rule_settings.get(rule_id) and rule_settings[rule_id].enabled for rule_id in DISABLED_CLASSIC_RULES):
+        return ClassicAnalysisEligibility(False, enabled, "A variant rule is enabled.")
+    if any(setting.params for setting in rule_settings.values()):
+        return ClassicAnalysisEligibility(False, enabled, "Rule parameters were customized.")
+
+    position_reason = _stockfish_position_reason(state)
+    if position_reason:
+        return ClassicAnalysisEligibility(False, enabled, position_reason)
+
+    return ClassicAnalysisEligibility(True, enabled, None)
+
+
+def synchronize_match_predictor_setting(state: GameState) -> None:
+    # Compatibility import retained for callers that used the original module.
+    from backend.analysis.profiles import synchronize_match_predictor_setting as synchronize
+
+    synchronize(state)
+
+
+def _castling_rights(state: GameState) -> str:
+    rights: list[str] = []
+    for color, row, king_symbol, queen_symbol in (
+        ("white", 7, "K", "Q"),
+        ("black", 0, "k", "q"),
+    ):
+        king = state.board.grid[row][4]
+        if king is None or king.type != "king" or king.color != color or king.has_moved:
+            continue
+        kingside_rook = state.board.grid[row][7]
+        queenside_rook = state.board.grid[row][0]
+        if (
+            kingside_rook is not None
+            and kingside_rook.type == "rook"
+            and kingside_rook.color == color
+            and not kingside_rook.has_moved
+        ):
+            rights.append(king_symbol)
+        if (
+            queenside_rook is not None
+            and queenside_rook.type == "rook"
+            and queenside_rook.color == color
+            and not queenside_rook.has_moved
+        ):
+            rights.append(queen_symbol)
+    return "".join(rights) or "-"
+
+
+def _en_passant_square(state: GameState) -> str:
+    if not state.history:
+        if state.imported_position and not any(state.turn_counts.values()):
+            return state.imported_position.en_passant or "-"
+        return "-"
+    move = state.history[-1]
+    if (
+        move.action_type != "move"
+        or move.piece != "pawn"
+        or abs(move.to_row - move.from_row) != 2
+    ):
+        return "-"
+    target_row = (move.from_row + move.to_row) // 2
+    return f"{chr(ord('a') + move.to_col)}{state.board.rows - target_row}"
+
+
+def classic_position_fen(state: GameState) -> str:
+    ranks: list[str] = []
+    for row in state.board.grid:
+        empty = 0
+        rank: list[str] = []
+        for piece in row:
+            if piece is None:
+                empty += 1
+                continue
+            if empty:
+                rank.append(str(empty))
+                empty = 0
+            symbol = PIECE_TO_FEN[piece.type]
+            rank.append(symbol.upper() if piece.color == "white" else symbol)
+        if empty:
+            rank.append(str(empty))
+        ranks.append("".join(rank))
+
+    side_to_move = "w" if state.current_player == "white" else "b"
+    fullmove_number = (
+        (state.history[-1].move_number // 2) + 1
+        if state.history
+        else 1
+    )
+    if state.imported_position:
+        fullmove_number = state.imported_position.fullmove_number + state.turn_counts["black"]
+    return " ".join(
+        (
+            "/".join(ranks),
+            side_to_move,
+            _castling_rights(state),
+            _en_passant_square(state),
+            str(state.classic.halfmove_clock),
+            str(max(1, fullmove_number)),
+        )
+    )
+
+
+def classic_position_hash(state: GameState) -> str:
+    return hashlib.sha256(classic_position_fen(state).encode("ascii")).hexdigest()
+
+
+def _advantage(white: float, black: float, tolerance: float = 0.001) -> str:
+    if white > black + tolerance:
+        return "white"
+    if black > white + tolerance:
+        return "black"
+    return "balanced"
+
+
+def _lead_summary(label: str, white: float, black: float, unit: str = "") -> str:
+    difference = abs(white - black)
+    if difference < 0.001:
+        return f"{label} is balanced."
+    leader = "White" if white > black else "Black"
+    rendered = int(difference) if float(difference).is_integer() else round(difference, 1)
+    suffix = f" {unit}" if unit else ""
+    return f"{leader} leads by {rendered}{suffix}."
+
+
+def _pawn_structure(state: GameState, color: str) -> dict[str, int]:
+    pawns = [
+        (row, col)
+        for row, board_row in enumerate(state.board.grid)
+        for col, piece in enumerate(board_row)
+        if piece is not None and piece.type == "pawn" and piece.color == color
+    ]
+    enemy = "black" if color == "white" else "white"
+    enemy_pawns = [
+        (row, col)
+        for row, board_row in enumerate(state.board.grid)
+        for col, piece in enumerate(board_row)
+        if piece is not None and piece.type == "pawn" and piece.color == enemy
+    ]
+    files = {col for _, col in pawns}
+    file_counts = {col: sum(pawn_col == col for _, pawn_col in pawns) for col in files}
+    doubled = sum(max(0, count - 1) for count in file_counts.values())
+    isolated = sum(not ({col - 1, col + 1} & files) for _, col in pawns)
+    passed = 0
+    for row, col in pawns:
+        blocking_files = {col - 1, col, col + 1}
+        enemy_ahead = any(
+            enemy_col in blocking_files
+            and (enemy_row < row if color == "white" else enemy_row > row)
+            for enemy_row, enemy_col in enemy_pawns
+        )
+        if not enemy_ahead:
+            passed += 1
+    return {"doubled": doubled, "isolated": isolated, "passed": passed}
+
+
+def _king_safety(
+    state: GameState,
+    engine: RuleEngine,
+    color: str,
+    enemy_attacks: set[tuple[int, int]],
+) -> float:
+    position = engine.find_king(state, color)
+    if position is None:
+        return -100.0
+    row, col = position
+    zone = {
+        (row + dr, col + dc)
+        for dr in (-1, 0, 1)
+        for dc in (-1, 0, 1)
+        if 0 <= row + dr < state.board.rows and 0 <= col + dc < state.board.cols
+    }
+    pressure = len(zone & enemy_attacks)
+    forward = -1 if color == "white" else 1
+    shield = sum(
+        (
+            0 <= row + forward < state.board.rows
+            and 0 <= shield_col < state.board.cols
+            and (piece := state.board.grid[row + forward][shield_col]) is not None
+            and piece.type == "pawn"
+            and piece.color == color
+        )
+        for shield_col in (col - 1, col, col + 1)
+    )
+    initial_layout = state.configuration.initial_layout or classic_layout(
+        state.board.rows,
+        state.board.cols,
+    )
+    starting_king_cols = {
+        int(placement["col"])
+        for placement in initial_layout
+        if placement.get("type") == "king" and placement.get("color") == color
+    }
+    castled = int(
+        state.board.grid[row][col].has_moved
+        and any(abs(col - starting_col) == 2 for starting_col in starting_king_cols)
+    )
+    return float((shield * 2) + (castled * 2) - (pressure * 1.5))
+
+
+def extract_position_factors(
+    state: GameState,
+    engine: RuleEngine,
+) -> list[PositionFactorView]:
+    material = {
+        color: float(
+            sum(
+                CLASSIC_POINTS.get(piece.type, float(piece.points or 0))
+                for row in state.board.grid
+                for piece in row
+                if piece is not None and piece.color == color
+            )
+        )
+        for color in ("white", "black")
+    }
+
+    attacks: dict[str, set[tuple[int, int]]] = {"white": set(), "black": set()}
+    for row, board_row in enumerate(state.board.grid):
+        for col, piece in enumerate(board_row):
+            if piece is not None and piece.color in attacks:
+                attacks[piece.color].update(engine.generate_piece_attacks(state, row, col))
+
+    if state.game_status in FINISHED_STATUSES:
+        mobility = {"white": 0.0, "black": 0.0}
+    else:
+        mobility = {
+            color: float(len(engine.get_valid_moves_for_color(state, color)))
+            for color in ("white", "black")
+        }
+
+    safety = {
+        "white": _king_safety(state, engine, "white", attacks["black"]),
+        "black": _king_safety(state, engine, "black", attacks["white"]),
+    }
+    pawn_details = {
+        color: _pawn_structure(state, color) for color in ("white", "black")
+    }
+    pawn_scores = {
+        color: float(
+            (pawn_details[color]["passed"] * 2)
+            - pawn_details[color]["isolated"]
+            - pawn_details[color]["doubled"]
+        )
+        for color in ("white", "black")
+    }
+    center = set(objective_center_squares(state.board.rows, state.board.cols))
+    center_control = {
+        color: float(
+            len(attacks[color] & center)
+            + sum(
+                state.board.grid[row][col] is not None
+                and state.board.grid[row][col].color == color
+                for row, col in center
+            )
+        )
+        for color in ("white", "black")
+    }
+
+    return [
+        PositionFactorView(
+            id="material",
+            label="Material",
+            whiteValue=material["white"],
+            blackValue=material["black"],
+            advantage=_advantage(material["white"], material["black"]),
+            summary=_lead_summary("Material", material["white"], material["black"], "points"),
+        ),
+        PositionFactorView(
+            id="king_safety",
+            label="King Safety",
+            whiteValue=safety["white"],
+            blackValue=safety["black"],
+            advantage=_advantage(safety["white"], safety["black"], 0.5),
+            summary=_lead_summary("King safety", safety["white"], safety["black"]),
+        ),
+        PositionFactorView(
+            id="piece_activity",
+            label="Piece Activity",
+            whiteValue=mobility["white"],
+            blackValue=mobility["black"],
+            advantage=_advantage(mobility["white"], mobility["black"], 1),
+            summary=_lead_summary("Legal mobility", mobility["white"], mobility["black"], "moves"),
+        ),
+        PositionFactorView(
+            id="pawn_structure",
+            label="Pawn Structure",
+            whiteValue=pawn_scores["white"],
+            blackValue=pawn_scores["black"],
+            advantage=_advantage(pawn_scores["white"], pawn_scores["black"], 0.5),
+            summary=(
+                "White: "
+                f"{pawn_details['white']['passed']} passed, "
+                f"{pawn_details['white']['isolated']} isolated, "
+                f"{pawn_details['white']['doubled']} doubled. Black: "
+                f"{pawn_details['black']['passed']} passed, "
+                f"{pawn_details['black']['isolated']} isolated, "
+                f"{pawn_details['black']['doubled']} doubled."
+            ),
+        ),
+        PositionFactorView(
+            id="center_control",
+            label="Center Control",
+            whiteValue=center_control["white"],
+            blackValue=center_control["black"],
+            advantage=_advantage(center_control["white"], center_control["black"], 0.5),
+            summary=_lead_summary(
+                "Center influence",
+                center_control["white"],
+                center_control["black"],
+                "squares",
+            ),
+        ),
+    ]

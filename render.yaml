@@ -1,0 +1,97 @@
+services:
+  - type: web
+    name: chass-api
+    runtime: python
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt && bash scripts/install_stockfish.sh && bash scripts/install_fairy_stockfish.sh
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /health
+    buildFilter:
+      paths:
+        - backend/**
+        - scripts/install_stockfish.sh
+        - scripts/install_fairy_stockfish.sh
+        - scripts/engine_download.sh
+        - .node-version
+        - .python-version
+        - runtime.txt
+        - render.yaml
+    envVars:
+      - fromGroup: chass-scanner-auth
+      - key: SCANNER_SERVICE_URL
+        value: https://chass-scanner.onrender.com
+      - key: ENVIRONMENT
+        value: production
+      - key: TOKEN_SECRET
+        generateValue: true
+      - key: DIAGNOSTICS_TOKEN
+        generateValue: true
+      # Keep this as "sql" until Firebase credentials are configured in Render.
+      - key: PERSISTENCE_BACKEND
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: FIREBASE_PROJECT_ID
+        sync: false
+      - key: FIREBASE_CREDENTIALS_BASE64
+        sync: false
+      - key: FRONTEND_URL
+        sync: false
+      - key: ALLOWED_ORIGINS
+        sync: false
+      - key: INVITE_TTL_HOURS
+        value: "24"
+      - key: GAME_IDLE_TTL_HOURS
+        value: "24"
+      - key: GAME_CLEANUP_INTERVAL_MINUTES
+        value: "15"
+      - key: MATCH_PREDICTOR_ENGINE_ENABLED
+        value: "true"
+      - key: STOCKFISH_MOVETIME_MS
+        value: "180"
+      - key: STOCKFISH_HASH_MB
+        value: "32"
+      - key: STOCKFISH_THREADS
+        value: "1"
+      - key: STOCKFISH_STARTUP_TIMEOUT_SECONDS
+        value: "15"
+      - key: STOCKFISH_STARTUP_ATTEMPTS
+        value: "2"
+      - key: FAIRY_STOCKFISH_MOVETIME_MS
+        value: "180"
+      - key: FAIRY_STOCKFISH_HASH_MB
+        value: "16"
+      - key: FAIRY_STOCKFISH_THREADS
+        value: "1"
+      - key: FAIRY_STOCKFISH_MAX_PROFILES
+        value: "256"
+      - key: CHASS_ENGINE_MOVETIME_MS
+        value: "180"
+  - type: web
+    name: chass-scanner
+    runtime: docker
+    plan: free
+    dockerfilePath: ./scanner/deploy/Dockerfile.onnx
+    dockerContext: .
+    healthCheckPath: /ready
+    buildFilter:
+      paths:
+        - scanner/service.py
+        - scanner/ml/*.py
+        - scanner/models/onnx/**
+        - scanner/deploy/Dockerfile.onnx
+        - scanner/deploy/requirements-onnx.txt
+        - render.yaml
+    envVars:
+      - fromGroup: chass-scanner-auth
+      - key: SCANNER_RUNTIME
+        value: onnx
+      - key: SCANNER_REQUIRE_TOKEN
+        value: "true"
+      - key: SCANNER_MAX_PIXELS
+        value: "4194304"
+envVarGroups:
+  - name: chass-scanner-auth
+    envVars:
+      - key: SCANNER_SERVICE_TOKEN
+        generateValue: true

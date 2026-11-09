@@ -1,0 +1,630 @@
+{
+  "format_version": 1,
+  "run_date": "2026-10-25",
+  "architecture": "ssdlite320_mobilenet_v3_large",
+  "environment": {
+    "torch": "2.14.1",
+    "device": "mps",
+    "seed": 42,
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "task": "12-class piece detection",
+    "source_commit": "490d2d0a3f41123cdea2c618d6e20e8e75c0a1ff",
+    "python": "Python 3.13.12",
+    "platform": "Darwin arm64",
+    "hardware": "Apple M4",
+    "config_sha256": "655c7ac9d13933d59db3efb53a202e6ed71e2273ea1864c452252a300a97e8c4",
+    "torchvision": "0.29.1",
+    "dataset_manifest": "scanner/artifacts/curation/chess-v2-v3/prepared/manifest.json",
+    "date": "2026-10-25",
+    "purpose": "Fresh COCO-initialized model on alignment-reviewed Chess V2 v3",
+    "preprocessing": "CPU bilinear resize 320x320 before GPU transfer; original-coordinate evaluation"
+  },
+  "dataset": {
+    "source": "https://universe.roboflow.com/public-wspace/chess-v2-qqtmk",
+    "attribution": "Chess V2 Dataset by Public Wspace, Roboflow Universe, 2022",
+    "license": "CC BY 4.0",
+    "fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "total_images": 2065,
+    "splits": {
+      "train": {
+        "declared_images": 1419,
+        "declared_annotations": 40307,
+        "images": 1419,
+        "source_groups": 1414,
+        "annotations": 40307,
+        "classes": {
+          "black-bishop": 2569,
+          "black-king": 2237,
+          "black-knight": 2639,
+          "black-pawn": 8841,
+          "black-queen": 2202,
+          "black-rook": 3546,
+          "white-bishop": 3029,
+          "white-king": 2132,
+          "white-knight": 3114,
+          "white-pawn": 5309,
+          "white-queen": 2399,
+          "white-rook": 2290
+        },
+        "min_pieces": 1,
+        "max_pieces": 64,
+        "images_over_32_pieces": 435,
+        "duplicate_piece_boxes": 0,
+        "missing_classes": []
+      },
+      "valid": {
+        "declared_images": 308,
+        "declared_annotations": 12862,
+        "images": 308,
+        "source_groups": 306,
+        "annotations": 12862,
+        "classes": {
+          "black-bishop": 989,
+          "black-king": 359,
+          "black-knight": 960,
+          "black-pawn": 3985,
+          "black-queen": 294,
+          "black-rook": 774,
+          "white-bishop": 935,
+          "white-king": 230,
+          "white-knight": 728,
+          "white-pawn": 2718,
+          "white-queen": 186,
+          "white-rook": 704
+        },
+        "min_pieces": 7,
+        "max_pieces": 64,
+        "images_over_32_pieces": 282,
+        "duplicate_piece_boxes": 0,
+        "missing_classes": []
+      },
+      "test": {
+        "declared_images": 338,
+        "declared_annotations": 6283,
+        "images": 338,
+        "source_groups": 338,
+        "annotations": 6283,
+        "classes": {
+          "black-bishop": 857,
+          "black-king": 407,
+          "black-knight": 564,
+          "black-pawn": 905,
+          "black-queen": 442,
+          "black-rook": 280,
+          "white-bishop": 453,
+          "white-king": 747,
+          "white-knight": 701,
+          "white-pawn": 50,
+          "white-queen": 862,
+          "white-rook": 15
+        },
+        "min_pieces": 14,
+        "max_pieces": 32,
+        "images_over_32_pieces": 0,
+        "duplicate_piece_boxes": 0,
+        "missing_classes": []
+      }
+    }
+  },
+  "training": {
+    "config": {
+      "seed": 42,
+      "epochs": 30,
+      "warmup_epochs": 3,
+      "batch_size": 8,
+      "input_size": 320,
+      "anchor_scales": [
+        0.06,
+        0.12,
+        0.24,
+        0.4,
+        0.6,
+        0.8,
+        1.0
+      ],
+      "learning_rate": 0.003,
+      "backbone_learning_rate": 0.0003,
+      "weight_decay": 0.0001,
+      "patience": 10,
+      "num_workers": 2,
+      "threads": 4,
+      "augment": true
+    },
+    "epochs_completed": 24,
+    "best_epoch": 14,
+    "epoch_seconds": 1544.15666512592,
+    "initial_validation_map50": 0.000004694917778974738,
+    "checkpoint": "scanner/artifacts/chess-v2-baseline/best.pt"
+  },
+  "validation": {
+    "map50": 0.5835561531892095,
+    "map50_95": 0.32658516325200637,
+    "per_class_ap50": {
+      "black-bishop": 0.49207217971847456,
+      "black-king": 0.5782676976013814,
+      "black-knight": 0.7192872139704019,
+      "black-pawn": 0.9511972338771844,
+      "black-queen": 0.37006868739098053,
+      "black-rook": 0.7228814908137655,
+      "white-bishop": 0.5322233415384634,
+      "white-king": 0.4087635091292978,
+      "white-knight": 0.494335264543301,
+      "white-pawn": 0.8874927497606745,
+      "white-queen": 0.28946619994294154,
+      "white-rook": 0.5566182699836473
+    },
+    "tp": 9302,
+    "fp": 3924,
+    "fn": 3560,
+    "support": 12862,
+    "precision": 0.7033116588537729,
+    "recall": 0.7232156740786814,
+    "f1": 0.7131248083409997,
+    "threshold": 0.25,
+    "matching_iou": 0.5,
+    "exact_detection_images": 1,
+    "images": 308,
+    "exact_detection_image_rate": 0.003246753246753247,
+    "per_class": {
+      "black-bishop": {
+        "tp": 354,
+        "fp": 172,
+        "fn": 635,
+        "support": 989,
+        "precision": 0.6730038022813688,
+        "recall": 0.3579373104145602,
+        "f1": 0.46732673267326735
+      },
+      "black-king": {
+        "tp": 253,
+        "fp": 253,
+        "fn": 106,
+        "support": 359,
+        "precision": 0.5,
+        "recall": 0.7047353760445683,
+        "f1": 0.584971098265896
+      },
+      "black-knight": {
+        "tp": 737,
+        "fp": 533,
+        "fn": 223,
+        "support": 960,
+        "precision": 0.5803149606299213,
+        "recall": 0.7677083333333333,
+        "f1": 0.6609865470852018
+      },
+      "black-pawn": {
+        "tp": 3588,
+        "fp": 258,
+        "fn": 397,
+        "support": 3985,
+        "precision": 0.9329173166926678,
+        "recall": 0.9003764115432873,
+        "f1": 0.9163580641042013
+      },
+      "black-queen": {
+        "tp": 220,
+        "fp": 538,
+        "fn": 74,
+        "support": 294,
+        "precision": 0.29023746701846964,
+        "recall": 0.7482993197278912,
+        "f1": 0.41825095057034223
+      },
+      "black-rook": {
+        "tp": 537,
+        "fp": 240,
+        "fn": 237,
+        "support": 774,
+        "precision": 0.6911196911196911,
+        "recall": 0.6937984496124031,
+        "f1": 0.6924564796905223
+      },
+      "white-bishop": {
+        "tp": 431,
+        "fp": 316,
+        "fn": 504,
+        "support": 935,
+        "precision": 0.5769745649263721,
+        "recall": 0.46096256684491976,
+        "f1": 0.5124851367419738
+      },
+      "white-king": {
+        "tp": 174,
+        "fp": 361,
+        "fn": 56,
+        "support": 230,
+        "precision": 0.3252336448598131,
+        "recall": 0.7565217391304347,
+        "f1": 0.4549019607843137
+      },
+      "white-knight": {
+        "tp": 334,
+        "fp": 186,
+        "fn": 394,
+        "support": 728,
+        "precision": 0.6423076923076924,
+        "recall": 0.45879120879120877,
+        "f1": 0.5352564102564102
+      },
+      "white-pawn": {
+        "tp": 2172,
+        "fp": 359,
+        "fn": 546,
+        "support": 2718,
+        "precision": 0.858158830501778,
+        "recall": 0.7991169977924945,
+        "f1": 0.8275862068965517
+      },
+      "white-queen": {
+        "tp": 126,
+        "fp": 490,
+        "fn": 60,
+        "support": 186,
+        "precision": 0.20454545454545456,
+        "recall": 0.6774193548387096,
+        "f1": 0.314214463840399
+      },
+      "white-rook": {
+        "tp": 376,
+        "fp": 218,
+        "fn": 328,
+        "support": 704,
+        "precision": 0.632996632996633,
+        "recall": 0.5340909090909091,
+        "f1": 0.5793528505392912
+      }
+    },
+    "note": "Exact detection requires every annotated piece matched at IoU >= 0.5 and no extra detections. This is NOT exact-board accuracy.",
+    "split": "valid",
+    "checkpoint_epoch": 14,
+    "checkpoint_sha256": "88e3093f50114d1c18356b7057027184a6a6f01b99810dd33d62c54ee650105f",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "timing": {
+      "seconds": 8.465585250000004,
+      "mean_ms_per_image": 27.48566639610391,
+      "device": "mps",
+      "batch_size": 8
+    }
+  },
+  "test": {
+    "map50": 0.4924859328562429,
+    "map50_95": 0.2580962825118346,
+    "per_class_ap50": {
+      "black-bishop": 0.4794704917581501,
+      "black-king": 0.3923683526548239,
+      "black-knight": 0.4615414542389526,
+      "black-pawn": 0.8717114023624071,
+      "black-queen": 0.7091862373434131,
+      "black-rook": 0.4335132891029498,
+      "white-bishop": 0.6295014260737763,
+      "white-king": 0.4556120736091402,
+      "white-knight": 0.6669693153314823,
+      "white-pawn": 0.25974528037184647,
+      "white-queen": 0.541275972185138,
+      "white-rook": 0.008935899242835532
+    },
+    "tp": 3717,
+    "fp": 3796,
+    "fn": 2566,
+    "support": 6283,
+    "precision": 0.4947424464261946,
+    "recall": 0.5915963711602737,
+    "f1": 0.5388518411133661,
+    "threshold": 0.25,
+    "matching_iou": 0.5,
+    "exact_detection_images": 0,
+    "images": 338,
+    "exact_detection_image_rate": 0.0,
+    "per_class": {
+      "black-bishop": {
+        "tp": 120,
+        "fp": 74,
+        "fn": 737,
+        "support": 857,
+        "precision": 0.6185567010309279,
+        "recall": 0.14002333722287047,
+        "f1": 0.22835394862036157
+      },
+      "black-king": {
+        "tp": 139,
+        "fp": 201,
+        "fn": 268,
+        "support": 407,
+        "precision": 0.4088235294117647,
+        "recall": 0.3415233415233415,
+        "f1": 0.37215528781793844
+      },
+      "black-knight": {
+        "tp": 356,
+        "fp": 492,
+        "fn": 208,
+        "support": 564,
+        "precision": 0.419811320754717,
+        "recall": 0.6312056737588653,
+        "f1": 0.5042492917847026
+      },
+      "black-pawn": {
+        "tp": 793,
+        "fp": 177,
+        "fn": 112,
+        "support": 905,
+        "precision": 0.8175257731958763,
+        "recall": 0.876243093922652,
+        "f1": 0.8458666666666667
+      },
+      "black-queen": {
+        "tp": 396,
+        "fp": 299,
+        "fn": 46,
+        "support": 442,
+        "precision": 0.5697841726618705,
+        "recall": 0.8959276018099548,
+        "f1": 0.6965699208443272
+      },
+      "black-rook": {
+        "tp": 230,
+        "fp": 761,
+        "fn": 50,
+        "support": 280,
+        "precision": 0.23208879919273462,
+        "recall": 0.8214285714285714,
+        "f1": 0.3619197482297404
+      },
+      "white-bishop": {
+        "tp": 240,
+        "fp": 118,
+        "fn": 213,
+        "support": 453,
+        "precision": 0.6703910614525139,
+        "recall": 0.5298013245033113,
+        "f1": 0.591861898890259
+      },
+      "white-king": {
+        "tp": 402,
+        "fp": 497,
+        "fn": 345,
+        "support": 747,
+        "precision": 0.4471635150166852,
+        "recall": 0.5381526104417671,
+        "f1": 0.488456865127582
+      },
+      "white-knight": {
+        "tp": 385,
+        "fp": 161,
+        "fn": 316,
+        "support": 701,
+        "precision": 0.7051282051282052,
+        "recall": 0.5492154065620543,
+        "f1": 0.6174819566960705
+      },
+      "white-pawn": {
+        "tp": 24,
+        "fp": 60,
+        "fn": 26,
+        "support": 50,
+        "precision": 0.2857142857142857,
+        "recall": 0.48,
+        "f1": 0.3582089552238806
+      },
+      "white-queen": {
+        "tp": 630,
+        "fp": 568,
+        "fn": 232,
+        "support": 862,
+        "precision": 0.5258764607679466,
+        "recall": 0.7308584686774942,
+        "f1": 0.6116504854368932
+      },
+      "white-rook": {
+        "tp": 2,
+        "fp": 388,
+        "fn": 13,
+        "support": 15,
+        "precision": 0.005128205128205128,
+        "recall": 0.13333333333333333,
+        "f1": 0.009876543209876543
+      }
+    },
+    "note": "Exact detection requires every annotated piece matched at IoU >= 0.5 and no extra detections. This is NOT exact-board accuracy.",
+    "split": "test",
+    "checkpoint_epoch": 14,
+    "checkpoint_sha256": "88e3093f50114d1c18356b7057027184a6a6f01b99810dd33d62c54ee650105f",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "timing": {
+      "seconds": 9.19273599999724,
+      "mean_ms_per_image": 27.19744378697408,
+      "device": "mps",
+      "batch_size": 8
+    }
+  },
+  "threshold_sweep": [
+    {
+      "threshold": 0.1,
+      "precision": 0.5490817610062894,
+      "recall": 0.8484683563986938,
+      "f1": 0.6667073953019519
+    },
+    {
+      "threshold": 0.15,
+      "precision": 0.6140277942748545,
+      "recall": 0.8038407712641891,
+      "f1": 0.6962289562289562
+    },
+    {
+      "threshold": 0.2,
+      "precision": 0.6638018542329296,
+      "recall": 0.762634116000622,
+      "f1": 0.7097941314808784
+    },
+    {
+      "threshold": 0.25,
+      "precision": 0.7033116588537729,
+      "recall": 0.7232156740786814,
+      "f1": 0.7131248083409997
+    },
+    {
+      "threshold": 0.3,
+      "precision": 0.7410609367131106,
+      "recall": 0.6864406779661016,
+      "f1": 0.712705844365515
+    },
+    {
+      "threshold": 0.35,
+      "precision": 0.7717903687956373,
+      "recall": 0.649199191416576,
+      "f1": 0.705206705797897
+    },
+    {
+      "threshold": 0.4,
+      "precision": 0.7988939165409754,
+      "recall": 0.617711086922718,
+      "f1": 0.6967159205507081
+    },
+    {
+      "threshold": 0.45,
+      "precision": 0.822818201802594,
+      "recall": 0.5820245684963459,
+      "f1": 0.6817850637522769
+    },
+    {
+      "threshold": 0.5,
+      "precision": 0.847994200096665,
+      "recall": 0.5456383144145545,
+      "f1": 0.6640174094048633
+    },
+    {
+      "threshold": 0.55,
+      "precision": 0.8706520301547415,
+      "recall": 0.5118177577359664,
+      "f1": 0.6446653283063213
+    },
+    {
+      "threshold": 0.6,
+      "precision": 0.8886642599277979,
+      "recall": 0.4784636914943244,
+      "f1": 0.6220245615808359
+    },
+    {
+      "threshold": 0.65,
+      "precision": 0.9064943354076911,
+      "recall": 0.44168869538174466,
+      "f1": 0.5939672748183387
+    },
+    {
+      "threshold": 0.7,
+      "precision": 0.92497320471597,
+      "recall": 0.40258124708443477,
+      "f1": 0.5609967497291442
+    },
+    {
+      "threshold": 0.75,
+      "precision": 0.938841636289996,
+      "recall": 0.3604416109469756,
+      "f1": 0.5208988764044944
+    },
+    {
+      "threshold": 0.8,
+      "precision": 0.9524367385192127,
+      "recall": 0.3160472710309439,
+      "f1": 0.4746059544658494
+    },
+    {
+      "threshold": 0.85,
+      "precision": 0.969007676997441,
+      "recall": 0.2649665681853522,
+      "f1": 0.41614262164967336
+    },
+    {
+      "threshold": 0.9,
+      "precision": 0.9802459932910921,
+      "recall": 0.20447830819468202,
+      "f1": 0.3383724670311997
+    }
+  ],
+  "integrity": {
+    "retained_images": 2065,
+    "excluded_from_v2": 43,
+    "retained_images_with_changed_split": 0,
+    "original_checkpoint_sha256": "a1af4cedbca97a712a446ac5ee10b03f6225435cf5a607bf821c8b3f542efb15"
+  },
+  "limitations": [
+    "Piece bounding-box detection only; no verified corners, squares, orientation, FEN, castling or en passant reconstruction.",
+    "Exact-detection image rate is not exact-board accuracy.",
+    "Capture-level splits do not prove unseen physical chess-set independence; just 2 validation and 3 test components.",
+    "Residual semantic and box-extent errors can remain after contact-sheet alignment review.",
+    "Confidence scores are uncalibrated.",
+    "Different data and holdouts from the original Top Down benchmark; do not compare their test mAP as a controlled improvement.",
+    "The scanner webpage is not connected to this local model; nothing has been deployed."
+  ],
+  "error_analysis": {
+    "annotated_pieces": 6283,
+    "predictions": 7513,
+    "localized_pieces": 5561,
+    "localized_with_correct_type_color": 3082,
+    "localization_recall": 0.8850867420022283,
+    "top_type_confusions": [
+      {
+        "actual": "black-bishop",
+        "predicted": "black-rook",
+        "count": 419
+      },
+      {
+        "actual": "white-king",
+        "predicted": "white-queen",
+        "count": 374
+      },
+      {
+        "actual": "white-queen",
+        "predicted": "white-king",
+        "count": 238
+      },
+      {
+        "actual": "black-bishop",
+        "predicted": "black-knight",
+        "count": 209
+      },
+      {
+        "actual": "black-king",
+        "predicted": "black-queen",
+        "count": 185
+      },
+      {
+        "actual": "white-knight",
+        "predicted": "white-rook",
+        "count": 168
+      },
+      {
+        "actual": "white-bishop",
+        "predicted": "white-rook",
+        "count": 98
+      },
+      {
+        "actual": "black-knight",
+        "predicted": "black-rook",
+        "count": 95
+      },
+      {
+        "actual": "black-king",
+        "predicted": "black-knight",
+        "count": 83
+      },
+      {
+        "actual": "white-knight",
+        "predicted": "white-bishop",
+        "count": 58
+      },
+      {
+        "actual": "black-knight",
+        "predicted": "black-pawn",
+        "count": 57
+      },
+      {
+        "actual": "white-bishop",
+        "predicted": "white-knight",
+        "count": 51
+      }
+    ],
+    "scope": "Diagnostic only: class-agnostic greedy IoU >= 0.5 matching at validation-selected threshold 0.25. Not a replacement for class-aware detection metrics; no model/threshold changes made from these test findings."
+  }
+}

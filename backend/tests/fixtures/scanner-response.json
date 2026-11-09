@@ -1,0 +1,154 @@
+{
+  "board": [
+    [
+      "black-rook",
+      "black-knight",
+      "black-bishop",
+      "black-queen",
+      "black-king",
+      "black-bishop",
+      "black-knight",
+      "black-rook"
+    ],
+    [
+      "black-pawn",
+      "black-pawn",
+      "black-pawn",
+      "black-pawn",
+      "black-pawn",
+      "black-pawn",
+      "black-pawn",
+      "black-pawn"
+    ],
+    [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null,
+      null
+    ],
+    [
+      "white-pawn",
+      "white-pawn",
+      "white-pawn",
+      "white-pawn",
+      "white-pawn",
+      "white-pawn",
+      "white-pawn",
+      "white-pawn"
+    ],
+    [
+      "white-rook",
+      "white-knight",
+      "white-bishop",
+      "white-queen",
+      "white-king",
+      "white-pawn",
+      "white-knight",
+      "white-rook"
+    ]
+  ],
+  "reviewSquares": [
+    {
+      "row": 7,
+      "col": 5,
+      "label": "f1",
+      "reasons": [
+        "Low model confidence"
+      ]
+    }
+  ],
+  "squareCandidates": [
+    {
+      "row": 7,
+      "col": 5,
+      "label": "f1",
+      "candidates": [
+        {
+          "class": "white-pawn",
+          "score": 0.85,
+          "classifierScore": 0.55,
+          "alternatives": [
+            {
+              "label": "white-bishop",
+              "score": 0.9
+            },
+            {
+              "label": "white-pawn",
+              "score": 0.1
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "warnings": [
+    "Check all 64 squares, including empty squares."
+  ],
+  "runtime": "onnx",
+  "pipeline": "combined",
+  "rectified": true,
+  "classificationScoresAreCalibrated": false,
+  "inferenceMs": 10,
+  "imageWidth": 512,
+  "imageHeight": 512,
+  "prediction": {
+    "boxes": [
+      [
+        330,
+        460,
+        370,
+        505
+      ]
+    ],
+    "labels": [
+      7
+    ],
+    "scores": [
+      0.85
+    ]
+  },
+  "modelSha256": {
+    "detector": "0000000000000000000000000000000000000000000000000000000000000000",
+    "classifier": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "timings": {
+    "prepareMs": 1,
+    "detectorMs": 6,
+    "classifierMs": 3,
+    "proposals": 1
+  }
+}

@@ -1,0 +1,588 @@
+import { useEffect, useMemo, useState } from "react";
+
+import { boardSquareLabel } from "../boardGeometry";
+import {
+  CLOCK_RENDER_INTERVAL_MS,
+  clockRemainingByColor,
+} from "../gameClock";
+import {
+  effectOwnerDescriptor,
+  effectPerspectiveColor,
+  pieceCountsByOwner,
+} from "../effectOwnership";
+import { necromancyPurchaseOptions } from "../specialActionSelection";
+import { specialRulePresentation } from "../specialRulePresentation";
+import { effectiveCatalogEntry } from "../variantTuning";
+import { victoryDisplayMetadata } from "../victoryDisplay";
+import PieceGlyph from "./PieceGlyph";
+import Button from "./ui/Button";
+import EmptyState from "./ui/EmptyState";
+
+function title(value) {
+  return value ? value.replaceAll("_", " ").replace(/\b\w/g, (letter) => letter.toUpperCase()) : "";
+}
+
+function label(value) {
+  return title(String(value).replace(/([a-z0-9])([A-Z])/g, "$1 $2"));
+}
+
+function formatValue(value) {
+  if (typeof value === "boolean") return value ? "Yes" : "No";
+  if (Array.isArray(value)) return value.map(label).join(", ");
+  if (value && typeof value === "object") return JSON.stringify(value);
+  return label(value);
+}
+
+function abilityLimitsLabel(definition) {
+  if (!definition) return "Enabled";
+  const limits = [];
+  if (definition.usageLimit != null) {
+    limits.push(definition.usageLimit === 1 ? "One Use" : `${definition.usageLimit} Uses`);
+  }
+  if (definition.initialCooldownTurns > 0) {
+    limits.push(`${definition.initialCooldownTurns}-Turn Initial Delay`);
+  }
+  if (definition.cooldownTurns != null) {
+    limits.push(definition.cooldownTurns
+      ? `${definition.cooldownTurns}-Turn Recharge`
+      : "No Recharge");
+  }
+  return limits.join(" · ") || "Enabled";
+}
+
+function MatchClock({ clock }) {
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    if (!clock) return undefined;
+    const interval = window.setInterval(
+      () => setTick((value) => value + 1),
+      CLOCK_RENDER_INTERVAL_MS
+    );
+    return () => window.clearInterval(interval);
+  }, [clock]);
+  if (!clock) return null;
+
+  const remaining = clockRemainingByColor(clock) || clock.remainingSeconds;
+  const format = (seconds) => {
+    const normalized = Math.max(0, Math.ceil(seconds));
+    return `${Math.floor(normalized / 60)}:${String(normalized % 60).padStart(2, "0")}`;
+  };
+  return (
+    <div className="clock-readout">
+      {["white", "black"].map((color) => (
+        <span key={color} className={clock.activeColor === color ? "active" : ""}>
+          <b>{title(color)}</b><strong>{format(remaining[color])}</strong>
+        </span>
+      ))}
+    </div>
+  );
+}
+
+function GameStateSummary({ gameStatus, winner, score, abilities, clock, centerDominion, royalCenter, checkRace }) {
+  const abilityNames = (selection) => {
+    if (!Array.isArray(selection) || !selection.length) return "Hidden";
+    if (selection.includes("locked")) return "Locked";
+    return selection.map(title).join(", ");
+  };
+  return (
+    <section className="panel-section">
+      <h3>Game State</h3>
+      <div className="state-summary">
+        <span><b>Status</b><span>{title(gameStatus)}</span></span>
+        <span><b>Winner</b><span>{title(winner) || "None"}</span></span>
+        <span><b>Score</b><span>{score?.white ?? 0} / {score?.black ?? 0}</span></span>
+        {abilities?.enabled ? (
+          <span><b>Abilities</b><span>{abilityNames(abilities.selected?.white)} / {abilityNames(abilities.selected?.black)}</span></span>
+        ) : null}
+      </div>
+      <MatchClock clock={clock} />
+      {centerDominion ? (
+        <div className="dominion-readout">
+          <strong>Center Dominion</strong>
+          <small>Hold both marked squares through {centerDominion.targetRounds} opponent turn{centerDominion.targetRounds === 1 ? "" : "s"}.</small>
+          {["white", "black"].map((color) => (
+            <span key={color} className={centerDominion.controlled?.[color] ? "controlled" : ""}>
+              <b>{title(color)}</b>
+              <em>{centerDominion.progress?.[color] || 0} / {centerDominion.targetRounds}</em>
+              <small>{centerDominion.primed?.[color] ? "Defense pending" : centerDominion.controlled?.[color] ? "Center occupied" : "Center open"}</small>
+            </span>
+          ))}
+        </div>
+      ) : null}
+      {royalCenter ? (
+        <div className="dominion-readout royal-center-readout">
+          <strong>Royal Center</strong>
+          <small>Move your King legally onto any marked center square. Checkmate also wins.</small>
+        </div>
+      ) : null}
+      {checkRace ? (
+        <div className="dominion-readout check-race-readout">
+          <strong>Check Race</strong>
+          <small>The first player to give {checkRace.targetChecks} check{checkRace.targetChecks === 1 ? "" : "s"} wins. Checkmate also wins.</small>
+          {["white", "black"].map((color) => (
+            <span key={color}>
+              <b>{title(color)}</b>
+              <em>{checkRace.checks?.[color] || 0} / {checkRace.targetChecks}</em>
+              <small>{checkRace.checks?.[color] ? "Checks delivered" : "No checks yet"}</small>
+            </span>
+          ))}
+        </div>
+      ) : null}
+    </section>
+  );
+}
+
+function CapturedPieces({ capturedPieces }) {
+  return (
+    <section className="panel-section">
+      <h3>Captured Pieces</h3>
+      <div className="captures-row">
+        {["white", "black"].map((color) => {
+          const pieces = capturedPieces?.[color] || [];
+          return (
+            <div key={color}>
+              <strong>{title(color)}</strong>
+              <p className="captured-glyphs">
+                {pieces.length ? pieces.map((piece) => (
+                  <PieceGlyph key={piece.pieceId} piece={piece} />
+                )) : <span>None</span>}
+              </p>
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function CountdownPanel({ countdowns = [], gameMode, perspectiveColor }) {
+  if (!countdowns.length) return null;
+  return (
+    <section className="panel-section countdown-panel">
+      <div className="panel-heading-row"><h3>Live Effects</h3><span>{countdowns.length}</span></div>
+      <div className="countdown-groups">
+        {["white", "black"].map((color) => {
+          const items = countdowns.filter((item) => item.owner === color);
+          if (!items.length) return null;
+          const descriptor = effectOwnerDescriptor(
+            color,
+            perspectiveColor,
+            gameMode
+          );
+          return (
+            <div className={`is-${descriptor.relation}`} key={color}>
+              <h4>{descriptor.label}</h4>
+              {items.map((item) => (
+                <article key={item.id}>
+                  <i>{item.icon}</i>
+                  <span><strong>{item.pieceName ? `${item.pieceName}: ${item.label}` : item.label}</strong><small>{item.description}</small></span>
+                  <b>{item.remainingTurns}<small> {item.unit || "turn"}{item.remainingTurns === 1 ? "" : "s"}</small></b>
+                </article>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
+function ActionPanel({
+  actions = [],
+  game,
+  onAction,
+  actionLoading,
+  boardRows,
+  selectedGlobalActionKey,
+  onSelectGlobalActionKey,
+}) {
+  const groups = useMemo(() => {
+    const result = new Map();
+    actions.forEach((action) => result.set(action.actionType, [...(result.get(action.actionType) || []), action]));
+    return [...result.entries()];
+  }, [actions]);
+  if (!groups.length) return null;
+  return (
+    <section className="panel-section action-panel">
+      <h3>Special Actions</h3>
+      {groups.map(([type, options]) => {
+        const boardTargeted = type === "scorch";
+        const owner = options[0]?.owner || game.currentPlayer;
+        const purchases = type === "necromancy"
+          ? necromancyPurchaseOptions(options, game.capturedPieces?.[owner] || [])
+          : [];
+        const selected = boardTargeted
+          ? selectedGlobalActionKey === type
+          : purchases.some((option) => option.selectionKey === selectedGlobalActionKey);
+        const optionCount = type === "necromancy" ? purchases.length : options.length;
+        return (
+        <details key={type} open={groups.length === 1 || selected}>
+          <summary><span>{options[0].icon} {title(type)}</span><b>{optionCount}</b></summary>
+          <div className="action-option-list">
+            {boardTargeted ? (
+              <button
+                type="button"
+                className={selected ? "board-target-action selected" : "board-target-action"}
+                disabled={actionLoading}
+                onClick={() => onSelectGlobalActionKey?.(selected ? null : type)}
+              >
+                <strong>{selected ? "Cancel Board Selection" : "Choose A Square"}</strong>
+                <small>{options.length} legal target{options.length === 1 ? "" : "s"}</small>
+                <span>{selected ? "Legal squares are marked on the board." : options[0].description}</span>
+              </button>
+            ) : type === "necromancy" ? (
+              <>
+                <p className="necromancy-action-hint">
+                  Buy one captured piece with score, then place it on a highlighted home square.
+                  <strong>{game.score?.[owner] ?? 0} available</strong>
+                </p>
+                {purchases.map((purchase) => {
+                  const isSelected = purchase.selectionKey === selectedGlobalActionKey;
+                  return (
+                    <button
+                      type="button"
+                      className={`necromancy-purchase-option ${isSelected ? "selected" : ""}`}
+                      key={purchase.capturedPieceId}
+                      disabled={actionLoading}
+                      onClick={() => onSelectGlobalActionKey?.(
+                        isSelected ? null : purchase.selectionKey
+                      )}
+                    >
+                      <div className="necromancy-piece-choice">
+                        <PieceGlyph piece={purchase.piece} />
+                        <span>
+                          <strong>{purchase.piece.name}</strong>
+                          <small>
+                            {purchase.targetCount} placement square
+                            {purchase.targetCount === 1 ? "" : "s"}
+                          </small>
+                        </span>
+                      </div>
+                      <b className="necromancy-piece-cost">
+                        {purchase.cost === 0
+                          ? "Free"
+                          : `${purchase.cost} pt${purchase.cost === 1 ? "" : "s"}`}
+                      </b>
+                      <span>
+                        {isSelected
+                          ? "Selected. Choose a green square on the board."
+                          : `Returns as ${title(owner)} and uses your turn.`}
+                      </span>
+                    </button>
+                  );
+                })}
+              </>
+            ) : options.map((action) => (
+              <button type="button" key={action.id} disabled={actionLoading} onClick={() => onAction(action)}>
+                <strong>{action.label}</strong>
+                <small>{action.source ? `${boardSquareLabel(action.source, boardRows)} to ` : ""}{action.target ? boardSquareLabel(action.target, boardRows) : ""}</small>
+                <span>{action.description}</span>
+              </button>
+            ))}
+          </div>
+        </details>
+      );})}
+    </section>
+  );
+}
+
+function EffectDisclosure({ title: heading, itemKeys, children, emptyDescription }) {
+  const hasItems = itemKeys.length > 0;
+  const signature = itemKeys.join("|");
+  const [open, setOpen] = useState(hasItems);
+
+  useEffect(() => {
+    setOpen(hasItems);
+  }, [hasItems, signature]);
+
+  return (
+    <details
+      className={`panel-section effect-disclosure ${hasItems ? "has-enabled-effects" : "is-empty"}`}
+      open={open}
+      onToggle={(event) => setOpen(event.currentTarget.open)}
+    >
+      <summary>
+        <span>{heading}</span>
+        <small>{hasItems ? `${itemKeys.length} Enabled` : "None Enabled"}</small>
+      </summary>
+      {hasItems ? children : (
+        <EmptyState className="effect-empty-state">{emptyDescription}</EmptyState>
+      )}
+    </details>
+  );
+}
+
+function SpecialRulesDisclosure({ game, children = null }) {
+  const { rules, affinityEnabled, itemKeys } = specialRulePresentation(game);
+  return (
+    <EffectDisclosure
+      title="Special Rules"
+      itemKeys={itemKeys}
+      emptyDescription="No special rules are enabled for this match."
+    >
+      <div className="effect-disclosure-list">
+        {rules.map((rule) => {
+          const params = rule.id === "configured_victory"
+            ? victoryDisplayMetadata(game.configuration?.victory)
+            : Object.entries(rule.params || {}).map(([key, value]) => ({
+                label: label(key),
+                value: formatValue(value),
+              }));
+          return (
+            <article className="effect-reference-card" key={rule.id}>
+              <header><strong>{rule.name}</strong><span>Enabled</span></header>
+              <p>{rule.description}</p>
+              {params.length ? (
+                <dl className="effect-metadata">
+                  {params.map((item) => (
+                    <div key={item.label}><dt>{item.label}</dt><dd>{item.value}</dd></div>
+                  ))}
+                </dl>
+              ) : null}
+            </article>
+          );
+        })}
+        {affinityEnabled ? children : null}
+      </div>
+    </EffectDisclosure>
+  );
+}
+
+function CustomPiecesDisclosure({ game, perspectiveColor }) {
+  const enabledTypes = new Set(game.configuration?.enabledPieces || []);
+  const customPieces = (game.pieceDefinitions || []).filter(
+    (piece) => piece.isCustom && enabledTypes.has(piece.type)
+  );
+  const boardPieces = (game.board || []).flat().filter(Boolean);
+
+  return (
+    <EffectDisclosure
+      title="Custom Pieces"
+      itemKeys={customPieces.map((piece) => piece.type)}
+      emptyDescription="No custom pieces are enabled for this match."
+    >
+      <div className="effect-disclosure-list">
+        {customPieces.map((piece) => {
+          const ownerCounts = pieceCountsByOwner(game.board, piece.type);
+          const owners = piece.type === "barricade"
+            ? ["neutral"]
+            : ["white", "black"];
+          const pieceIds = new Set(
+            boardPieces.filter((boardPiece) => boardPiece.type === piece.type).map((boardPiece) => boardPiece.pieceId)
+          );
+          const countdowns = (game.countdowns || []).filter(
+            (countdown) => countdown.kind === piece.type || pieceIds.has(countdown.pieceId)
+          );
+          const rules = piece.customAttributes?.rules || [];
+          return (
+            <article className="effect-reference-card" key={piece.type}>
+              <header className="effect-piece-heading">
+                <span><PieceGlyph piece={{ ...piece, color: "black", name: piece.displayName }} /><strong>{piece.displayName}</strong></span>
+                <b>{piece.points == null ? "No Point Value" : `${piece.points} Point${piece.points === 1 ? "" : "s"}`}</b>
+              </header>
+              <p>{piece.description}</p>
+              <small className="effect-movement"><b>Movement</b>{piece.movement}</small>
+              {rules.length ? <small className="effect-rule-copy"><b>Behavior</b>{rules.join(" · ")}</small> : null}
+              <div className="effect-owner-statuses piece-owner-statuses">
+                {owners.map((owner) => {
+                  const descriptor = effectOwnerDescriptor(
+                    owner,
+                    perspectiveColor,
+                    game.mode
+                  );
+                  return (
+                    <div className={`is-${descriptor.relation}`} key={owner}>
+                      <strong>{descriptor.label}</strong>
+                      <span>{ownerCounts[owner]} on board</span>
+                    </div>
+                  );
+                })}
+              </div>
+              {countdowns.map((countdown) => (
+                <div className="effect-live-status" key={countdown.id}>
+                  <span>
+                    {effectOwnerDescriptor(
+                      countdown.owner,
+                      perspectiveColor,
+                      game.mode
+                    ).label}: {countdown.label}
+                  </span>
+                  <b>{countdown.remainingTurns} {countdown.unit || "turn"}{countdown.remainingTurns === 1 ? "" : "s"}</b>
+                </div>
+              ))}
+            </article>
+          );
+        })}
+      </div>
+    </EffectDisclosure>
+  );
+}
+
+function SpecialAbilitiesDisclosure({
+  abilities,
+  catalog,
+  gameMode,
+  parameters,
+  perspectiveColor,
+}) {
+  const selected = abilities?.selected || {};
+  const abilityIds = [...new Set(
+    Object.values(selected).flatMap((items) => Array.isArray(items) ? items : []).filter((abilityId) => abilityId !== "locked")
+  )];
+  const definitions = new Map(
+    (catalog?.specialAbilities || []).map((ability) => [
+      ability.id,
+      effectiveCatalogEntry(ability, parameters?.[ability.id]),
+    ])
+  );
+
+  return (
+    <EffectDisclosure
+      title="Special Abilities"
+      itemKeys={abilityIds}
+      emptyDescription="No special abilities are enabled for this match."
+    >
+      <div className="effect-disclosure-list">
+        {abilityIds.map((abilityId) => {
+          const definition = definitions.get(abilityId);
+          const owners = ["white", "black"].filter((color) => selected[color]?.includes(abilityId));
+          return (
+            <article className="effect-reference-card" key={abilityId}>
+              <header>
+                <strong>{definition?.icon ? `${definition.icon} ` : ""}{definition?.name || title(abilityId)}</strong>
+                <span>{abilityLimitsLabel(definition)}</span>
+              </header>
+              <p>{definition?.summary || "A selected special ability for this match."}</p>
+              <div className="effect-owner-statuses ability-owner-statuses">
+                {owners.map((color) => {
+                  const descriptor = effectOwnerDescriptor(
+                    color,
+                    perspectiveColor,
+                    gameMode
+                  );
+                  const remaining = abilities.cooldowns?.[color]?.[abilityId] || 0;
+                  const uses = abilities.usageCount?.[color]?.[abilityId] || 0;
+                  const initialDelay = (
+                    remaining > 0
+                    && uses === 0
+                    && definition?.initialCooldownTurns > 0
+                  );
+                  return (
+                    <div className={`is-${descriptor.relation}`} key={color}>
+                      <strong>{descriptor.label}</strong>
+                      <span>{remaining
+                        ? `${initialDelay ? "Initial delay: " : ""}${remaining} own turns remaining`
+                        : definition?.usageLimit != null && uses >= definition.usageLimit
+                          ? "Used"
+                          : "Ready"}</span>
+                      <small>{uses} use{uses === 1 ? "" : "s"}</small>
+                    </div>
+                  );
+                })}
+              </div>
+            </article>
+          );
+        })}
+      </div>
+    </EffectDisclosure>
+  );
+}
+
+function EnabledEffects({
+  game,
+  catalog,
+  perspectiveColor,
+  specialRulesContent = null,
+}) {
+  return (
+    <div className="enabled-effects" aria-label="Enabled match options">
+      <SpecialRulesDisclosure game={game}>{specialRulesContent}</SpecialRulesDisclosure>
+      <CustomPiecesDisclosure game={game} perspectiveColor={perspectiveColor} />
+      <SpecialAbilitiesDisclosure
+        abilities={game.abilities}
+        catalog={catalog}
+        gameMode={game.mode}
+        parameters={game.configuration?.specialAbilities?.parameters}
+        perspectiveColor={perspectiveColor}
+      />
+    </div>
+  );
+}
+
+export function EffectsPanel({
+  game,
+  catalog,
+  onAction,
+  actionLoading,
+  selectedGlobalActionKey,
+  onSelectGlobalActionKey,
+  playerColor = null,
+  specialRulesContent = null,
+  children,
+}) {
+  const perspectiveColor = effectPerspectiveColor(game, playerColor);
+  return (
+    <aside className="effects-panel">
+      {children}
+      <CountdownPanel
+        countdowns={game.countdowns}
+        gameMode={game.mode}
+        perspectiveColor={perspectiveColor}
+      />
+      <ActionPanel
+        actions={game.availableActions}
+        game={game}
+        onAction={onAction}
+        actionLoading={actionLoading}
+        boardRows={game.boardRows ?? game.boardSize}
+        selectedGlobalActionKey={selectedGlobalActionKey}
+        onSelectGlobalActionKey={onSelectGlobalActionKey}
+      />
+      <EnabledEffects
+        game={game}
+        catalog={catalog}
+        perspectiveColor={perspectiveColor}
+        specialRulesContent={specialRulesContent}
+      />
+    </aside>
+  );
+}
+
+export function GameInfoPanel({
+  game,
+  briefing = null,
+  onLoadEarlierHistory,
+  historyLoading = false,
+}) {
+  const boardRows = game.boardRows ?? game.boardSize;
+  const moveSquares = (move) => {
+    const from = boardSquareLabel(move.from, boardRows);
+    const to = boardSquareLabel(move.to, boardRows);
+    return from === to ? to : `${from} to ${to}`;
+  };
+
+  return (
+    <aside className="history-panel">
+      {briefing}
+      <GameStateSummary gameStatus={game.gameStatus} winner={game.winner} score={game.score} abilities={game.abilities} clock={game.clock} centerDominion={game.centerDominion} royalCenter={game.royalCenter} checkRace={game.checkRace} />
+      <CapturedPieces capturedPieces={game.capturedPieces} />
+      <section className="panel-section history-section">
+        <h3>Move History</h3>
+        {game.lastMoveExplanation ? <p className="move-explanation">{game.lastMoveExplanation}</p> : null}
+        {game.historyPagination?.hasMore ? (
+          <Button
+            className="history-load-button"
+            onClick={onLoadEarlierHistory}
+            loading={historyLoading}
+            loadingLabel="Loading Earlier Moves..."
+          >
+            Load Earlier Moves
+          </Button>
+        ) : null}
+        <ol>{[...(game.history || [])].reverse().map((move) => <li key={move.moveNumber}><span className="history-move-heading"><strong>{move.moveNumber}. {move.actionType === "move" ? title(move.piece) : title(move.actionType)} ({title(move.player)})</strong><em>{moveSquares(move)}</em></span><small>{move.explanation}</small></li>)}</ol>
+      </section>
+    </aside>
+  );
+}
+
+export default GameInfoPanel;

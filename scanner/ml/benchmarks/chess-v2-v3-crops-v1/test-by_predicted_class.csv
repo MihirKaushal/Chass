@@ -1,0 +1,13 @@
+piece,predictions,correct,wrong_label_on_real_piece,duplicate_candidate,localization_candidate,background_candidate,unmatched_predictions,incorrect_predictions,typed_prediction_precision
+black-bishop,730,693,22,0,15,0,15,37,0.9493150684931507
+black-king,336,322,9,0,5,0,5,14,0.9583333333333334
+black-knight,531,510,12,0,7,2,9,21,0.96045197740113
+black-pawn,941,811,98,0,29,3,32,130,0.8618490967056323
+black-queen,395,384,5,0,5,1,6,11,0.9721518987341772
+black-rook,261,232,21,0,8,0,8,29,0.8888888888888888
+white-bishop,368,363,0,0,5,0,5,5,0.9864130434782609
+white-king,624,613,3,0,8,0,8,11,0.9823717948717948
+white-knight,622,619,0,0,3,0,3,3,0.9951768488745981
+white-pawn,41,24,1,0,7,9,16,17,0.5853658536585366
+white-queen,804,762,33,1,8,0,9,42,0.9477611940298507
+white-rook,12,9,0,0,3,0,3,3,0.75

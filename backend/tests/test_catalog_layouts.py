@@ -1,0 +1,173 @@
+from __future__ import annotations
+
+import pytest
+
+from backend.catalog import POPULAR_PRESETS, adaptive_back_rank, catalog_payload, classic_layout
+from backend.configuration_limits import (
+    customization_limits,
+    default_barricade_count,
+    default_gambit_piece_cap,
+)
+from backend.models.schemas import CreateGameRequest, VictoryConfigPayload
+
+
+@pytest.mark.parametrize("cols", range(4, 17))
+def test_classic_layout_adapts_armies_to_board_width(cols: int):
+    rows = 6
+    layout = classic_layout(rows, cols)
+    occupied = {(piece["row"], piece["col"]) for piece in layout}
+
+    expected_back_rank_size = min(cols, 8)
+    assert len(layout) == expected_back_rank_size * 4
+    assert len(occupied) == len(layout)
+    assert sum(piece["type"] == "king" for piece in layout) == 2
+    assert all(0 <= piece["row"] < rows for piece in layout)
+    assert all(0 <= piece["col"] < cols for piece in layout)
+
+
+@pytest.mark.parametrize(
+    ("cols", "expected"),
+    [
+        (4, ["rook", "queen", "king", "rook"]),
+        (5, ["rook", "knight", "king", "knight", "rook"]),
+        (6, ["rook", "knight", "queen", "king", "knight", "rook"]),
+        (
+            7,
+            ["rook", "knight", "bishop", "king", "bishop", "knight", "rook"],
+        ),
+    ],
+)
+def test_adaptive_back_rank_keeps_one_king(cols: int, expected: list[str]):
+    assert adaptive_back_rank(cols) == expected
+
+
+def test_popular_presets_do_not_duplicate_victory_modes():
+    assert [mode["id"] for mode in POPULAR_PRESETS] == [
+        "classic",
+        "gambit",
+        "draft_gambit",
+    ]
+
+
+def test_gambit_starting_systems_leave_affinity_as_an_opt_in_rule():
+    gambit_modes = {
+        mode["id"]: mode for mode in POPULAR_PRESETS if "gambit" in mode["id"]
+    }
+
+    assert set(gambit_modes) == {"gambit", "draft_gambit"}
+    assert all(
+        mode.get("customRules", {}).get("affinityEnabled", False) is False
+        for mode in gambit_modes.values()
+    )
+
+
+@pytest.mark.parametrize(
+    ("piece_type", "expected"),
+    [
+        ("pawn", 15),
+        ("queen", 2),
+        ("maharani", 2),
+        ("hypnotizer", 2),
+        ("diplomat", 1),
+        ("rook", 3),
+        ("elephant", 3),
+        ("king", 1),
+        ("barricade", 0),
+    ],
+)
+def test_gambit_piece_caps_have_compact_defaults(piece_type: str, expected: int):
+    assert default_gambit_piece_cap(piece_type) == expected
+
+
+def test_gambit_piece_cap_defaults_reserve_the_king_slot():
+    assert default_gambit_piece_cap("pawn", max_pieces=4) == 3
+    assert default_gambit_piece_cap("elephant", max_pieces=3) == 2
+
+
+@pytest.mark.parametrize(
+    ("rows", "cols", "expected"),
+    [(8, 8, 2), (8, 7, 2), (7, 8, 2), (7, 7, 1)],
+)
+def test_barricade_default_uses_symmetric_center_when_possible(
+    rows: int,
+    cols: int,
+    expected: int,
+):
+    assert default_barricade_count(rows, cols) == expected
+
+
+def test_game_request_resolves_board_dependent_barricade_default():
+    odd_board = CreateGameRequest(
+        boardRows=7,
+        boardCols=7,
+        configuration={"enabledPieces": ["king", "barricade"]},
+    )
+    explicit_count = CreateGameRequest(
+        boardRows=7,
+        boardCols=7,
+        configuration={
+            "barricadeCount": 3,
+            "enabledPieces": ["king", "barricade"],
+        },
+    )
+
+    assert odd_board.configuration is not None
+    assert odd_board.configuration.barricadeCount == 1
+    assert explicit_count.configuration is not None
+    assert explicit_count.configuration.barricadeCount == 3
+
+
+def test_catalog_exposes_rebalanced_piece_and_ability_defaults():
+    catalog = catalog_payload()
+    pieces = {piece["type"]: piece for piece in catalog["pieces"]}
+    abilities = {ability["id"]: ability for ability in catalog["specialAbilities"]}
+    diplomat_parameters = {
+        parameter["id"]: parameter["default"]
+        for parameter in pieces["diplomat"]["tunableParameters"]
+    }
+    love_parameters = {
+        parameter["id"]: parameter["default"]
+        for parameter in abilities["power_of_love"]["tunableParameters"]
+    }
+
+    assert pieces["diplomat"]["points"] == 5
+    assert diplomat_parameters["pacifiedTurns"] == 4
+    assert love_parameters["durationTurns"] == 8
+    assert VictoryConfigPayload().dominionRounds == 2
+
+
+def test_configured_catalog_copy_pluralizes_descriptive_counts():
+    pieces = {piece["type"]: piece for piece in catalog_payload()["pieces"]}
+
+    assert "1 clear square forward" in pieces["catapult"]["movement"]
+    assert "1 occupied square" in pieces["maharani"]["movement"]
+    assert "square(s)" not in pieces["catapult"]["movement"]
+    assert "blocker(s)" not in " ".join(pieces["maharani"]["rules"])
+
+
+def test_catalog_exposes_the_customize_numeric_limits():
+    limits = catalog_payload()["limits"]
+
+    assert limits == customization_limits()
+    assert limits["commandPointCapMin"] == 1
+    assert limits["timeSecondsMin"] == 60
+    assert limits["gambitMaxPiecesMax"] == 128
+    assert limits["gambitMaxQueensMax"] == 127
+    assert limits["draftPoolCountMax"] == 256
+
+
+def test_every_tunable_parameter_has_a_valid_integer_range():
+    catalog = catalog_payload()
+    entries = [*catalog["pieces"], *catalog["specialAbilities"]]
+
+    for entry in entries:
+        parameters = entry.get("tunableParameters", [])
+        parameter_ids = {parameter["id"] for parameter in parameters}
+        for parameter in parameters:
+            assert all(
+                isinstance(parameter[key], int)
+                for key in ("default", "min", "max")
+            )
+            assert parameter["min"] <= parameter["default"] <= parameter["max"]
+            if maximum_parameter := parameter.get("maxParameter"):
+                assert maximum_parameter in parameter_ids

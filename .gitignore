@@ -1,27 +1,27 @@
-# Python and local runtime files
-.venv/
 __pycache__/
-**/__pycache__/
-*.py[cod]
-.pytest_cache/
-.mypy_cache/
-.ruff_cache/
-*.db
-*.sqlite
-*.sqlite3
-
-# Local engine binaries and logs
+*.pyc
+*.pyo
+*.DS_Store
+.venv/
+.venv-scanner/
+.venv-scanner-verify/
+scanner/artifacts/
+scanner/data/
 .stockfish/
-firebase-debug.log
-firestore-debug.log
-
-# Frontend dependencies and build output
+.env
+.env.local
+backend/chass.db
+backend/*.db-shm
+backend/*.db-wal
 frontend/node_modules/
 frontend/dist/
-
-# Scanner datasets and generated model/evaluation artifacts
-scanner/data/
-scanner/artifacts/
-
-# OS metadata
-.DS_Store
+frontend/public/scanner-models/
+frontend/public/scanner-runtime/
+frontend/.env
+frontend/.env.local
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+.hypothesis/
+frontend/test-results/
+frontend/playwright-report/

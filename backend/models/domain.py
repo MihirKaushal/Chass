@@ -1,0 +1,585 @@
+from __future__ import annotations
+
+from datetime import datetime
+from typing import Any, Literal
+from uuid import uuid4
+
+from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from backend.configuration_limits import default_barricade_count, default_gambit_piece_cap
+
+Color = Literal["white", "black"]
+PieceColor = Literal["white", "black", "neutral"]
+MoveMode = Literal["move", "capture", "both"]
+GameStatus = Literal[
+    "active",
+    "check",
+    "checkmate",
+    "stalemate",
+    "score_target",
+    "king_capture",
+    "points",
+    "elimination",
+    "time",
+    "royal_score",
+    "center_dominion",
+    "royal_center",
+    "check_race",
+    "draw",
+]
+GameVariant = Literal["classic", "gambit"]
+GamePhase = Literal[
+    "lobby",
+    "ability_selection",
+    "draft",
+    "deployment",
+    "handoff",
+    "play",
+    "finished",
+]
+VictoryMode = Literal[
+    "checkmate",
+    "king_capture",
+    "timed",
+    "point_race",
+    "elimination",
+    "royal_score",
+    "center_dominion",
+    "royal_center",
+    "check_race",
+]
+
+
+class MovePattern(BaseModel):
+    dr: int
+    dc: int
+    repeat: bool = False
+    mode: MoveMode = "both"
+    relative_to_color: bool = True
+    requires_unmoved: bool = False
+    requires_clear_path: bool = False
+
+
+class PieceDefinition(BaseModel):
+    type: str
+    display_name: str
+    symbols: dict[str, str]
+    patterns: list[MovePattern]
+    points: int | None = None
+    is_custom: bool = False
+    icon: str = ""
+    description: str = ""
+    movement_summary: str = ""
+    behavior: str = "patterns"
+    custom_attributes: dict[str, Any] = Field(default_factory=dict)
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class Piece(BaseModel):
+    piece_id: str = Field(default_factory=lambda: str(uuid4()))
+    type: str
+    name: str = ""
+    color: PieceColor
+    points: int | None = None
+    has_moved: bool = False
+    is_custom: bool = False
+    custom_attributes: dict[str, Any] = Field(default_factory=dict)
+    runtime: dict[str, Any] = Field(default_factory=dict)
+
+
+class Square(BaseModel):
+    row: int
+    col: int
+    is_light: bool
+    piece: Piece | None = None
+
+
+class Board(BaseModel):
+    rows: int
+    cols: int
+    grid: list[list[Piece | None]]
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_legacy_size(cls, value: object) -> object:
+        if not isinstance(value, dict):
+            return value
+        if "rows" in value and "cols" in value:
+            return value
+        legacy_size = value.get("size")
+        if legacy_size is None:
+            return value
+        migrated = dict(value)
+        migrated["rows"] = legacy_size
+        migrated["cols"] = legacy_size
+        return migrated
+
+    @model_validator(mode="after")
+    def validate_grid_shape(self) -> "Board":
+        if self.rows < 4 or self.cols < 4:
+            raise ValueError("Board dimensions must be at least 4x4")
+        if len(self.grid) != self.rows:
+            raise ValueError("Board grid row count must match board rows")
+        for row in self.grid:
+            if len(row) != self.cols:
+                raise ValueError("Board grid column count must match board cols")
+        return self
+
+    @property
+    def size(self) -> int:
+        # Compatibility shim for legacy code that still expects square board size.
+        return max(self.rows, self.cols)
+
+    def to_square_grid(self) -> list[list[Square]]:
+        squares: list[list[Square]] = []
+        for row_idx in range(self.rows):
+            row_squares: list[Square] = []
+            for col_idx in range(self.cols):
+                row_squares.append(
+                    Square(
+                        row=row_idx,
+                        col=col_idx,
+                        is_light=((row_idx + col_idx) % 2 == 0),
+                        piece=self.grid[row_idx][col_idx],
+                    )
+                )
+            squares.append(row_squares)
+        return squares
+
+
+class BoardTerrain(BaseModel):
+    terrain_id: str = Field(default_factory=lambda: str(uuid4()))
+    kind: str
+    row: int
+    col: int
+    owner: Color | None = None
+    metadata: dict[str, Any] = Field(default_factory=dict)
+
+
+class Move(BaseModel):
+    model_config = ConfigDict(populate_by_name=True)
+
+    from_row: int = Field(alias="fromRow")
+    from_col: int = Field(alias="fromCol")
+    to_row: int = Field(alias="toRow")
+    to_col: int = Field(alias="toCol")
+    promotion: Literal["queen", "rook", "bishop", "knight", "kamikaze"] | None = None
+
+
+class RuleSetting(BaseModel):
+    id: str
+    enabled: bool = True
+    params: dict[str, Any] = Field(default_factory=dict)
+
+
+class VictoryConfig(BaseModel):
+    mode: VictoryMode = "checkmate"
+    target_points: int = Field(default=21, ge=1)
+    time_seconds: int = Field(default=600, ge=30)
+    king_points: int = Field(default=0, ge=0)
+    dominion_rounds: int = Field(default=2, ge=1)
+    check_target: int = Field(default=3, ge=1)
+
+
+class CenterDominionState(BaseModel):
+    progress: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+    primed: dict[Color, bool] = Field(default_factory=lambda: {"white": False, "black": False})
+
+
+class CheckRaceState(BaseModel):
+    checks: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+
+
+class ClassicRuleState(BaseModel):
+    halfmove_clock: int = Field(default=0, ge=0)
+    position_counts: dict[str, int] = Field(default_factory=dict)
+    last_move_irreversible: bool = False
+
+
+class SpecialAbilityConfig(BaseModel):
+    enabled: bool = False
+    allowed: list[str] = Field(default_factory=list)
+    max_per_player: int = Field(default=1, ge=1)
+    parameters: dict[str, dict[str, int]] = Field(default_factory=dict)
+
+
+class CustomRulesConfig(BaseModel):
+    affinity_enabled: bool = False
+    affinity_square_count: int = Field(default=4, ge=2, le=32, multiple_of=2)
+    affinity_control_required: int = Field(default=2, ge=1, le=16)
+    command_point_cap: int = Field(default=3, ge=0)
+    power_costs: dict[str, int] = Field(
+        default_factory=lambda: {"reinforce": 1, "evolve": 2, "stronghold": 3}
+    )
+    power_usage_caps: dict[str, int] = Field(
+        default_factory=lambda: {"reinforce": 2, "evolve": 2, "stronghold": 1}
+    )
+
+    @model_validator(mode="after")
+    def validate_affinity_control_requirement(self) -> "CustomRulesConfig":
+        if self.affinity_control_required > self.affinity_square_count // 2:
+            raise ValueError(
+                "Affinity control requirement cannot exceed one color's square count"
+            )
+        return self
+
+
+class GameConfiguration(BaseModel):
+    schema_version: int = 2
+    preset_id: str = "classic"
+    formation_id: str = "classic"
+    match_predictor_enabled: bool = True
+    barricade_count: int = Field(default_factory=default_barricade_count, ge=0)
+    enabled_piece_types: list[str] = Field(
+        default_factory=lambda: ["pawn", "knight", "bishop", "rook", "queen", "king"]
+    )
+    piece_parameters: dict[str, dict[str, int]] = Field(default_factory=dict)
+    initial_layout: list[dict[str, Any]] = Field(default_factory=list)
+    victory: VictoryConfig = Field(default_factory=VictoryConfig)
+    custom_rules: CustomRulesConfig = Field(default_factory=CustomRulesConfig)
+    special_abilities: SpecialAbilityConfig = Field(default_factory=SpecialAbilityConfig)
+
+
+class AbilityState(BaseModel):
+    selected: dict[Color, list[str]] = Field(
+        default_factory=lambda: {"white": [], "black": []}
+    )
+    used: dict[Color, dict[str, bool]] = Field(
+        default_factory=lambda: {"white": {}, "black": {}}
+    )
+    active_selection_color: Color = "white"
+    runtime: dict[Color, dict[str, Any]] = Field(default_factory=lambda: {"white": {}, "black": {}})
+    usage_count: dict[Color, dict[str, int]] = Field(
+        default_factory=lambda: {"white": {}, "black": {}}
+    )
+
+    @model_validator(mode="before")
+    @classmethod
+    def migrate_single_ability_state(cls, value: Any) -> Any:
+        if not isinstance(value, dict):
+            return value
+        migrated = dict(value)
+        raw_selected = migrated.get("selected") or {}
+        selected = {
+            color: (
+                list(raw_selected.get(color, []))
+                if isinstance(raw_selected.get(color, []), list)
+                else ([raw_selected[color]] if raw_selected.get(color) else [])
+            )
+            for color in ("white", "black")
+        }
+        migrated["selected"] = selected
+
+        raw_used = migrated.get("used") or {}
+        migrated["used"] = {
+            color: (
+                dict(raw_used.get(color, {}))
+                if isinstance(raw_used.get(color, {}), dict)
+                else {
+                    ability_id: bool(raw_used.get(color))
+                    for ability_id in selected[color]
+                }
+            )
+            for color in ("white", "black")
+        }
+        return migrated
+
+
+class AffinityState(BaseModel):
+    command_points: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+    primed: dict[Color, bool] = Field(default_factory=lambda: {"white": False, "black": False})
+    power_usage: dict[Color, dict[str, int]] = Field(
+        default_factory=lambda: {
+            "white": {"reinforce": 0, "evolve": 0, "stronghold": 0},
+            "black": {"reinforce": 0, "evolve": 0, "stronghold": 0},
+        }
+    )
+    last_power_explanation: str | None = None
+
+
+class RematchState(BaseModel):
+    status: Literal["idle", "pending"] = "idle"
+    requested_by: Color | None = None
+    approvals: dict[Color, bool] = Field(default_factory=lambda: {"white": False, "black": False})
+
+
+class GameResult(BaseModel):
+    reason_code: str
+    description: str
+    trigger: str
+    winner: Color | None = None
+
+
+class BotState(BaseModel):
+    profile_id: str
+    target_elo: int = Field(ge=1)
+    label: str
+    engine_id: Literal["stockfish", "fairy-stockfish", "chass"] = "stockfish"
+    human_color: Color = "white"
+    bot_color: Color = "black"
+
+
+class ClockState(BaseModel):
+    initial_seconds: int
+    remaining_seconds: dict[Color, float]
+    active_color: Color = "white"
+    turn_started_at: datetime
+
+
+class CaptureEvent(BaseModel):
+    row: int
+    col: int
+    piece: Piece
+    reason: str | None = None
+
+
+class MoveRecord(BaseModel):
+    move_number: int
+    player: Color
+    piece: str
+    from_row: int
+    from_col: int
+    to_row: int
+    to_col: int
+    captures: list[CaptureEvent] = Field(default_factory=list)
+    explanation: str
+    action_type: str = "move"
+
+
+class MoveOption(BaseModel):
+    from_row: int
+    from_col: int
+    to_row: int
+    to_col: int
+    captures: list[CaptureEvent] = Field(default_factory=list)
+    explanation: str = ""
+
+
+class BoardCoordinate(BaseModel):
+    row: int
+    col: int
+
+
+class DeploymentPiece(BaseModel):
+    row: int
+    col: int
+    type: str
+
+
+class GambitConfig(BaseModel):
+    budget: int = Field(default=39, ge=0)
+    max_pieces: int = Field(default=16, ge=1)
+    setup_rows: int = Field(default=2, ge=1)
+    command_point_cap: int = Field(default=3, ge=0)
+    affinity_enabled: bool = True
+    affinity_square_count: int = Field(default=4, ge=2, le=32, multiple_of=2)
+    affinity_control_required: int = Field(default=2, ge=1, le=16)
+    # Retained for backward-compatible state loading. New games always treat
+    # the budget as a maximum rather than an exact spending requirement.
+    require_exact_budget: bool = False
+    draft_enabled: bool = False
+    draft_pool: dict[str, int] = Field(
+        default_factory=lambda: {
+            "pawn": 16,
+            "knight": 4,
+            "bishop": 4,
+            "rook": 4,
+            "queen": 2,
+            "king": 2,
+        }
+    )
+    piece_points: dict[str, int] = Field(
+        default_factory=lambda: {
+            "pawn": 1,
+            "knight": 3,
+            "bishop": 3,
+            "rook": 5,
+            "queen": 9,
+            "king": 0,
+        }
+    )
+    piece_caps: dict[str, int] = Field(
+        default_factory=lambda: {
+            piece_type: default_gambit_piece_cap(piece_type)
+            for piece_type in ("pawn", "knight", "bishop", "rook", "queen", "king")
+        }
+    )
+    power_costs: dict[str, int] = Field(
+        default_factory=lambda: {
+            "reinforce": 1,
+            "evolve": 2,
+            "stronghold": 3,
+        }
+    )
+    power_usage_caps: dict[str, int] = Field(
+        default_factory=lambda: {
+            "reinforce": 2,
+            "evolve": 2,
+            "stronghold": 1,
+        }
+    )
+    affinity_squares: dict[Color, list[BoardCoordinate]] = Field(
+        default_factory=lambda: {
+            "white": [
+                BoardCoordinate(row=4, col=4),  # e4
+                BoardCoordinate(row=3, col=3),  # d5
+            ],
+            "black": [
+                BoardCoordinate(row=4, col=3),  # d4
+                BoardCoordinate(row=3, col=4),  # e5
+            ],
+        }
+    )
+
+    @model_validator(mode="after")
+    def validate_affinity_control_requirement(self) -> "GambitConfig":
+        if self.affinity_control_required > self.affinity_square_count // 2:
+            raise ValueError(
+                "Affinity control requirement cannot exceed one color's square count"
+            )
+        return self
+
+
+class GambitState(BaseModel):
+    config: GambitConfig = Field(default_factory=GambitConfig)
+    draft_picks: dict[Color, list[str]] = Field(default_factory=lambda: {"white": [], "black": []})
+    draft_pool_remaining: dict[str, int] = Field(default_factory=dict)
+    draft_active_color: Color = "white"
+    draft_passed: dict[Color, bool] = Field(
+        default_factory=lambda: {"white": False, "black": False}
+    )
+    deployments: dict[Color, list[DeploymentPiece]] = Field(
+        default_factory=lambda: {"white": [], "black": []}
+    )
+    deployment_ready: dict[Color, bool] = Field(
+        default_factory=lambda: {"white": False, "black": False}
+    )
+    deployment_undo: dict[Color, list[list[DeploymentPiece]]] = Field(
+        default_factory=lambda: {"white": [], "black": []}
+    )
+    deployment_versions: dict[Color, int] = Field(default_factory=lambda: {"white": 1, "black": 1})
+    active_deployment_color: Color = "white"
+    command_points: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+    affinity_primed: dict[Color, bool] = Field(
+        default_factory=lambda: {"white": False, "black": False}
+    )
+    power_usage: dict[Color, dict[str, int]] = Field(
+        default_factory=lambda: {
+            "white": {"reinforce": 0, "evolve": 0, "stronghold": 0},
+            "black": {"reinforce": 0, "evolve": 0, "stronghold": 0},
+        }
+    )
+    setup_message: str | None = None
+    last_power_explanation: str | None = None
+
+    @model_validator(mode="after")
+    def initialize_draft_pool(self) -> "GambitState":
+        if self.config.draft_enabled and not self.draft_pool_remaining:
+            self.draft_pool_remaining = dict(self.config.draft_pool)
+        return self
+
+
+ScannedPieceLabel = Literal[
+    "white-pawn",
+    "white-knight",
+    "white-bishop",
+    "white-rook",
+    "white-queen",
+    "white-king",
+    "black-pawn",
+    "black-knight",
+    "black-bishop",
+    "black-rook",
+    "black-queen",
+    "black-king",
+]
+
+
+class ImportedCastlingRights(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    white_king: bool = Field(default=False, alias="whiteKing")
+    white_queen: bool = Field(default=False, alias="whiteQueen")
+    black_king: bool = Field(default=False, alias="blackKing")
+    black_queen: bool = Field(default=False, alias="blackQueen")
+
+
+class ImportedPosition(BaseModel):
+    model_config = ConfigDict(extra="forbid", populate_by_name=True)
+    board: list[list[ScannedPieceLabel | None]] = Field(min_length=8, max_length=8)
+    current_player: Color = Field(default="white", alias="currentPlayer")
+    castling_rights: ImportedCastlingRights = Field(
+        default_factory=ImportedCastlingRights, alias="castlingRights"
+    )
+    en_passant: str | None = Field(default=None, pattern=r"^[a-h][36]$", alias="enPassant")
+    halfmove_clock: int = Field(default=0, ge=0, le=99, alias="halfmoveClock")
+    fullmove_number: int = Field(default=1, ge=1, le=10000, alias="fullmoveNumber")
+
+    @model_validator(mode="after")
+    def validate_ranks(self) -> "ImportedPosition":
+        if any(len(rank) != 8 for rank in self.board):
+            raise ValueError("A scanned position must have exactly 8 rows and 8 columns.")
+        return self
+
+
+class GameState(BaseModel):
+    id: str
+    board: Board
+    terrain: list[BoardTerrain] = Field(default_factory=list)
+    variant: GameVariant = "classic"
+    phase: GamePhase = "play"
+    gambit: GambitState | None = None
+    bot: BotState | None = None
+    current_player: Color = "white"
+    rules: list[RuleSetting] = Field(default_factory=list)
+    piece_definitions: dict[str, PieceDefinition] = Field(default_factory=dict)
+    configuration: GameConfiguration = Field(default_factory=GameConfiguration)
+    classic: ClassicRuleState = Field(default_factory=ClassicRuleState)
+    imported_position: ImportedPosition | None = None
+    center_dominion: CenterDominionState = Field(default_factory=CenterDominionState)
+    check_race: CheckRaceState = Field(default_factory=CheckRaceState)
+    affinity: AffinityState = Field(default_factory=AffinityState)
+    abilities: AbilityState = Field(default_factory=AbilityState)
+    turn_counts: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+    clock: ClockState | None = None
+    history_epoch: int = Field(default=0, ge=0)
+    history: list[MoveRecord] = Field(default_factory=list)
+    captured_pieces: dict[str, list[Piece]] = Field(
+        default_factory=lambda: {"white": [], "black": []}
+    )
+    winner: Color | None = None
+    game_status: GameStatus = "active"
+    score: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+    spent_score: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
+    rematch: RematchState = Field(default_factory=RematchState)
+    result: GameResult | None = None
+
+    @model_validator(mode="after")
+    def migrate_legacy_gambit_affinity(self) -> "GameState":
+        if (
+            self.gambit is not None
+            and self.gambit.config.affinity_enabled
+            and not self.configuration.custom_rules.affinity_enabled
+        ):
+            self.configuration.custom_rules.affinity_enabled = True
+            self.configuration.custom_rules.command_point_cap = (
+                self.gambit.config.command_point_cap
+            )
+            self.configuration.custom_rules.power_costs = dict(
+                self.gambit.config.power_costs
+            )
+            self.configuration.custom_rules.power_usage_caps = dict(
+                self.gambit.config.power_usage_caps
+            )
+            self.affinity.command_points = dict(self.gambit.command_points)
+            self.affinity.primed = dict(self.gambit.affinity_primed)
+            self.affinity.power_usage = {
+                color: dict(usage) for color, usage in self.gambit.power_usage.items()
+            }
+            self.affinity.last_power_explanation = self.gambit.last_power_explanation
+        return self
+
+    def clone(self) -> "GameState":
+        return self.model_copy(deep=True)
+
+    def next_move_number(self) -> int:
+        return self.history[-1].move_number + 1 if self.history else 1

@@ -1,0 +1,10 @@
+{
+  "date": "2026-11-06",
+  "image_sha256": "27b52de2c5461d32ca611870e0059b9ef52d90b98b1aca2f7642179cfd660e7d",
+  "runtime": "ONNX Web 1.31.1 webgpu package, WASM provider, Node on macOS",
+  "board_parity": true,
+  "review_parity": true,
+  "top_three_label_parity": true,
+  "inference_ms": 2795.018333,
+  "note": "One smoke photo; excludes model download and session setup. Not browser UI or GPU verification."
+}

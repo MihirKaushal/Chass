@@ -1,0 +1,558 @@
+{
+  "format_version": 1,
+  "dataset": "chess-v2",
+  "review_date": "2026-10-25",
+  "seed": 42,
+  "source_annotation_hashes": {
+    "train": "26907e997b6bb177f06633d3c4928919fede97d2730acc61e7017ae1c138bd32",
+    "valid": "6f2736ddc374873b783f69011f7618c8929923d07e9bb6d2459b1f8a1d7fbb84",
+    "test": "11ac3b28201497d05cddc95ea7501f8d2759f650c7f3042096f7c4cba1bbf842"
+  },
+  "source_images_hash": "3e70f2d10c9553c140543529e9d606222e3955973ed349c389d87455f074fdc6",
+  "notes": [
+    "Original raw bytes and source split files remain immutable.",
+    "Rotation decisions were checked in contact-sheet overlays; nine visibly inconsistent annotation frames are excluded.",
+    "Zero-area point artifacts were visually inspected; no bounding boxes are invented for them.",
+    "High-overlap class conflicts without a reviewed correction are excluded, never assigned model-predicted labels.",
+    "Second pass quarantines remaining IoU>=0.50 target overlaps after conservative duplicate removal, plus unverified zero-label photos; these may include legitimate occlusions, but are not guessed or merged."
+  ],
+  "images": {
+    "train/IMG_20220808_141111_jpg.rf.a54a5789053fb4988bf6f23e97267f2b.jpg": {
+      "sha256": "e87568b8d40c7cd0f97a27543284faaf3c3c99b173f6bfe3d9f7afc01c2f7600",
+      "quarantine": "Image appears resized/cropped, not a recoverable quarter-turn. Original coordinate transform is unavailable."
+    },
+    "train/IMG_20220809_232136_jpg.rf.24ecc04fbc0cb3d03c6d1e0d21e97917.jpg": {
+      "sha256": "71d26d13db2428364f665c9db106bf7f541148c95b61e911f79e274167b2bf15",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220813_221558_jpg.rf.2bf8c58c27f3944cd1d36e2276f42819.jpg": {
+      "sha256": "21b0f6e2cbd122ca15040fb3f6fd0deb2b66ae2682863ea138a699b063edd869",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205618_jpg.rf.2fc6cf8eda8fbbeb87e63b18cb22b5cd.jpg": {
+      "sha256": "63caffc1b7cbd57bb9f37f672e37ffde35e479c14598d3b8e0ae7eb139debb46",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142957_jpg.rf.2f04265f6bb52bfff4ff220de0f826e5.jpg": {
+      "sha256": "cb2ef2206d1be8cef231fad13a92388d6b6f4683f1ca9cd6865b901e3233bd47",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_201913_jpg.rf.2f6c4dc4671b240e7ce57d57e5e84ba4.jpg": {
+      "sha256": "adb5aac3c06ef8b90cc827c287b63eea36e2c5c6689cbd5914dfef0ab2c3384b",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143219_jpg.rf.318b72aaf317de828007d09f94fe685d.jpg": {
+      "sha256": "ec2b142a0970c79b835a31ff59ce56aba653ae4de867b71941e38e009bff34d4",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_140211_jpg.rf.3dccce221610e44751b6c38dd9fd0626.jpg": {
+      "sha256": "620d3b58326a23a3a2c9e2eb3dad31ac7e2042715202b7f89032a3096f756b5a",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205752_jpg.rf.47176dadf0c22675777069e6bfabd90c.jpg": {
+      "sha256": "46e63473272f9a9899ef0b849bfcbe99684ecdbe064cd56161c3687d8c644019",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223404_jpg.rf.4a23149857421da212671160ae627aa7.jpg": {
+      "sha256": "4561bc0624abc03f46b1a5a7c575ca4d77c5a1cf6d0e72b9b1d7f9b5b531191c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220810_180926_jpg.rf.4d2ebf7d0ef2970c215cbf602da5116f.jpg": {
+      "sha256": "a4077b6e88ccc13c4f60cc764e27f81b14b48b78086c179c02adcab4c4507ea7",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220808_142726_jpg.rf.52e4ca6f231dcd649b22fc7e846b62cb.jpg": {
+      "sha256": "ead3dfa3702d867e67aff565cd98cd1f18dd9e11f61c4f8c522166ce59667cb6",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221007_jpg.rf.4fa839399395c6416e41a65cd45fc57e.jpg": {
+      "sha256": "9fda3b27661fbdd38bbee2afd449fb77152df9237ab3b14a8cdeb8407d7ba662",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221926_jpg.rf.5dff6e3848fbfe7e7ccdc5517f3d61e0.jpg": {
+      "sha256": "9fb52fede5c6fa2d576e70e4c2409af30e0461f88b56ac21e4ecbd35efde7a31",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143840_jpg.rf.618098cbe6bc30b6f2d15de6b37e80f5.jpg": {
+      "sha256": "4ae90a757af582dcb3a734d1dfae77f7849c24da99cb54a82c6b2a758ac49d0a",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220813_222805_jpg.rf.649d7829ce6243c0c226707f3d3e5412.jpg": {
+      "sha256": "2fa0ed0d0d6aad9ac89276080fdd440ca5506357e7f693246678ce6c4b842416",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_135613_jpg.rf.650ed22b610ed02b9b8d7e97e4939f8b.jpg": {
+      "sha256": "bee57f131e699bc76a99139f1f6960b96810637ba26623154ec52c0bfe007b2c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142907_jpg.rf.71362a0e2c7078acf7c05b421f9d2bc6.jpg": {
+      "sha256": "533b54f4e38c98a55e40480e243ee16075b652bfee49e1d69293a6cdd7cc1b68",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142820_jpg.rf.73226cc8f1e9254476f5c71faf8678da.jpg": {
+      "sha256": "17846cfb691f109a336807be30c906925a08723e792e8e7d06f104463624a62a",
+      "rotation": "ccw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_220751_jpg.rf.73c437d45e8846a38ce24639f3db7021.jpg": {
+      "sha256": "147d1ad7b6a112c12c33fa9570130108366fc181d08039c545d1e32a6d11d27e",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_203700_jpg.rf.74f38c3cbf2b71bf1ef668155b9366f0.jpg": {
+      "sha256": "51005c8b3d92bf82890d3576be5c1107501fb4a0e506c14d3817287c97f4971c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143107_jpg.rf.76058d6405257fbacd879c24da4f9607.jpg": {
+      "sha256": "357a58f83cab2d89334e14ff1a38989e95b0fa126f6531b755d689e8045c02a3",
+      "rotation": "ccw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142921_jpg.rf.791f2689a4e45401414e72aa20dbf68a.jpg": {
+      "sha256": "2c481b1e7e86c7bca9a664ec0748fcb1b372a7fa429810f1fd46c750dec49bab",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223340_jpg.rf.cbd5e5cb5a6331c63434a5881a41f8b5.jpg": {
+      "sha256": "bedfd5d6b517e1bc6bea2094ac6c779688a9bedad51edcc675e5c6de1366f1a2",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_220738_jpg.rf.d16c9edf2d070ad30335f37f912d0bac.jpg": {
+      "sha256": "145421b508739a661f292090f0f5e6c1a0f998d9a605fb1f1aa198a8c253f428",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_222734_jpg.rf.d274d782113d438886dd6b6d3fdbe0c6.jpg": {
+      "sha256": "e41204cf9ef206160b394ee9552831adcc2b657bb1c5dab408339fc7062e4e72",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221512_jpg.rf.d3d1cb03bb362262fd0ed8c66c933efd.jpg": {
+      "sha256": "e2dad5e4d200217b1afe6dcf700cb647bc55842bff00b9563333b76029cb7b8d",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142439_jpg.rf.df47e6a0eed1faed3761916d0265b227.jpg": {
+      "sha256": "c9ef7e0f821e1bfa6640b03c22b22c191277f8e1650f442571c6fec92c55101d",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_224444_jpg.rf.e3b13eec400108071a4877b39a75b4d2.jpg": {
+      "sha256": "cb76c0d4ce37cb04fab96058475952ae11006c2c8789e65f9c30e4f3aba3876f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221538_jpg.rf.e9a71af62113451c4ce51703eab9ac20.jpg": {
+      "sha256": "c7a344ffc30ca08393a1abfaf3d92b51c855b3c152ea9a07a84544c5218fc5e1",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_210311_jpg.rf.ef01bff5a32e8a2ea77d1241f24e5a0c.jpg": {
+      "sha256": "27f73c2a34ceab999821d9ef7a00d64fab6857c66e2e698ebe7e88a16627ccd5",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_203649_jpg.rf.ef226887c8882989b7c1bf37574322c6.jpg": {
+      "sha256": "54c0c93ebc5f43ad054d934667c8a0cfd05d8f5e550c872daa6799a93135ab0c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_144246_jpg.rf.f10645d0da5ff1802eb9857f60b26e05.jpg": {
+      "sha256": "c298f755c6a69c111bfe94e32f634d75084d96019d073644b8bc2a6f99948e4f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_224234_jpg.rf.f0f95fbae0c6a3c618583e95b49e1dfc.jpg": {
+      "sha256": "2da40f2c9831e556c4cae2e170557a5e6a1cd1fe3c518a3f5062850952755352",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220813_222745_jpg.rf.f1611c1fb674bbeadfb6104226456b24.jpg": {
+      "sha256": "4891295b69e47c65de0cf9a4e8f497b1ab5197397c90ce75f4913f31da38ffec",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_135556_jpg.rf.f809d66379cb8f74565f357e79bc4b7a.jpg": {
+      "sha256": "6f6220ea91d6098e0e7d62eefe9c5c296b73ec3db3d3cc5fe2996493bc9b2f6f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221016_jpg.rf.02443416cc24c61ce6c0d5833db7c452.jpg": {
+      "sha256": "353e3868d064b28b598192d6937463d1911348169124efc3074e164b6e6a54fa",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143209_jpg.rf.01763868d328216033a7ac8001b006c1.jpg": {
+      "sha256": "604d86f495b21fc78b9b705b39804996e4136c89e06de69af80c7eea7ed3ace4",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_203458_jpg.rf.03d67bedc572677d1e53237e226aeec7.jpg": {
+      "sha256": "7a248e78fae7fc374ba3b9e82a2a362bc0b02897051cecb104feb6201918cf9b",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142830_jpg.rf.09ac9b12af81e429e3ab2735e8c0846a.jpg": {
+      "sha256": "82933eda000799ed87ecd6338b866f3594f0265f79a9669f1b56428acbdbdb5a",
+      "rotation": "ccw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_144301_jpg.rf.087eb6a4eba68705a803b6f10aa85090.jpg": {
+      "sha256": "bbf5afcdadc13950fa51ac87996c63f90458a5885acb34fe3951940022b67667",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_135628_jpg.rf.15be1c22713c9839633fe626074f2ab3.jpg": {
+      "sha256": "31e9961c7335455621c2c3369d975d084c6cce7ac944f3578dba7e4f519f80a7",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_140653_jpg.rf.1633d13f8184a75a32c80e107940ce1f.jpg": {
+      "sha256": "864eb7eb70747b1b7eb458d39f60e29daf9d7a8f18c421eaf2c47a9d1ad9e936",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_224243_jpg.rf.130a61a9dd80165a929dabe955119c32.jpg": {
+      "sha256": "06c6fb91827fb5067b7a412d29eabef620ba7f93a8a92d535ad9bd76186e526c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142233_jpg.rf.17879faba3ed8518584371f13cf0bddb.jpg": {
+      "sha256": "6974d5227b94931246e9113a744971cdcfb02e7176c1f7896bd176fe3485a689",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_204351_jpg.rf.19bd7f1021c7451f9fbf2b40a52cf936.jpg": {
+      "sha256": "fcf10365396282e03fc19fc633eff78c8b6b63a5534ed2c10a7bf7326570f148",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223420_jpg.rf.19b580ddeeb6ad9fd231c15de8424942.jpg": {
+      "sha256": "d715e458e003c78d0d5943439a054a6ee3abc8c6a39da67af425819c3a372660",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_141420_jpg.rf.1bc666eb45cbc3cddf25f8a8d532cb7d.jpg": {
+      "sha256": "bfc5ddc51fe1f642ca5569635cb8e7103464a6080ef426289c42fdaf0957b3c1",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142946_jpg.rf.1a225442735ed107839f4d939f3fe66e.jpg": {
+      "sha256": "e867a6cfc91d2027948f2c78919d792dba770ae0ab08bb1b5d761b05cb33656d",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_220802_jpg.rf.1ce988dec6ce4147fb68cf63c0ea6261.jpg": {
+      "sha256": "4d2842a21d7f56a41a868599f5a175803ce7260c17a9b3fc313e283f908a79a7",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_210303_jpg.rf.2396413516665a65f3e2e7e065ec3a97.jpg": {
+      "sha256": "d3bae47c73591e6bf6c0d4b4bbcf2e5bad31da22a7c3918f97a0e738304b7a78",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143854_jpg.rf.a56119d6d727fdae634257157efe19f9.jpg": {
+      "sha256": "171fee53731991e6d42648fa0d7c3ca028500bb132dbb85ba1318fb49f702d7f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205721_jpg.rf.aa6cb7d41979959e1857ea467df80c96.jpg": {
+      "sha256": "b3dbd306166e6702e56716c110c6c019295af98e5e53145ca3610d677c797e0f",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205648_jpg.rf.abab6b938b592d84931f430b99d4203c.jpg": {
+      "sha256": "87b71d6e2e7b3cbd1acc015c278258f3d4573d737e03740412dbd685944e99ac",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_141657_jpg.rf.ac33408487ab504b8f5155ce0972d6cd.jpg": {
+      "sha256": "95c407c1bc53e419d16a35b3627526d6ef45d203115f783e5d9d132c693573da",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_224428_jpg.rf.b64ff28964a235a3ddb2927c203c9f41.jpg": {
+      "sha256": "d241e53899de36db1ff549002b3ae09dfc423f47d0c2f1a73049e83bed5bb1a0",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_141456_jpg.rf.b80d17aa8db620bc5e4db367870bdb37.jpg": {
+      "sha256": "cf6559cfc6c05b6981020f5e6a68167be9df6529c6fc246cadb060fde92a6aec",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223113_jpg.rf.be79d22b0cb124a581cd4a4ca0bd281e.jpg": {
+      "sha256": "366a377f4da87f7e920b194c22239be97dabb67a6c92c9b287819b79889b76ed",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_223129_jpg.rf.c34651f61fff675c2782c9be2373e0f7.jpg": {
+      "sha256": "9224b71c598728e60a90caf2e1ee92296efe18200ff6682d25b4bda421649ffe",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220813_221250_jpg.rf.cb1374ed32aacfbff156790a57b31f6c.jpg": {
+      "sha256": "5e583d713950105902e1a807fe229cf93f38f32ebda0eeb72798eee35479b528",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143251_jpg.rf.f859e86a4a8fa6cdb09a03deae4c423c.jpg": {
+      "sha256": "60d35ec5a9e364e7f9f9d46e955c2bb7f3eb54669b4e2247c98a3e6592fc5d31",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205550_jpg.rf.fcbedff73ad0cfee09a4f11084b0dc43.jpg": {
+      "sha256": "186c344b29f55f0319d9774085a875dc199ac43783a84977eda00e8d754da231",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_203905_jpg.rf.fd177d96afe5a29852e013add2414bbd.jpg": {
+      "sha256": "11592e3a792dcd0325dd221898ab5dbe5a8d6f616d82a739d653014146beb333",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_141408_jpg.rf.fd854c07895a70181e1d2a64e63025c8.jpg": {
+      "sha256": "1c5ad06b6bb96fe160571dc5f0c241fa78532f0a0071e1b97bafc7f3b956f042",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_142427_jpg.rf.7ede5548d01cf9c3dcdf778dba1b671f.jpg": {
+      "sha256": "38672b8db7c44d6b19cfb64a6fb057bf63e2c1ccaa1107db31cdcc75eda16c76",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_143802_jpg.rf.82ceda6b0e47c4cf48b9f2d7b7d39927.jpg": {
+      "sha256": "6da82da4e0ec964334b277c41d1caf638eaa40424a64afb67f07087427871ce1",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_205558_jpg.rf.85a44f3a2bf1991051fd373be918c0ec.jpg": {
+      "sha256": "04b1443aaba4c5ebc2372700ef5be94280a656e0f30dcd297d01c2429988bff7",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220808_141514_jpg.rf.94b913c986f07cf908635131b4a8d87a.jpg": {
+      "sha256": "c56fa8d43fe265d4b5ac1485e656032d233bf23decb77e2cd2c6bd6b127c960b",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_204411_jpg.rf.98132be9cb14f31634b782d22e7f1cf1.jpg": {
+      "sha256": "d6c175287682d811afc446b0b1c63d706bc6ba475e2ab3240179f5e82615d2df",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG_20220809_204222_jpg.rf.9d191f0c239ec3ca046880bbc1f375d0.jpg": {
+      "sha256": "db31afa4c5ba789432684ca1e522de77d16f03e5ce320722c5e3dfd4ca0750fb",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "train/IMG_20220808_140959_jpg.rf.9cfadc230a7e6a8e865c83b1b3f888f8.jpg": {
+      "sha256": "74b2d66adff8f2ad42683fbe80b7347e95544dd31d719d67c2d903091c788c9c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_224235_jpg.rf.6f3c584e870bb1f8614b994823b62abb.jpg": {
+      "sha256": "5d11b386c7c0cfc83973dd1a2db667d26b4433ad21689fad7ff19817b0f3ff3c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_204214_jpg.rf.7823c0d454caa0624f0180b09ede6288.jpg": {
+      "sha256": "7e1f865bbf3b55b8f9ba5d7f12826a455e1e2b182bcb71e1e35c17cf8d3e0482",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "valid/IMG_20220808_142607_jpg.rf.8eedf7a73f2ac6b617212daf5527de3d.jpg": {
+      "sha256": "3bafb25dc392c1b5866389984d2ed798b21b41ad88ae643f63e65b9d69d21389",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_223351_jpg.rf.af4a1085ff78535224fd7b02a95edb42.jpg": {
+      "sha256": "d3c3f009cc9784bd6b5dcd9caad41dbd46e88e985e22b8ad3e61596bcba079dd",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "valid/IMG_20220808_142627_jpg.rf.b59b81aa08f03c895b15a3b25eaad012.jpg": {
+      "sha256": "8e606a71dc2578566653024dbc89eb1e6ec82a670f947886549ce40a79278f65",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_224509_jpg.rf.bcbc41b06752f5f6e6f4be6797b70e23.jpg": {
+      "sha256": "f1fe53f9070f56cb43ec063edeed1a9974202f0d37a6ae466fb96fd064e204a3",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_144212_jpg.rf.c1c408f1d2294e06b34a6154b29b300e.jpg": {
+      "sha256": "60f8eed36c2a71f95b0a7723007a57c57b1f88723de4213c7c69aacbb4cac0d0",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_223139_jpg.rf.db7d2d1c4a7b7bef5e566569ad9ecd83.jpg": {
+      "sha256": "7e0799d26274bf68d86cf0f245250c25e4b9e75117e8c1d659176f53f79f5419",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_140707_jpg.rf.ddff36a88a983e3a2b13804a19bcace5.jpg": {
+      "sha256": "af99322e745e086abec24fa55785e13907a796ec74e11f30c5113f3f79acc90e",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_141645_jpg.rf.e6fa6546ff63d72400d8c5f0126cb91e.jpg": {
+      "sha256": "6ff3bf8bf1341df7d46785ab5834d85904eea2b349bdfbe0c0c27fe18b9064e8",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_144223_jpg.rf.f4e7d9dd7dfa95afbb9dafd67010dfeb.jpg": {
+      "sha256": "9e6eec8e6f782d4485c9c1c33b8f53ae833290184340542bc0025032192d7997",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_143309_jpg.rf.fa5c7d496e632038b31e33cc753cf7b7.jpg": {
+      "sha256": "ea34b72e243ecaec440338e8e0fcad8d64a45a7c2647cd446b471f07eaa63fb4",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_141602_jpg.rf.076630eea877cfa50229106f09396cdf.jpg": {
+      "sha256": "1a1ef32732e3e9d1bcdcc120d11bfe8c569d23ab6ff7127c5376ce9e3ad28607",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_205641_jpg.rf.165ef6a74a02a231cc3fccd4f02b93fb.jpg": {
+      "sha256": "279eaa70a2cd546548b1ef8b10a2392e176561f924aa87d48c085ef4a0a8ab5c",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_224421_jpg.rf.21eab11899d51f43b750879ade5313fc.jpg": {
+      "sha256": "38d0011188a6bf612e0001ceecb4267272bb51b225f058a5f3f240044288f3dc",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_220725_jpg.rf.277d2d9a9584858490836d503e17cd7f.jpg": {
+      "sha256": "5fd77d3a99f6bab3d855b79b36e22524465835c2a8fa34be92afbefbba632192",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_221044_jpg.rf.276453e171ec3d3609a9e84776c45a6b.jpg": {
+      "sha256": "59a48384cbdbc046a18bb58d00f7abc6bdba38bd8b9d1e8b328cc44e4123b42a",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_141356_jpg.rf.321e906545c12efd09326abf56f2f93b.jpg": {
+      "sha256": "142a5e5fcf3b02fd56cb8043fe953794fbabb59a8589363efbb41eaeae2bd8bb",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_205801_jpg.rf.30182d5920b30ab1868656e568fd4640.jpg": {
+      "sha256": "9ab39ed7759ee0b1a33f693a7ecc961ef27f99f4bc6a2ddb5d3029082944cad0",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_143731_jpg.rf.40a8c245b4bacc699d6ae4b505ea07d1.jpg": {
+      "sha256": "90405fb228af724b5a36bbcd9a03c27fb37455686245f6194ce1d0e6f095e49a",
+      "rotation": "ccw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220810_180958_jpg.rf.45d3a677ad15dfb3923071f3e94722be.jpg": {
+      "sha256": "e006a14332c78e027e638d1ce9aa99459d6f0e162a01beb6501802be23c955db",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone.",
+      "quarantine": "Multiple boxes visibly miss objects even after the orientation is corrected; requires reannotation rather than geometric guessing."
+    },
+    "valid/IMG_20220808_141548_jpg.rf.518bdd7ec477634c2ee131c22f569273.jpg": {
+      "sha256": "b1cf84385945b2e4a2dc88e5751c268b6e7166a8f13c409671c65f10ce9f3b45",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220813_223149_jpg.rf.5403da44ee3a7c2ed3b1df31a1899b6d.jpg": {
+      "sha256": "5e08188d10a9ec7b9b8d4b340f41b87d5696b966f7109b9a71b52aafa7064a4a",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220808_143641_jpg.rf.540aa1eb610015a3e3e7a1fc4d02bf64.jpg": {
+      "sha256": "7a7061da6bae752fd2457a118df73e0389e31cc969739d4d860f486997eae7ec",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "valid/IMG_20220809_205728_jpg.rf.6100603aba34981d27542ac3f80b0ecf.jpg": {
+      "sha256": "dfa765426ecbaa7b38b54c257b43453132ac6445ce3bf8ea542088c35c38b9e8",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "test/IMG_20220813_221030_jpg.rf.90c3be6bf7632ce9cf643d4fc23509c7.jpg": {
+      "sha256": "fcc038207116fbd8212c0a5ea4b862f24dd76224ca202cb8d6029e2d6f47c08b",
+      "rotation": "cw",
+      "reason": "Direction selected by visual inspection of piece-box overlays in both quarter-turn candidates; not inferred from width/height alone."
+    },
+    "train/IMG20210318213647_jpg.rf.2e8fc2359a713640c1636bbdced8a114.jpg": {
+      "sha256": "fd504c7cc8fca1f1bba54d7d2f364c3683d5785e8f99d4bd2555d92f8fef56d3",
+      "drop_annotations": {
+        "2204": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2205": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2206": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2207": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2208": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2209": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist.",
+        "2210": "White-class duplicate boxes lie on visibly black pieces; corresponding black-class annotations already exist."
+      }
+    },
+    "train/IMG_20200909_000303_jpg.rf.41b2c6f0907ce00805c951e70aa48285.jpg": {
+      "sha256": "ca145eda6d96b6275d7c46dd467ddfde76064bfaffe0dade330c4ded06b9cb23",
+      "drop_annotations": {
+        "5784": "King-class duplicate lies on a visibly short, round-headed pawn; retain the existing pawn box."
+      }
+    },
+    "train/IMG_20200829_012702_jpg.rf.74aeb6c7b570eb8176594e53bb4e6461.jpg": {
+      "sha256": "a077bbad91448ce94f6ef4fbb84a8c5a102090e2791828a28b2771cdaad39c7e",
+      "drop_annotations": {
+        "15941": "Rook-class duplicate lies on a visibly round-headed pawn; retain the existing pawn box."
+      }
+    },
+    "train/IMG20210318213625_jpg.rf.8932133fd71ec10214bd6055da16e5e4.jpg": {
+      "sha256": "921a83edf83852a21513227c287f5b7ac76cb032b7e5139e0b47a9bde3a13056",
+      "drop_annotations": {
+        "44067": "Knight duplicate lies on the existing circular/crowned king-shaped piece, not a horse-shaped knight."
+      }
+    },
+    "valid/Inverse--26-_jpg.rf.c4de03ae15b37f8fed16c43ad2a12d06.jpg": {
+      "sha256": "89e889efd2e20afc3e029afbad2fae94878ab318fb64a60e0adf20d11f2f68d3",
+      "drop_annotations": {
+        "4385": "Bishop duplicate lies on a short round-headed pawn; retain the existing pawn box."
+      }
+    },
+    "valid/IMG_20200908_230810_jpg.rf.33028008877e3e324ca47cfefa39d7fa.jpg": {
+      "sha256": "dbf9ad163075d47b46727a72da5c784a1daba5447d81d963a11b69052efc847c",
+      "drop_annotations": {
+        "10807": "King-class and redundant pawn annotations describe the same short pawn; retain annotation 10786.",
+        "10828": "King-class and redundant pawn annotations describe the same short pawn; retain annotation 10786."
+      }
+    }
+  },
+  "overlap_review_iou": 0.5
+}

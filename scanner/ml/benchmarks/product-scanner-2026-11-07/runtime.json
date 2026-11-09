@@ -1,0 +1,23 @@
+[
+  {
+    "model": "scanner/models/onnx",
+    "batch_size": 1,
+    "tiled": false,
+    "split": "valid",
+    "dataset_fingerprint": "b09efd5f13d48aff4e5de0b8980c4d92f494d0177613bae0e1473d98330d3e81",
+    "load_ms": 120.24,
+    "platform": "macOS-26.7.3-arm64-arm-64bit-Mach-O",
+    "torch_imported": false,
+    "peak_rss_mib": 444.5625,
+    "median_ms": 153.02641700327513,
+    "p95_ms": 238.46652254760554,
+    "metrics": {
+      "typed_piece_recall": 0.8732849071832123,
+      "typed_prediction_precision": 0.9474605954465849,
+      "conditional_type_color_accuracy": 0.9660714285714286,
+      "missed_pieces": 119,
+      "unmatched_predictions": 22,
+      "annotated_pieces": 1239
+    }
+  }
+]
