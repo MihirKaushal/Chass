@@ -23,14 +23,16 @@ export const SCANNER_REFERENCE = {
   performance: {
     method: "An SSDLite detector locates pieces, duplicate suppression removes competing boxes, and a fine-tuned ResNet18 classifies each crop by type and color. Box centers assign pieces to squares on the prepared board.",
     trainingData: {
-      description: "Training photos mainly show black and white chess pieces on green and white boards. Similar piece styles, board colors, and top-down views are expected to give the best results. Other setups may need more manual correction; always check all 64 squares.",
-      sourceLabel: "Chess V2 by Public Wspace",
-      sourceUrl: "https://universe.roboflow.com/public-wspace/chess-v2-qqtmk",
+      description: "Both models now train on Chess V2 and Chess Top Down. Training photos from the larger source mainly show black and white chess pieces on green and white boards. Similar styles and top-down views are expected to give the best results. Adding a second source improves coverage, but unfamiliar sets may still need corrections; always check all 64 squares.",
+      sources: [
+        { label: "Chess V2 by Public Wspace", url: "https://universe.roboflow.com/public-wspace/chess-v2-qqtmk" },
+        { label: "Chess Top Down by chess", url: "https://universe.roboflow.com/chess-gftva/chess-top-down" },
+      ],
       license: "CC BY 4.0",
       licenseUrl: "https://creativecommons.org/licenses/by/4.0/",
-      preparation: "Chass uses a curated version with duplicate photos removed and labels and orientation corrected.",
+      preparation: "Chass uses curated data with duplicate photos removed and labels and orientation corrected. Related images stay grouped; the merge excludes overlap with held-out data. Training balances the sources so the larger dataset does not dominate.",
     },
-    evaluation: "Predictions are matched to annotated boxes without using piece labels, with at least 50% overlap (intersection over union, or IoU). Type and color are then checked on matched pieces. The curated ChessV2 test collection has been reused during development, so these are regression results, not a fresh test of unseen chess sets.",
+    evaluation: "Predictions are matched to annotated boxes without using piece labels, with at least 50% overlap (intersection over union, or IoU). Type and color are then checked on matched pieces. Both test collections have been reused during development, so these are regression results, not a fresh test of unseen chess sets. Chess Top Down has only 17 test photos; independently collected boards are still needed.",
     uncertainty: "Review flags use default model-score thresholds: below 70% for type or 50% for detection. Boundary crossings, oversized boxes, and competing pieces also trigger review. Scores rank suggestions; they are not calibrated probabilities. Review complete means you confirmed the board, not that AI verified it.",
     timing: "Scan Details separates connection/startup wait, model setup, and recognition. Cold starts can delay the first scan; device and server timings are not directly comparable. If recognition is offline, photo preparation still works and Retry Connection checks again.",
     privacy: "Server recognition processes the prepared photo in memory without storing it or sending it to a third-party AI provider. On-device recognition downloads models; if it fails, the photo is sent to the server as disclosed by the toggle. A game saves the reviewed position, not the photo. Optional local exports contain predictions, corrections, model identifiers, and review time; nothing is automatically uploaded for training. Recheck exported labels before benchmark use.",

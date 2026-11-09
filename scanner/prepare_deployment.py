@@ -6,15 +6,17 @@ import json
 import shutil
 from pathlib import Path
 
+from .ml.serving_paths import model_paths
+
 ROOT = Path(__file__).resolve().parent
 
 
 def export(output: Path):
-    selection_file = ROOT / "artifacts/improvements/experiment-v1/selection.json"
+    selection_file, detector, classifier = model_paths()
     selection = json.loads(selection_file.read_text())
     models = {
-        "detector": ROOT / "artifacts/chess-v2-baseline/best.pt",
-        "classifier": ROOT / "artifacts/crop-classifier-v1/best.pt",
+        "detector": detector,
+        "classifier": classifier,
     }
     for name, path in models.items():
         if hashlib.sha256(path.read_bytes()).hexdigest() != selection[f"{name}_sha256"]:
@@ -37,9 +39,10 @@ def export(output: Path):
         "# Chass Scanner Service\n\n"
         "Set SCANNER_SERVICE_TOKEN as a runtime secret. Use one worker. "
         "Inference is experimental; images are not persisted.\n"
-        "Training data attribution and model limitations: see scanner/ml/IMPROVEMENTS.md "
-        "and CHESS_V2_MODEL_CARD.md in the Chass source repository.\n"
+        "Training data: Chess V2 by Public Wspace and Chess Top Down by chess, "
+        "Roboflow Universe, CC BY 4.0. See MODEL_CARD.md for credits and limitations.\n"
     )
+    shutil.copyfile(ROOT / "models/onnx/README.md", output / "MODEL_CARD.md")
     for name in ("IMPROVEMENTS.md", "CHESS_V2_MODEL_CARD.md"):
         shutil.copyfile(ROOT / "ml" / name, output / "scanner/ml" / name)
     return output

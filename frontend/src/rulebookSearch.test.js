@@ -5,7 +5,7 @@ import { matchesRulebookSearch } from "./rulebookSearch.js";
 import { SCANNER_REFERENCE } from "./scannerReference.js";
 
 test("scanner training data and credits are searchable", () => {
-  for (const query of ["training photos", "green and white", "Public Wspace", "CC BY 4.0"]) {
+  for (const query of ["training photos", "green and white", "Public Wspace", "Chess Top Down", "CC BY 4.0"]) {
     assert.equal(matchesRulebookSearch(query, SCANNER_REFERENCE), true, query);
   }
 });

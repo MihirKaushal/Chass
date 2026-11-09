@@ -48,7 +48,13 @@ Public recognition runs on a separate free Render service using validated ONNX
 exports of the same models. See [Scanner MVP setup](scanner/MVP.md) and
 [model deployment/update instructions](scanner/deploy/ONNX.md).
 An optional on-device ONNX worker caches public models and falls back to the server.
-King-focused fine-tuning and validation-selected thresholds are tracked in the
+The current detector and classifier are fine-tuned on **Chess V2 + Chess Top Down**.
+On 355 regression photos, the pipeline correctly locates and classifies **89.73%**
+of 6,376 annotated pieces. Source-specific recall is **89.78% / 86.02%**; these are
+piece-box results, not whole-board accuracy or proven unfamiliar-set generalization.
+The [controlled merge comparison](scanner/ml/benchmarks/merged-data-2026-11-08/README.md)
+includes an equal-budget control, source-specific results and reproducible commands.
+Training and validation-selected thresholds are tracked in the
 [accuracy log](scanner/ml/ACCURACY_TRACKER.md); verified square-level evaluation
 uses a separate [manual-label collection](scanner/ml/BOARD_COLLECTION.md).
 See the [Scanner Workspace](scanner/README.md) for organized raw/curated datasets,
@@ -61,9 +67,9 @@ offline comparison tools, promotion criteria, and next data-collection steps.
 ### Training Data Credits
 
 - **Current scanner:** [Chess V2 by Public Wspace](https://universe.roboflow.com/public-wspace/chess-v2-qqtmk), Roboflow Universe, 2022, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Chass removed duplicate photos, corrected labels and orientation, and grouped related captures before splitting for training and evaluation.
-- **Initial baseline:** [Chess Top Down by chess](https://universe.roboflow.com/chess-gftva/chess-top-down), Roboflow Universe, 2022, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Used in the earlier baseline, not the current deployed models.
+- **Current scanner:** [Chess Top Down by chess](https://universe.roboflow.com/chess-gftva/chess-top-down), Roboflow Universe, 2022, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Combined with Chess V2 through a versioned merge that preserves original files and excludes cross-split overlap. Also used for the initial baseline.
 
-The current training photos mainly show black and white pieces on green and white
+The larger training source mainly shows black and white pieces on green and white
 boards. Similar piece styles, colors, and top-down views are expected to give the
 best results; accuracy on unfamiliar sets is not established. Always review all
 64 squares, including empty ones, before continuing a game.

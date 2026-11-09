@@ -99,9 +99,10 @@ test("all external Rulebook links open safely in new tabs while internal links s
   const html = await markup("/src/pages/RulebookPage.jsx");
   const anchors = html.match(/<a\b[^>]*>/g) || [];
   const external = anchors.filter((anchor) => /href="https?:\/\//.test(anchor));
-  assert.equal(external.length, 4);
+  assert.equal(external.length, 5);
   assert.ok(external.some((anchor) => anchor.includes("ACCURACY_TRACKER.md")));
   assert.ok(external.some((anchor) => anchor.includes("https://universe.roboflow.com/public-wspace/chess-v2-qqtmk")));
+  assert.ok(external.some((anchor) => anchor.includes("https://universe.roboflow.com/chess-gftva/chess-top-down")));
   assert.ok(external.some((anchor) => anchor.includes("https://creativecommons.org/licenses/by/4.0/")));
   for (const anchor of external) {
     assert.match(anchor, /target="_blank"/);
@@ -323,10 +324,12 @@ test("rulebook performance is collapsed and does not imply board accuracy or cal
   assert.match(html, /This is not whole-board accuracy/);
   assert.match(html, /not yet measured/);
   assert.match(html, /89\.59%/);
-  assert.match(html, /91\.47%/);
-  assert.match(html, /1\.88%/);
-  assert.match(html, /8\.53%/);
-  assert.match(html, /149 extra detections/);
+  assert.match(html, /89\.73%/);
+  assert.match(html, /86\.02%/);
+  assert.match(html, /89\.78%/);
+  assert.match(html, /97\.71%/);
+  assert.match(html, /129 extra detections/);
+  assert.match(html, /6,376/);
   assert.match(html, /6,283/);
   assert.match(html, /ResNet18/);
   assert.match(html, /intersection over union/);
@@ -335,6 +338,8 @@ test("rulebook performance is collapsed and does not imply board accuracy or cal
   assert.match(html, /expected to give the best results/);
   assert.match(html, /always check all 64 squares/);
   assert.match(html, /Chess V2 by Public Wspace/);
+  assert.match(html, /Chess Top Down by chess/);
+  assert.match(html, /only 17 test photos/);
   assert.match(html, /CC BY 4.0/);
   assert.match(html, /duplicate photos removed and labels and orientation corrected/);
   assert.match(html, /regression results, not a fresh test/);

@@ -20,6 +20,7 @@ from .data import CLASSES, DEFAULT_ARTIFACTS, detector_tensor, resize_boxes, sav
 from .geometry import assign_squares
 from .model import choose_device, load_checkpoint
 from .postprocess import resolve_duplicates
+from .serving_paths import model_paths
 
 
 class ScannerPipeline:
@@ -104,18 +105,7 @@ class ScannerPipeline:
 
 
 def default_pipeline(device="auto"):
-    return ScannerPipeline(
-        Path(
-            os.environ.get(
-                "SCANNER_SELECTION", DEFAULT_ARTIFACTS / "improvements/experiment-v1/selection.json"
-            )
-        ),
-        Path(os.environ.get("SCANNER_DETECTOR", DEFAULT_ARTIFACTS / "chess-v2-baseline/best.pt")),
-        Path(
-            os.environ.get("SCANNER_CLASSIFIER", DEFAULT_ARTIFACTS / "crop-classifier-v1/best.pt")
-        ),
-        device,
-    )
+    return ScannerPipeline(*model_paths(), device)
 
 
 if __name__ == "__main__":

@@ -82,6 +82,10 @@
 .scanner-benchmark-track { display: block; height: 0.5rem; border-radius: var(--radius-pill); background: var(--panel); overflow: hidden; }
 .scanner-benchmark-track > span { display: block; height: 100%; border-radius: inherit; background: var(--accent); }
 .scanner-benchmark-chart small { color: var(--ink-muted); font-size: var(--text-sm); }
+.scanner-source-table-wrap { max-width: 760px; overflow-x: auto; margin-block: var(--space-3); }
+.scanner-source-table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+.scanner-source-table th, .scanner-source-table td { padding: var(--space-3); text-align: left; border-bottom: 1px solid var(--border-subtle); }
+.scanner-source-table small { display: block; color: var(--ink-muted); font-size: var(--text-sm); font-weight: 400; }
 .scanner-outcome-chart { max-width: 650px; margin: var(--space-4) 0; }
 .scanner-outcome-track { display: flex; height: 1rem; border-radius: var(--radius-pill); overflow: hidden; }
 .scanner-outcome-correct { background: var(--accent); }

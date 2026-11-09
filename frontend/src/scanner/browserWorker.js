@@ -42,7 +42,7 @@ async function recognize(file) {
   bitmap.close();
   const image = context.getImageData(0, 0, canvas.width, canvas.height);
   self.postMessage({ status: "Loading on-device models..." });
-  const response = await fetch("/scanner-models/manifest.json");
+  const response = await fetch("/scanner-models/manifest.json", { cache: "no-cache" });
   if (!response.ok) throw new Error("Model manifest unavailable.");
   const config = await response.json();
   if (config.format_version !== 1 || config.selection.pipeline !== "combined") throw new Error("Unsupported model.");

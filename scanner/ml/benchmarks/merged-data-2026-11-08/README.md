@@ -2,6 +2,10 @@
 
 Recorded November 8, 2026. See [the preregistered protocol](PROTOCOL.md) for selection rules and limitations.
 
+**Later promotion:** the verified merged candidate became the serving release on
+November 9, 2026. The unchanged decision snapshot below describes the offline
+experiment. See [promotion checks](promotion.json) and the [serving model card](../../../models/onnx/README.md).
+
 ![Source-specific recognition comparison](comparison.svg)
 
 | Model | Source | Correct / real pieces | Correct / predictions | Typed F1 | Missed | Extra |

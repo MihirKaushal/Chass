@@ -1,14 +1,29 @@
 # Scanner Accuracy Tracker
 
-Last recorded: **2026-11-08**. Current deployed classifier trained: **2026-11-06**;
-detector remains the **2026-10-25** checkpoint.
+Last recorded: **2026-11-09**. Current serving models: **merged-data-2026-11-08**;
+both detector and classifier were fine-tuned on Chess V2 + Chess Top Down.
 This log separates measurable piece-box diagnostics from future square-level
 accuracy. Historical snapshots below remain intact.
 
+## Serving Promotion: 2026-11-09
+
+Promoted the verified mixed-source detector and classifier into the server/browser
+ONNX bundle. Detection threshold is 0.15; duplicate overlap remains 0.40. The
+Rulebook reports both datasets separately and pooled results, retaining the
+original Chess V2-only history for a like-for-like comparison. All scores below
+are still the locked November 8 experiment, not a new evaluation.
+
+Previous weights remain in Git commit `b8fb05c`. The experiment's original ONNX
+manifest is archived beside its reports so subsequent serving updates do not
+change the experimental baseline. Local Torch inference and bundle export now
+select the same merged checkpoints by default; explicit environment overrides
+remain supported. See [serving model card](../models/onnx/README.md).
+
 ## Combined-Data Experiment: 2026-11-08
 
-An offline mixed-source candidate passed the preregistered accuracy gate. **Public
-models and website metrics are unchanged.** The experiment fine-tuned both the
+An offline mixed-source candidate passed the preregistered accuracy gate. **At
+experiment time, public models and website metrics were unchanged**; the later
+promotion is recorded above. The experiment fine-tuned both the
 detector and classifier, comparing Chess V2-only continuation against a 75/25
 Chess V2 / Top Down mixture with identical initialization and update budgets.
 Both arms completed six detector and six classifier epochs. Thresholds were

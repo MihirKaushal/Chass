@@ -149,7 +149,10 @@ def evaluate(merged, training, output):
     if output.exists() and any(output.iterdir()):
         raise ValueError("Use a new evaluation directory; never overwrite recorded results.")
     protocol = json.loads((training / "protocol.json").read_text())
-    deployed_selection = json.loads(Path("scanner/models/onnx/manifest.json").read_text())[
+    # Freeze the experiment's baseline even after the candidate is promoted.
+    deployed_selection = json.loads(Path(
+        "scanner/ml/benchmarks/merged-data-2026-11-08/baseline-onnx-manifest.json"
+    ).read_text())[
         "selection"
     ]
     if any(

@@ -7,10 +7,9 @@ const percent = (count, total) => (count / total * 100).toFixed(2);
 const count = (value) => value.toLocaleString("en-US");
 
 export default function ScannerPerformance() {
-  const latest = data.history.at(-1);
   const outcomes = [
     { label: "Correct type and color", count: data.correctAll, tone: "correct" },
-    { label: "Located, wrong label", count: latest.located - data.correctAll, tone: "wrong" },
+    { label: "Located, wrong label", count: data.located - data.correctAll, tone: "wrong" },
     { label: "Missed", count: data.missed, tone: "missed" },
   ];
   const copy = SCANNER_REFERENCE.performance;
@@ -22,12 +21,14 @@ export default function ScannerPerformance() {
       <p>{copy.method}</p>
       <h3>Training data</h3>
       <p>{copy.trainingData.description}</p>
-      <p>Source: <ExternalLink href={copy.trainingData.sourceUrl}>{copy.trainingData.sourceLabel}</ExternalLink>
-        {" "}on Roboflow Universe, licensed under <ExternalLink href={copy.trainingData.licenseUrl}>{copy.trainingData.license}</ExternalLink>.
+      <p>Sources: {copy.trainingData.sources.map((source, index) => <span key={source.url}>
+        {index > 0 && " and "}<ExternalLink href={source.url}>{source.label}</ExternalLink>
+      </span>)}
+        {" "}on Roboflow Universe, both licensed under <ExternalLink href={copy.trainingData.licenseUrl}>{copy.trainingData.license}</ExternalLink>.
         {" "}{copy.trainingData.preparation}</p>
       <h3>Piece recognition progress</h3>
-      <p>Correct type and color <strong>among located pieces</strong>. Recorded {data.recordedOn} on {data.photos} photos
-        with {count(data.pieces)} annotated pieces.</p>
+      <p>Correct type and color <strong>among located pieces</strong>, on the same {data.historyPhotos} Chess V2 photos
+        with {count(data.historyPieces)} annotated pieces. Updated {data.recordedOn}.</p>
       <ul className="scanner-benchmark-chart">
         {data.history.map((entry) => {
           const accuracy = percent(entry.correct, entry.located);
@@ -38,7 +39,23 @@ export default function ScannerPerformance() {
           </li>;
         })}
       </ul>
+      <h3>Recognition across both datasets</h3>
+      <p>Correctly located, typed, and colored pieces <strong>out of all real pieces</strong>, including misses.</p>
+      <div className="scanner-source-table-wrap">
+        <table className="scanner-source-table">
+          <thead><tr><th scope="col">Test source</th><th scope="col">Previous model</th><th scope="col">Combined-data model</th></tr></thead>
+          <tbody>{data.sources.map((source) => <tr key={source.key}>
+            <th scope="row">{source.name}<small>{source.photos} photos / {count(source.pieces)} pieces</small></th>
+            <td>{percent(source.previous, source.pieces)}%</td>
+            <td><strong>{percent(source.correct, source.pieces)}%</strong></td>
+          </tr>)}</tbody>
+        </table>
+      </div>
+      <p>Equal-source F1: <strong>{percent(data.sourceBalancedF1, 1)}%</strong>. F1 balances misses, wrong labels, and extra predictions;
+        weighting each source equally prevents the larger collection from hiding failures on the smaller one.
+        An equal-budget single-source control had nearly identical pooled recall; the gain is broader source coverage.</p>
       <h3>What happens to all real pieces?</h3>
+      <p>Current model on both test collections: {data.photos} photos and {count(data.pieces)} annotated pieces.</p>
       <figure className="scanner-outcome-chart">
         <div className="scanner-outcome-track" aria-hidden="true">
           {outcomes.map((outcome) => <span key={outcome.tone} className={`scanner-outcome-${outcome.tone}`}
@@ -54,8 +71,8 @@ export default function ScannerPerformance() {
           </ul>
         </figcaption>
       </figure>
-      <p>The detector locates <strong>{percent(latest.located, data.pieces)}%</strong> of real pieces.
-        Once located, <strong>{percent(latest.correct, latest.located)}%</strong> have the right type and color.
+      <p>The detector locates <strong>{percent(data.located, data.pieces)}%</strong> of real pieces.
+        Once located, <strong>{percent(data.correctAll, data.located)}%</strong> have the right type and color.
         Including misses, <strong>{percent(data.correctAll, data.pieces)}%</strong> of all real pieces are correctly located and labelled.
         There are also <strong>{data.extra} extra detections</strong> with no matching real piece; these sit outside the chart's {count(data.pieces)} real-piece total.</p>
       <h3>How we measure it</h3>

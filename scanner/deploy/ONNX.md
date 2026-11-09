@@ -7,7 +7,7 @@ The public serving target is a separate **free Render Docker service** named
 
 - Uses ONNX Runtime CPU, not PyTorch, on the model server. Training remains PyTorch.
 - Published float32 graphs are in `scanner/models/onnx/`; checksums and source-model
-  fingerprints are verified at startup. The current classifier is King-focused;
+  fingerprints are verified at startup. Both models now use Chess V2 + Top Down;
   quantization and batching candidates were measured but not enabled.
 - One worker, one scan at a time, one classifier crop at a time, bounded image sizes.
 - `/ready` exposes only readiness for Render. `/health` and `/scan` require the
@@ -28,7 +28,9 @@ The exporter needs the validated original checkpoints already used by local reco
 
 ```sh
 .venv-scanner/bin/python -m scanner.ml.export_onnx --output scanner/artifacts/new-onnx
-.venv-scanner/bin/python -m scanner.ml.verify_onnx --models scanner/artifacts/new-onnx --limit 40
+.venv-scanner/bin/python -m scanner.ml.verify_onnx \
+  --manifest scanner/artifacts/merged-2026-11-08/merged/manifest.json \
+  --models scanner/artifacts/new-onnx --per-source --limit 20
 ```
 
 The exporter refuses existing destinations and verifies numerical graph parity.
@@ -36,7 +38,7 @@ After validation, replace the three deployment files (`detector.onnx`,
 `classifier.onnx`, `manifest.json`) together, then commit and deploy. Keep the model
 attribution README. Do not upload raw photos, datasets, environment files or credentials.
 
-## Verification Before Deployment
+## Initial Export Verification (Historical)
 
 - 40 frozen validation images: identical board assignments, review flags, final
   labels, and top-three alternative labels versus the selected Torch pipeline.
@@ -97,13 +99,13 @@ the public runtime does not improve the trained model's recognition accuracy.
   `VITE_SCANNER_WAKE_URL=https://their-model-host/ready` (never a token).
 - Locally, `./run.sh` / `./scanner/run-local.sh` prefer the published ONNX weights
   when `.venv-scanner` contains ONNX Runtime. An explicit `SCANNER_RUNTIME=torch`
-  still allows research checkpoints; use the candidate selection/checkpoint
-  variables below to test the new classifier through Torch instead of the old baseline.
+  still allows research checkpoints. The default Torch paths now match the current
+  merged serving release; explicit selection/checkpoint variables override them.
 
 For a new classifier export, set `SCANNER_SELECTION` to the candidate's
 `deployment-selection.json` and `SCANNER_CLASSIFIER` to its `best.pt` before running
 the exporter and parity checker. The dated report explains the 0.005 classifier
-confidence tolerance used for the current export; exact labels and reviews must
+confidence tolerance used for the November 6 export; exact labels and reviews must
 still match. Keep previous deployment weights accessible for rollback.
 
 Live verification after this update: model fingerprints matched, real public scans
@@ -111,6 +113,24 @@ returned 64 squares, and protected endpoints still rejected unauthenticated requ
 The three-request median was 10.364 -> 10.935 seconds, **not a server-speed win**;
 new recall settings processed 62 rather than 59 proposals. See the dated benchmark
 for every sample, the retained outlier, memory checks, and the browser QA limitation.
+
+## Combined-Data Promotion (2026-11-09)
+
+- The current graphs are the November 8 mixed-source candidate, threshold 0.15,
+  overlap 0.40. Detector and classifier were both fine-tuned on the merged data.
+- Forty validation photos (20 per source) passed exact board/review and top-three
+  label parity against PyTorch. Maximum score difference 0.00000650; box-coordinate
+  difference 0.00024414 pixels. No tolerance was relaxed for this export.
+- Same-photo local CPU timing: median 139.8 ms, p95 222.3 ms, peak process memory
+  442.6 MiB. This is not hosted or browser latency; free-host cold starts still apply.
+- Public metrics are tied to the locked [experiment report](../ml/benchmarks/merged-data-2026-11-08/README.md).
+  The prior model remains in Git commit `b8fb05c` for rollback.
+- Promote all three files together and update the immutable revision in
+  `frontend/scripts/scanner-assets.mjs`. Browser caches are keyed by model hashes,
+  and the manifest is revalidated so existing visitors receive the new release.
+- No new environment variables, Firebase changes, paid services, or model APIs
+  are required. Push to the connected branch to trigger Vercel and the existing
+  Render scanner service; verify a real `/scanner/scan` response's model hashes.
 
 ## Cold-Start Recovery (2026-11-06)
 

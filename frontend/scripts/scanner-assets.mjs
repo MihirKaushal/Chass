@@ -7,7 +7,7 @@ const root = fileURLToPath(new URL("..", import.meta.url));
 const source = path.resolve(root, "../scanner/models/onnx");
 const output = path.join(root, "public/scanner-models");
 // Immutable, already-public FP32 weights. Vercel's frontend-only build may lack ../scanner.
-const published = "https://raw.githubusercontent.com/MihirKaushal/Chass/478957ac02f76af27276b6be964b97e119a37e6f/scanner/models/onnx";
+const published = "https://raw.githubusercontent.com/MihirKaushal/Chass/95774810cdd49a22edafe466267e0b4078662b54/scanner/models/onnx";
 async function asset(name) {
   try { return await readFile(path.join(source, name)); }
   catch (error) {

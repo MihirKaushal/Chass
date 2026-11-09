@@ -1,0 +1,117 @@
+{
+  "recorded_on": "2026-11-09",
+  "release": "merged-data-2026-11-08",
+  "model_sha256": {
+    "detector": "b093925476599886cbdd9bb82ad25481660c0ed0a34fa4d342be06c075f6db7e",
+    "classifier": "f01e8b240b6b843537d684e0abae8f187b7ecc821472c41ad62764beaf4cf8c8"
+  },
+  "dataset_fingerprint": "433f0b8234f3ed13f86c7f3f071801b1b26473877c186f1a41f12f4ca1acc522",
+  "threshold": 0.15,
+  "torch_onnx": {
+    "images": 40,
+    "dataset_fingerprint": "433f0b8234f3ed13f86c7f3f071801b1b26473877c186f1a41f12f4ca1acc522",
+    "split": "valid",
+    "sampling": "spread within each source",
+    "image_ids": [
+      1420,
+      1436,
+      1452,
+      1468,
+      1484,
+      1500,
+      1516,
+      1533,
+      1549,
+      1565,
+      1581,
+      1597,
+      1613,
+      1630,
+      1646,
+      1662,
+      1678,
+      1694,
+      1710,
+      1727,
+      2336,
+      2338,
+      2340,
+      2342,
+      2344,
+      2346,
+      2348,
+      2350,
+      2352,
+      2354,
+      2356,
+      2358,
+      2360,
+      2362,
+      2364,
+      2366,
+      2368,
+      2371,
+      2373,
+      2375
+    ],
+    "board_and_review_parity": true,
+    "top_three_label_parity": true,
+    "max_score_difference": 6.496906280517578e-06,
+    "classifier_score_tolerance": 0.002,
+    "max_box_difference_pixels": 0.000244140625,
+    "note": "Runtime parity only, not an independent accuracy benchmark."
+  },
+  "local_http": [
+    {
+      "source": "chess-v2",
+      "image_id": 1420,
+      "status": 200,
+      "proposals": 36,
+      "modelSha256": {
+        "detector": "b093925476599886cbdd9bb82ad25481660c0ed0a34fa4d342be06c075f6db7e",
+        "classifier": "f01e8b240b6b843537d684e0abae8f187b7ecc821472c41ad62764beaf4cf8c8"
+      },
+      "inferenceMs": 164
+    },
+    {
+      "source": "top-down",
+      "image_id": 2336,
+      "status": 200,
+      "proposals": 5,
+      "modelSha256": {
+        "detector": "b093925476599886cbdd9bb82ad25481660c0ed0a34fa4d342be06c075f6db7e",
+        "classifier": "f01e8b240b6b843537d684e0abae8f187b7ecc821472c41ad62764beaf4cf8c8"
+      },
+      "inferenceMs": 33
+    }
+  ],
+  "web_inference_smoke": [
+    {
+      "source": "chess-v2",
+      "board_and_review_parity": true,
+      "top_three_label_parity": true,
+      "proposals": 36,
+      "node_wasm_ms": 1777.825958
+    },
+    {
+      "source": "top-down",
+      "board_and_review_parity": true,
+      "top_three_label_parity": true,
+      "proposals": 5,
+      "node_wasm_ms": 423.8855
+    }
+  ],
+  "automated_checks": {
+    "scanner_tests_passed": 170,
+    "frontend_tests_passed": 228,
+    "scanner_gateway_contract_import_tests_passed": 39,
+    "frontend_build": "passed",
+    "ruff": "passed"
+  },
+  "limitations": [
+    "Node ONNX Web WASM smoke tests exercise worker math, not browser UI or WebGPU support.",
+    "Computer/browser control was unavailable for visual inspection.",
+    "Integration fixtures are not a new accuracy benchmark."
+  ],
+  "public_verification": "Pending connected-host deployment and real gateway request."
+}

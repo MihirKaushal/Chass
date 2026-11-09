@@ -31,6 +31,8 @@ training for both detector and classifier, and source-specific evaluation. It
 preserves original files and held-out splits rather than copying or editing raw
 archives. Separate `control` and `merged` manifests use identical evaluation images
 and equal training-update budgets. Candidate artifacts stay outside deployment.
+The selected mixed-source ONNX export is now the serving release; raw checkpoints,
+datasets and other candidates remain local. See [the model card](../models/onnx/README.md).
 The [completed comparison](benchmarks/merged-data-2026-11-08/README.md) includes
 source-specific metrics, a chart, training histories and the promotion decision.
 
