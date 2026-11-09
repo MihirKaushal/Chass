@@ -13,11 +13,16 @@ Rulebook reports both datasets separately and pooled results, retaining the
 original Chess V2-only history for a like-for-like comparison. All scores below
 are still the locked November 8 experiment, not a new evaluation.
 
-Previous weights remain in Git commit `b8fb05c`. The experiment's original ONNX
+Previous weights remain in Git commit `1d63f5e`. The experiment's original ONNX
 manifest is archived beside its reports so subsequent serving updates do not
 change the experimental baseline. Local Torch inference and bundle export now
 select the same merged checkpoints by default; explicit environment overrides
 remain supported. See [serving model card](../models/onnx/README.md).
+
+Public verification confirmed both downloaded ONNX hashes and new model hashes
+in real scans through the game API, one photo per source, each returning 64 board
+squares. These deployment checks are not new accuracy measurements. See the
+[promotion record](benchmarks/merged-data-2026-11-08/promotion.json).
 
 ## Combined-Data Experiment: 2026-11-08
 

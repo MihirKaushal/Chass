@@ -124,13 +124,22 @@ for every sample, the retained outlier, memory checks, and the browser QA limita
 - Same-photo local CPU timing: median 139.8 ms, p95 222.3 ms, peak process memory
   442.6 MiB. This is not hosted or browser latency; free-host cold starts still apply.
 - Public metrics are tied to the locked [experiment report](../ml/benchmarks/merged-data-2026-11-08/README.md).
-  The prior model remains in Git commit `b8fb05c` for rollback.
+  The prior model remains in Git commit `1d63f5e` for rollback.
 - Promote all three files together and update the immutable revision in
   `frontend/scripts/scanner-assets.mjs`. Browser caches are keyed by model hashes,
   and the manifest is revalidated so existing visitors receive the new release.
 - No new environment variables, Firebase changes, paid services, or model APIs
   are required. Push to the connected branch to trigger Vercel and the existing
   Render scanner service; verify a real `/scanner/scan` response's model hashes.
+
+Live verification on November 9: the Vercel model downloads matched both release
+SHA-256 checksums, and the public Rulebook bundle contained the updated dataset
+credits and metrics. Two real-photo requests through the game API (one per source)
+returned HTTP 200, 64 board squares and the new model hashes/fingerprint. Request
+times were 6.559 s and 1.570 s, respectively; these are integration samples, not
+a latency benchmark. Direct unauthenticated model-service health and scan requests
+still returned 401. Visual browser inspection was unavailable; automated rendered
+markup and ONNX Web WASM inference checks passed.
 
 ## Cold-Start Recovery (2026-11-06)
 

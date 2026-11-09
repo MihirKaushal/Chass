@@ -113,5 +113,45 @@
     "Computer/browser control was unavailable for visual inspection.",
     "Integration fixtures are not a new accuracy benchmark."
   ],
-  "public_verification": "Pending connected-host deployment and real gateway request."
+  "public_verification": {
+    "recorded_on": "2026-11-09",
+    "website": "https://playchass.vercel.app",
+    "frontend_weights_verified": true,
+    "rulebook_bundle_verified": true,
+    "scans": [
+      {
+        "source": "chess-v2",
+        "http_status": 200,
+        "request_seconds": 6.559,
+        "inference_ms": 5926.0,
+        "proposals": 36,
+        "board_squares": 64,
+        "model_sha256": {
+          "detector": "b093925476599886cbdd9bb82ad25481660c0ed0a34fa4d342be06c075f6db7e",
+          "classifier": "f01e8b240b6b843537d684e0abae8f187b7ecc821472c41ad62764beaf4cf8c8"
+        },
+        "dataset_fingerprint": "433f0b8234f3ed13f86c7f3f071801b1b26473877c186f1a41f12f4ca1acc522"
+      },
+      {
+        "source": "top-down",
+        "http_status": 200,
+        "request_seconds": 1.57,
+        "inference_ms": 1008.0,
+        "proposals": 5,
+        "board_squares": 64,
+        "model_sha256": {
+          "detector": "b093925476599886cbdd9bb82ad25481660c0ed0a34fa4d342be06c075f6db7e",
+          "classifier": "f01e8b240b6b843537d684e0abae8f187b7ecc821472c41ad62764beaf4cf8c8"
+        },
+        "dataset_fingerprint": "433f0b8234f3ed13f86c7f3f071801b1b26473877c186f1a41f12f4ca1acc522"
+      }
+    ],
+    "private_endpoints_require_token": {
+      "health": 401,
+      "scan": 401
+    },
+    "vercel_deployment_status": "success",
+    "deployed_application_commit": "e90e6767475ed4bee7deabe34845ab5a36ee42bd"
+  },
+  "rollback_commit": "1d63f5e"
 }

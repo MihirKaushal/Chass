@@ -36,5 +36,5 @@ identical board/review decisions and top-three labels in Torch-to-ONNX verificat
 ## Rollback
 
 The previous three deployment files and model card remain in Git commit
-`b8fb05c`. Restore them together and update the frontend's immutable model revision
+`1d63f5e`. Restore them together and update the frontend's immutable model revision
 when rolling back; never mix a manifest with another release's weights.
