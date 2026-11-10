@@ -1,4 +1,4 @@
-"""Generate the frontend's offline Rulebook data from the authoritative Python catalog."""
+"""Generate offline Rulebook and Customizer data from the authoritative Python catalog."""
 
 import argparse
 import json
@@ -14,12 +14,8 @@ OUTPUT = ROOT / "frontend/src/generated/rulebookCatalog.json"
 
 
 def reference_catalog():
-    catalog = catalog_payload()
     # No live engine availability, game state, or environment-dependent metadata.
-    return {
-        key: catalog[key]
-        for key in ("schemaVersion", "pieces", "specialAbilities", "victoryModes", "gambit")
-    }
+    return catalog_payload()
 
 
 def main():

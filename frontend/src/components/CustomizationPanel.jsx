@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-import { getCatalog, validateGameConfiguration } from "../api/gameApi";
+import { validateGameConfiguration } from "../api/gameApi";
+import catalog from "../generated/rulebookCatalog.json";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
 import { profilesForBotCompatibility } from "../botGame";
 import { boardPlacementRestriction } from "../customizeBoardPlacement";
@@ -51,7 +52,6 @@ import {
 import GameBriefing from "./GameBriefing";
 import BotSetupDialog from "./BotSetupDialog";
 import AppLink from "./AppLink";
-import PageSkeleton from "./PageSkeleton";
 import PieceGlyph from "./PieceGlyph";
 import PieceTooltip from "./PieceTooltip";
 import Button from "./ui/Button";
@@ -228,7 +228,6 @@ function loadSavedDraft(catalog) {
   try {
     const serialized = window.sessionStorage.getItem("chass-customize-draft");
     if (!serialized) return base;
-    window.sessionStorage.removeItem("chass-customize-draft");
     const saved = JSON.parse(serialized);
     const configuration = saved.configuration || {};
     const gambit = configuration.gambit || {};
@@ -958,18 +957,49 @@ function RulebookLauncher() {
   );
 }
 
+function initialCustomization(initialPreset) {
+  const session = customizeSession.read();
+  let importedDraft = null;
+  let path = "/customize";
+  try {
+    importedDraft = window.sessionStorage.getItem("chass-customize-draft");
+    path = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+  } catch {
+    // Editing remains available when browser storage is disabled.
+  }
+  const saved = !importedDraft && session?.initialPreset === initialPreset ? session : null;
+  let draft = saved ? cloneDraft(saved.draft) : loadSavedDraft(catalog);
+  const preset = catalog.popularModes.find((mode) => mode.id === initialPreset);
+  if (preset && !saved) draft = applyModeToDraft(draft, preset, catalog);
+  draft = normalizeCustomizeNumbers(draft, catalog.limits);
+  return {
+    draft,
+    importedDraft,
+    path,
+    configurationBaseline: cloneDraft(saved?.configurationBaseline || draft),
+    pageEntryBaseline: cloneDraft(saved?.pageEntryBaseline || draft),
+    boardHistory: Array.isArray(saved?.boardHistory) ? saved.boardHistory : [],
+    selectedTool: saved?.selectedTool || null,
+    sectionQuery: saved?.sectionQuery || "",
+    pieceFilter: saved?.pieceFilter || "all",
+    restoreFormationId: saved?.restoreFormationId || (
+      draft.formationId && draft.formationId !== "custom" ? draft.formationId : "classic"
+    ),
+  };
+}
+
 function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange }) {
-  const [catalog, setCatalog] = useState(null);
-  const [draft, setDraft] = useState(null);
-  const [configurationBaseline, setConfigurationBaseline] = useState(null);
-  const [pageEntryBaseline, setPageEntryBaseline] = useState(null);
-  const [selectedTool, setSelectedTool] = useState(null);
-  const [boardHistory, setBoardHistory] = useState([]);
-  const [restoreFormationId, setRestoreFormationId] = useState("classic");
+  const [initial] = useState(() => initialCustomization(initialPreset));
+  const [draft, setDraft] = useState(initial.draft);
+  const [configurationBaseline, setConfigurationBaseline] = useState(initial.configurationBaseline);
+  const [pageEntryBaseline] = useState(initial.pageEntryBaseline);
+  const [selectedTool, setSelectedTool] = useState(initial.selectedTool);
+  const [boardHistory, setBoardHistory] = useState(initial.boardHistory);
+  const [restoreFormationId, setRestoreFormationId] = useState(initial.restoreFormationId);
   const [creatingMode, setCreatingMode] = useState("");
   const [error, setError] = useState("");
-  const [sectionQuery, setSectionQuery] = useState("");
-  const [pieceFilter, setPieceFilter] = useState("all");
+  const [sectionQuery, setSectionQuery] = useState(initial.sectionQuery);
+  const [pieceFilter, setPieceFilter] = useState(initial.pieceFilter);
   const [openSections, setOpenSections] = useState(initialSectionVisibility);
   const [pendingStartingSystem, setPendingStartingSystem] = useState(null);
   const [highlightedIssueSquares, setHighlightedIssueSquares] = useState([]);
@@ -981,8 +1011,8 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   const placementNoticeTimerRef = useRef(null);
   const settingHighlightTimerRef = useRef(null);
   const botNoticeTimerRef = useRef(null);
-  const loadedPresetRef = useRef(null);
-  const customizePathRef = useRef("");
+  const customizePathRef = useRef(initial.path);
+  const [validationRetryKey, setValidationRetryKey] = useState(0);
   const [validation, setValidation] = useState({ status: "loading", valid: false, errors: [], warnings: [], disabledOptions: {}, matchPredictor: null, bot: null, requestKey: null });
   const validationRequest = useMemo(() => (draft ? buildRequest(draft) : null), [draft]);
   const validationRequestKey = useMemo(
@@ -1027,45 +1057,17 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   }, [onModificationChange, pageConfigurationModified]);
 
   useEffect(() => {
-    let cancelled = false;
-    loadedPresetRef.current = null;
-    customizePathRef.current = `${window.location.pathname}${window.location.search}${window.location.hash}`;
-    getCatalog()
-      .then((payload) => {
-        if (cancelled) return;
-        const session = customizeSession.read();
-        let importedDraft = false;
-        try {
-          importedDraft = Boolean(window.sessionStorage.getItem("chass-customize-draft"));
-        } catch {
-          // Browser storage is optional for an ordinary configuration.
-        }
-        const saved = !importedDraft && session?.initialPreset === initialPreset ? session : null;
-        let initial = saved ? cloneDraft(saved.draft) : loadSavedDraft(payload);
-        const preset = payload.popularModes.find((mode) => mode.id === initialPreset);
-        if (preset && !saved) initial = applyModeToDraft(initial, preset, payload);
-        initial = normalizeCustomizeNumbers(initial, payload.limits);
-        setRestoreFormationId(
-          saved?.restoreFormationId || (initial.formationId && initial.formationId !== "custom"
-            ? initial.formationId
-            : "classic")
-        );
-        setConfigurationBaseline(cloneDraft(saved?.configurationBaseline || initial));
-        setPageEntryBaseline(cloneDraft(saved?.pageEntryBaseline || initial));
-        setBoardHistory(Array.isArray(saved?.boardHistory) ? saved.boardHistory : []);
-        setSelectedTool(saved?.selectedTool || null);
-        setSectionQuery(saved?.sectionQuery || "");
-        setPieceFilter(saved?.pieceFilter || "all");
-        loadedPresetRef.current = initialPreset;
-        setCatalog(payload);
-        setDraft(initial);
-      })
-      .catch((requestError) => setError(requestError.message));
-    return () => { cancelled = true; };
-  }, [initialPreset]);
+    // Consume imported settings only after commit, not during StrictMode initialization.
+    try {
+      if (initial.importedDraft && window.sessionStorage.getItem("chass-customize-draft") === initial.importedDraft) {
+        window.sessionStorage.removeItem("chass-customize-draft");
+      }
+    } catch {
+      // The initialized draft remains usable without storage.
+    }
+  }, [initial]);
 
   useEffect(() => {
-    if (!draft || !configurationBaseline || !pageEntryBaseline || loadedPresetRef.current !== initialPreset) return;
     customizeSession.save({
       initialPreset,
       path: customizePathRef.current,
@@ -1094,9 +1096,12 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   useEffect(() => {
     if (!validationRequest || !validationRequestKey) return undefined;
     let cancelled = false;
-    setValidation((current) => ({ ...current, status: "checking", requestKey: null }));
+    const controller = new AbortController();
+    let deadline;
+    setValidation((current) => ({ ...current, status: "checking", valid: false, requestKey: null }));
     const timer = window.setTimeout(() => {
-      validateGameConfiguration(validationRequest)
+      deadline = window.setTimeout(() => controller.abort(), 65000);
+      validateGameConfiguration(validationRequest, controller.signal)
         .then((result) => {
           if (!cancelled) {
             setValidation({
@@ -1108,12 +1113,24 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
         })
         .catch((requestError) => {
           if (!cancelled) {
-            setValidation({ status: "invalid", valid: false, errors: [requestError.message], warnings: [], disabledOptions: {}, matchPredictor: null, bot: null, requestKey: null });
+            setValidation({
+              status: "unavailable", valid: false, errors: [], warnings: [],
+              disabledOptions: {}, matchPredictor: null, bot: null, requestKey: null,
+              error: controller.signal.aborted
+                ? "The game server is taking longer than expected. Please retry the check."
+                : requestError.message,
+            });
           }
-        });
+        })
+        .finally(() => window.clearTimeout(deadline));
     }, 250);
-    return () => { cancelled = true; window.clearTimeout(timer); };
-  }, [validationRequest, validationRequestKey]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+      window.clearTimeout(deadline);
+      controller.abort();
+    };
+  }, [validationRequest, validationRequestKey, validationRetryKey]);
 
   useEffect(() => {
     setHighlightedIssueSquares([]);
@@ -1133,13 +1150,6 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
     () => new Map((catalog?.pieces || []).map((piece) => [piece.type, piece])),
     [catalog]
   );
-
-  if (!catalog || !draft) {
-    if (error) {
-      return <section className="customization-panel studio-loading"><h2>Customization Unavailable</h2><p>{error}</p></section>;
-    }
-    return <PageSkeleton variant="customize" embedded />;
-  }
 
   const currentFormation = catalog.formations.find((formation) => formation.id === draft.formationId);
   const disabledVictoryModes = {
@@ -1989,6 +1999,11 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
         <div className="launch-validation-copy">
           <span>{launchState.heading}</span>
           <strong>{launchState.detail}</strong>
+          {validation.status === "unavailable" ? (
+            <Button variant="secondary" onClick={() => setValidationRetryKey((value) => value + 1)}>
+              Retry Check
+            </Button>
+          ) : null}
           {launchState.errors.length ? (
             <div className="validation-inline-issues" aria-label="Configuration issues">
               {launchState.errors.map((issue, index) => (

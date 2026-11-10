@@ -1185,6 +1185,905 @@
       "summary": "Be the first player to check the opposing King the configured number of times. Checkmate also wins."
     }
   ],
+  "popularModes": [
+    {
+      "id": "classic",
+      "name": "Classic Chass",
+      "icon": "\u265f",
+      "summary": "Standard 8x8 chess with checkmate victory.",
+      "boardRows": 8,
+      "boardCols": 8,
+      "formationId": "classic",
+      "matchPredictorEnabled": true,
+      "victory": {
+        "mode": "checkmate"
+      },
+      "gambit": {
+        "enabled": false
+      }
+    },
+    {
+      "id": "gambit",
+      "name": "Chass Gambit",
+      "icon": "\u2691",
+      "summary": "Secretly build an army worth up to a maximum of 39 points before reveal.",
+      "boardRows": 8,
+      "boardCols": 8,
+      "formationId": "classic",
+      "victory": {
+        "mode": "checkmate"
+      },
+      "gambit": {
+        "enabled": true,
+        "draftEnabled": false
+      }
+    },
+    {
+      "id": "draft_gambit",
+      "name": "Draft Gambit",
+      "icon": "\u25c8",
+      "summary": "Begin with one King each, alternate picks from a shared pool, then privately deploy the armies.",
+      "boardRows": 8,
+      "boardCols": 8,
+      "formationId": "classic",
+      "victory": {
+        "mode": "checkmate"
+      },
+      "gambit": {
+        "enabled": true,
+        "draftEnabled": true
+      }
+    }
+  ],
+  "formations": [
+    {
+      "id": "no_pawns",
+      "name": "No Pawns",
+      "icon": "\u265c",
+      "summary": "Classic armies without Pawns, opening every file immediately.",
+      "defaultVictory": "checkmate",
+      "disabledAbilities": {
+        "kamikaze": "Kamikaze requires Pawns."
+      },
+      "boardRows": 8,
+      "boardCols": 8,
+      "initialLayout": [
+        {
+          "row": 0,
+          "col": 0,
+          "type": "rook",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 0,
+          "type": "rook",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "type": "knight",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 1,
+          "type": "knight",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "type": "bishop",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 2,
+          "type": "bishop",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "type": "queen",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 3,
+          "type": "queen",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "type": "king",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 4,
+          "type": "king",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "type": "bishop",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 5,
+          "type": "bishop",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 6,
+          "type": "knight",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 6,
+          "type": "knight",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 7,
+          "type": "rook",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 7,
+          "type": "rook",
+          "color": "white"
+        }
+      ],
+      "disabledVictoryModes": {}
+    },
+    {
+      "id": "pawn_race",
+      "name": "Pawn Race",
+      "icon": "\u265f",
+      "summary": "Kings and Pawns only, with promotion deciding the attack.",
+      "defaultVictory": "checkmate",
+      "disabledAbilities": {
+        "getaway": "Getaway requires a Queen.",
+        "episcopal": "Episcopal requires a Bishop.",
+        "power_of_love": "Power of Love requires a Queen."
+      },
+      "boardRows": 8,
+      "boardCols": 8,
+      "initialLayout": [
+        {
+          "row": 1,
+          "col": 0,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 0,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 2,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 3,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "type": "king",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 4,
+          "type": "king",
+          "color": "white"
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 5,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 1,
+          "col": 6,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 6,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 1,
+          "col": 7,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 7,
+          "type": "pawn",
+          "color": "white"
+        }
+      ],
+      "disabledVictoryModes": {}
+    },
+    {
+      "id": "knight_skirmish",
+      "name": "Knight Skirmish",
+      "icon": "\u265e",
+      "summary": "A compact 6x6 duel with two Knights and one King per side.",
+      "defaultVictory": "checkmate",
+      "disabledAbilities": {
+        "getaway": "Getaway requires a Queen.",
+        "kamikaze": "Kamikaze requires Pawns.",
+        "episcopal": "Episcopal requires a Bishop.",
+        "power_of_love": "Power of Love requires a Queen."
+      },
+      "boardRows": 6,
+      "boardCols": 6,
+      "initialLayout": [
+        {
+          "row": 0,
+          "col": 2,
+          "type": "king",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "type": "knight",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "type": "knight",
+          "color": "black"
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "type": "king",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "type": "knight",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "type": "knight",
+          "color": "white"
+        }
+      ],
+      "disabledVictoryModes": {}
+    },
+    {
+      "id": "horde",
+      "name": "Horde",
+      "icon": "\u2691",
+      "summary": "A King-led Pawn horde faces a complete classic army.",
+      "defaultVictory": "elimination",
+      "disabledVictoryModes": {
+        "checkmate": "Horde is decided by army elimination, not checkmate.",
+        "timed": "The built-in timed rule also uses checkmate and is unavailable for Horde.",
+        "royal_score": "Royal Score depends on checkmate and is unavailable for Horde.",
+        "center_dominion": "Horde begins with pieces on the center objective, so Center Dominion is unavailable for this layout.",
+        "royal_center": "Horde begins with pieces on the royal objective, so Royal Center is unavailable for this layout."
+      },
+      "disabledAbilities": {
+        "getaway": "White begins without a Queen.",
+        "episcopal": "White begins without a Bishop.",
+        "power_of_love": "White begins without a Queen."
+      },
+      "boardRows": 8,
+      "boardCols": 8,
+      "initialLayout": [
+        {
+          "row": 0,
+          "col": 0,
+          "type": "rook",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 0,
+          "col": 1,
+          "type": "knight",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "type": "bishop",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "type": "queen",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "type": "king",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "type": "bishop",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 0,
+          "col": 6,
+          "type": "knight",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 6,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 0,
+          "col": 7,
+          "type": "rook",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 7,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 4,
+          "type": "king",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 0,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 1,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 2,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 3,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 4,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 5,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 6,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 4,
+          "col": 7,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 5,
+          "col": 0,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 5,
+          "col": 1,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 5,
+          "col": 2,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 5,
+          "col": 3,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 5,
+          "col": 4,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 5,
+          "col": 5,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 5,
+          "col": 6,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 5,
+          "col": 7,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 0,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 2,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 3,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 5,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 6,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 7,
+          "type": "pawn",
+          "color": "white"
+        }
+      ]
+    },
+    {
+      "id": "castle_siege",
+      "name": "Castle Siege",
+      "icon": "\u25a6",
+      "summary": "An 8x10 army with four Rooks, two Knights, and ten Pawns per side.",
+      "defaultVictory": "checkmate",
+      "disabledAbilities": {},
+      "boardRows": 8,
+      "boardCols": 10,
+      "initialLayout": [
+        {
+          "row": 0,
+          "col": 1,
+          "type": "rook",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 1,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 1,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 1,
+          "type": "rook",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 2,
+          "type": "knight",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 2,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 2,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 2,
+          "type": "knight",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 3,
+          "type": "bishop",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 3,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 3,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 3,
+          "type": "bishop",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 4,
+          "type": "queen",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 4,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 4,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 4,
+          "type": "queen",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 5,
+          "type": "king",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 5,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 5,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 5,
+          "type": "king",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 6,
+          "type": "bishop",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 6,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 6,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 6,
+          "type": "bishop",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 7,
+          "type": "knight",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 7,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 7,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 7,
+          "type": "knight",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 8,
+          "type": "rook",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 8,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 6,
+          "col": 8,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 8,
+          "type": "rook",
+          "color": "white"
+        },
+        {
+          "row": 0,
+          "col": 0,
+          "type": "rook",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 0,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 0,
+          "col": 9,
+          "type": "rook",
+          "color": "black"
+        },
+        {
+          "row": 1,
+          "col": 9,
+          "type": "pawn",
+          "color": "black"
+        },
+        {
+          "row": 7,
+          "col": 0,
+          "type": "rook",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 0,
+          "type": "pawn",
+          "color": "white"
+        },
+        {
+          "row": 7,
+          "col": 9,
+          "type": "rook",
+          "color": "white"
+        },
+        {
+          "row": 6,
+          "col": 9,
+          "type": "pawn",
+          "color": "white"
+        }
+      ],
+      "disabledVictoryModes": {}
+    }
+  ],
+  "limits": {
+    "boardMin": 4,
+    "boardMax": 16,
+    "pointMin": 0,
+    "pointMax": 100000,
+    "timeSecondsMin": 60,
+    "timeSecondsMax": 86400,
+    "targetPointsMin": 1,
+    "targetPointsMax": 100000,
+    "dominionRoundsMin": 1,
+    "dominionRoundsMax": 20,
+    "checkTargetMin": 1,
+    "checkTargetMax": 100,
+    "commandPointCapMin": 1,
+    "commandPointCapMax": 20,
+    "affinitySquareCountMin": 2,
+    "affinitySquareCountMax": 32,
+    "affinityControlRequiredMin": 1,
+    "affinityControlRequiredMax": 16,
+    "abilitySelectionMin": 1,
+    "abilitySelectionMax": 16,
+    "barricadeCountMin": 0,
+    "barricadeCountMax": 8,
+    "gambitBudgetMin": 0,
+    "gambitBudgetMax": 100000,
+    "gambitMaxPiecesMin": 1,
+    "gambitMaxPiecesMax": 128,
+    "gambitSetupRowsMin": 1,
+    "gambitSetupRowsMax": 8,
+    "gambitMaxQueensMin": 0,
+    "gambitMaxQueensMax": 127,
+    "pieceCapMin": 0,
+    "draftPoolCountMin": 0,
+    "draftPoolCountMax": 256
+  },
   "gambit": {
     "name": "Chass Gambit",
     "icon": "\u2691",

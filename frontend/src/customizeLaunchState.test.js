@@ -3,6 +3,16 @@ import test from "node:test";
 
 import { customizeLaunchState } from "./customizeLaunchState.js";
 
+test("server outages allow editing but never report a configuration as ready", () => {
+  const state = customizeLaunchState(
+    { status: "unavailable", valid: false, requestKey: null, error: "Connection failed" },
+    "current"
+  );
+  assert.equal(state.heading, "Server Unavailable");
+  assert.equal(state.warning, "Connection failed");
+  assert.deepEqual(state.errors, []);
+});
+
 test("launch status reports a validated configuration as ready", () => {
   assert.deepEqual(
     customizeLaunchState(

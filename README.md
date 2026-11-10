@@ -224,8 +224,10 @@ npx playwright install chromium
 npm run test:e2e
 ```
 
-The Rulebook renders from a bundled reference catalog, without waiting for the game
-server. After changing piece, ability, or rule definitions, regenerate it from the
+The Rulebook and Game Customizer render from a bundled reference catalog, without
+waiting for the game server. Customizer edits stay available during a server cold
+start; launching a game still requires live backend validation. After changing
+piece, ability, rule, or preset definitions, regenerate the catalog from the
 repository root with `.venv/bin/python scripts/export_rulebook.py` and commit the
 updated JSON. Backend tests and `scripts/export_rulebook.py --check` detect drift.
 

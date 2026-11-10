@@ -23,6 +23,41 @@ async function markup(path, props) {
   return renderToStaticMarkup(createElement(Component, props));
 }
 
+test("customizer first render is editable without a catalog request or loading skeleton", async () => {
+  const previousFetch = globalThis.fetch;
+  let requests = 0;
+  globalThis.fetch = () => {
+    requests += 1;
+    throw new Error("Backend is unavailable");
+  };
+  try {
+    const html = await markup("/src/components/CustomizationPanel.jsx", { onCreate() {} });
+    for (const label of ["Starting Systems", "Board Size", "Starting Layout Presets", "Win Condition", "Maharani", "Elephant", "Enable Special Abilities"]) {
+      assert.ok(html.includes(label), label);
+    }
+    assert.match(html, /class="studio-board"/);
+    assert.match(html, /Checking Setup/);
+    assert.doesNotMatch(html, /skeleton|Customization Unavailable/);
+    assert.equal(requests, 0);
+    for (const label of ["Start Local Game", "Create Online Game", "Play Against A Bot"]) {
+      const button = html.match(/<button\b[^>]*>[\s\S]*?<\/button>/g).find((entry) => entry.includes(label));
+      assert.ok(button, label);
+      assert.match(button, /^<button[^>]*disabled/);
+    }
+  } finally {
+    globalThis.fetch = previousFetch;
+  }
+});
+
+test("customizer preset initialization uses bundled defaults without waiting for the API", async () => {
+  for (const preset of ["gambit", "draft_gambit"]) {
+    const html = await markup("/src/components/CustomizationPanel.jsx", { initialPreset: preset, onCreate() {} });
+    assert.match(html, /setup-zone/);
+    assert.match(html, /Chass Gambit Settings/);
+    assert.doesNotMatch(html, /skeleton/);
+  }
+});
+
 test("landing and play navigation both expose the same-tab scanner link", async () => {
   for (const path of [
     "/src/components/LandingNav.jsx",

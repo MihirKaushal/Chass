@@ -1,4 +1,12 @@
 export function customizeLaunchState(validation, currentRequestKey) {
+  if (validation?.status === "unavailable") {
+    return {
+      heading: "Server Unavailable",
+      detail: "Keep editing. Retry the check before starting a game.",
+      errors: [],
+      warning: validation.error || "Your settings are preserved.",
+    };
+  }
   const requestIsCurrent = Boolean(currentRequestKey)
     && validation?.requestKey === currentRequestKey;
   const requestFailed = validation?.status === "invalid"

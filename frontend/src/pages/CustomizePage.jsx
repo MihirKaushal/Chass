@@ -60,6 +60,7 @@ function CustomizePage({ onCreate, onHome, initialPreset = "" }) {
       <main className="customize-page-shell">
         <LandingNav active="customize" onHome={requestHome} onCustomize={() => {}} />
         <CustomizationPanel
+          key={initialPreset}
           onCreate={onCreate}
           initialPreset={initialPreset}
           onModificationChange={setConfigurationModified}

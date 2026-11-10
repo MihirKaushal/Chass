@@ -16,4 +16,7 @@ def test_reference_catalog_has_no_live_or_environment_dependent_metadata():
         "specialAbilities",
         "victoryModes",
         "gambit",
+        "popularModes",
+        "formations",
+        "limits",
     }

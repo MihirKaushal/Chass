@@ -66,10 +66,11 @@ export function getCatalog() {
   return catalogPromise;
 }
 
-export function validateGameConfiguration(payload) {
+export function validateGameConfiguration(payload, signal) {
   return request("/game/validate", {
     method: "POST",
     body: JSON.stringify(payload),
+    signal,
   });
 }
 
