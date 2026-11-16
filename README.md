@@ -1,326 +1,113 @@
 # Chass!
 
-Chass! is a full-stack browser chess platform for classic games and configurable chess
-variants. It supports local two-player games, three-engine computer opponents, private
-link-or-code multiplayer, custom boards and pieces, modular rules, and real-time synchronization.
-Its AI Board Scanner turns a physical-board photo into a reviewed, playable position.
+**Full-Stack AI Chess Platform**
 
-**Live site:** [https://playchass.vercel.app](https://playchass.vercel.app)
+Classic chess, configurable variants, and a computer-vision scanner that turns physical-board photos into playable games. Built with Python, FastAPI, React, and three interchangeable chess engines.
+
+[Play Chass!](https://playchass.vercel.app) · [Board Scanner](https://playchass.vercel.app/scanner) · [Rulebook](https://playchass.vercel.app/rulebook)
 
 ## Features
 
-- Classic chess movement, captures, turns, check, checkmate, and stalemate
-- Auto-routed Stockfish, Fairy-Stockfish, and universal native Chass bots
-- Auto-routed Stockfish, Fairy-Stockfish, and native Chass Engine Match Analysis
-- Local hot-seat and private online multiplayer
-- Two-player restart approval for local and online matches
-- Chass Gambit with maximum-budget hidden deployment, center affinity, and command powers
-- Maharani, Catapult, Barricade, Hypnotizer, Diplomat, Cannibal, and Elephant custom pieces
-- Seven optional player abilities, including persistent Scorch terrain, with private pre-game selection
-- Checkmate, King Capture, Timed, Point Race, Elimination, and Royal Score victories
-- Shareable, one-use game invitation links and invite codes
-- Live WebSocket updates, reconnect, presence, and state recovery
-- Board dimensions from 4x4 through 16x16 and editable starting layouts
-- Configurable piece metadata, nonnegative point values, and composition limits
-- Toggleable rules, score-target games, and custom rule presets
-- Public effect countdowns, detailed piece tooltips, and an in-app Rulebook
-- Legal moves, captured pieces, history, scores, clocks, and contextual endgame dialogs
-- Manual or automatic board flipping
-- Automatic cleanup after 24 hours without game activity
-- Responsive React interface for desktop and mobile
-- Computer-vision board import with linked photo inspection, uncertain-piece alternatives, and manual correction
+- **Build your own chess:** 4x4 to 16x16 boards, editable layouts, seven custom pieces, seven special abilities, alternate win conditions, and hidden-army Gambit setups.
+- **Play locally, online, or against bots:** private invite links/codes, real-time WebSocket synchronization, reconnect recovery, and engine-routed difficulty profiles.
+- **Analyze positions:** Stockfish 18, Fairy-Stockfish, and the custom Chass Engine cover standard chess through custom variants.
+- **Continue a physical game:** upload or photograph a board, review AI-recognized pieces, correct uncertain squares, and continue locally or online.
+
+![Chass Game Customizer with board editor and configurable starting systems](docs/images/game-customizer.png)
 
 ## AI Board Scanner
 
-The **Scanner** tab opens `/scanner`, with photo upload, camera capture, crop/rotation,
-linked square/photo inspection, ranked alternatives for uncertain pieces, and manual board correction. Confirm turn,
-castling, en passant, and optional draw counters, then continue locally or through
-an online invite. Scanned-position bot games are not enabled yet.
-Collapsed Scan Details exposes model fingerprints, corrections, and separate startup,
-setup, and inference timings without crowding the play workflow. The Rulebook includes
-a dated performance chart and limitations, not a misleading per-photo accuracy claim.
-A separate [ML pipeline](scanner/ml/README.md) combines
-an SSDLite piece detector with a ResNet18 crop classifier and generates versioned
-evaluation reports. Recognition uses a separate model service behind a bounded,
-authenticated game-API gateway. ML packages are not installed on the game server.
-`./run.sh` starts local recognition when the trained artifacts are installed.
-Public recognition runs on a separate free Render service using validated ONNX
-exports of the same models. See [Scanner MVP setup](scanner/MVP.md) and
-[model deployment/update instructions](scanner/deploy/ONNX.md).
-An optional on-device ONNX worker caches public models and falls back to the server.
-The current detector and classifier are fine-tuned on **Chess V2 + Chess Top Down**.
-On 355 regression photos, the pipeline correctly locates and classifies **89.73%**
-of 6,376 annotated pieces. Source-specific recall is **89.78% / 86.02%**; these are
-piece-box results, not whole-board accuracy or proven unfamiliar-set generalization.
-The [controlled merge comparison](scanner/ml/benchmarks/merged-data-2026-11-08/README.md)
-includes an equal-budget control, source-specific results and reproducible commands.
-Training and validation-selected thresholds are tracked in the
-[accuracy log](scanner/ml/ACCURACY_TRACKER.md); verified square-level evaluation
-uses a separate [manual-label collection](scanner/ml/BOARD_COLLECTION.md).
-See the [Scanner Workspace](scanner/README.md) for organized raw/curated datasets,
-reviewed label cleanup, deduplication, capture-grouped splits, and audit reports.
-The [trained Chess V2 baseline](scanner/ml/CHESS_V2_MODEL_CARD.md) records its
-configuration, held-out metrics, error analysis, and reproducible local commands.
-The [scanner quality guide](scanner/QUALITY.md) records the evaluation workflow,
-offline comparison tools, promotion criteria, and next data-collection steps.
+A two-stage vision pipeline combines an **SSDLite detector** with a **fine-tuned ResNet18 classifier**. Models train in PyTorch and run through ONNX Runtime on the server or optionally in a browser worker. Recognition is followed by human review, not treated as an automatically correct board.
 
-### Training Data Credits
+```mermaid
+flowchart LR
+    A[Photo upload or camera] --> B[Rotate and crop board]
+    B --> C[SSDLite: locate pieces]
+    C --> D[ResNet18: classify crops]
+    D --> E[Assign squares and rank alternatives]
+    E --> F[Review and correct board]
+    F --> G[Confirm turn and position rights]
+    G --> H[Validate and start a game]
+    classDef input fill:#F5E6CA,stroke:#2B6CB0,color:#1A365D
+    classDef model fill:#1A365D,stroke:#63B3ED,color:#ffffff
+    class A,B,F,G,H input
+    class C,D,E model
+```
 
-- **Current scanner:** [Chess V2 by Public Wspace](https://universe.roboflow.com/public-wspace/chess-v2-qqtmk), Roboflow Universe, 2022, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Chass removed duplicate photos, corrected labels and orientation, and grouped related captures before splitting for training and evaluation.
-- **Current scanner:** [Chess Top Down by chess](https://universe.roboflow.com/chess-gftva/chess-top-down), Roboflow Universe, 2022, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Combined with Chess V2 through a versioned merge that preserves original files and excludes cross-split overlap. Also used for the initial baseline.
+### Evaluation, Not Just a Demo
 
-The larger training source mainly shows black and white pieces on green and white
-boards. Similar piece styles, colors, and top-down views are expected to give the
-best results; accuracy on unfamiliar sets is not established. Always review all
-64 squares, including empty ones, before continuing a game.
+The current models combine **Chess V2 + Chess Top Down**, with label corrections, deduplication, capture-grouped splits, and validation-selected thresholds. An equal-training-budget comparison measures whether merging data improves source coverage rather than simply benefiting from more training.
+
+- **89.73%** of **6,376 annotated pieces across 355 benchmark photos** were correctly located and classified by type and color, including missed pieces in the denominator.
+- **86.02%** correct-piece recall on Top Down, compared with **58.06%** for the equal-budget single-source control; Chess V2 recall was **89.78%** versus **90.21%**.
+- **89.58% equal-source typed F1**, compared with **76.34%** for that control. Equal weighting prevents the larger dataset from dominating the result.
+
+![Website benchmark panel showing source-specific recognition and correct, mislabeled, and missed piece proportions](docs/images/scanner-benchmarks.png)
+
+*The screenshot compares the previous serving model with the merged model; the equal-budget control above is a separate experiment. Website screenshots captured November 16, 2026; benchmark results recorded November 8, 2026.*
+
+**Limits:** these are piece-box metrics, not square-level or whole-board accuracy. Unfamiliar sets, crowded positions, and King/Queen/Bishop confusion remain challenges. The larger source primarily contains black/white pieces on green/white boards; generalization to unseen physical sets is not established. Users review all 64 squares before import.
+
+[Controlled comparison](scanner/ml/benchmarks/merged-data-2026-11-08/README.md) · [Accuracy history](scanner/ml/ACCURACY_TRACKER.md) · [ML pipeline](scanner/ml/README.md) · [Quality and evaluation](scanner/QUALITY.md)
+
+## Chess Engines & Bots
+
+| Engine | Role | Approach |
+| --- | --- | --- |
+| **Stockfish 18** | Compatible standard-rule 8x8 positions | UCI integration and NNUE evaluation; difficulty-limited bots |
+| **Fairy-Stockfish** | Supported static variants up to 10x12 | Deterministically generated variant profiles, checked against Chass legal moves and terminal outcomes |
+| **Chass Engine** | Remaining valid custom configurations | Handcrafted evaluation, bounded alpha-beta and quiescence search; custom pieces, abilities, terrain, and objectives |
+
+The custom evaluator considers behavior-based material, King safety, activity, center control, objective progress, and live special resources. It is a heuristic engine, not a trained neural network; its analysis and bot strength are approximate.
+
+Engine suggestions never bypass the rules: bot actions are revalidated before committing. Analysis runs asynchronously, is cached by engine and game state, and is version-checked before reaching the UI. Duplicate connections cannot schedule duplicate bot turns for the same game version.
+
+[Analysis architecture](docs/MATCH_ANALYSIS.md) · [Bot routing and difficulty](docs/BOTS.md)
+
+## Architecture
+
+```mermaid
+flowchart TD
+    UI[React + Vite browser client] <-->|REST and WebSockets| API[FastAPI game service]
+    API --> RULES[Modular rule engine]
+    API --> ROUTER[Bot and analysis routing]
+    ROUTER --> SF[Stockfish 18]
+    ROUTER --> FS[Fairy-Stockfish]
+    ROUTER --> CE[Chass Engine]
+    API --> REPO[Versioned repository adapters]
+    REPO --> DB[(Firestore / SQLite)]
+    API -->|Authenticated bounded gateway| SCAN[Separate ONNX scanner service]
+    UI -->|Optional on-device recognition| WORKER[ONNX browser worker]
+    classDef client fill:#F5E6CA,stroke:#2B6CB0,color:#1A365D
+    classDef service fill:#1A365D,stroke:#63B3ED,color:#ffffff
+    classDef storage fill:#EAD8B5,stroke:#2B6CB0,color:#1A365D
+    class UI,WORKER client
+    class API,RULES,ROUTER,SF,FS,CE,SCAN service
+    class REPO,DB storage
+```
+
+The backend owns move legality and versioned state updates. Seat-specific views keep Gambit deployments private until both players lock in. Repository adapters separate persistence from rules, and inactive-game cleanup removes associated seats, invites, and move records. Scanner inference is isolated from the game server so ML dependencies do not burden ordinary gameplay.
 
 ## Tech Stack
 
 | Area | Tools |
 | --- | --- |
-| Languages | Python, JavaScript/JSX, CSS, SQL, Bash |
-| Frontend | React 18, React Hooks, Vite 7, native WebSocket API |
-| Backend | FastAPI, Uvicorn, Pydantic 2 |
-| Analysis | Stockfish 18, Fairy-Stockfish, handcrafted evaluation, alpha-beta search, UCI, NNUE, W/D/L statistics |
-| Computer vision | PyTorch/torchvision training, SSDLite, ResNet18, ONNX Runtime server/browser inference, NumPy, Pillow |
-| Database | Cloud Firestore, Firebase Admin SDK, SQLAlchemy 2, SQLite |
-| Testing and quality | Pytest, Hypothesis, python-chess differential tests, Playwright, HTTPX, Ruff, GitHub Actions |
+| Frontend | JavaScript, React, Vite, CSS, WebSockets |
+| Backend | Python, FastAPI, Pydantic, Uvicorn |
+| Computer vision | PyTorch, torchvision, SSDLite, ResNet18, ONNX Runtime, NumPy, Pillow |
+| Chess AI | Stockfish 18, Fairy-Stockfish, UCI, custom alpha-beta search |
+| Persistence | Firestore, Firebase Admin SDK, SQLAlchemy, SQLite |
+| Verification | Pytest, Hypothesis, python-chess differential tests, Playwright, HTTPX, Ruff, GitHub Actions |
 | Hosting | Vercel, Render, Firebase |
 
-### Main Packages
+## Documentation
 
-- **React:** Component-based frontend and application state management.
-- **Vite:** Frontend development server and production bundler.
-- **FastAPI:** REST API, WebSocket endpoints, CORS, and generated OpenAPI documentation.
-- **Pydantic:** Request validation, domain models, and JSON serialization.
-- **Firebase Admin:** Secure server-side Firestore access and transactions.
-- **SQLAlchemy:** Local SQLite persistence and an optional SQL fallback.
-- **Uvicorn:** ASGI server for FastAPI HTTP and WebSocket traffic.
-- **Stockfish and Fairy-Stockfish:** Local UCI engines for auto-routed position analysis;
-  no hosted API or paid key.
-- **Chass Engine:** Original handcrafted evaluator and bounded alpha-beta search for custom
-  pieces, abilities, terrain, Affinity, alternate victories, and boards through 16x16.
-- **Pytest and HTTPX:** Backend API and multiplayer integration testing.
-- **Ruff:** Python linting and code-quality checks.
-- **Playwright, Hypothesis, and python-chess:** Browser workflows, generated invariant checks,
-  and independent classic-chess legality comparisons.
+- [Engineering decisions and tradeoffs](docs/ENGINEERING.md)
+- [Development & operations](docs/DEVELOPMENT.md): local setup, tests, API, environment variables, and deployment
+- [Verification evidence](docs/VERIFICATION.md)
+- [Scanner workspace and dataset preparation](scanner/README.md)
 
-See the [engineering case study](docs/ENGINEERING.md) for design decisions, verification
-evidence, and known limits; the [verification guide](docs/VERIFICATION.md) has reproducible commands.
+### Training Data Credits
 
-## Architecture
-
-```text
-React + Vite
-  |-- REST API
-  |-- WebSockets
-  v
-FastAPI
-  |-- Game service
-  |-- Modular rule engine
-  |-- Versioned bot router --> Stockfish 18 / Fairy-Stockfish / Chass Engine
-  |-- Async analysis router --> Stockfish 18 / Fairy-Stockfish / Chass Engine
-  v
-Repository adapters
-  |-- SQLAlchemy / SQLite locally
-  `-- Firebase Admin / Firestore in production
-```
-
-Game rules are handled by a separate rule engine rather than API routes or database code.
-The backend validates moves and remains authoritative during online games. Versioned
-database updates prevent stale moves from one browser from overwriting newer game state.
-The configuration API stores victory, formation, piece, ability, and Gambit settings as one
-versioned contract. A declarative compatibility validator rejects impossible combinations
-before game creation, while custom actions and passive effects remain separate rule modules.
-Gambit deployments use seat-specific views and revisions so an opponent receives no piece,
-count, edit, or timing data before the atomic reveal.
-Game activity uses a renewable expiration lease, and both repository adapters cascade
-inactive-game cleanup to player seats, invitation records, and move audits.
-
-The Match Analysis router prefers Stockfish 18 for compatible standard-rule 8x8 positions and
-routes validated static variants up to 10x12 to Fairy-Stockfish. Fairy profiles are generated
-deterministically from typed Chass settings; raw engine syntax is rejected. Before using a
-Fairy profile, the backend compares legal moves and terminal outcomes with the Chass Rule
-Engine. Every remaining valid configuration falls back to the native Chass Engine, which
-combines behavior-based material, King safety, tactics, activity, center control, objective
-progress, terrain, and live special resources with time-bounded alpha-beta and quiescence
-search. Analysis runs after the move response, is cached by engine and full game state, and is
-version-checked before a WebSocket result can update the UI.
-
-Bot games keep move authority in the Chass Rule Engine. Stockfish and Fairy-Stockfish rank
-only Chass-approved legal moves, and every selection is validated again before the normal
-versioned move transaction commits it. Fairy games also repeat legal-move and terminal parity
-verification before every bot turn. All remaining valid configurations use the native Chass
-bot, including setup, custom actions, abilities, and command powers. One recoverable background
-task is allowed per game version, so refreshes and duplicate sockets cannot create duplicate
-bot turns.
-
-## Project Structure
-
-```text
-backend/
-  analysis/        Engine routing, native evaluation/search, parity checks, FEN, and async service
-  bots/            Engine routing, difficulty profiles, safe move adapters, and scheduling
-  models/          Domain models and API schemas
-  repositories/    Firestore and SQL persistence adapters
-  routes/          REST and WebSocket endpoints
-  rules/           Movement and game rules
-  services/        Game and session workflows
-  tests/           Backend integration tests
-  main.py           FastAPI application
-
-frontend/
-  public/           Static assets
-  src/
-    api/            Backend communication
-    components/     Board, lobby, history, and customization UI
-    hooks/          WebSocket connection management
-    pages/          Home, play, join, and customize pages
-    styles/         Responsive CSS
-
-render.yaml         Render backend configuration
-run.sh              Local startup script
-```
-
-## Run Locally
-
-Requirements:
-
-- Python 3.11+
-- Node.js 22.12+ (recommended) or 20.19+
-- npm
-- `curl`, `tar`, `make`, and a C++ compiler for the one-time engine installation
-
-Start the frontend and backend together:
-
-```bash
-./run.sh
-```
-
-Local addresses:
-
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:8000`
-- API documentation: `http://localhost:8000/docs`
-- Health check: `http://localhost:8000/health`
-
-Local development uses SQLite and does not require Firebase. Press `Ctrl+C` to stop both
-services. The first run installs checksum-verified Stockfish 18 and Fairy-Stockfish engines
-into the ignored `.stockfish/` directory; later starts reuse them.
-
-## Test and Build
-
-```bash
-source .venv/bin/activate
-pip install -r backend/requirements-dev.txt
-pytest
-ruff check backend
-
-cd frontend
-npm ci
-npm test
-npm run build
-npx playwright install chromium
-npm run test:e2e
-```
-
-The Rulebook and Game Customizer render from a bundled reference catalog, without
-waiting for the game server. Customizer edits stay available during a server cold
-start; launching a game still requires live backend validation. After changing
-piece, ability, rule, or preset definitions, regenerate the catalog from the
-repository root with `.venv/bin/python scripts/export_rulebook.py` and commit the
-updated JSON. Backend tests and `scripts/export_rulebook.py --check` detect drift.
-
-GitHub Actions additionally runs an isolated Firestore emulator lifecycle test, launches the
-real Stockfish/Fairy binaries, verifies the ONNX scanner response contract, and uploads
-browser screenshots/traces and a native-engine benchmark. No production credentials are needed.
-Browser recognition uses a deterministic fixture; that suite does not measure ML accuracy.
-
-## API
-
-| Method | Endpoint | Purpose |
-| --- | --- | --- |
-| `GET` | `/health` | Minimal public liveness check |
-| `GET` | `/internal/diagnostics` | Server-only bearer-authenticated engine status and aggregate metrics |
-| `GET` | `/game/catalog` | Load pieces, abilities, victories, and presets |
-| `POST` | `/game/validate` | Validate a complete configuration and return incompatible options |
-| `POST` | `/game/create` | Create a local, online, or engine-routed bot game |
-| `POST` | `/game/join` | Join through an invitation |
-| `GET` | `/game/{id}` | Load game state |
-| `GET` | `/game/{id}/history` | Load an earlier page of move history |
-| `GET` | `/game/{id}/analysis` | Load or schedule the current position estimate |
-| `POST` | `/game/{id}/move` | Submit a move |
-| `POST` | `/game/{id}/action` | Use a custom piece or special-ability action |
-| `POST` | `/game/{id}/ability` | Lock a private player ability |
-| `POST` | `/game/{id}/setup/handoff` | Continue a local private ability handoff |
-| `POST` | `/game/{id}/gambit/deployment` | Place, remove, clear, or undo a hidden army edit |
-| `POST` | `/game/{id}/gambit/ready` | Lock a private deployment and reveal when both are legal |
-| `POST` | `/game/{id}/gambit/handoff` | Continue a local privacy handoff |
-| `POST` | `/game/{id}/gambit/power` | Use Reinforce, Evolve, or Stronghold |
-| `POST` | `/game/{id}/rules` | Update game rules |
-| `POST` | `/game/{id}/pieces` | Customize pieces |
-| `POST` | `/game/{id}/layout` | Update the board layout |
-| `POST` | `/game/{id}/rematch` | Request, approve, decline, or cancel a restart |
-| `POST` | `/game/{id}/invite` | Replace an unused invitation |
-| `WS` | `/game/ws/{id}` | Receive live game updates |
-
-## Environment Variables
-
-Use `.env.example` as the local template.
-
-| Variable | Purpose |
-| --- | --- |
-| `PERSISTENCE_BACKEND` | Selects `sql` locally or `firestore` in production |
-| `DATABASE_URL` | Local SQLite or optional SQL fallback connection string |
-| `FIREBASE_PROJECT_ID` | Firebase project used by the backend |
-| `FIREBASE_CREDENTIALS_BASE64` | Base64-encoded server service-account JSON |
-| `FRONTEND_URL` | Frontend address used for invite links |
-| `ALLOWED_ORIGINS` | Comma-separated CORS origins |
-| `ENVIRONMENT` | `development` or `production` |
-| `TOKEN_SECRET` | Private session-token hashing secret |
-| `INVITE_TTL_HOURS` | Invitation expiration time |
-| `GAME_IDLE_TTL_HOURS` | Hours after the last game change before deletion |
-| `GAME_CLEANUP_INTERVAL_MINUTES` | Cleanup frequency while FastAPI is awake |
-| `MATCH_PREDICTOR_ENGINE_ENABLED` | Enables or disables server-side engine analysis |
-| `STOCKFISH_PATH` | Optional path to a Stockfish executable |
-| `STOCKFISH_MOVETIME_MS` | Engine search time per position; default `180` |
-| `STOCKFISH_HASH_MB` | Memory assigned to the engine hash; default `32` |
-| `STOCKFISH_THREADS` | Engine worker threads; default `1` |
-| `STOCKFISH_STARTUP_TIMEOUT_SECONDS` | Seconds allowed for each cold-start attempt; default `15` |
-| `STOCKFISH_STARTUP_ATTEMPTS` | Engine startup attempts before reporting unavailable; default `2` |
-| `FAIRY_STOCKFISH_PATH` | Optional path to a largeboard Fairy-Stockfish executable |
-| `FAIRY_STOCKFISH_MOVETIME_MS` | Fairy search time per position; default `180` |
-| `FAIRY_STOCKFISH_HASH_MB` | Memory assigned to the Fairy hash; default `16` |
-| `FAIRY_STOCKFISH_THREADS` | Fairy worker threads; default `1` |
-| `FAIRY_STOCKFISH_MAX_PROFILES` | Generated profiles retained by one engine process; default `256` |
-| `CHASS_ENGINE_MOVETIME_MS` | Native Chass search budget per position; default `180` |
-| `VITE_API_URL` | Public backend address used by React |
-
-Do not commit `.env`, database passwords, or production secrets.
-
-## Deployment
-
-The repository includes configuration for a free personal-project deployment:
-
-- **Frontend:** Import the repository into Vercel, set the Root Directory to `frontend`,
-  and set `VITE_API_URL` to the Render backend URL.
-- **Backend:** Create a Render Blueprint from `render.yaml`, add the Firebase server
-  credentials, and set `PERSISTENCE_BACKEND=firestore`. The Blueprint installs the pinned
-  Stockfish and Fairy-Stockfish engines during the build.
-- **Database:** Create a free Firebase project and its default Cloud Firestore database.
-
-See [Firebase Setup](docs/FIREBASE_SETUP.md) for the exact credential, migration, Render,
-security-rule, rollback, and verification steps.
-See [Match Analysis](docs/MATCH_ANALYSIS.md) for eligibility, architecture, tuning,
-deployment, and troubleshooting details.
-See [Chess Bots](docs/BOTS.md) for engine compatibility, difficulty profiles, safety
-boundaries, and future extension points.
-
-After Vercel deploys, set both Render values to the production frontend URL:
-
-```text
-FRONTEND_URL=https://playchass.vercel.app
-ALLOWED_ORIGINS=https://playchass.vercel.app
-```
-
-Render services may sleep when idle, but Firestore does not require manual unpausing.
+- **Current scanner:** [Chess V2 by Public Wspace](https://universe.roboflow.com/public-wspace/chess-v2-qqtmk), Roboflow Universe, 2022, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Chass removed duplicate photos, corrected labels and orientation, and grouped related captures before splitting for training and evaluation.
+- **Current scanner:** [Chess Top Down by chess](https://universe.roboflow.com/chess-gftva/chess-top-down), Roboflow Universe, 2022, [CC BY 4.0](https://creativecommons.org/licenses/by/4.0/). Combined with Chess V2 through a versioned merge that preserves original files and excludes cross-split overlap. Also used for the initial baseline.
