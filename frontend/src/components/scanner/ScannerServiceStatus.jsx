@@ -9,17 +9,17 @@ const COPY = {
   },
   warming: {
     tone: "neutral",
-    label: "Starting Scanner",
+    label: "Starting scanner",
     text: "Waking the service. This may take a minute or two.",
   },
   ready: {
     tone: "success",
-    label: "Scanner Ready",
+    label: "Scanner ready",
     text: "",
   },
   offline: {
     tone: "warning",
-    label: "Recognition Offline",
+    label: "Recognition offline",
     text: "Could not connect. Your photo is still here; try again.",
   },
   unconfigured: {
@@ -42,7 +42,7 @@ function ScannerServiceStatus({ status, onRetry }) {
       </div>
       {status === "offline" ? (
         <Button variant="secondary" size="small" onClick={onRetry}>
-          Retry Connection
+          Retry connection
         </Button>
       ) : null}
     </section>

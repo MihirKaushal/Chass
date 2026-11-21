@@ -9,7 +9,7 @@ export const SCANNER_REFERENCE = {
     },
     {
       title: "Review Every Square",
-      text: "Select a square to compare it with the photo. Gold markers flag uncertainty; choose a suggestion, use the piece palette, or erase. Check empty squares too. Undo reverses edits; Restore Scan returns to the original result. Scan Details shows models, corrections, and timing.",
+      text: "Select a square to compare it with the photo. Gold markers flag uncertainty; choose a suggestion, use the piece palette, or erase. Check empty squares too. Undo reverses edits; Restore scan returns to the original result. Scan details shows models, corrections, and timing.",
     },
     {
       title: "Confirm The Position",
@@ -34,7 +34,7 @@ export const SCANNER_REFERENCE = {
     },
     evaluation: "Predictions are matched to annotated boxes without using piece labels, with at least 50% overlap (intersection over union, or IoU). Type and color are then checked on matched pieces. Both test collections have been reused during development, so these are regression results, not a fresh test of unseen chess sets. Chess Top Down has only 17 test photos; independently collected boards are still needed.",
     uncertainty: "Review flags use default model-score thresholds: below 70% for type or 50% for detection. Boundary crossings, oversized boxes, and competing pieces also trigger review. Scores rank suggestions; they are not calibrated probabilities. Review complete means you confirmed the board, not that AI verified it.",
-    timing: "Scan Details separates connection/startup wait, model setup, and recognition. Cold starts can delay the first scan; device and server timings are not directly comparable. If recognition is offline, photo preparation still works and Retry Connection checks again.",
+    timing: "Scan details separates connection/startup wait, model setup, and recognition. Cold starts can delay the first scan; device and server timings are not directly comparable. If recognition is offline, photo preparation still works and Retry connection checks again.",
     privacy: "Server recognition processes the prepared photo in memory without storing it or sending it to a third-party AI provider. On-device recognition downloads models; if it fails, the photo is sent to the server as disclosed by the toggle. A game saves the reviewed position, not the photo. Optional local exports contain predictions, corrections, model identifiers, and review time; nothing is automatically uploaded for training. Recheck exported labels before benchmark use.",
   },
 };

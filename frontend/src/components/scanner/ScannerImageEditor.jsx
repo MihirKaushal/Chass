@@ -279,7 +279,7 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
             onClick={apply}
           >
             <ScannerIcon name="check" />
-            Apply Photo Edits
+            Apply photo edits
           </Button>
         </>
       }
@@ -461,7 +461,7 @@ function ScannerImageEditor({ sourceFile, initialEdits, onApply, onClose }) {
               onClick={reset}
             >
               <ScannerIcon name="undo" />
-              Reset Edits
+              Reset edits
             </Button>
           </div>
         </aside>

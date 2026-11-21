@@ -155,16 +155,8 @@
   flex-direction: column;
   padding: 1.25rem;
   border: 1px solid rgba(26, 54, 93, 0.22);
-  border-radius: 18px;
+  border-radius: var(--radius-lg);
   background: rgba(255, 255, 255, 0.55);
-}
-
-.mode-choice-card.featured {
-  color: #f7fbff;
-  background:
-    radial-gradient(circle at top right, rgba(99, 179, 237, 0.34), transparent 36%),
-    var(--deep);
-  border-color: var(--deep);
 }
 
 .mode-choice-heading {
@@ -196,12 +188,6 @@
   stroke-linejoin: round;
 }
 
-.mode-choice-card.featured .mode-choice-icon {
-  color: var(--accent-soft);
-  border-color: rgba(99, 179, 237, 0.38);
-  background: rgba(99, 179, 237, 0.12);
-}
-
 .mode-choice-card h2 {
   margin: 0;
   font-size: 1.65rem;
@@ -213,11 +199,6 @@
   color: rgba(26, 54, 93, 0.75);
 }
 
-.mode-choice-card.featured p,
-.mode-choice-card.featured li {
-  color: rgba(247, 251, 255, 0.82);
-}
-
 .mode-choice-card ul {
   margin: 1rem 0 1.2rem;
   padding-left: 1.1rem;
@@ -227,25 +208,13 @@
 
 .mode-choice-actions {
   display: grid;
-  gap: 0.55rem;
+  gap: var(--space-2);
   margin-top: auto;
-  padding-top: 1.2rem;
+  padding-top: var(--space-5);
 }
 
 .mode-choice-actions button {
   width: 100%;
-}
-
-.mode-choice-card.featured .mode-choice-actions .ui-button--primary,
-.mode-choice-card.featured .invite-code-form .ui-button--primary {
-  color: var(--deep);
-  background: var(--accent-soft);
-}
-
-.mode-choice-card.featured .mode-choice-actions .ui-button--secondary {
-  color: #f7fbff;
-  border-color: rgba(99, 179, 237, 0.42);
-  background: rgba(255, 255, 255, 0.08);
 }
 
 .landing-error {

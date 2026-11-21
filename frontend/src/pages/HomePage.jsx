@@ -96,17 +96,17 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
             <article className="mode-choice-card">
               <header className="mode-choice-heading">
                 <span className="mode-choice-icon"><RoomIcon type="local" /></span>
-                <h2>Local Room</h2>
+                <h2>Local room</h2>
               </header>
               <p>Pass one screen between players.</p>
               <div className="mode-choice-actions">
                 <Button
                   disabled={Boolean(creatingMode)}
                   loading={creatingMode === "local"}
-                  loadingLabel="Preparing Board..."
+                  loadingLabel="Preparing board..."
                   onClick={() => start("local")}
                 >
-                  Start Local Game
+                  Start local game
                 </Button>
                 <Button
                   variant="secondary"
@@ -115,25 +115,25 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
                     setError("");
                   }}
                 >
-                  Play Against A Bot
+                  Play against a bot
                 </Button>
               </div>
             </article>
 
-            <article className="mode-choice-card featured">
+            <article className="mode-choice-card">
               <header className="mode-choice-heading">
                 <span className="mode-choice-icon"><RoomIcon type="online" /></span>
-                <h2>Online Room</h2>
+                <h2>Online room</h2>
               </header>
               <p>Create a private link and play from two browsers.</p>
               <div className="mode-choice-actions">
                 <Button
                   disabled={Boolean(creatingMode)}
                   loading={creatingMode === "online"}
-                  loadingLabel="Opening Room..."
+                  loadingLabel="Opening room..."
                   onClick={() => start("online")}
                 >
-                  Create Online Game
+                  Create online game
                 </Button>
                 <Button
                   variant="secondary"
@@ -142,12 +142,12 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
                     setError("");
                   }}
                 >
-                  Enter Invite Code
+                  Enter invite code
                 </Button>
               </div>
               {showCodeEntry ? (
                 <form className="invite-code-form" onSubmit={joinWithCode}>
-                  <label htmlFor="invite-code">Invite Code</label>
+                  <label htmlFor="invite-code">Invite code</label>
                   <div>
                     <input
                       id="invite-code"
@@ -162,7 +162,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
                         event.target.value.replace(/[^a-z0-9-]/gi, "").toUpperCase()
                       )}
                     />
-                    <Button type="submit">Join Game</Button>
+                    <Button type="submit">Join game</Button>
                   </div>
                 </form>
               ) : null}

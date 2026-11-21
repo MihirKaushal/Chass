@@ -4,8 +4,8 @@ import test from "node:test";
 import { onlinePlayerStatus, onlinePlayerSummary, roomLabel } from "./playHeader.js";
 
 test("play header uses stable room labels", () => {
-  assert.equal(roomLabel("local"), "Local Room");
-  assert.equal(roomLabel("online"), "Online Room");
+  assert.equal(roomLabel("local"), "Local room");
+  assert.equal(roomLabel("online"), "Online room");
   assert.equal(roomLabel("bot"), "Bot Match");
 });
 

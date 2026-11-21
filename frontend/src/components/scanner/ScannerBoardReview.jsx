@@ -81,7 +81,7 @@ function ScannerBoardReview({
       }}
     >
       <header className="scanner-panel-header">
-        <h2 id="scanner-review-title">Review Pieces</h2>
+        <h2 id="scanner-review-title">Review pieces</h2>
       </header>
       <div className="scanner-board-toolbar">
         <Button
@@ -90,7 +90,7 @@ function ScannerBoardReview({
           onClick={() => setFlipped((current) => !current)}
         >
           <ScannerIcon name="rotate" />
-          Flip Board
+          Flip board
         </Button>
       </div>
       <div className="scanner-review-board">
@@ -152,7 +152,7 @@ function ScannerBoardReview({
                 setSelectedSquare(null);
               }}
             >
-              Mark All Pieces Reviewed
+              Mark all pieces reviewed
             </Button>
           </div>
         ) : null}
@@ -193,7 +193,7 @@ function ScannerBoardReview({
                       <span className="scanner-alternative-label">
                         {option.color === "white" ? "White" : "Black"}{" "}
                         {option.type}
-                        {isCurrentPiece(option) ? <span className="scanner-current-label">(Current Piece)</span> : null}
+                        {isCurrentPiece(option) ? <span className="scanner-current-label">(Current piece)</span> : null}
                       </span>
                       {Number.isFinite(option.score) ? <small>{Math.round(option.score * 100)}%</small> : null}
                     </Button>
@@ -211,7 +211,7 @@ function ScannerBoardReview({
                 size="small"
                 onClick={() => chooseAlternative({ type: "erase" })}
               >
-                This Square Is Empty{!currentPiece ? " (Current)" : ""}
+                This square is empty{!currentPiece ? " (Current)" : ""}
               </Button>
               {selectedNeedsReview ? (
                 <Button
@@ -300,7 +300,7 @@ function ScannerBoardReview({
               setTool(null);
             }}
           >
-            Restore Scan
+            Restore scan
           </Button>
         </div>
         <div className="scanner-selected-square" aria-live="polite">

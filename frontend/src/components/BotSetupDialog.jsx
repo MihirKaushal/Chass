@@ -35,7 +35,7 @@ function BotSetupDialog({ open, profiles = [], onClose, onStart, loading = false
       onClose={loading ? () => {} : onClose}
       closeLabel="Close bot setup"
       eyebrow={eyebrow}
-      title="Choose Your Opponent"
+      title="Choose your opponent"
       description={`This configuration uses ${engineName}. Select an estimated strength and your side.`}
       className="bot-setup-dialog"
       initialFocusRef={defaultProfileRef}
@@ -47,11 +47,11 @@ function BotSetupDialog({ open, profiles = [], onClose, onStart, loading = false
           </Button>
           <Button
             loading={loading}
-            loadingLabel="Starting Match..."
+            loadingLabel="Starting match..."
             disabled={!profileId}
             onClick={() => onStart({ profileId, humanColor })}
           >
-            Start Game
+            Start game
           </Button>
         </>
       )}
@@ -84,7 +84,7 @@ function BotSetupDialog({ open, profiles = [], onClose, onStart, loading = false
       </fieldset>
 
       <fieldset className="bot-color-fieldset">
-        <legend>Your Side</legend>
+        <legend>Your side</legend>
         <div className="bot-color-options">
           {[
             ["white", "White"],

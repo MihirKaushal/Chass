@@ -169,7 +169,7 @@ function GambitHandoff({ game, onHandoff, actionLoading }) {
         <div className="handoff-seal" aria-hidden="true">
           {nextColor === "white" ? "W" : "B"}
         </div>
-        <span className="eyebrow">Private Handoff</span>
+        <span className="eyebrow">Private handoff</span>
         <h1>Pass The Screen To {title(nextColor)}</h1>
         <p>
           {title(ready.white && !ready.black ? "white" : "black")}'s army is locked and
@@ -466,7 +466,7 @@ function GambitDeployment({
             aria-pressed={selectedTool === GAMBIT_ERASER_TOOL}
             onClick={() => setSelectedTool(GAMBIT_ERASER_TOOL)}
           >
-            Use Eraser
+            Use eraser
           </Button>
           <Button
             variant="danger"
@@ -483,7 +483,7 @@ function GambitDeployment({
             loadingLabel="Locking Army..."
             onClick={onReady}
           >
-            Lock In Army
+            Lock in army
           </Button>
         </div>
       </aside>

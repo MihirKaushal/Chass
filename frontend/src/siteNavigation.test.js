@@ -15,7 +15,7 @@ test("every shared navigation uses one ordered set of destinations", () => {
 test("leaving a game names Scanner correctly, including a deep link", () => {
   for (const path of ["/scanner", "/scanner/", "/scanner?from=play"]) {
     assert.equal(navigationDestination(path).destination, "the Board Scanner");
-    assert.equal(navigationDestination(path).leaveLabel, "Open Scanner");
+    assert.equal(navigationDestination(path).leaveLabel, "Open scanner");
   }
   assert.equal(
     navigationDestination("/rulebook#rulebook-scanner").destination,
@@ -25,7 +25,7 @@ test("leaving a game names Scanner correctly, including a deep link", () => {
     navigationDestination("/customize?preset=gambit").destination,
     "Customize",
   );
-  assert.equal(navigationDestination("/unknown").leaveLabel, "Leave Game");
+  assert.equal(navigationDestination("/unknown").leaveLabel, "Leave game");
 });
 
 test("rulebook search finds scanner instructions, models, limits and privacy", () => {

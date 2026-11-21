@@ -61,13 +61,13 @@ function OnlineLobby({
               <input type="text" value={inviteUrl} readOnly onFocus={(event) => event.target.select()} />
             </FormField>
             <Button onClick={() => copyInvite(inviteUrl, "Invite link copied")}>
-              Copy Invite Link
+              Copy invite link
             </Button>
-            <FormField className="invite-code-field" label="Invite Code">
+            <FormField className="invite-code-field" label="Invite code">
               <input type="text" value={inviteCode || ""} readOnly onFocus={(event) => event.target.select()} />
             </FormField>
             <Button onClick={() => copyInvite(inviteCode, "Invite code copied")}>
-              Copy Invite Code
+              Copy Invite code
             </Button>
           </>
         ) : (

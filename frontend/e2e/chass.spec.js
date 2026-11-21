@@ -6,30 +6,30 @@ const square = (page, row, col) => page.locator(`.board-grid [data-row="${row}"]
 
 async function preparePhoto(page) {
   await page.goto("/scanner");
-  await expect(page.getByText("Scanner Ready", { exact: true })).toBeVisible();
+  await expect(page.getByText("Scanner ready", { exact: true })).toBeVisible();
   await page.getByLabel("Upload a board photo").setInputFiles(photo);
-  await page.getByRole("button", { name: "Apply Photo Edits" }).click();
+  await page.getByRole("button", { name: "Apply photo edits" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
 }
 
 async function reviewScan(page) {
   await preparePhoto(page);
-  await page.getByRole("button", { name: "Recognize Pieces" }).click();
-  await expect(page.getByRole("heading", { name: "Review Pieces", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Recognize pieces" }).click();
+  await expect(page.getByRole("heading", { name: "Review pieces", exact: true })).toBeVisible();
   await page.getByRole("button", { name: /White bishop.*90%/i }).click();
   await expect(square(page, 7, 5)).toHaveAttribute("aria-label", /white Bishop/);
 }
 
 test("local game moves and navigation confirmation", async ({ page }, testInfo) => {
   await page.goto("/");
-  await page.getByRole("button", { name: "Start Local Game", exact: true }).click();
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
   await square(page, 6, 4).click();
   await square(page, 4, 4).click();
   await expect(square(page, 4, 4)).toHaveAttribute("aria-label", /white Pawn/);
   await expect(page.locator(".turn-banner")).toContainText("Black");
   await page.getByRole("button", { name: "Home", exact: true }).click();
-  await expect(page.getByRole("dialog")).toContainText("Leave This Game?");
-  await page.getByRole("button", { name: "Stay In Game" }).click();
+  await expect(page.getByRole("dialog")).toContainText("Leave this game?");
+  await page.getByRole("button", { name: "Stay in game" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   await testInfo.attach("layout-play", {
@@ -40,7 +40,7 @@ test("local game moves and navigation confirmation", async ({ page }, testInfo) 
 test("online seats survive refresh and moves synchronize across browsers", async ({ page, browser }) => {
   await page.goto("/");
   const created = page.waitForResponse((response) => response.url().endsWith("/game/create") && response.request().method() === "POST");
-  await page.getByRole("button", { name: "Create Online Game", exact: true }).click();
+  await page.getByRole("button", { name: "Create online game", exact: true }).click();
   const session = await (await created).json();
   const context = await browser.newContext();
   try {
@@ -63,7 +63,7 @@ for (const mode of ["local", "online"]) {
   test(`scanner upload, correction, confirmation and ${mode} import`, async ({ page }) => {
     await reviewScan(page);
     await page.getByRole("checkbox", { name: /I checked all 64 squares/ }).check();
-    const launch = page.getByRole("button", { name: mode === "local" ? "Start Local Game" : "Create Online Game", exact: true });
+    const launch = page.getByRole("button", { name: mode === "local" ? "Start local game" : "Create online game", exact: true });
     await expect(launch).toBeEnabled();
     await launch.click();
     await expect(page).toHaveURL(/\/game\//);
@@ -86,7 +86,7 @@ test("scanner keyboard editor navigates without painting until Enter and support
   await page.getByRole("button", { name: "Eraser", exact: true }).click();
   await square(page, 7, 4).click();
   await page.getByRole("checkbox", { name: /I checked all 64 squares/ }).check();
-  await expect(page.getByRole("button", { name: "Start Local Game", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Start local game", exact: true })).toBeDisabled();
   await expect(page.locator(".scanner-import-feedback")).toContainText(/King/);
 });
 
@@ -116,13 +116,13 @@ test("scanner review advances after corrections or confirmation and supports und
     );
     await route.fulfill({ response, json: data });
   });
-  await page.getByRole("button", { name: "Recognize Pieces" }).click();
+  await page.getByRole("button", { name: "Recognize pieces" }).click();
   const heading = page.locator(".scanner-alternatives h3");
   const confirmation = page.getByRole("checkbox", { name: /I checked all 64 squares/ });
   await expect(heading).toHaveText("Review a3");
-  await page.getByRole("button", { name: "This Square Is Empty (Current)", exact: true }).click();
+  await page.getByRole("button", { name: "This square is empty (Current)", exact: true }).click();
   await expect(heading).toHaveText("Review c2");
-  await expect(page.getByRole("button", { name: /White pawn.*Current Piece/ })).toBeVisible();
+  await expect(page.getByRole("button", { name: /White pawn.*Current piece/ })).toBeVisible();
   await expect(page.getByRole("button", { name: "Mark c2 Correct", exact: true })).toHaveCount(1);
   await testInfo.attach("scanner-current-piece", { body: await page.locator(".scanner-alternatives").screenshot(), contentType: "image/png" });
   await page.getByRole("button", { name: "Mark c2 Correct", exact: true }).click();
@@ -145,20 +145,20 @@ test("scanner review advances after corrections or confirmation and supports und
   await square(page, 7, 5).click();
   await expect(bishopTool).toHaveAttribute("aria-pressed", "false");
   await expect(page.locator(".scanner-review-status")).toContainText("No more squares to review");
-  await page.getByRole("button", { name: "Restore Scan", exact: true }).click();
+  await page.getByRole("button", { name: "Restore scan", exact: true }).click();
   await expect(heading).toHaveText("Review a3");
   await expect(page.locator(".scanner-review-status")).toContainText("3 squares to review");
   await page.getByRole("button", { name: "Place white queen", exact: true }).click();
-  await page.getByRole("button", { name: "Mark All Pieces Reviewed", exact: true }).click();
+  await page.getByRole("button", { name: "Mark all pieces reviewed", exact: true }).click();
   await expect(page.locator(".scanner-review-status")).toContainText("No more squares to review");
-  await expect(page.getByRole("button", { name: "Mark All Pieces Reviewed", exact: true })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Mark all pieces reviewed", exact: true })).toHaveCount(0);
   await expect(page.getByRole("button", { name: "Place white queen", exact: true })).toHaveAttribute("aria-pressed", "false");
   await expect(confirmation).toBeEnabled();
   await expect(confirmation).not.toBeChecked();
   await expect(square(page, 7, 5)).toHaveAttribute("aria-label", /white Pawn/);
   await confirmation.check();
   // Bulk review does not bypass the independent imported-position validator.
-  await expect(page.getByRole("button", { name: "Start Local Game", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Start local game", exact: true })).toBeDisabled();
   await expect(page.locator(".scanner-import-feedback")).toContainText(/first or last rank/i);
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await expect(page.locator(".scanner-review-status")).toContainText("3 squares to review");
@@ -173,9 +173,9 @@ test("bad uploads and malformed scan responses remain recoverable", async ({ pag
   await expect(page.getByText("Choose a JPG, PNG, or WebP image.", { exact: true })).toBeVisible();
   await preparePhoto(page);
   await page.route("**/scanner/scan", (route) => route.fulfill({ json: { board: [], reviewSquares: [] } }));
-  await page.getByRole("button", { name: "Recognize Pieces" }).click();
+  await page.getByRole("button", { name: "Recognize pieces" }).click();
   await expect(page.getByText(/scanner returned an invalid board/)).toBeVisible();
-  await expect(page.getByRole("button", { name: "Recognize Pieces" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Recognize pieces" })).toBeEnabled();
 });
 
 test("camera permission failure offers recovery without blocking upload", async ({ page }) => {
@@ -183,10 +183,10 @@ test("camera permission failure offers recovery without blocking upload", async 
     navigator.mediaDevices.getUserMedia = async () => { throw new DOMException("Denied", "NotAllowedError"); };
   });
   await page.goto("/scanner");
-  await page.getByRole("button", { name: "Take A Photo" }).click();
+  await page.getByRole("button", { name: "Take a photo" }).click();
   await expect(page.getByRole("dialog")).toContainText(/permission|access/i);
   await page.getByRole("button", { name: "Cancel", exact: true }).click();
-  await expect(page.getByRole("button", { name: "Upload Photo" })).toBeEnabled();
+  await expect(page.getByRole("button", { name: "Upload photo" })).toBeEnabled();
 });
 
 test("fake camera capture stops the media track and opens the editor", async ({ page }) => {
@@ -199,8 +199,8 @@ test("fake camera capture stops the media track and opens the editor", async ({ 
     };
   });
   await page.goto("/scanner");
-  await page.getByRole("button", { name: "Take A Photo" }).click();
-  await page.getByRole("button", { name: "Capture Photo", exact: true }).click();
+  await page.getByRole("button", { name: "Take a photo" }).click();
+  await page.getByRole("button", { name: "Capture photo", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("Crop & Rotate");
   expect(await page.evaluate(() => window.testCameraTracks.every((track) => track.readyState === "ended"))).toBe(true);
 });

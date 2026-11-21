@@ -1247,13 +1247,13 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           onClose={() => setPendingLeaveDestination(null)}
           closeLabel="Close leave game confirmation"
           eyebrow="Current Game"
-          title="Leave This Game?"
+          title="Leave this game?"
           description={`Are you sure you want to leave this game and go to ${navigationDestination(pendingLeaveDestination).destination}? Your current game may be lost.`}
           className="leave-game-dialog"
           actions={(
             <>
               <Button variant="secondary" onClick={() => setPendingLeaveDestination(null)}>
-                Stay In Game
+                Stay in game
               </Button>
               <Button
                 variant="danger"
@@ -1316,7 +1316,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
             <>
               {canRequestRestart ? (
                 <Button onClick={handleRestartRequest}>
-                  Play Again
+                  Play again
                 </Button>
               ) : null}
               <Button variant="secondary" onClick={customizeCurrentGame}>

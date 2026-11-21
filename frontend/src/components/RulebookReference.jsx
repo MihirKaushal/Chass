@@ -306,7 +306,7 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
             </div>
             <ScannerPerformance />
             <AppLink href="/scanner" className="ui-button ui-button--secondary rulebook-scanner-link">
-              Open Board Scanner
+              Open board scanner
             </AppLink>
           </>
         ) : <EmptyState className="rulebook-empty">No matching Board Scanner reference.</EmptyState>}

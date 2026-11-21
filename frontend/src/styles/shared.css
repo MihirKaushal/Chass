@@ -36,7 +36,7 @@
 .ui-button--secondary {
   color: var(--deep);
   border-color: var(--border-accent);
-  background: rgba(43, 108, 176, 0.13);
+  background: var(--surface);
 }
 
 .ui-button--danger {

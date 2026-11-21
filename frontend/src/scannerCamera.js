@@ -56,7 +56,7 @@ export function scannerCameraErrorMessage(error) {
     case "AbortError":
       return "The camera could not start. Close other apps using it and try again, or upload a photo.";
     default:
-      return "The camera could not be opened. Try again, or use Upload Photo instead.";
+      return "The camera could not be opened. Try again, or use Upload photo instead.";
   }
 }
 

@@ -60,13 +60,13 @@ function TopNav({
   const volumePercentage = Math.round(soundVolume * 100);
   const statusLabel =
     phase === "lobby"
-      ? "Waiting For Player"
+      ? "Waiting for player"
       : phase === "ability_selection"
-        ? "Ability Selection"
+        ? "Ability selection"
         : phase === "deployment"
-          ? "Hidden Deployment"
+          ? "Hidden deployment"
           : phase === "handoff"
-            ? "Private Handoff"
+            ? "Private handoff"
             : winner
               ? `${title(winner)} Won`
               : title(gameStatus || "active");
@@ -215,7 +215,7 @@ function TopNav({
               Match Analysis: {matchAnalysisAvailable ? (matchAnalysisEnabled ? "Enabled" : "Disabled") : "Unavailable"}
             </Button>
             <Button size="small" variant="secondary" role="menuitem" onClick={() => runSetting(onFlipBoard)}>
-              Flip Board
+              Flip board
             </Button>
             <Button
               size="small"
@@ -223,13 +223,13 @@ function TopNav({
               role="menuitem"
               onClick={() => runSetting(onToggleAutoBoardFlip)}
             >
-              Auto Flip: {autoBoardFlipEnabled ? "On" : "Off"}
+              Auto flip: {autoBoardFlipEnabled ? "On" : "Off"}
             </Button>
             {canReset ? (
-              <Button size="small" role="menuitem" onClick={() => runSetting(onReset)}>
+              <Button variant="secondary" size="small" role="menuitem" onClick={() => runSetting(onReset)}>
                 {mode === "bot"
-                  ? "Restart Game"
-                  : variant === "gambit" ? "Request New Setup" : "Request Restart"}
+                  ? "Restart game"
+                  : variant === "gambit" ? "Request new setup" : "Request restart"}
               </Button>
             ) : null}
             <div className={`play-volume-control ${soundMuted ? "is-muted" : ""}`.trim()}>

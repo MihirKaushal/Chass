@@ -4,6 +4,8 @@ Chass combines configurable chess, real-time multiplayer, computer opponents, an
 photo-to-game recognition. Its central design constraint is keeping one source of truth
 for legal play while allowing engines and recognition models to be replaced independently.
 
+See [UI conventions](UI_STYLE.md) for shared component, copy, spacing, and action-hierarchy decisions.
+
 ## Authority And Extensibility
 
 ```text

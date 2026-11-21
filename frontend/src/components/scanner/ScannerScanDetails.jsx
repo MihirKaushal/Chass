@@ -16,7 +16,7 @@ export default function ScannerScanDetails({ scan, board, reviewSquares, confirm
         <span>{summary.corrected} {summary.corrected === 1 ? "square" : "squares"} corrected</span>
         {confirmed ? <span className="scanner-reviewed-label">Review complete</span> : null}
       </div>
-      <Disclosure className="scanner-label-export scanner-scan-details" summary="Scan Details">
+      <Disclosure className="scanner-label-export scanner-scan-details" summary="Scan details">
         <dl className="scanner-detail-grid">
           <div><dt>Processed</dt><dd>{browser ? "On your device" : "On the server"}</dd></div>
           <div><dt>Total wait</dt><dd>{formatDuration(timing.totalMs)}</dd></div>

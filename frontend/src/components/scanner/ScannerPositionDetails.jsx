@@ -17,7 +17,7 @@ function ScannerPositionDetails({
       aria-labelledby="scanner-position-title"
     >
       <header className="scanner-panel-header">
-        <h2 id="scanner-position-title">Game Details</h2>
+        <h2 id="scanner-position-title">Game details</h2>
       </header>
       <div className="scanner-position-grid">
         <fieldset className="scanner-turn-field">

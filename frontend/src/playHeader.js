@@ -33,7 +33,7 @@ export function onlinePlayerStatus(playerColor, presence, gameReady) {
 }
 
 export function roomLabel(mode) {
-  if (mode === "online") return "Online Room";
+  if (mode === "online") return "Online room";
   if (mode === "bot") return "Bot Match";
-  return "Local Room";
+  return "Local room";
 }

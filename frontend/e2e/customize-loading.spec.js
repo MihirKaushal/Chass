@@ -14,7 +14,7 @@ test("customizer renders and edits before a sleeping server responds", async ({ 
     await page.goto("/customize");
     await expect(page.locator(".studio-board")).toBeVisible();
     await expect(page.locator(".skeleton-customize-body")).toHaveCount(0);
-    await expect(page.getByRole("button", { name: "Start Local Game", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Start local game", exact: true })).toBeDisabled();
     await page.getByLabel("Rows", { exact: true }).fill("10");
     await expect(page.locator(".studio-square")).toHaveCount(80);
     await page.getByText("Enable Special Abilities", { exact: true }).click();
@@ -33,12 +33,12 @@ test("failed validation can retry without losing edits or bypassing checks", asy
   await page.goto("/customize");
   await page.getByLabel("Rows", { exact: true }).fill("10");
   await expect(page.getByText("Server Unavailable", { exact: true })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Start Local Game", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Start local game", exact: true })).toBeDisabled();
   await page.unroute("**/game/validate");
-  await page.getByRole("button", { name: "Retry Check" }).click();
-  await expect(page.getByRole("button", { name: "Start Local Game", exact: true })).toBeEnabled();
+  await page.getByRole("button", { name: "Retry check" }).click();
+  await expect(page.getByRole("button", { name: "Start local game", exact: true })).toBeEnabled();
   await expect(page.getByLabel("Rows", { exact: true })).toHaveValue("10");
-  await page.getByRole("button", { name: "Start Local Game", exact: true }).click();
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
   await expect(page).toHaveURL(/\/game\//);
   await expect(page.locator(".board-grid [data-row]")).toHaveCount(80);
 });
@@ -59,7 +59,7 @@ test("a stalled validation times out without blocking the editor", async ({ page
     await page.clock.fastForward(66000);
     await expect(page.getByText("Server Unavailable", { exact: true })).toBeVisible();
     await expect(page.getByText("The game server is taking longer than expected. Please retry the check.")).toBeVisible();
-    await expect(page.getByRole("button", { name: "Start Local Game", exact: true })).toBeDisabled();
+    await expect(page.getByRole("button", { name: "Start local game", exact: true })).toBeDisabled();
     await page.getByLabel("Rows", { exact: true }).fill("10");
     await expect(page.locator(".studio-square")).toHaveCount(80);
     await expect(page.getByText("Checking Setup", { exact: true })).toBeVisible();
@@ -76,7 +76,7 @@ test("customizer restores edits across the Rulebook and imports settings under S
   await page.goto("/customize");
   await expect(page.locator(".studio-square")).toHaveCount(120);
   await page.getByLabel("Rows", { exact: true }).fill("12");
-  await page.getByRole("link", { name: "Open Rulebook", exact: true }).click();
+  await page.getByRole("link", { name: "Open rulebook", exact: true }).click();
   await expect(page).toHaveURL(/\/rulebook/);
   await page.getByRole("navigation", { name: "Chass sections" }).getByRole("button", { name: "Customize", exact: true }).click();
   await expect(page.getByLabel("Rows", { exact: true })).toHaveValue("12");

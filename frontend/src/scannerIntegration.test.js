@@ -39,7 +39,7 @@ test("customizer first render is editable without a catalog request or loading s
     assert.match(html, /Checking Setup/);
     assert.doesNotMatch(html, /skeleton|Customization Unavailable/);
     assert.equal(requests, 0);
-    for (const label of ["Start Local Game", "Create Online Game", "Play Against A Bot"]) {
+    for (const label of ["Start local game", "Create online game", "Play against a bot"]) {
       const button = html.match(/<button\b[^>]*>[\s\S]*?<\/button>/g).find((entry) => entry.includes(label));
       assert.ok(button, label);
       assert.match(button, /^<button[^>]*disabled/);
@@ -152,7 +152,7 @@ test("home keeps concise room descriptions and exposes the scanner", async () =>
   const html = await markup("/src/pages/HomePage.jsx");
   assert.match(html, /Pass one screen between players\.<\/p>/);
   assert.match(html, /Create a private link and play from two browsers\.<\/p>/);
-  assert.match(html, /Continue Your Physical Game/);
+  assert.match(html, /Continue your physical game/);
   assert.match(html, /class="page-frame home-page"/);
   assert.match(html, /class="site-footer"/);
   assert.doesNotMatch(html, /No invite required|anywhere/);
@@ -163,32 +163,32 @@ test("scanner status and launch controls do not imply unavailable features work"
     "/src/components/scanner/ScannerServiceStatus.jsx",
     { status: "offline" },
   );
-  assert.match(offline, /Recognition Offline/);
-  assert.match(offline, /Retry Connection/);
+  assert.match(offline, /Recognition offline/);
+  assert.match(offline, /Retry connection/);
   assert.doesNotMatch(offline, /Start or reconnect the scanner service/);
   const warming = await markup(
     "/src/components/scanner/ScannerServiceStatus.jsx", { status: "warming" },
   );
-  assert.match(warming, /Starting Scanner/);
+  assert.match(warming, /Starting scanner/);
   assert.match(warming, /aria-busy="true"/);
   assert.match(warming, /ui-status-spinner/);
-  assert.doesNotMatch(warming, /Offline|Retry Connection/);
+  assert.doesNotMatch(warming, /Offline|Retry connection/);
   const connected = await markup(
     "/src/components/scanner/ScannerServiceStatus.jsx", { status: "ready" },
   );
-  assert.match(connected, /Scanner Ready/);
+  assert.match(connected, /Scanner ready/);
   assert.doesNotMatch(connected, /<p>/);
   const unconfigured = await markup(
     "/src/components/scanner/ScannerServiceStatus.jsx",
     { status: "unconfigured" },
   );
   assert.match(unconfigured, /Photo Preparation Only/);
-  assert.doesNotMatch(unconfigured, /Retry Connection/);
+  assert.doesNotMatch(unconfigured, /Retry connection/);
   const panel = await markup(
     "/src/components/scanner/ScannerContinuePanel.jsx",
   );
   assert.equal((panel.match(/disabled=""/g) || []).length, 2);
-  assert.doesNotMatch(panel, /<select|type="radio"|Play Against A Bot/);
+  assert.doesNotMatch(panel, /<select|type="radio"|Play against a bot/);
 });
 
 test("scanner page leaves experimental labeling to the rulebook", async () => {
@@ -206,9 +206,9 @@ test("scanner page leaves experimental labeling to the rulebook", async () => {
     const hero = html.match(/<header class="scanner-hero">([\s\S]*?)<\/header>/)?.[1];
     assert.ok(hero, "Scanner retains one main header");
     assert.match(hero, /scanner-service-status/);
-    assert.match(hero, /Recognition Options/);
+    assert.match(hero, /Recognition options/);
     assert.match(hero, /Scanner progress/);
-    assert.equal((html.match(/Recognition Options/g) || []).length, 1);
+    assert.equal((html.match(/Recognition options/g) || []).length, 1);
     assert.equal((html.match(/scanner-service-status/g) || []).length, 1);
   } finally {
     if (previousWindow) Object.defineProperty(globalThis, "window", previousWindow);
@@ -218,11 +218,11 @@ test("scanner page leaves experimental labeling to the rulebook", async () => {
 
 test("photo panel keeps essential guidance and collapses extra tips without decorative headings", async () => {
   const html = await markup("/src/components/scanner/ScannerPhotoPanel.jsx");
-  assert.match(html, /Board Photo/);
+  assert.match(html, /Board photo/);
   assert.match(html, /White&#x27;s home rank at the bottom/);
   assert.match(html, /Photos are sent only when you scan and are not stored/);
   assert.match(html, /<details class="ui-disclosure scanner-photo-tips">/);
-  assert.match(html, /Photo Tips/);
+  assert.match(html, /Photo tips/);
   assert.doesNotMatch(html, /Your photograph|scanner-step-label|scanner-overline/);
 });
 
@@ -234,9 +234,9 @@ test("scanner launch offers only local and online play and requires a reviewed v
     validation: { valid: true, issues: [] },
   };
   const panel = await markup(path, ready);
-  assert.match(panel, /Start Local Game/);
-  assert.match(panel, /Create Online Game/);
-  assert.doesNotMatch(panel, /Play Against A Bot|disabled=""/);
+  assert.match(panel, /Start local game/);
+  assert.match(panel, /Create online game/);
+  assert.doesNotMatch(panel, /Play against a bot|disabled=""/);
   for (const blocked of [
     { confirmed: false },
     { remainingReviews: 1 },
@@ -285,11 +285,11 @@ test("flagged squares label the current piece and provide one mark-correct actio
   assert.match(html, /White bishop/);
   assert.match(html, /White queen/);
   assert.match(html, /55%/);
-  assert.match(html, /This Square Is Empty/);
-  assert.match(html, /\(Current Piece\)/);
+  assert.match(html, /This square is empty/);
+  assert.match(html, /\(Current piece\)/);
   assert.equal((html.match(/Mark e5 Correct/g) || []).length, 1);
-  assert.doesNotMatch(html, /Keep Current Piece/);
-  assert.match(html, /Mark All Pieces Reviewed/);
+  assert.doesNotMatch(html, /Keep Current piece/);
+  assert.match(html, /Mark all pieces reviewed/);
 });
 
 test("current-piece markers follow the corrected board rather than original predictions", async () => {
@@ -299,10 +299,10 @@ test("current-piece markers follow the corrected board rather than original pred
     board, reviewSquares: [], selectedSquare: { row: 3, col: 4 },
     scan: { squareCandidates: [{ row: 3, col: 4, candidates: [{ class: "white-bishop", score: 0.8 }] }] },
   });
-  assert.match(html, /Black rook<span class="scanner-current-label">\(Current Piece\)/);
-  assert.equal((html.match(/\(Current Piece\)/g) || []).length, 1);
+  assert.match(html, /Black rook<span class="scanner-current-label">\(Current piece\)/);
+  assert.equal((html.match(/\(Current piece\)/g) || []).length, 1);
   assert.match(html, /No more squares to review/);
-  assert.doesNotMatch(html, /Mark All Pieces Reviewed/);
+  assert.doesNotMatch(html, /Mark all pieces reviewed/);
   assert.match(html, /missing pieces, wrong pieces, and incorrect colors/);
   assert.match(html, /confirm all 64 squares below/);
 });
@@ -323,7 +323,7 @@ test("optional history controls reflect the controlled position and block unreso
 
 test("home scanner card is same-tab and does not add a research product", async () => {
   const html = await markup("/src/components/scanner/ScannerFeatureCard.jsx");
-  assert.match(html, /Continue Your Physical Game/);
+  assert.match(html, /Continue your physical game/);
   assert.match(html, /href="\/scanner"/);
   assert.doesNotMatch(html, /target="_blank"|Research|experimental/);
 });
@@ -346,7 +346,7 @@ test("scan details start collapsed and distinguish server wait from inference", 
       clientTimings: { connectionMs: 1000, requestMs: 200, totalMs: 1200 } },
     board, reviewSquares: [], confirmed: false, showDetections: false,
   });
-  assert.match(html, /Scan Details/);
+  assert.match(html, /Scan details/);
   assert.match(html, /100 ms/);
   assert.match(html, /Connection \/ startup wait/);
   assert.match(html, /not measured probabilities/);

@@ -17,11 +17,11 @@ export default function ScannerFeatureCard() {
         </svg>
       </div>
       <div>
-        <h2>Continue Your Physical Game</h2>
+        <h2>Continue your physical game</h2>
         <p>Scan your chessboard, review the pieces, and continue on Chass.</p>
       </div>
       <AppLink href="/scanner" className="ui-button ui-button--primary">
-        <span className="ui-button-content"><ScannerIcon name="camera" /> Scan a Board</span>
+        <span className="ui-button-content"><ScannerIcon name="camera" /> Scan a board</span>
       </AppLink>
     </article>
   );

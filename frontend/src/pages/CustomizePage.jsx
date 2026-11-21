@@ -16,14 +16,14 @@ function LeaveCustomizeConfirmation({ open, onCancel, onConfirm }) {
       onClose={onCancel}
       closeLabel="Close leave Customize confirmation"
       eyebrow="Unsaved Configuration"
-      title="Leave Game Customizer?"
+      title="Leave game customizer?"
       description="Your custom game settings will be lost if you leave this page before starting a game."
       actions={(
         <>
           <Button variant="secondary" onClick={onCancel}>
-            Keep Editing
+            Keep editing
           </Button>
-          <Button variant="danger" onClick={onConfirm}>Leave Game Customizer</Button>
+          <Button variant="danger" onClick={onConfirm}>Leave game customizer</Button>
         </>
       )}
     />

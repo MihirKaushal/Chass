@@ -25,15 +25,15 @@ function ScannerContinuePanel({
       aria-busy={busy || validating}
     >
       <header className="scanner-panel-header">
-        <h2 id="scanner-continue-title">Continue Game</h2>
+        <h2 id="scanner-continue-title">Continue game</h2>
         <StatusBadge tone={ready ? "success" : "neutral"} busy={busy || validating}>
           {busy
-            ? "Creating Game"
+            ? "Creating game"
             : validating
-              ? "Checking Position"
+              ? "Checking position"
               : ready
-                ? "Ready To Play"
-                : "Review Required"}
+                ? "Ready to play"
+                : "Review required"}
         </StatusBadge>
       </header>
       <p className="scanner-continue-description">
@@ -55,7 +55,7 @@ function ScannerContinuePanel({
           <p role="alert" className="scanner-field-error">
             {error}{" "}
             <Button variant="text" size="small" onClick={onRetry}>
-              Recheck Position
+              Recheck position
             </Button>
           </p>
         ) : null}
@@ -69,10 +69,10 @@ function ScannerContinuePanel({
       </div>
       <div className="scanner-future-modes">
         <Button disabled={!ready} onClick={() => onContinue("local")}>
-          Start Local Game
+          Start local game
         </Button>
-        <Button disabled={!ready} onClick={() => onContinue("online")}>
-          Create Online Game
+        <Button variant="secondary" disabled={!ready} onClick={() => onContinue("online")}>
+          Create online game
         </Button>
       </div>
     </section>

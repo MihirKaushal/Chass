@@ -601,7 +601,7 @@ function ConfigurationBoard({
         {!draft.gambit.enabled ? (
           <div className="board-editor-actions">
             <button type="button" className="text-button" onClick={() => onSelectTool({ kind: "erase" })}>
-              Use Eraser
+              Use eraser
             </button>
             <button type="button" className="text-button" disabled={!canUndo} onClick={onUndo}>
               Undo
@@ -612,11 +612,11 @@ function ConfigurationBoard({
       </div>
       {!draft.gambit.enabled ? (
         <div className="board-editor-toolbar" aria-label="Board editor shortcuts">
-          <button type="button" onClick={onRestore}>Restore Formation</button>
-          <button type="button" onClick={() => onMirror("white")}>Mirror White To Black</button>
-          <button type="button" onClick={() => onMirror("black")}>Mirror Black To White</button>
-          <button type="button" disabled={!draft.placements.some((piece) => piece.color === "white")} onClick={() => onClearColor("white")}>Clear White</button>
-          <button type="button" disabled={!draft.placements.some((piece) => piece.color === "black")} onClick={() => onClearColor("black")}>Clear Black</button>
+          <button type="button" onClick={onRestore}>Restore formation</button>
+          <button type="button" onClick={() => onMirror("white")}>Mirror white to black</button>
+          <button type="button" onClick={() => onMirror("black")}>Mirror black to white</button>
+          <button type="button" disabled={!draft.placements.some((piece) => piece.color === "white")} onClick={() => onClearColor("white")}>Clear white</button>
+          <button type="button" disabled={!draft.placements.some((piece) => piece.color === "black")} onClick={() => onClearColor("black")}>Clear black</button>
           <button type="button" className="clear-board-button" disabled={!draft.placements.length} onClick={onClearBoard}>Clear All</button>
         </div>
       ) : null}
@@ -654,7 +654,7 @@ function TunableParameterFields({
   );
   return (
     <fieldset className="tuning-fieldset" disabled={disabled}>
-      <legend>Behavior Settings</legend>
+      <legend>Behavior settings</legend>
       <div className="tuning-field-grid">
         {parameters.map((parameter) => {
           const defaultValue = parameterDefault(parameter, {
@@ -750,7 +750,7 @@ function CollapsibleStudioSection({
           disabled={!status?.modified}
           onClick={onReset}
         >
-          Reset Section
+          Reset section
         </Button>
       </div>
       {children}
@@ -908,8 +908,8 @@ function CustomizeNavigator({
         </div>
       </div>
       <div className="customize-disclosure-actions" aria-label="Section display controls">
-        <button type="button" onClick={onExpandAll}>Expand All</button>
-        <button type="button" onClick={onCollapseAll}>Collapse All</button>
+        <button type="button" onClick={onExpandAll}>Expand all</button>
+        <button type="button" onClick={onCollapseAll}>Collapse all</button>
       </div>
     </aside>
   );
@@ -949,7 +949,7 @@ function RulebookLauncher() {
             className="ui-button rulebook-launch-link"
             href="/rulebook"
           >
-            Open Rulebook
+            Open rulebook
           </AppLink>
         </div>
       </div>
@@ -1750,7 +1750,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
         </aside>
 
         <div className="studio-controls">
-          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Starting Systems" description="Choose the overall setup, then adjust its board, pieces, win condition, and other settings." {...studioSectionProps("studio-popular-modes")}>
+          <CollapsibleStudioSection sectionId="studio-popular-modes" title="Starting Systems" description="Start with a ready board, hidden army setup, or shared draft." {...studioSectionProps("studio-popular-modes")}>
             <div className="mode-preset-grid" data-setting-key="popular-modes">
               {catalog.popularModes.map((mode) => (
                 <article
@@ -1834,7 +1834,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-victory" title="Win Condition" description="Choose the condition that decides the result." {...studioSectionProps("studio-victory")}>
+          <CollapsibleStudioSection sectionId="studio-victory" title="Win Condition" description="Set how a player wins." {...studioSectionProps("studio-victory")}>
             <div className="victory-grid" data-setting-key="victory-mode">
               {catalog.victoryModes.map((mode) => {
                 const reason = disabledVictoryModes[mode.id];
@@ -1850,7 +1850,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             </div>
           </CollapsibleStudioSection>
 
-          <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Add optional board-wide systems to any compatible match." className="ability-config-section" {...studioSectionProps("studio-custom-rules")}>
+          <CollapsibleStudioSection sectionId="studio-custom-rules" title="Custom Rules" description="Enable affinity squares and configure command points." className="ability-config-section" {...studioSectionProps("studio-custom-rules")}>
             <div id="customize-affinity-squares">
               <Toggle settingKey="affinity-rules" checked={draft.customRules.affinityEnabled} onChange={(affinityEnabled) => setDraft((current) => ({ ...current, presetId: "custom", customRules: { ...current.customRules, affinityEnabled } }))} label="Enable Affinity Squares" description="Begin with centered marked squares empty, then control the configured number of your color to earn command points." />
               {draft.customRules.affinityEnabled ? <div className="conditional-fields">
@@ -2001,7 +2001,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
           <strong>{launchState.detail}</strong>
           {validation.status === "unavailable" ? (
             <Button variant="secondary" onClick={() => setValidationRetryKey((value) => value + 1)}>
-              Retry Check
+              Retry check
             </Button>
           ) : null}
           {launchState.errors.length ? (
@@ -2032,7 +2032,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             loadingLabel="Building Game..."
             onClick={() => create("local")}
           >
-            Start Local Game
+            Start local game
           </Button>
           <Button
             variant="secondary"
@@ -2041,10 +2041,10 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             loadingLabel="Creating Invite..."
             onClick={() => create("online")}
           >
-            Create Online Game
+            Create online game
           </Button>
           <Button
-            variant={botEligible ? "primary" : "secondary"}
+            variant="secondary"
             className={`bot-launch-button ${botEligible ? "" : "is-unavailable"}`.trim()}
             disabled={botButtonDisabled}
             aria-disabled={!botEligible}
@@ -2052,7 +2052,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             loadingLabel={botCompatibilityChecking ? "Checking Bot..." : "Starting Bot Match..."}
             onClick={openBotSetup}
           >
-            Play Against A Bot
+            Play against a bot
           </Button>
         </div>
       </section>

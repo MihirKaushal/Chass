@@ -99,7 +99,7 @@ function ScannerPhotoPanel({
       aria-labelledby="scanner-photo-title"
     >
       <header className="scanner-panel-header">
-        <h2 id="scanner-photo-title">Board Photo</h2>
+        <h2 id="scanner-photo-title">Board photo</h2>
       </header>
       <input
         ref={uploadRef}
@@ -112,11 +112,11 @@ function ScannerPhotoPanel({
       <div className="scanner-photo-actions">
         <Button onClick={() => uploadRef.current?.click()}>
           <ScannerIcon name="upload" />
-          {file ? "Replace Photo" : "Upload Photo"}
+          {file ? "Replace Photo" : "Upload photo"}
         </Button>
         <Button variant="secondary" onClick={() => setCameraOpen(true)}>
           <ScannerIcon name="camera" />
-          Take A Photo
+          Take a photo
         </Button>
       </div>
       <div
@@ -209,7 +209,7 @@ function ScannerPhotoPanel({
                 : undefined
           }
         >
-          {busy ? "Recognizing..." : "Recognize Pieces"}
+          {busy ? "Recognizing..." : "Recognize pieces"}
           <ScannerIcon name="arrow" />
         </Button>
       </div>
@@ -228,7 +228,7 @@ function ScannerPhotoPanel({
           Crop to all 64 squares, with White's home rank at the bottom.
         </span>
       </p>
-      <Disclosure className="scanner-photo-tips" summary="Photo Tips">
+      <Disclosure className="scanner-photo-tips" summary="Photo tips">
         {PHOTO_TIPS.map((tip) => (
           <div className="scanner-photo-tip" key={tip.icon}>
             <span className="scanner-tip-icon">

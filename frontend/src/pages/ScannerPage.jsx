@@ -245,7 +245,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
           clientTimings.connectionMs = performance.now() - connectionStarted;
           controller.signal.throwIfAborted();
           if (requestRef.current === controller) setServiceStatus(status);
-          if (status !== "ready") throw new Error("Scanner unavailable. Retry Connection, then scan again.");
+          if (status !== "ready") throw new Error("Scanner unavailable. Retry connection, then scan again.");
           if (requestRef.current === controller) setRecognitionStatus("Recognizing pieces...");
           timeout = window.setTimeout(() => controller.abort(), 90000);
           const requestStarted = performance.now();
@@ -381,7 +381,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
               status={serviceStatus}
               onRetry={() => setConnectionRetry((value) => value + 1)}
             />
-            <Disclosure className="scanner-runtime-options" summary="Recognition Options">
+            <Disclosure className="scanner-runtime-options" summary="Recognition options">
               <label className="scanner-runtime-toggle">
                 <input type="checkbox" checked={onDevice} disabled={busy || !browserScannerSupported()}
                   onChange={(event) => setOnDevice(event.target.checked)} />
@@ -392,7 +392,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
             </Disclosure>
           </fieldset>
           <ol className="scanner-progress" aria-label="Scanner progress">
-            {["Prepare Photo", "Review Pieces", "Confirm Position"].map(
+            {["Prepare Photo", "Review pieces", "Confirm position"].map(
               (label, index) => (
                 <li
                   key={label}
@@ -576,7 +576,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
               variant="secondary"
               onClick={() => setPendingDestination(null)}
             >
-              Keep Editing
+              Keep editing
             </Button>
             <Button
               variant="danger"

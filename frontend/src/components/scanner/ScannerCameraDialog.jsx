@@ -136,7 +136,7 @@ function ScannerCameraDialog({ onCapture, onClose }) {
               onClick={capture}
             >
               <ScannerIcon name="camera" />
-              Capture Photo
+              Capture photo
             </Button>
           )}
         </>
