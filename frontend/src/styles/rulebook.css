@@ -24,7 +24,7 @@
   display: flex;
   justify-content: space-between;
   gap: 2rem;
-  padding: clamp(1.2rem, 3vw, 2rem);
+  padding: var(--page-header-padding);
   color: white;
   background:
     linear-gradient(110deg, rgba(26, 54, 93, 0.98), rgba(43, 108, 176, 0.92)),

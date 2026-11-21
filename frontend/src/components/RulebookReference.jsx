@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import PageHeading from "./PageHeading";
 import { matchesRulebookSearch } from "../rulebookSearch";
 import { SCANNER_REFERENCE } from "../scannerReference";
 import ScannerPerformance from "./scanner/ScannerPerformance";
@@ -194,11 +195,7 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
     <section className="rulebook rulebook-reference" id="rulebook">
       <header className="rulebook-hero rulebook-reference-hero">
         <div className="rulebook-reference-heading">
-          <div className="rulebook-hero-copy">
-            <span className="eyebrow">Complete Reference</span>
-            <h2>The Chass Rulebook</h2>
-            <p>Rules, pieces, abilities, engines, bots, and the Board Scanner.</p>
-          </div>
+          <PageHeading className="rulebook-hero-copy" title="The Chass Rulebook" description="Learn how the pieces, rules, engines, and scanner work." />
           <nav aria-label="Rulebook sections">
             <a href="#rulebook-match-analysis">Match Analysis</a>
             <a href="#rulebook-bots">Chess Bots</a>

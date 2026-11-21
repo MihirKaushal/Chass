@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
+import PageHeading from "../components/PageHeading";
 import ScannerBoardReview from "../components/scanner/ScannerBoardReview";
 import ScannerPositionDetails from "../components/scanner/ScannerPositionDetails";
 import ScannerContinuePanel from "../components/scanner/ScannerContinuePanel";
@@ -363,15 +364,10 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
         />
         <header className="scanner-hero">
           <div className="scanner-heading">
-            <div>
-              <div className="scanner-title-row">
-                <h1>AI Board Scanner</h1>
-              </div>
-              <p>
-                Turn a photo into a playable game. Standard 8 x 8 boards and
-                classic pieces only.
-              </p>
-            </div>
+            <PageHeading
+              title="AI Board Scanner"
+              description="Turn a photo into a playable game. Standard 8 x 8 boards and classic pieces only."
+            />
             <AppLink
               href="/rulebook#rulebook-scanner"
               className="scanner-guide-link"

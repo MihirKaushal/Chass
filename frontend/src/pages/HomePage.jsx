@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 
+import PageHeading from "../components/PageHeading";
 import { getCatalog } from "../api/gameApi";
 import { availableBotProfiles, buildClassicBotRequest } from "../botGame";
 import BotSetupDialog from "../components/BotSetupDialog";
@@ -83,14 +84,13 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
           <div className="landing-brand-mark" aria-hidden="true">
             <img src="/chass-mark.svg" alt="" />
           </div>
-          <div className="landing-copy">
-            <span className="eyebrow">Build the rules. Play the board.</span>
-            <h1>Chass!</h1>
-            <p className="landing-intro">
-              <span>Classic chess when you want it. A flexible rule laboratory when you do not.</span>
-              <span>Choose how your opponent is joining:</span>
-            </p>
-          </div>
+          <PageHeading
+            className="landing-copy"
+            brand
+            title="Chass!"
+            tagline="Build the rules. Play the board."
+            description="Choose how your opponent is joining:"
+          />
 
           <div className="mode-choice-grid">
             <article className="mode-choice-card">

@@ -16,8 +16,8 @@
 .configuration-studio {
   width: 100%;
   min-width: 0;
-  padding: clamp(1rem, 2.5vw, 2rem);
-  border-radius: 26px;
+  padding: var(--page-header-padding);
+  border-radius: var(--radius-xl);
   background:
     linear-gradient(145deg, rgba(255, 255, 255, 0.48), rgba(234, 216, 181, 0.8)),
     var(--panel);
@@ -36,8 +36,8 @@
   align-items: flex-start;
   justify-content: space-between;
   gap: 2rem;
-  padding: 0.4rem 0.4rem 1.5rem;
-  border-bottom: 1px solid rgba(26, 54, 93, 0.16);
+  padding: 0 0 var(--space-6);
+  border-bottom: 1px solid var(--border-subtle);
 }
 
 .studio-hero-copy {
@@ -45,20 +45,7 @@
   min-width: 0;
 }
 
-.studio-hero h1 {
-  max-width: 720px;
-  margin: 0.2rem 0 0.45rem;
-  font-size: clamp(2rem, 5vw, 4rem);
-  line-height: 0.98;
-  letter-spacing: -0.055em;
-}
 
-.studio-hero p {
-  max-width: 760px;
-  margin: 0;
-  color: var(--ink-muted);
-  line-height: 1.55;
-}
 
 .customize-section-navigator {
   width: min(300px, 32vw);
@@ -70,7 +57,7 @@
   background:
     linear-gradient(125deg, rgba(43, 108, 176, 0.36), rgba(26, 54, 93, 0.12)),
     var(--deep);
-  box-shadow: 0 12px 25px var(--border-subtle);
+  box-shadow: var(--shadow-sm);
 }
 
 .customize-jump-options > p {

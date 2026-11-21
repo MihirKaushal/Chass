@@ -1,0 +1,47 @@
+/* Shared hierarchy; the home wordmark remains larger than task-page titles. */
+.page-heading {
+  min-width: 0;
+  --heading-description-color: var(--ink-muted);
+}
+
+.page-heading .page-heading-title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--page-title-size);
+  font-weight: 700;
+  line-height: 1.12;
+  letter-spacing: -0.045em;
+  text-wrap: balance;
+}
+
+.page-heading .page-heading-description {
+  max-width: 70ch;
+  margin: var(--space-3) 0 0;
+  color: var(--heading-description-color);
+  font-size: var(--text-lg);
+  line-height: 1.55;
+}
+
+.page-heading-tagline {
+  display: block;
+  margin-top: var(--space-3);
+  color: var(--accent);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+  font-weight: 700;
+  line-height: 1.6;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.page-heading--brand .page-heading-title {
+  font-size: clamp(3rem, 6vw, 4.5rem);
+}
+
+.rulebook-hero .page-heading {
+  --heading-description-color: rgba(255, 255, 255, 0.8);
+}
+
+@media (min-width: 900px) and (max-height: 850px) {
+  .page-heading--brand .page-heading-title { font-size: 3.6rem; }
+}

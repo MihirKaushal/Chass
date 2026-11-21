@@ -617,14 +617,6 @@
     border-radius: 18px;
   }
 
-  .studio-hero h1 {
-    font-size: 2.2rem;
-  }
-
-  .landing-intro span:first-child {
-    white-space: normal;
-  }
-
   .mode-preset-grid,
   .piece-catalog-grid,
   .victory-grid,

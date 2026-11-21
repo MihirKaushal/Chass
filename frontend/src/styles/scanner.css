@@ -194,7 +194,7 @@
 }
 
 .scanner-hero {
-  padding: clamp(1.25rem, 3vw, 2rem);
+  padding: var(--page-header-padding);
   border: 2px solid var(--border-subtle);
   border-radius: var(--radius-xl);
   background:
@@ -382,20 +382,7 @@
   padding: 0;
 }
 
-.scanner-heading h1 {
-  margin: 0;
-  font-size: clamp(1.8rem, 3.4vw, 2.8rem);
-  line-height: 1.15;
-  letter-spacing: -0.045em;
-}
 
-.scanner-heading p {
-  max-width: 42rem;
-  margin: 0.65rem 0 0;
-  color: var(--ink-muted);
-  font-size: 0.96rem;
-  line-height: 1.55;
-}
 
 .scanner-tip-icon {
   display: grid;

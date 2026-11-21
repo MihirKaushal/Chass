@@ -39,6 +39,8 @@
   --page-max-width: 1540px;
   --page-gutter: 1rem;
   --page-content-width: min(var(--page-max-width), calc(100% - 2 * var(--page-gutter)));
+  --page-header-padding: clamp(1.25rem, 2.5vw, 2rem);
+  --page-title-size: clamp(2rem, 3.4vw, 2.8rem);
   --page-top-space: 1rem;
   --page-nav-gap: 1rem;
   --radius-sm: 8px;

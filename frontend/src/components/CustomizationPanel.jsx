@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
+import PageHeading from "./PageHeading";
 import { validateGameConfiguration } from "../api/gameApi";
 import catalog from "../generated/rulebookCatalog.json";
 import { barricadeSquares, significantCenterSquares } from "../boardGeometry";
@@ -940,9 +941,8 @@ function RulebookLauncher() {
     <section className="rulebook rulebook-launcher" id="rulebook" aria-labelledby="rulebook-launcher-title">
       <div className="rulebook-hero rulebook-launcher-hero">
         <div className="rulebook-hero-copy">
-          <span className="eyebrow">Complete Reference</span>
           <h2 id="rulebook-launcher-title">The Chass Rulebook</h2>
-          <p>Explore the rules, pieces, engines, bots, and Board Scanner in one searchable guide.</p>
+          <p>Find piece behavior, ability details, and rules in the searchable guide.</p>
         </div>
         <div className="rulebook-launcher-action">
           <AppLink
@@ -1715,7 +1715,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
   return (
     <section className="customization-panel configuration-studio">
       <header className="studio-hero">
-        <div className="studio-hero-copy"><span className="eyebrow">Game Customizer</span><h1>Build Your Version Of Chass</h1><p>Choose a starting system, then adjust the board, pieces, win condition, abilities, or Gambit setup.</p></div>
+        <PageHeading className="studio-hero-copy" title="Game Customizer" description="Choose a starting system, then make the board and rules your own." />
         <CustomizeNavigator
           query={sectionQuery}
           results={customizeSearchResults}
