@@ -94,7 +94,8 @@ app.add_middleware(RequestSizeLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.allowed_origins),
-    allow_credentials=True,
+    # Players authenticate with bearer tokens, never cookies.
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )

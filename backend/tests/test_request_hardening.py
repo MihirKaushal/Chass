@@ -161,3 +161,17 @@ def test_game_state_responses_are_compressed(client):
     assert game.status_code == 200
     assert game.headers["content-encoding"] == "gzip"
     assert game.json()["game"]["id"]
+
+
+def test_cors_allows_the_frontend_without_credentials(client):
+    response = client.options(
+        "/game/create",
+        headers={
+            "Origin": "http://localhost:5173",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "authorization,content-type",
+        },
+    )
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == "http://localhost:5173"
+    assert "access-control-allow-credentials" not in response.headers
