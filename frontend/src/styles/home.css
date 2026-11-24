@@ -338,6 +338,13 @@
 .resume-games li {
   flex: 1 1 16rem;
   min-width: 0;
+  container-type: inline-size;
+}
+
+.resume-game-details {
+  display: grid;
+  align-content: start;
+  gap: var(--space-1);
 }
 
 .resume-game-link time {
@@ -382,6 +389,20 @@
 .resume-game-link span {
   color: var(--ink-muted);
   font-size: var(--text-sm);
+}
+
+@container (min-width: 300px) {
+  .resume-game-link {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    column-gap: var(--space-4);
+  }
+  .resume-game-moves {
+    margin: 0;
+    padding: 0 0 0 var(--space-4);
+    border-top: 0;
+    border-left: 1px solid var(--border-subtle);
+    align-content: start;
+  }
 }
 
 @media (max-width: 640px) {

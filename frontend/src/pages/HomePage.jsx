@@ -188,10 +188,12 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
                 {resumable.map((entry) => (
                   <li key={entry.gameId}>
                     <AppLink className="resume-game-link" href={`/game/${encodeURIComponent(entry.gameId)}`}>
-                      <strong>{recentGameLabel(entry)}</strong>
-                      {entry.summary ? <span className="resume-game-summary">{entry.summary}</span> : null}
-                      <span>{lastPlayedLabel(entry.updatedAt)}</span>
-                      <time dateTime={new Date(entry.updatedAt).toISOString()}>{lastPlayedTimestamp(entry.updatedAt)}</time>
+                      <span className="resume-game-details">
+                        <strong>{recentGameLabel(entry)}</strong>
+                        {entry.summary ? <span className="resume-game-summary">{entry.summary}</span> : null}
+                        <span>{lastPlayedLabel(entry.updatedAt)}</span>
+                        <time dateTime={new Date(entry.updatedAt).toISOString()}>{lastPlayedTimestamp(entry.updatedAt)}</time>
+                      </span>
                       {entry.recentMoves?.length ? (
                         <span className="resume-game-moves">
                           <span>Last {entry.recentMoves.length === 1 ? "move" : `${entry.recentMoves.length} moves`}</span>

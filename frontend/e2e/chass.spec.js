@@ -401,3 +401,50 @@ test("standard local positions can be copied as FEN or opened on Lichess", async
   const copied = await page.evaluate(() => navigator.clipboard.readText());
   expect(copied).toMatch(/^rnbqkbnr\/pppppppp\/8\/8\/4P3\/8\/PPPP1PPP\/RNBQKBNR b KQkq/);
 });
+
+test("resuming restores Black's auto-flipped view and remembered settings", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
+  await square(page, 6, 4).click();
+  await square(page, 4, 4).click();
+  await expect(page.locator(".turn-banner")).toContainText("Black to move");
+  const firstSquare = page.locator(".board-grid [data-row]").first();
+  await expect(firstSquare).toHaveAttribute("data-row", "7");
+  await page.reload();
+  await expect(firstSquare).toHaveAttribute("data-row", "7");
+  const settings = page.getByRole("button", { name: "Game settings" });
+  await settings.click();
+  await page.getByRole("menuitemcheckbox", { name: "Auto flip: On" }).click();
+  await settings.click();
+  await page.getByRole("menuitem", { name: "Flip board", exact: true }).click();
+  await expect(firstSquare).toHaveAttribute("data-row", "0");
+  await settings.click();
+  await page.getByRole("menuitemcheckbox", { name: "Match Analysis: Enabled" }).click();
+  await settings.click();
+  await page.getByRole("menuitemcheckbox", { name: "Mute game sounds" }).click();
+  await page.reload();
+  await expect(firstSquare).toHaveAttribute("data-row", "0");
+  await settings.click();
+  await expect(page.getByRole("menuitemcheckbox", { name: "Auto flip: Off" })).toBeVisible();
+  await expect(page.getByRole("menuitemcheckbox", { name: "Match Analysis: Disabled" })).toBeVisible();
+  await expect(page.getByRole("menuitemcheckbox", { name: "Unmute game sounds" })).toBeVisible();
+  await page.getByRole("menuitemcheckbox", { name: "Auto flip: Off" }).click();
+  await expect(firstSquare).toHaveAttribute("data-row", "7");
+});
+
+test("recent-game cards use the right column for moves when space allows", async ({ page }, testInfo) => {
+  await page.addInitScript(() => localStorage.setItem("chass:recent-games", JSON.stringify(
+    [1, 2, 3].map((id) => ({ gameId: `sample-${id}`, mode: "local", updatedAt: Date.now(),
+      summary: "8 x 8 | Black to move", recentMoves: ["1. White Pawn e2-e4", "2. Black Pawn e7-e5", "3. White Knight g1-f3"],
+    }))
+  )));
+  await page.goto("/");
+  const card = page.locator(".resume-game-link").first();
+  await expect(card).toBeVisible();
+  if (testInfo.project.name === "desktop") {
+    const details = await card.locator(".resume-game-details").boundingBox();
+    const moves = await card.locator(".resume-game-moves").boundingBox();
+    expect(moves.x).toBeGreaterThan(details.x + details.width);
+  }
+  await testInfo.attach("recent-game-columns", { body: await page.screenshot(), contentType: "image/png" });
+});
