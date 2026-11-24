@@ -2,6 +2,20 @@ import { test, expect } from "@playwright/test";
 
 test("scanner benchmarks open by default and can still be collapsed", async ({ page }) => {
   await page.goto("/rulebook#rulebook-scanner");
+  const cards = page.locator(".scanner-reference-grid > article");
+  await expect(cards).toHaveCount(4);
+  const bounds = await cards.evaluateAll((items) => items.map((item) => {
+    const { x, y } = item.getBoundingClientRect();
+    return { x, y };
+  }));
+  if (page.viewportSize().width > 640) {
+    expect(bounds[0].y).toBe(bounds[1].y);
+    expect(bounds[2].y).toBe(bounds[3].y);
+    expect(bounds[2].y).toBeGreaterThan(bounds[0].y);
+    expect(bounds[0].x).toBe(bounds[2].x);
+  } else {
+    expect(new Set(bounds.map((item) => item.x)).size).toBe(1);
+  }
   const panel = page.locator(".scanner-performance");
   await expect(panel).toHaveAttribute("open", "");
   await expect(panel.getByText("Finding is not the same as identifying.", { exact: true })).toBeVisible();
