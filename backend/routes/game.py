@@ -855,13 +855,13 @@ async def take_back_move(
 ) -> GameResponse:
     _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
-    bot_turn_scheduler.cancel(game_id)
     record, explanation, viewer_color = await run_in_threadpool(
         game_service.take_back,
         game_id,
         payload,
         token,
     )
+    bot_turn_scheduler.cancel(game_id)
     response = game_service.serialize_game(
         record,
         last_explanation=explanation,

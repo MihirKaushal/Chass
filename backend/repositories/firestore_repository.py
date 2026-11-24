@@ -535,6 +535,24 @@ class FirestoreGameRepository:
 
         replace(transaction)
 
+    def _undone_move_refs(self, previous: GameState, state: GameState, transaction=None):
+        """Read obsolete history before writing; delete it with the versioned state."""
+        if previous.history_epoch != state.history_epoch:
+            return []
+        last = state.history[-1].move_number if state.history else 0
+        previous_last = previous.history[-1].move_number if previous.history else 0
+        if last >= previous_last:
+            return []
+        query = self.client.collection(MOVES).where(
+            filter=FieldFilter("history_key", "==", f"{state.id}:{state.history_epoch}")
+        ).where(filter=FieldFilter("move_number", ">", last)).order_by(
+            "move_number", direction=firestore.Query.DESCENDING
+        ).limit(451)
+        snapshots = list(query.stream(transaction=transaction))
+        if len(snapshots) > 450:
+            raise RepositoryError("Too many old history records to undo safely.")
+        return [snapshot.reference for snapshot in snapshots]
+
     def save_game(
         self,
         state: GameState,
@@ -587,6 +605,11 @@ class FirestoreGameRepository:
                 state,
                 paged=history_paged,
             )
+            undone_refs = self._undone_move_refs(
+                GameState.model_validate_json(game["state_json"]), state, transaction
+            )
+            for reference in undone_refs:
+                transaction.delete(reference)
             transaction.update(
                 game_ref,
                 {
@@ -653,7 +676,10 @@ class FirestoreGameRepository:
             **({"expires_at": expires_at} if expires_at is not None else {}),
         }
 
+        undone_refs = self._undone_move_refs(current_record.state, state)
         batch = self.client.batch()
+        for reference in undone_refs:
+            batch.delete(reference)
         batch.update(
             game_ref,
             updated_fields,

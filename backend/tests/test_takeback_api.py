@@ -145,3 +145,29 @@ def test_bot_takeback_also_undoes_the_bot_reply(client):
     assert undone["currentPlayer"] == "white"
     assert undone["board"][6][4]["type"] == "pawn"
     assert undone["takebackAvailable"] is False
+
+
+def test_reset_does_not_mutate_original_or_keep_takebacks(client):
+    from backend.models.schemas import ResetGameRequest
+
+    game = local_game(client)
+    move(client, game["id"], (6, 4), (4, 4))
+    record = game_service.get_game(game["id"])
+    reset = game_service._reset_state(record, ResetGameRequest())
+    assert len(record.state.history) == 1
+    assert record.state.undo_snapshots
+    assert reset.history_epoch == record.state.history_epoch + 1
+    saved = game_service._save(record, reset)
+    assert not saved.state.undo_snapshots
+    assert client.post(f"/game/{game['id']}/takeback", json={}).status_code == 409
+
+
+def test_rejected_takeback_does_not_cancel_a_pending_bot(client, monkeypatch):
+    from backend.routes.game import bot_turn_scheduler
+
+    game = local_game(client)
+    cancelled = []
+    monkeypatch.setattr(bot_turn_scheduler, "cancel", cancelled.append)
+    response = client.post(f"/game/{game['id']}/takeback", json={})
+    assert response.status_code == 409
+    assert cancelled == []

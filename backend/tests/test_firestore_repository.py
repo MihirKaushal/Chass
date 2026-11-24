@@ -102,11 +102,15 @@ class FakeQuery:
             return current == field_filter.value
         if field_filter.op_string == "<=":
             return current is not None and current <= field_filter.value
+        if field_filter.op_string == ">":
+            return current is not None and current > field_filter.value
         if field_filter.op_string == "<":
             return current is not None and current < field_filter.value
         raise AssertionError(f"Unsupported fake query operator: {field_filter.op_string}")
 
-    def stream(self):
+    def stream(self, transaction=None):
+        if transaction is not None and transaction.write_started:
+            raise AssertionError("Query reads must precede transaction writes")
         snapshots = []
         for document_id, data in self.client.documents[self.collection_name].items():
             if all(self._matches(data, item) for item in self.filters):
@@ -532,3 +536,31 @@ def test_firestore_history_keeps_the_replacement_after_a_takeback(firestore_serv
     assert [entry.move_number for entry in page.records] == [1, 2]
     assert (page.records[1].to_row, page.records[1].to_col) == (3, 3)
     assert record.state.undo_snapshots
+
+
+@pytest.mark.parametrize("revision_writes", [True, False])
+def test_firestore_takeback_removes_undone_history_before_replay(firestore_service, monkeypatch, revision_writes):
+    from backend.models.schemas import TakebackRequest
+
+    service, repository, client = firestore_service
+    if not revision_writes:
+        from dataclasses import replace
+        original_get = repository.get_game
+        monkeypatch.setattr(repository, "get_game", lambda game_id: replace(
+            original_get(game_id), persistence_revision=None
+        ))
+    game_id = service.create_game(CreateGameRequest(mode="local")).game.id
+    service.move_piece(game_id, MoveRequest(fromRow=6, fromCol=4, toRow=4, toCol=4))
+    service.move_piece(game_id, MoveRequest(fromRow=1, fromCol=4, toRow=3, toCol=4))
+    service.take_back(game_id, TakebackRequest())
+    page = repository.get_history_page(game_id, 0, limit=1)
+    assert [entry.move_number for entry in page.records] == [1]
+    assert not page.has_more
+    assert len(client.documents[MOVES]) == 1
+    service.move_piece(game_id, MoveRequest(fromRow=1, fromCol=3, toRow=3, toCol=3))
+    newest = repository.get_history_page(game_id, 0, limit=1)
+    assert newest.has_more
+    assert newest.records[0].to_col == 3
+    oldest = repository.get_history_page(game_id, 0, before_move_number=newest.next_before, limit=1)
+    assert [entry.move_number for entry in oldest.records] == [1]
+    assert not oldest.has_more

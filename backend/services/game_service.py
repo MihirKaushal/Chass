@@ -2169,7 +2169,7 @@ class GameService:
         )
 
     def _reset_state(self, record: GameRecord, request: ResetGameRequest) -> GameState:
-        game_state = record.state
+        game_state = record.state.clone()
 
         if game_state.imported_position is not None:
             reset, issues = self.engine.imports.build(
@@ -2563,7 +2563,7 @@ class GameService:
     ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
-        game_state = record.state
+        game_state = record.state.clone()
         if game_state.imported_position is not None:
             raise HTTPException(
                 status_code=409,
