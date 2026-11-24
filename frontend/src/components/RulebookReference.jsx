@@ -297,9 +297,12 @@ function RulebookReference({ catalog, draft: suppliedDraft, predictorProfile = n
         {showScanner ? (
           <>
             <div className="predictor-reference-grid scanner-reference-grid">
-              {SCANNER_REFERENCE.entries.map((entry) => (
+              {SCANNER_REFERENCE.entries.map((entry, index) => (
                 <article key={entry.title}>
-                  <header><strong>{entry.title}</strong></header>
+                  <header>
+                    <strong>{entry.title}</strong>
+                    <span className="scanner-reference-step"><span className="visually-hidden">Step </span>{index + 1}</span>
+                  </header>
                   <p>{entry.text}</p>
                 </article>
               ))}

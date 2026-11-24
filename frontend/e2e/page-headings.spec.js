@@ -4,6 +4,7 @@ test("scanner benchmarks open by default and can still be collapsed", async ({ p
   await page.goto("/rulebook#rulebook-scanner");
   const cards = page.locator(".scanner-reference-grid > article");
   await expect(cards).toHaveCount(4);
+  await expect(cards.locator(".scanner-reference-step")).toHaveText(["Step 1", "Step 2", "Step 3", "Step 4"]);
   const bounds = await cards.evaluateAll((items) => items.map((item) => {
     const { x, y } = item.getBoundingClientRect();
     return { x, y };

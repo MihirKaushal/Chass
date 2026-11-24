@@ -423,7 +423,7 @@
   gap: 0.6rem;
 }
 
-.predictor-reference-grid article > header span {
+.predictor-reference-grid article > header > span {
   padding: 0.18rem 0.38rem;
   color: var(--accent);
   border: 1px solid currentColor;
@@ -432,6 +432,18 @@
   font-size: 0.55rem;
   font-weight: 800;
   text-transform: uppercase;
+}
+
+.scanner-reference-grid article > header > .scanner-reference-step {
+  display: grid;
+  place-items: center;
+  width: 1.8rem;
+  height: 1.8rem;
+  flex: 0 0 1.8rem;
+  padding: 0;
+  border-color: var(--border-accent);
+  background: rgba(99, 179, 237, 0.12);
+  font-size: var(--text-sm);
 }
 
 .predictor-reference-grid article p {
