@@ -38,7 +38,13 @@ def main():
             }
         )
         from backend.main import app
+        from backend.rate_limit import rate_limiter
         from scanner.service import create_app
+
+        # Every browser test reaches this one server from 127.0.0.1, so production
+        # limits (20 new games per hour) would throttle the suite itself. Rate
+        # limiting is covered by the backend tests instead.
+        rate_limiter.check = lambda *args, **kwargs: None
 
         scanner = uvicorn.Server(
             uvicorn.Config(
