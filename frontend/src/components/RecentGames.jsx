@@ -30,8 +30,13 @@ export default function RecentGames({ games }) {
           <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 5-7 7 7 7" /></svg>
         </button>}
         <ul id="resume-games-list" style={{ "--resume-columns": pageSize }}>
-          {shown.map((entry) => (
-            <li key={entry.gameId}>
+          {games.map((entry, index) => (
+            <li
+              key={entry.gameId}
+              aria-hidden={index < start || index >= start + pageSize ? true : undefined}
+              inert={index < start || index >= start + pageSize ? "" : undefined}
+              style={{ gridColumn: index % pageSize + 1, gridRow: 1 }}
+            >
               <AppLink className="resume-game-link" href={`/game/${encodeURIComponent(entry.gameId)}`}>
                 <span className="resume-game-details">
                   <strong>{recentGameLabel(entry)}</strong>

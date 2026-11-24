@@ -457,7 +457,10 @@ test("recent-game cards use the right column for moves when space allows", async
 test("saved-game arrows reach all eight games without hiding their details", async ({ page }, testInfo) => {
   await page.addInitScript(() => localStorage.setItem("chass:recent-games", JSON.stringify(
     Array.from({ length: 8 }, (_, index) => ({ gameId: `saved-${index}`, mode: "bot", color: "white", updatedAt: Date.now() - index * 1000,
-      summary: "8 x 8 | Black to move | Bot ~1500 Elo", recentMoves: ["1. White Knight g1-f3"],
+      summary: "8 x 8 | Black to move | Bot ~1500 Elo",
+      recentMoves: index === 7
+        ? ["1. White Knight g1-f3", "2. Black Pawn e7-e5", "3. White Pawn d2-d4"]
+        : ["1. White Knight g1-f3"],
     }))
   )));
   await page.goto("/");
@@ -466,8 +469,22 @@ test("saved-game arrows reach all eight games without hiding their details", asy
   await expect(previous).toBeDisabled();
   await expect(page.locator('.resume-game-link[href="/game/saved-0"]')).toBeVisible();
   const desktop = testInfo.project.name === "desktop";
-  await expect(page.locator(".resume-game-link")).toHaveCount(desktop ? 3 : 1);
-  for (let step = 0; step < (desktop ? 2 : 7); step++) await next.click();
+  const visibleCards = page.locator(".resume-game-link:visible");
+  await expect(visibleCards).toHaveCount(desktop ? 3 : 1);
+  const initialCard = await visibleCards.first().boundingBox();
+  if (desktop) {
+    const panel = await page.locator(".home-page .landing-hero").boundingBox();
+    expect(panel.width).toBe(1200);
+  }
+  for (let step = 0; step < (desktop ? 2 : 7); step++) {
+    await next.click();
+    await expect(visibleCards).toHaveCount(desktop && step === 1 ? 2 : desktop ? 3 : 1);
+    for (const card of await visibleCards.all()) {
+      const box = await card.boundingBox();
+      expect(Math.abs(box.width - initialCard.width)).toBeLessThan(1);
+      expect(Math.abs(box.height - initialCard.height)).toBeLessThan(1);
+    }
+  }
   await expect(page.locator('.resume-game-link[href="/game/saved-7"]')).toBeVisible();
   await expect(next).toBeDisabled();
   await expect(previous).toBeEnabled();
