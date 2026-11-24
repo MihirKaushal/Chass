@@ -41,8 +41,8 @@ not exercise the deployed Render proxy or a live Firestore database.
   `rateLimiter.requestResolvedAs` matches the real caller. The trusted proxy-hop
   count must match the actual deployment; do not trust arbitrary forwarded
   headers when exposing the application directly. Keep diagnostic tokens private.
-- Run the Firestore emulator job in CI, including production index verification
-  for history queries before release. The local fake-repository tests are not a
+- Confirm the existing Firestore emulator CI job passes and verify production
+  history-query indexes before release. The local fake-repository tests are not a
   substitute for this check.
 - Drag-and-drop remains unimplemented. Preserve click, keyboard, promotion,
   special-action targeting, flipped boards, and server-authoritative validation
