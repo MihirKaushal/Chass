@@ -95,6 +95,9 @@ test("home offers a way back into unfinished games", async ({ page }, testInfo) 
 
   const resume = page.getByRole("link", { name: /Game on this device/ });
   await expect(resume).toContainText("Played just now");
+  await expect(resume).toContainText("8 x 8 | Black to move");
+  await expect(resume).toContainText("White Pawn e2-e4");
+  await expect(resume.locator("time")).toHaveAttribute("datetime", /\d{4}-\d{2}-\d{2}T/);
   await testInfo.attach("home-resume", {
     body: await page.screenshot({ animations: "disabled" }), contentType: "image/png",
   });

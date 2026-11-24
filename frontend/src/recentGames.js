@@ -1,3 +1,5 @@
+import { boardSquareLabel } from "./boardGeometry.js";
+
 // A small index of games this browser has played, so Home can offer a way back.
 // Seat tokens stay in the per-game session store; this list holds no credentials.
 export const RECENT_GAMES_KEY = "chass:recent-games";
@@ -9,7 +11,7 @@ function readEntries(storage) {
   try {
     const parsed = JSON.parse(storage?.getItem(RECENT_GAMES_KEY) || "[]");
     return Array.isArray(parsed)
-      ? parsed.filter((entry) => entry && typeof entry.gameId === "string")
+      ? parsed.filter((entry) => entry && typeof entry.gameId === "string" && Number.isFinite(new Date(entry.updatedAt).getTime()))
       : [];
   } catch {
     return [];
@@ -24,7 +26,7 @@ function writeEntries(storage, entries) {
   }
 }
 
-export function recordRecentGame(storage, { gameId, mode, variant, color, finished }, now = Date.now()) {
+export function recordRecentGame(storage, { gameId, mode, variant, color, finished, game }, now = Date.now()) {
   if (!gameId) return;
   const entry = {
     gameId,
@@ -33,8 +35,40 @@ export function recordRecentGame(storage, { gameId, mode, variant, color, finish
     color: color || null,
     finished: Boolean(finished),
     updatedAt: now,
+    ...recentGameDetails(game),
   };
   writeEntries(storage, [entry, ...readEntries(storage).filter((item) => item.gameId !== gameId)]);
+}
+
+export function recentGameDetails(game) {
+  if (!game) return {};
+  const rows = game.boardRows || 8;
+  const cols = game.boardCols || 8;
+  const side = game.currentPlayer === "black" ? "Black" : "White";
+  const setup = { lobby: "Waiting for opponent", draft: "Drafting pieces", deployment: "Placing pieces", handoff: "Setup handoff", ability_selection: "Choosing abilities" };
+  const status = setup[game.phase] || (game.phase === "finished" ? "Finished" : `${side} to move${game.gameStatus === "check" ? " (in check)" : ""}`);
+  const bot = game.bot?.targetElo ? ` | Bot ~${game.bot.targetElo} Elo` : "";
+  return {
+    summary: `${rows} x ${cols} | ${status}${bot}`,
+    // Store only the public, recent history, not the board or private setup state.
+    recentMoves: game.phase === "play" ? (game.history || []).slice(-3).map((move) => {
+      const piece = String(move.piece || "Piece");
+      const name = piece.charAt(0).toUpperCase() + piece.slice(1).replaceAll("_", " ");
+      const color = move.player === "black" ? "Black" : "White";
+      if (move.actionType && move.actionType !== "move") {
+        return `${move.moveNumber}. ${color}: ${move.explanation || move.actionType.replaceAll("_", " ")}`.slice(0, 180);
+      }
+      return `${move.moveNumber}. ${color} ${name} ${boardSquareLabel(move.from, rows)}-${boardSquareLabel(move.to, rows)}`;
+    }) : [],
+  };
+}
+
+export function lastPlayedTimestamp(updatedAt) {
+  const date = new Date(updatedAt);
+  if (!Number.isFinite(date.getTime())) return "";
+  return date.toLocaleString(undefined, {
+    month: "short", day: "numeric", hour: "numeric", minute: "2-digit",
+  });
 }
 
 export function forgetRecentGame(storage, gameId) {

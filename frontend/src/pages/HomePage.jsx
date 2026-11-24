@@ -13,6 +13,7 @@ import AppLink from "../components/AppLink";
 import {
   browserLocalStorage,
   lastPlayedLabel,
+  lastPlayedTimestamp,
   recentGameLabel,
   resumableGames,
 } from "../recentGames";
@@ -188,7 +189,15 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
                   <li key={entry.gameId}>
                     <AppLink className="resume-game-link" href={`/game/${encodeURIComponent(entry.gameId)}`}>
                       <strong>{recentGameLabel(entry)}</strong>
+                      {entry.summary ? <span className="resume-game-summary">{entry.summary}</span> : null}
                       <span>{lastPlayedLabel(entry.updatedAt)}</span>
+                      <time dateTime={new Date(entry.updatedAt).toISOString()}>{lastPlayedTimestamp(entry.updatedAt)}</time>
+                      {entry.recentMoves?.length ? (
+                        <span className="resume-game-moves">
+                          <span>Last {entry.recentMoves.length === 1 ? "move" : `${entry.recentMoves.length} moves`}</span>
+                          {entry.recentMoves.map((move, index) => <span key={index}>{move}</span>)}
+                        </span>
+                      ) : entry.summary ? <span>No moves yet</span> : null}
                     </AppLink>
                   </li>
                 ))}

@@ -65,3 +65,42 @@ test("labels describe the room and seat in plain words", () => {
   assert.equal(lastPlayedLabel(0, 60 * 60_000), "Played 1 hour ago");
   assert.equal(lastPlayedLabel(0, 3 * 60 * 60_000), "Played 3 hours ago");
 });
+
+test("recent cards keep three moves, status and bot level without storing the board", () => {
+  const storage = memoryStorage();
+  const history = Array.from({ length: 5 }, (_, index) => ({
+    moveNumber: index + 1, player: "white", piece: "pawn",
+    from: { row: 14, col: 15 }, to: { row: 12, col: 15 }, actionType: "move",
+  }));
+  recordRecentGame(storage, {
+    gameId: "variant", mode: "bot", game: {
+      boardRows: 16, boardCols: 16, currentPlayer: "black", phase: "play", gameStatus: "check",
+      bot: { targetElo: 800 }, history, board: "private-board-data", token: "private-token",
+    },
+  }, 1000);
+  const [entry] = resumableGames(storage, 1001);
+  assert.equal(entry.summary, "16 x 16 | Black to move (in check) | Bot ~800 Elo");
+  assert.deepEqual(entry.recentMoves, [3, 4, 5].map((number) => `${number}. White Pawn p2-p4`));
+  assert.ok(!storage.getItem(RECENT_GAMES_KEY).includes("private-"));
+});
+
+test("setup cards describe the phase without leaking hidden histories", () => {
+  const storage = memoryStorage();
+  for (const mode of ["local", "online", "bot"]) {
+    recordRecentGame(storage, { gameId: mode, mode, game: {
+      phase: "deployment", history: [{ explanation: "secret" }], boardRows: 10, boardCols: 8,
+    } }, 1000);
+  }
+  const entries = resumableGames(storage, 1001);
+  assert.equal(entries.length, 3);
+  assert.ok(entries.every((entry) => entry.summary === "10 x 8 | Placing pieces" && entry.recentMoves.length === 0));
+});
+
+test("old entries still load and malformed timestamps are ignored", () => {
+  const storage = memoryStorage();
+  storage.setItem(RECENT_GAMES_KEY, JSON.stringify([
+    { gameId: "old", mode: "local", updatedAt: 1000 },
+    { gameId: "bad", updatedAt: "not a date" },
+  ]));
+  assert.deepEqual(resumableGames(storage, 1001).map((entry) => entry.gameId), ["old"]);
+});

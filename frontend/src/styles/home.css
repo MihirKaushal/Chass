@@ -335,10 +335,31 @@
   list-style: none;
 }
 
-.resume-game-link {
+.resume-games li {
+  flex: 1 1 16rem;
+  min-width: 0;
+}
+
+.resume-game-link time {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+.resume-game-moves {
   display: grid;
   gap: var(--space-1);
-  min-width: 13rem;
+  padding-top: var(--space-2);
+  margin-top: var(--space-1);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.resume-game-link {
+  display: grid;
+  align-content: start;
+  height: 100%;
+  overflow-wrap: anywhere;
+  gap: var(--space-1);
+  min-width: 0;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-accent);
   border-radius: var(--radius-control);
@@ -366,5 +387,8 @@
 @media (max-width: 640px) {
   .resume-games ul {
     flex-direction: column;
+  }
+  .resume-games li {
+    flex-basis: auto;
   }
 }

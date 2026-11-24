@@ -478,6 +478,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       variant: game.variant,
       color: recentGameColor,
       finished: recentGameFinished,
+      game,
     });
   }, [game?.id, game?.mode, game?.variant, game?.version, recentGameColor, recentGameFinished]);
 
