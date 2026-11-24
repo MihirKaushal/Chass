@@ -12,7 +12,11 @@ from typing import NoReturn
 
 from fastapi import HTTPException
 
-from backend.analysis import synchronize_match_predictor_setting
+from backend.analysis import (
+    classic_analysis_eligibility,
+    classic_position_fen,
+    synchronize_match_predictor_setting,
+)
 from backend.bots import (
     BotDecision,
     BotTurnContext,
@@ -938,6 +942,21 @@ class GameService:
             state.undo_snapshots = [snapshot, *previous][:MAX_UNDO_SNAPSHOTS]
         else:
             state.undo_snapshots = list(previous)
+
+    @staticmethod
+    def _exportable_fen(record: GameRecord, response_phase: str) -> str | None:
+        """FEN for standard positions, unless it would aid a live online game."""
+        state = record.state
+        if response_phase not in {"play", "finished"}:
+            return None
+        if record.mode == "online" and response_phase != "finished":
+            return None
+        if not classic_analysis_eligibility(state, require_enabled=False).eligible:
+            return None
+        try:
+            return classic_position_fen(state)
+        except KeyError:
+            return None
 
     @staticmethod
     def _invite_url(invite_token: str) -> str:
@@ -3407,6 +3426,7 @@ class GameService:
             royalCenter=royal_center_view,
             checkRace=check_race_view,
             takebackAvailable=self._takeback_index(record) is not None,
+            fen=self._exportable_fen(record, response_phase),
             drawOfferedBy=(
                 game_state.draw_offered_by if response_phase == "play" else None
             ),

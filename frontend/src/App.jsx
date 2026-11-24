@@ -1035,6 +1035,15 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     }
   };
 
+  const handleCopyFen = async () => {
+    try {
+      await navigator.clipboard.writeText(game.fen);
+      setSocketMessage("Position copied as FEN.");
+    } catch {
+      setSocketMessage(`Copy this FEN: ${game.fen}`);
+    }
+  };
+
   const handleTakeBack = async () => {
     try {
       await runAction(() => mutate(takeBack, {}));
@@ -1145,6 +1154,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         )}
         canOfferDraw={canResign && game.mode !== "bot" && !game.drawOfferedBy}
         onTakeBack={handleTakeBack}
+        fen={game.fen}
+        onCopyFen={handleCopyFen}
         canTakeBack={Boolean(game.takebackAvailable) && !actionLoading}
         onHome={() => handleGameNavigation("/")}
         onCustomize={() => handleGameNavigation("/customize")}

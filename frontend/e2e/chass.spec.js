@@ -375,3 +375,26 @@ test("same-device players can take back a move", async ({ page }) => {
   const firstRow = await page.locator(".board-grid button.square").first().getAttribute("data-row");
   expect(firstRow).toBe("0");
 });
+
+test("standard local positions can be copied as FEN or opened on Lichess", async ({ page, context }, testInfo) => {
+  await context.grantPermissions(["clipboard-read", "clipboard-write"]);
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
+  await square(page, 6, 4).click();
+  await square(page, 4, 4).click();
+  await expect(page.locator(".turn-banner")).toContainText("Black to move");
+  await page.getByRole("button", { name: "Game settings" }).click();
+  const lichess = page.getByRole("menuitem", { name: "Analyze on Lichess" });
+  await expect(lichess).toHaveAttribute(
+    "href",
+    /lichess\.org\/analysis\/standard\/rnbqkbnr\/pppppppp\/8\/8\/4P3\/8\/PPPP1PPP\/RNBQKBNR_b_KQkq_/
+  );
+  await expect(lichess).toHaveAttribute("target", "_blank");
+  await testInfo.attach("game-settings-menu", {
+    body: await page.screenshot({ animations: "disabled" }), contentType: "image/png",
+  });
+  await page.getByRole("menuitem", { name: "Copy FEN" }).click();
+  await expect(page.locator(".sync-message")).toHaveText("Position copied as FEN.");
+  const copied = await page.evaluate(() => navigator.clipboard.readText());
+  expect(copied).toMatch(/^rnbqkbnr\/pppppppp\/8\/8\/4P3\/8\/PPPP1PPP\/RNBQKBNR b KQkq/);
+});

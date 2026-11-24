@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { onlinePlayerStatus, onlinePlayerSummary, roomLabel } from "../playHeader";
+import { lichessAnalysisUrl } from "../positionExport";
 import SiteNavLinks from "./SiteNavLinks";
 import Button from "./ui/Button";
 import StatusBadge from "./ui/StatusBadge";
@@ -35,6 +36,8 @@ function TopNav({
   canOfferDraw = false,
   onTakeBack,
   canTakeBack = false,
+  fen = null,
+  onCopyFen,
   onHome,
   onCustomize,
   currentPlayer,
@@ -226,11 +229,33 @@ function TopNav({
             <Button
               size="small"
               variant={autoBoardFlipEnabled ? "primary" : "secondary"}
-              role="menuitem"
+              role="menuitemcheckbox"
+              aria-checked={autoBoardFlipEnabled}
               onClick={() => runSetting(onToggleAutoBoardFlip)}
             >
               Auto flip: {autoBoardFlipEnabled ? "On" : "Off"}
             </Button>
+            {fen ? (
+              <>
+                <div role="separator" className="play-settings-separator" />
+                <Button variant="secondary" size="small" role="menuitem" onClick={() => runSetting(onCopyFen)}>
+                  Copy FEN
+                </Button>
+                <a
+                  className="ui-button ui-button--secondary ui-button--small secondary"
+                  role="menuitem"
+                  href={lichessAnalysisUrl(fen)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  onClick={() => setSettingsOpen(false)}
+                >
+                  <span className="ui-button-content">Analyze on Lichess</span>
+                </a>
+              </>
+            ) : null}
+            {canTakeBack || canOfferDraw || canReset || canResign ? (
+              <div role="separator" className="play-settings-separator" />
+            ) : null}
             {canTakeBack ? (
               <Button variant="secondary" size="small" role="menuitem" onClick={() => runSetting(onTakeBack)}>
                 Take back move
@@ -241,16 +266,16 @@ function TopNav({
                 Offer a draw
               </Button>
             ) : null}
-            {canResign ? (
-              <Button variant="danger" size="small" role="menuitem" onClick={() => runSetting(onResign)}>
-                Resign
-              </Button>
-            ) : null}
             {canReset ? (
               <Button variant="secondary" size="small" role="menuitem" onClick={() => runSetting(onReset)}>
                 {mode === "bot"
                   ? "Restart game"
                   : variant === "gambit" ? "Request new setup" : "Request restart"}
+              </Button>
+            ) : null}
+            {canResign ? (
+              <Button variant="danger" size="small" role="menuitem" onClick={() => runSetting(onResign)}>
+                Resign
               </Button>
             ) : null}
             <div className={`play-volume-control ${soundMuted ? "is-muted" : ""}`.trim()}>

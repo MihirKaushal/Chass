@@ -441,6 +441,8 @@ class GameResponse(BaseModel):
     rematch: RematchView = Field(default_factory=RematchView)
     drawOfferedBy: Literal["white", "black"] | None = None
     takebackAvailable: bool = False
+    # Standard-chess FEN for export; omitted for variants and live online games.
+    fen: str | None = None
     bot: BotView | None = None
 
 

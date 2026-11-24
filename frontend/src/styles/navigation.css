@@ -422,7 +422,8 @@ button[aria-busy="true"]:disabled {
   cursor: wait;
 }
 
-button.secondary {
+button.secondary,
+a.ui-button.secondary {
   color: var(--deep);
   background: rgba(43, 108, 176, 0.15);
 }
@@ -468,4 +469,10 @@ button.secondary {
   font-weight: 600;
   letter-spacing: 0.12em;
   text-transform: uppercase;
+}
+
+.play-settings-separator {
+  height: 1px;
+  margin: 0.1rem 0.15rem;
+  background: var(--border-subtle);
 }
