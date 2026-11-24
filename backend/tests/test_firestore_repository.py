@@ -564,3 +564,20 @@ def test_firestore_takeback_removes_undone_history_before_replay(firestore_servi
     oldest = repository.get_history_page(game_id, 0, before_move_number=newest.next_before, limit=1)
     assert [entry.move_number for entry in oldest.records] == [1]
     assert not oldest.has_more
+
+
+def test_transactional_save_validates_only_the_returned_state(firestore_service, monkeypatch):
+    service, repository, _ = firestore_service
+    created = service.create_game(CreateGameRequest(mode="local"))
+    record = repository.get_game(created.game.id)
+    validate = GameState.model_validate_json
+    validations = []
+
+    def counted_validate(cls, value, **kwargs):
+        validations.append(value)
+        return validate(value, **kwargs)
+
+    monkeypatch.setattr(GameState, "model_validate_json", classmethod(counted_validate))
+    saved = repository.save_game(record.state, expected_version=record.version)
+    assert saved.version == record.version + 1
+    assert len(validations) == 1

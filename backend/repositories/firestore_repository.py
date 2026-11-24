@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from datetime import datetime, timedelta, timezone
 from typing import Any
 
@@ -535,12 +536,13 @@ class FirestoreGameRepository:
 
         replace(transaction)
 
-    def _undone_move_refs(self, previous: GameState, state: GameState, transaction=None):
+    def _undone_move_refs(
+        self, previous_epoch: int, previous_last: int, state: GameState, transaction=None
+    ):
         """Read obsolete history before writing; delete it with the versioned state."""
-        if previous.history_epoch != state.history_epoch:
+        if previous_epoch != state.history_epoch:
             return []
         last = state.history[-1].move_number if state.history else 0
-        previous_last = previous.history[-1].move_number if previous.history else 0
         if last >= previous_last:
             return []
         query = self.client.collection(MOVES).where(
@@ -605,8 +607,13 @@ class FirestoreGameRepository:
                 state,
                 paged=history_paged,
             )
+            previous = json.loads(game["state_json"])
+            previous_history = previous.get("history", [])
             undone_refs = self._undone_move_refs(
-                GameState.model_validate_json(game["state_json"]), state, transaction
+                int(previous.get("history_epoch", 0)),
+                int(previous_history[-1]["move_number"]) if previous_history else 0,
+                state,
+                transaction,
             )
             for reference in undone_refs:
                 transaction.delete(reference)
@@ -676,7 +683,12 @@ class FirestoreGameRepository:
             **({"expires_at": expires_at} if expires_at is not None else {}),
         }
 
-        undone_refs = self._undone_move_refs(current_record.state, state)
+        previous = current_record.state
+        undone_refs = self._undone_move_refs(
+            previous.history_epoch,
+            previous.history[-1].move_number if previous.history else 0,
+            state,
+        )
         batch = self.client.batch()
         for reference in undone_refs:
             batch.delete(reference)
