@@ -40,11 +40,13 @@ import {
 } from "./gameSession";
 import { clockDeadlineDelayMs } from "./gameClock";
 import { onlineInviteState } from "./onlineInviteState";
+import useDocumentTitle from "./hooks/useDocumentTitle";
 import useGameSocket from "./hooks/useGameSocket";
 import useGameSounds from "./hooks/useGameSounds";
 import { shouldConfirmGameNavigation } from "./leaveGameGuard";
 import { fallbackPollDelayMs } from "./socketPolicy";
 import { analysisMatchesGame } from "./matchPredictor";
+import { gameDocumentTitle } from "./documentTitle";
 import CustomizePage from "./pages/CustomizePage";
 import GambitPage from "./pages/GambitPage";
 import HomePage from "./pages/HomePage";
@@ -239,6 +241,10 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     session?.color || game?.bot?.humanColor || null,
     pendingMove,
     startedWithBootstrapRef.current
+  );
+
+  useDocumentTitle(
+    gameDocumentTitle(game, session?.color || game?.bot?.humanColor || null)
   );
 
   useNavigationBlocker(

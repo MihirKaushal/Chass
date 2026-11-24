@@ -8,6 +8,8 @@ import Dialog from "../components/ui/Dialog";
 import { shouldConfirmDiscardingCustomization } from "../leaveGameGuard";
 import { navigate, useNavigationBlocker } from "../routing";
 import { customizeSession } from "../customizeSession";
+import { pageTitle } from "../documentTitle";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 
 function LeaveCustomizeConfirmation({ open, onCancel, onConfirm }) {
   return (
@@ -34,6 +36,7 @@ function CustomizePage({ onCreate, onHome, initialPreset = "" }) {
   const [configurationModified, setConfigurationModified] = useState(false);
   const [confirmingLeave, setConfirmingLeave] = useState(false);
   const [pendingLeaveDestination, setPendingLeaveDestination] = useState("/");
+  useDocumentTitle(pageTitle("Game Customizer"));
 
   useNavigationBlocker(
     (destination) => {

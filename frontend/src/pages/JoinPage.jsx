@@ -2,11 +2,14 @@ import { useEffect, useRef, useState } from "react";
 
 import PageSkeleton from "../components/PageSkeleton";
 import Button from "../components/ui/Button";
+import { pageTitle } from "../documentTitle";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 
 function JoinPage({ inviteToken, onJoin, onHome }) {
   const startedRef = useRef(false);
   const [status, setStatus] = useState("Joining your game...");
   const [error, setError] = useState("");
+  useDocumentTitle(pageTitle("Join game"));
 
   const join = async () => {
     setError("");

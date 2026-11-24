@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import ActiveActionStrip from "../components/ActiveActionStrip";
 import BoardMarkerGuide from "../components/BoardMarkerGuide";
 import ChessBoard from "../components/ChessBoard";
+import { checkedKingColor } from "../checkState";
 import {
   formatCommandPointCount,
   initialCommandDisclosure,
@@ -758,6 +759,7 @@ function GambitPlay({
           boardCols={game.boardCols ?? game.boardSize}
           selectedSquare={selectedSquare}
           validMoves={game.validMoves}
+          checkedColor={checkedKingColor(game)}
           onSquareClick={handleSquare}
           lastMove={lastMove}
           boardFlipped={boardFlipped}

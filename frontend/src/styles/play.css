@@ -231,6 +231,21 @@
   box-shadow: inset 0 0 0 3px rgba(99, 179, 237, 0.45);
 }
 
+.square.in-check {
+  background:
+    radial-gradient(circle, rgba(159, 47, 40, 0.72) 0 34%, rgba(159, 47, 40, 0.28) 62%, transparent 74%),
+    var(--square-base, transparent);
+  box-shadow: inset 0 0 0 3px var(--danger);
+}
+
+.square.light.in-check {
+  --square-base: var(--light-square);
+}
+
+.square.dark.in-check {
+  --square-base: var(--dark-square);
+}
+
 .square.scorched-square {
   cursor: not-allowed;
   background:

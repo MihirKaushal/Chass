@@ -7,6 +7,7 @@ import GameBriefing from "../components/GameBriefing";
 import MatchPredictor from "../components/MatchPredictor";
 import { EffectsPanel, GameInfoPanel } from "../components/MoveHistoryPanel";
 import ResponsivePlayLayout from "../components/ResponsivePlayLayout";
+import { checkedKingColor } from "../checkState";
 import { actionsForGlobalSelection } from "../specialActionSelection";
 import { CommandPanel } from "./GambitPage";
 
@@ -158,6 +159,7 @@ function PlayPage({
           validMoves={game.validMoves}
           onSquareClick={handleSquare}
           lastMove={lastMove}
+          checkedColor={checkedKingColor(game)}
           boardFlipped={boardFlipped}
           interactive={interactive && !actionLoading}
           extraTargets={powerTargets}

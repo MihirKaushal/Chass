@@ -37,6 +37,26 @@ test("local game moves and navigation confirmation", async ({ page }, testInfo) 
   });
 });
 
+test("a checked King is marked and the tab names the side to move", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
+  await expect(page).toHaveTitle("White to move | Chass!");
+  // 1. e4 f5 2. Qh5+
+  for (const [from, to, next] of [[[6, 4], [4, 4], "Black"], [[1, 5], [3, 5], "White"], [[7, 3], [3, 7], "Black"]]) {
+    await square(page, ...from).click();
+    await square(page, ...to).click();
+    await expect(page.locator(".turn-banner")).toContainText(`${next} to move`);
+  }
+  const blackKing = square(page, 0, 4);
+  await expect(blackKing).toHaveClass(/in-check/);
+  await expect(blackKing).toHaveAttribute("aria-label", /black King, in check/);
+  await expect(page.locator(".square.in-check")).toHaveCount(1);
+  await expect(page).toHaveTitle("Black to move | Chass!");
+  await testInfo.attach("king-in-check", {
+    body: await page.locator(".board-wrap").screenshot({ animations: "disabled" }), contentType: "image/png",
+  });
+});
+
 test("online seats survive refresh and moves synchronize across browsers", async ({ page, browser }) => {
   await page.goto("/");
   const created = page.waitForResponse((response) => response.url().endsWith("/game/create") && response.request().method() === "POST");

@@ -9,6 +9,8 @@ import PageSkeleton from "../components/PageSkeleton";
 import SiteFooter from "../components/SiteFooter";
 import Button from "../components/ui/Button";
 import ScannerFeatureCard from "../components/scanner/ScannerFeatureCard";
+import { SITE_TITLE } from "../documentTitle";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 
 
 function RoomIcon({ type }) {
@@ -36,6 +38,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
   const [error, setError] = useState("");
   const [catalog, setCatalog] = useState(null);
   const [showBotSetup, setShowBotSetup] = useState(false);
+  useDocumentTitle(SITE_TITLE);
 
   useEffect(() => {
     getCatalog().then(setCatalog).catch(() => {});

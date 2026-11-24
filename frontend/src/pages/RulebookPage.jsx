@@ -4,8 +4,11 @@ import catalog from "../generated/rulebookCatalog.json";
 import LandingNav from "../components/LandingNav";
 import RulebookReference from "../components/RulebookReference";
 import SiteFooter from "../components/SiteFooter";
+import { pageTitle } from "../documentTitle";
+import useDocumentTitle from "../hooks/useDocumentTitle";
 
 function RulebookPage({ onHome, onCustomize }) {
+  useDocumentTitle(pageTitle("Rulebook"));
   useEffect(() => {
     let frame;
     const revealSection = () => {

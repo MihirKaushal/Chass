@@ -34,6 +34,7 @@ function ChessBoard({
   globalActions = [],
   keyboardNavigation = false,
   describedBy,
+  checkedColor = null,
 }) {
   const [focusedSquare, setFocusedSquare] = useState({ row: 0, col: 0 });
   const [hoveredPiece, setHoveredPiece] = useState(null);
@@ -313,6 +314,8 @@ function ChessBoard({
             const pieceEffects = piece ? effectsByPiece.get(piece.pieceId) || [] : [];
             const affinityColor = affinityMap.get(`${rowIndex}-${colIndex}`);
             const isObjectiveSquare = objectiveSquareSet.has(`${rowIndex}-${colIndex}`);
+            const isCheckedKing =
+              Boolean(checkedColor) && piece?.type === "king" && piece.color === checkedColor;
             const isLastMoveSquare =
               lastMove &&
               ((lastMove.from.row === rowIndex && lastMove.from.col === colIndex) ||
@@ -337,6 +340,7 @@ function ChessBoard({
                 ? "action-source-selected"
                 : "",
               isLastMoveSquare ? "last-move" : "",
+              isCheckedKing ? "in-check" : "",
               affinityColor ? `affinity-square affinity-${affinityColor}` : "",
               isObjectiveSquare ? "objective-square" : "",
               editableRowSet.has(rowIndex) ? "deployment-zone" : "",
@@ -402,7 +406,7 @@ function ChessBoard({
                 aria-disabled={!interactive}
                 aria-label={`${boardSquareLabel({ row: rowIndex, col: colIndex }, rows)}${
                   piece ? `, ${piece.color} ${piece.name}` : ""
-                }${terrainFeature?.kind === "scorched" ? ", scorched and impassable" : ""}${
+                }${isCheckedKing ? ", in check" : ""}${terrainFeature?.kind === "scorched" ? ", scorched and impassable" : ""}${
                   actionTarget ? `, ${actionTarget.label}` : ""}${
                   piece && pieceDetailsMode === "double-tap" ? ", double tap for details" : ""
                 }`}
