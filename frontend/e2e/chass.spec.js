@@ -27,7 +27,12 @@ test("local game moves and navigation confirmation", async ({ page }, testInfo) 
   await square(page, 4, 4).click();
   await expect(square(page, 4, 4)).toHaveAttribute("aria-label", /white Pawn/);
   await expect(page.locator(".turn-banner")).toContainText("Black");
-  await page.getByRole("button", { name: "Home", exact: true }).click();
+  // The suite emulates prefers-reduced-motion, so decorative motion must be off.
+  const boardAnimation = await page.locator(".board-wrap").evaluate(
+    (element) => parseFloat(getComputedStyle(element).animationDuration)
+  );
+  expect(boardAnimation).toBeLessThan(0.001);
+  await page.getByRole("link", { name: "Home", exact: true }).click();
   await expect(page.getByRole("dialog")).toContainText("Leave this game?");
   await page.getByRole("button", { name: "Stay in game" }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
@@ -70,9 +75,9 @@ test("a same-device player can resign from the game menu", async ({ page }) => {
   await page.getByRole("button", { name: "Game settings" }).click();
   await page.getByRole("menuitem", { name: "Resign" }).click();
   await page.getByRole("button", { name: "White resigns" }).click();
-  const result = page.getByRole("dialog", { name: "Match Finished" });
+  const result = page.getByRole("dialog", { name: "Match finished" });
   await expect(result).toContainText("Black won! White resigned.");
-  await result.getByRole("button", { name: "Review Board" }).click();
+  await result.getByRole("button", { name: "Review board" }).click();
   await page.getByRole("button", { name: "Game settings" }).click();
   await expect(page.getByRole("menuitem", { name: "Resign" })).toHaveCount(0);
   await expect(page).toHaveTitle("Game over | Chass!");
@@ -85,7 +90,7 @@ test("home offers a way back into unfinished games", async ({ page }, testInfo) 
   await square(page, 6, 4).click();
   await square(page, 4, 4).click();
   await expect(page.locator(".turn-banner")).toContainText("Black to move");
-  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await page.getByRole("link", { name: "Home", exact: true }).click();
   await page.getByRole("button", { name: "Leave and go home" }).click();
 
   const resume = page.getByRole("link", { name: /Game on this device/ });
@@ -99,7 +104,7 @@ test("home offers a way back into unfinished games", async ({ page }, testInfo) 
   await page.getByRole("button", { name: "Game settings" }).click();
   await page.getByRole("menuitem", { name: "Resign" }).click();
   await page.getByRole("button", { name: "Black resigns" }).click();
-  await page.getByRole("dialog", { name: "Match Finished" }).getByRole("button", { name: "Home" }).click();
+  await page.getByRole("dialog", { name: "Match finished" }).getByRole("button", { name: "Home" }).click();
   await expect(page.getByRole("heading", { name: "Chass!", level: 1 })).toBeVisible();
   await expect(page.getByRole("heading", { name: "Continue a game" })).toHaveCount(0);
 });
@@ -289,5 +294,19 @@ test("page layouts keep shared navigation and footer inside the viewport", async
       expect(footer.y + footer.height).toBeLessThanOrEqual(page.viewportSize().height + 1);
     }
     await testInfo.attach(`layout-${path.slice(1) || "home"}`, { body: await page.screenshot({ fullPage: true, animations: "disabled" }), contentType: "image/png" });
+  }
+});
+
+test("an unusable invite explains itself without a pointless retry", async ({ page }) => {
+  await page.goto("/join/ZZZZ2222");
+  await expect(page.getByRole("heading", { name: "Unable to join" })).toBeVisible();
+  await expect(page.getByRole("alert")).toContainText("Invite link is invalid");
+  await expect(page.getByText("Ask the host for a new invite link or code.")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Try again" })).toHaveCount(0);
+  await expect(page.locator(".site-footer")).toBeVisible();
+  await page.getByRole("button", { name: "Back home" }).click();
+  const sections = page.getByRole("navigation", { name: "Chass sections" });
+  for (const [name, href] of [["Home", "/"], ["Customize", "/customize"], ["Scanner", "/scanner"], ["Rulebook", "/rulebook"]]) {
+    await expect(sections.getByRole("link", { name, exact: true })).toHaveAttribute("href", href);
   }
 });

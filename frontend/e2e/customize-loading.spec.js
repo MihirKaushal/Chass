@@ -78,7 +78,7 @@ test("customizer restores edits across the Rulebook and imports settings under S
   await page.getByLabel("Rows", { exact: true }).fill("12");
   await page.getByRole("link", { name: "Open rulebook", exact: true }).click();
   await expect(page).toHaveURL(/\/rulebook/);
-  await page.getByRole("navigation", { name: "Chass sections" }).getByRole("button", { name: "Customize", exact: true }).click();
+  await page.getByRole("navigation", { name: "Chass sections" }).getByRole("link", { name: "Customize", exact: true }).click();
   await expect(page.getByLabel("Rows", { exact: true })).toHaveValue("12");
   await expect(page.locator(".studio-square")).toHaveCount(144);
   await expect(page.getByRole("dialog")).toHaveCount(0);

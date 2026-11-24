@@ -1,3 +1,4 @@
+import { shouldHandleAppLink } from "../routing";
 import { SITE_SECTIONS } from "../siteNavigation";
 import AppLink from "./AppLink";
 
@@ -10,15 +11,21 @@ function SiteNavLinks({ active, onHome, onCustomize, tabs = false }) {
       "aria-current": current ? "page" : undefined,
     };
     if (actions[section.id]) {
+      // Real links keep open-in-new-tab and link semantics; a plain click goes
+      // through the page's handler so leave confirmations still apply.
       return (
-        <button
+        <a
           key={section.id}
           {...props}
-          type="button"
-          onClick={actions[section.id]}
+          href={section.href}
+          onClick={(event) => {
+            if (!shouldHandleAppLink(event)) return;
+            event.preventDefault();
+            actions[section.id]();
+          }}
         >
           {section.label}
-        </button>
+        </a>
       );
     }
     if (current)

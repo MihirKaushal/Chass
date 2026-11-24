@@ -26,7 +26,7 @@ as ground truth. Photos stay local unless you explicitly share them.
 3. Review every square, including empty ones. Correct missing/misidentified pieces.
    Do not assume a high-confidence prediction is true. Have a second person check
    difficult Kings/Queens and tall pieces' actual bases when possible.
-4. Confirm the reviewed board, then **Export For Accuracy Testing**. Keep the photo
+4. Confirm the reviewed board, then **Export for accuracy testing**. Keep the photo
    and JSON together under `scanner/data/verified/` (ignored by Git).
 5. Add each photo hash to `groups.json`, recording its physical set, capture session
    and split. Check the exported labels again against the prepared photo before

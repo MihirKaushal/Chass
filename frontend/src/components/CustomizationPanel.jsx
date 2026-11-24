@@ -921,13 +921,13 @@ function StartingSystemConfirmation({ mode, onCancel, onConfirm }) {
       open={Boolean(mode)}
       onClose={onCancel}
       closeLabel="Close Starting System confirmation"
-      eyebrow="Replace Current Setup"
+      eyebrow="Replace current setup"
       title={mode ? `Apply ${mode.name}?` : "Apply Starting System?"}
       description="This Starting System will replace your modified settings. This action cannot be undone."
       actions={mode ? (
         <>
           <Button variant="secondary" onClick={onCancel}>
-            Keep My Changes
+            Keep my changes
           </Button>
           <Button onClick={onConfirm}>Apply {mode.name}</Button>
         </>
@@ -2029,7 +2029,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
           <Button
             disabled={!canLaunch}
             loading={creatingMode === "local"}
-            loadingLabel="Building Game..."
+            loadingLabel="Building game..."
             onClick={() => create("local")}
           >
             Start local game
@@ -2038,7 +2038,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             variant="secondary"
             disabled={!canLaunch}
             loading={creatingMode === "online"}
-            loadingLabel="Creating Invite..."
+            loadingLabel="Creating invite..."
             onClick={() => create("online")}
           >
             Create online game
@@ -2049,7 +2049,7 @@ function CustomizationPanel({ onCreate, initialPreset = "", onModificationChange
             disabled={botButtonDisabled}
             aria-disabled={!botEligible}
             loading={creatingMode === "bot" || botCompatibilityChecking}
-            loadingLabel={botCompatibilityChecking ? "Checking Bot..." : "Starting Bot Match..."}
+            loadingLabel={botCompatibilityChecking ? "Checking bot..." : "Starting bot match..."}
             onClick={openBotSetup}
           >
             Play against a bot

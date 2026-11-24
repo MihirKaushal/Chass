@@ -39,14 +39,14 @@ function AbilitySelectionPage({
       return [...current, abilityId];
     });
   };
-  const choiceLabel = maxChoices === 1 ? "One Ability" : `${maxChoices} Abilities`;
+  const choiceLabel = maxChoices === 1 ? "one ability" : `${maxChoices} abilities`;
 
   return (
     <main className="ability-selection-shell">
       <section className="ability-selection-card">
         <header>
           <span className="eyebrow">Private Loadout</span>
-          <h1>{title(color)}, Choose {choiceLabel}</h1>
+          <h1>{title(color)}, choose {choiceLabel}</h1>
           <p>
             Build your private loadout, then lock every choice together. The opponent sees only
             that you are ready until both players have selected.
@@ -57,11 +57,11 @@ function AbilitySelectionPage({
         ) : null}
         {!catalog ? (
           <div className="ability-catalog-state" role={catalogError ? "alert" : "status"}>
-            <strong>{catalogError ? "Ability Reference Unavailable" : "Loading Abilities"}</strong>
+            <strong>{catalogError ? "Ability reference unavailable" : "Loading abilities"}</strong>
             <p>{catalogError || "Loading the allowed abilities for this game."}</p>
             {catalogError ? (
               <Button variant="secondary" onClick={onRetryCatalog}>
-                Retry Ability Reference
+                Retry ability reference
               </Button>
             ) : null}
           </div>
@@ -89,7 +89,7 @@ function AbilitySelectionPage({
             className="ability-lock-button"
             disabled={!game.ready || !game.abilities.editableColor || choices.length !== maxChoices}
             loading={actionLoading}
-            loadingLabel="Locking Loadout..."
+            loadingLabel="Locking loadout..."
             onClick={() => onSelect(choices)}
           >
             Lock {choices.length} / {maxChoices}
@@ -106,15 +106,15 @@ function AbilityHandoffPage({ game, onContinue, actionLoading }) {
     <main className="gambit-handoff-shell">
       <section className="gambit-handoff-card">
         <div className="handoff-seal" aria-hidden="true">{nextColor === "white" ? "W" : "B"}</div>
-        <span className="eyebrow">Private Ability Handoff</span>
-        <h1>Pass The Screen To {title(nextColor)}</h1>
+        <span className="eyebrow">Private ability handoff</span>
+        <h1>Pass the screen to {title(nextColor)}</h1>
         <p>The previous choice is locked and hidden. Continue only after the next player has the device.</p>
         <Button
           loading={actionLoading}
-          loadingLabel="Securing Choice..."
+          loadingLabel="Securing choice..."
           onClick={onContinue}
         >
-          I Am {title(nextColor)} - Continue
+          I am {title(nextColor)}, continue
         </Button>
       </section>
     </main>

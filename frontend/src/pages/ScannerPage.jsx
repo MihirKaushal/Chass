@@ -373,7 +373,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
               className="scanner-guide-link"
             >
               <ScannerIcon name="info" />
-              Scanner Guide
+              Scanner guide
             </AppLink>
           </div>
           <fieldset className="scanner-workflow scanner-connection-controls" disabled={creating}>
@@ -392,7 +392,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
             </Disclosure>
           </fieldset>
           <ol className="scanner-progress" aria-label="Scanner progress">
-            {["Prepare Photo", "Review pieces", "Confirm position"].map(
+            {["Prepare photo", "Review pieces", "Confirm position"].map(
               (label, index) => (
                 <li
                   key={label}
@@ -513,7 +513,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                 onConfirmationChange={setConfirmed}
               />
 
-              <Disclosure className="scanner-label-export" summary="Export For Accuracy Testing">
+              <Disclosure className="scanner-label-export" summary="Export for accuracy testing">
                 <p>Keep the prepared photo and reviewed labels together.</p>
                 <Button
                   variant="secondary"
@@ -528,7 +528,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                     );
                   }}
                 >
-                  Export Reviewed Labels
+                  Export reviewed labels
                 </Button>
               </Disclosure>
 
@@ -563,7 +563,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
       <Dialog
         open={Boolean(pendingDestination)}
         onClose={() => setPendingDestination(null)}
-        title="Leave Board Scanner?"
+        title="Leave the board scanner?"
         closeLabel="Close leave scanner confirmation"
         description={
           creating
@@ -587,7 +587,7 @@ function ScannerPage({ onHome, onCustomize, onImport }) {
                 navigate(destination, { bypassBlocker: true });
               }}
             >
-              Leave Scanner
+              Leave scanner
             </Button>
           </>
         }

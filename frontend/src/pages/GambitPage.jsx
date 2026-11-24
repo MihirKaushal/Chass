@@ -79,7 +79,7 @@ function DraftGambit({ game, actionLoading, onDraft }) {
       <header className="draft-gambit-hero">
         <div>
           <span className="eyebrow">Shared Army Draft</span>
-          <h1>{waitingForPlayer ? "Waiting For Black" : `${title(activeColor)} To Pick`}</h1>
+          <h1>{waitingForPlayer ? "Waiting for Black" : `${title(activeColor)} to pick`}</h1>
           <p>Each army starts with its required King. Remaining selections are public and final, followed by private deployment.</p>
         </div>
         <div className={`draft-turn-seal ${activeColor}`} aria-label={`${title(activeColor)} draft turn`}>
@@ -149,10 +149,10 @@ function DraftGambit({ game, actionLoading, onDraft }) {
           <Button
             disabled={!gambit.draftCanPass}
             loading={actionLoading}
-            loadingLabel="Updating Draft..."
+            loadingLabel="Updating draft..."
             onClick={() => onDraft({ action: "pass" })}
           >
-            Lock {title(activeColor)} Army
+            Lock {title(activeColor)} army
           </Button>
         </div>
       </section>
@@ -171,7 +171,7 @@ function GambitHandoff({ game, onHandoff, actionLoading }) {
           {nextColor === "white" ? "W" : "B"}
         </div>
         <span className="eyebrow">Private handoff</span>
-        <h1>Pass The Screen To {title(nextColor)}</h1>
+        <h1>Pass the screen to {title(nextColor)}</h1>
         <p>
           {title(ready.white && !ready.black ? "white" : "black")}'s army is locked and
           hidden. The next player should take the device before continuing.
@@ -181,10 +181,10 @@ function GambitHandoff({ game, onHandoff, actionLoading }) {
         ) : null}
         <Button
           loading={actionLoading}
-          loadingLabel="Securing Board..."
+          loadingLabel="Securing board..."
           onClick={onHandoff}
         >
-          I Am {title(nextColor)} - Begin Setup
+          I am {title(nextColor)}, begin setup
         </Button>
       </section>
     </main>

@@ -84,9 +84,9 @@ function MatchPredictor({
           <Button
             onClick={onRetry}
             loading={refreshing}
-            loadingLabel="Retrying Analysis..."
+            loadingLabel="Retrying analysis..."
           >
-            Retry Analysis
+            Retry analysis
           </Button>
         </div>
       ) : percentages ? (
@@ -114,7 +114,7 @@ function MatchPredictor({
 
       {ready && analysis.factors?.length ? (
         <details className="predictor-factors">
-          <summary><span>Position Factors</span><small>How the board compares</small></summary>
+          <summary><span>Position factors</span><small>How the board compares</small></summary>
           <div className="predictor-factor-list">
             {analysis.factors.map((factor) => (
               <article key={factor.id} className={`factor-${factor.advantage}`}>

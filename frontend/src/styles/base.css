@@ -91,3 +91,19 @@ textarea:focus-visible {
 .app-shell.page-frame .site-footer {
   width: 100%;
 }
+
+/*
+ * Respect reduced-motion preferences everywhere. Pulses, board entrances, and
+ * scanning effects stop; state is still conveyed by color, text, and outlines.
+ * Feature styles with their own reduced-motion alternatives keep them.
+ */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

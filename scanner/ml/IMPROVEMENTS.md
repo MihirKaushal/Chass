@@ -88,7 +88,7 @@ iteration connects recognition and correction, not game-state import. A photo
 cannot establish historical castling rights, en passant, or draw counters.
 
 **Save Prepared Photo** downloads exactly the uploaded cropped image. After
-checking every square and confirming the board, **Export Reviewed Labels** saves
+checking every square and confirming the board, **Export reviewed labels** saves
 the 64 labels with that photo's SHA-256 and orientation. Keep both files together
 for future square-accuracy evaluation. These labels are manually verified data,
 not automatic ground truth; incorrect confirmations would corrupt the benchmark.

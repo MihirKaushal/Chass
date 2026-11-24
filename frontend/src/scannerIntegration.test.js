@@ -200,7 +200,7 @@ test("scanner page leaves experimental labeling to the rulebook", async () => {
     const html = await markup("/src/pages/ScannerPage.jsx", {});
     assert.match(html, /AI Board Scanner/);
     assert.match(html, /Try on-device recognition/);
-    assert.match(html, /Scanner Guide/);
+    assert.match(html, /Scanner guide/);
     assert.match(html, /your prepared photo is sent to the server instead/);
     assert.doesNotMatch(html, /experimental/i);
     const hero = html.match(/<header class="scanner-hero">([\s\S]*?)<\/header>/)?.[1];

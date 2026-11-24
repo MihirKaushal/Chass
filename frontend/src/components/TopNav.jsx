@@ -70,7 +70,7 @@ function TopNav({
           : phase === "handoff"
             ? "Private handoff"
             : winner
-              ? `${title(winner)} Won`
+              ? `${title(winner)} won`
               : title(gameStatus || "active");
 
   useEffect(() => {

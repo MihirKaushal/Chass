@@ -137,7 +137,7 @@ function PlayPage({
       boardCols={game.boardCols ?? game.boardSize}
       configuration={game.configuration}
       catalog={catalog}
-      label="Match Brief"
+      label="Match brief"
       className="play-game-briefing"
     />
   );

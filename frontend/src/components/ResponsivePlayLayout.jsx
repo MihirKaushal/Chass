@@ -89,7 +89,7 @@ function ResponsivePlayLayout({
 
       <Drawer
         id="effects"
-        label="Effects And Actions"
+        label="Effects and actions"
         openPanel={openPanel}
         compact={compact}
         onClose={closePanel}
@@ -101,7 +101,7 @@ function ResponsivePlayLayout({
 
       <Drawer
         id="info"
-        label="Game And Moves"
+        label="Game and moves"
         openPanel={openPanel}
         compact={compact}
         onClose={closePanel}

@@ -135,7 +135,7 @@ function RestartRequestPanel({ game, playerColor, onRespond, actionLoading }) {
   return (
     <section className="restart-request" aria-live="polite">
       <div>
-        <span className="eyebrow">Restart Requested</span>
+        <span className="eyebrow">Restart requested</span>
         <strong>{colorLabel(requestedBy)} wants to start this configuration again.</strong>
         <small>A new game starts only after both players approve.</small>
       </div>
@@ -150,7 +150,7 @@ function RestartRequestPanel({ game, playerColor, onRespond, actionLoading }) {
         {game.mode === "online" && !onlineApproved ? (
           <>
             <Button disabled={actionLoading} onClick={() => onRespond("accept")}>
-              Approve Restart
+              Approve restart
             </Button>
             <Button variant="secondary" disabled={actionLoading} onClick={() => onRespond("decline")}>
               Decline
@@ -159,17 +159,17 @@ function RestartRequestPanel({ game, playerColor, onRespond, actionLoading }) {
         ) : null}
         {game.mode === "online" && onlineApproved && requestedBy === playerColor ? (
           <Button variant="secondary" disabled={actionLoading} onClick={() => onRespond("cancel")}>
-            Cancel Request
+            Cancel request
           </Button>
         ) : null}
         {game.mode === "local" ? localUnapproved.map((color) => (
           <Button key={color} disabled={actionLoading} onClick={() => onRespond("accept", color)}>
-            {colorLabel(color)} Approves
+            {colorLabel(color)} approves
           </Button>
         )) : null}
         {game.mode === "local" && requestedBy ? (
           <Button variant="secondary" disabled={actionLoading} onClick={() => onRespond("cancel", requestedBy)}>
-            Cancel Request
+            Cancel request
           </Button>
         ) : null}
       </div>
@@ -1058,12 +1058,12 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           <h1>Game unavailable</h1>
           <p>{error || "This game could not be loaded."}</p>
           <div className="button-row">
-            <button type="button" onClick={() => window.location.reload()}>
-              Try Again
-            </button>
-            <button type="button" className="secondary" onClick={() => navigate("/")}>
-              Back Home
-            </button>
+            <Button onClick={() => window.location.reload()}>
+              Try again
+            </Button>
+            <Button variant="secondary" onClick={() => navigate("/")}>
+              Back home
+            </Button>
           </div>
         </div>
       </div>
@@ -1207,8 +1207,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           open
           onClose={() => setPendingPromotion(null)}
           closeLabel="Close Pawn action dialog"
-          eyebrow="Final Rank Reached"
-          title="Choose A Pawn Action"
+          eyebrow="Final rank reached"
+          title="Choose a Pawn action"
           description="Promote normally, or use Kamikaze if that is your selected ability."
           actions={(
             <Button variant="secondary" onClick={() => setPendingPromotion(null)}>
@@ -1250,7 +1250,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           open
           onClose={() => setPendingLeaveDestination(null)}
           closeLabel="Close leave game confirmation"
-          eyebrow="Current Game"
+          eyebrow="Current game"
           title="Leave this game?"
           description={`Are you sure you want to leave this game and go to ${navigationDestination(pendingLeaveDestination).destination}? Your current game may be lost.`}
           className="leave-game-dialog"
@@ -1314,14 +1314,14 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           open
           onClose={() => setShowLocalRestartChooser(false)}
           closeLabel="Close restart request dialog"
-          eyebrow="Same-Device Approval"
-          title="Who Is Requesting?"
+          eyebrow="Same-device approval"
+          title="Who is requesting?"
           description="The other player must approve before the board resets."
           actions={(
             <>
               {["white", "black"].map((color) => (
                 <Button key={color} disabled={actionLoading} onClick={() => handleRematch("request", color)}>
-                  {colorLabel(color)} Requests Restart
+                  {colorLabel(color)} requests restart
                 </Button>
               ))}
               <Button variant="secondary" onClick={() => setShowLocalRestartChooser(false)}>
@@ -1337,8 +1337,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           open
           onClose={() => setClockTimeoutPending(null)}
           closeLabel="Close timeout confirmation"
-          eyebrow="Clock Reached Zero"
-          title={`${colorLabel(oppositeColor(clockTimeoutPending.expiredColor))} Won on Time`}
+          eyebrow="Clock reached zero"
+          title={`${colorLabel(oppositeColor(clockTimeoutPending.expiredColor))} won on time`}
           description={`${colorLabel(clockTimeoutPending.expiredColor)} ran out of time. Saving the final result...`}
           ariaLive="assertive"
         />
@@ -1347,8 +1347,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           open
           onClose={() => setShowEndgameModal(false)}
           closeLabel="Close match result"
-          eyebrow="Final Position"
-          title="Match Finished"
+          eyebrow="Final position"
+          title="Match finished"
           description={endgameMessage}
           ariaLive="polite"
           actions={(
@@ -1359,13 +1359,13 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
                 </Button>
               ) : null}
               <Button variant="secondary" onClick={customizeCurrentGame}>
-                Customize This Game
+                Customize this game
               </Button>
               <Button variant="secondary" onClick={() => navigate("/")}>
                 Home
               </Button>
               <Button variant="secondary" onClick={() => setShowEndgameModal(false)}>
-                Review Board
+                Review board
               </Button>
             </>
           )}
