@@ -47,6 +47,12 @@ export function projectClockAfterTurn(clock, nextColor, nowMs = Date.now()) {
   if (!clock || !["white", "black"].includes(nextColor)) return clock;
   const remainingSeconds = clockRemainingByColor(clock, nowMs);
   if (!remainingSeconds) return clock;
+  // Mirror the server: the player who just moved gains the increment.
+  const mover = clock.activeColor;
+  const increment = Number(clock.incrementSeconds) || 0;
+  if (increment > 0 && mover !== nextColor && remainingSeconds[mover] > 0) {
+    remainingSeconds[mover] += increment;
+  }
 
   return {
     ...clock,

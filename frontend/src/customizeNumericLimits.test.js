@@ -198,3 +198,13 @@ test("every enabled army piece reserves the required King slot", () => {
   assert.equal(normalized.pieceCaps.rook, 1);
   assert.equal(normalized.gambit.maxQueens, 4);
 });
+
+test("increments are clamped between zero and the server maximum", () => {
+  const clamp = (incrementSeconds) =>
+    normalizeCustomizeNumbers(draft({ victory: { mode: "timed", timeSeconds: 600, incrementSeconds } }))
+      .victory.incrementSeconds;
+  assert.equal(clamp(500), 60);
+  assert.equal(clamp(-4), 0);
+  assert.equal(clamp(undefined), 0);
+  assert.equal(clamp(7), 7);
+});

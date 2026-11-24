@@ -14,7 +14,7 @@ function victorySummary(victory = {}) {
     case "elimination":
       return "Capture every opposing combat piece to win.";
     case "timed":
-      return `${formatMatchDuration(victory.timeSeconds)} per player; running out of time loses.`;
+      return `${formatMatchDuration(victory.timeSeconds)} per player${incrementSummary(victory.incrementSeconds)}; running out of time loses.`;
     case "royal_score":
       return "Defeat a King; the player with the higher captured score wins.";
     case "center_dominion":
@@ -45,6 +45,11 @@ function configuredTitle(configuration, catalog, rows, cols) {
   );
   if (formation) return `${rows}x${cols} ${formation.name}`;
   return `${rows}x${cols} Custom Match`;
+}
+
+function incrementSummary(seconds) {
+  const increment = Math.max(0, Math.trunc(Number(seconds) || 0));
+  return increment ? ` plus ${increment} second${increment === 1 ? "" : "s"} per move` : "";
 }
 
 export function buildGameBriefing({

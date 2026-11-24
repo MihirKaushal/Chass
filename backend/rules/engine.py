@@ -292,6 +292,7 @@ class RuleEngine:
             remaining[active] = max(0.0, remaining[active] - elapsed)
         return {
             "initialSeconds": state.clock.initial_seconds,
+            "incrementSeconds": state.clock.increment_seconds,
             "remainingSeconds": remaining,
             "activeColor": state.clock.active_color,
             "turnStartedAt": snapshot_at,
@@ -354,6 +355,11 @@ class RuleEngine:
             rule.complete_turn(state, acting_color, self, setting.params)
         self.gambit.complete_turn(state, acting_color)
         if state.clock is not None:
+            if (
+                state.clock.increment_seconds
+                and state.clock.remaining_seconds.get(acting_color, 0) > 0
+            ):
+                state.clock.remaining_seconds[acting_color] += state.clock.increment_seconds
             state.clock.active_color = state.current_player
             state.clock.turn_started_at = datetime.now(timezone.utc)
         return messages

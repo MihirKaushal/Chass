@@ -5,6 +5,7 @@ const FALLBACK_LIMITS = Object.freeze({
   pointMax: 100000,
   timeSecondsMin: 60,
   timeSecondsMax: 86400,
+  incrementSecondsMax: 60,
   targetPointsMin: 1,
   targetPointsMax: 100000,
   dominionRoundsMin: 1,
@@ -267,6 +268,11 @@ export function normalizeCustomizeNumbers(draft, suppliedLimits = {}) {
         draft.victory?.timeSeconds,
         limits.timeSecondsMin,
         limits.timeSecondsMax
+      ),
+      incrementSeconds: clampWholeNumber(
+        draft.victory?.incrementSeconds ?? 0,
+        0,
+        limits.incrementSecondsMax
       ),
       kingPoints,
       dominionRounds: clampWholeNumber(

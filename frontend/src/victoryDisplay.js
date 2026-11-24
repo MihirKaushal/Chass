@@ -26,6 +26,9 @@ export function victoryDisplayMetadata(victory = {}) {
     case "timed":
       return [
         { label: "Total Time", value: formatMatchDuration(victory.timeSeconds) },
+        ...(Number(victory.incrementSeconds) > 0
+          ? [{ label: "Increment", value: `${quantity(Math.trunc(Number(victory.incrementSeconds)), "second")} per move` }]
+          : []),
       ];
     case "point_race": {
       const target = positiveInteger(victory.targetPoints, 21);

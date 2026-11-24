@@ -100,3 +100,21 @@ test("starting a game on a sleeping server explains the wait, then opens the boa
   await expect(page).toHaveURL(/\/game\//);
   await expect(page.locator(".board-grid")).toBeVisible();
 });
+
+test("a timed game with an increment adds time to the mover's clock", async ({ page }) => {
+  await page.goto("/customize");
+  await page.locator("#customize-victory-timed").click();
+  await page.getByLabel("Minutes Per Player").fill("1");
+  await page.getByLabel("Seconds Added Per Move").fill("5");
+  const start = page.getByRole("button", { name: "Start local game", exact: true });
+  await expect(start).toBeEnabled();
+  await start.click();
+  await expect(page).toHaveURL(/\/game\//);
+  await expect(page.locator(".play-game-briefing")).toContainText("1 minute per player plus 5 seconds per move");
+
+  await page.locator('.board-grid [data-row="6"][data-col="4"]').click();
+  await page.locator('.board-grid [data-row="4"][data-col="4"]').click();
+  await expect(page.locator(".turn-banner")).toContainText("Black to move");
+  // White spent a moment and gained five seconds, so the clock reads above one minute.
+  await expect(page.locator(".clock-readout span").first()).toContainText(/1:0[2-5]/);
+});

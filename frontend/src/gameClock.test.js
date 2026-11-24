@@ -41,3 +41,22 @@ test("projecting a completed turn preserves elapsed time and starts the opponent
   assert.equal(projected.turnStartedAt, "2026-10-04T12:00:04.500Z");
   assert.equal(CLOCK.remainingSeconds.white, 60);
 });
+
+test("projecting a completed turn adds the mover's increment", async () => {
+  const { projectClockAfterTurn } = await import("./gameClock.js");
+  const start = Date.parse("2026-11-23T12:00:00Z");
+  const clock = {
+    initialSeconds: 300,
+    incrementSeconds: 5,
+    remainingSeconds: { white: 300, black: 300 },
+    activeColor: "white",
+    turnStartedAt: new Date(start).toISOString(),
+  };
+  const projected = projectClockAfterTurn(clock, "black", start + 10_000);
+  assert.equal(projected.remainingSeconds.white, 295);
+  assert.equal(projected.remainingSeconds.black, 300);
+  assert.equal(projected.activeColor, "black");
+
+  const suddenDeath = projectClockAfterTurn({ ...clock, incrementSeconds: 0 }, "black", start + 10_000);
+  assert.equal(suddenDeath.remainingSeconds.white, 290);
+});

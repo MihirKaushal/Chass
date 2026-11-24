@@ -520,6 +520,7 @@ def _configuration_from_request(
             mode=payload.victory.mode,
             target_points=payload.victory.targetPoints,
             time_seconds=payload.victory.timeSeconds,
+            increment_seconds=payload.victory.incrementSeconds,
             king_points=payload.victory.kingPoints,
             dominion_rounds=payload.victory.dominionRounds,
             check_target=payload.victory.checkTarget,
@@ -1077,6 +1078,7 @@ class GameService:
             clock=(
                 ClockState(
                     initial_seconds=configuration.victory.time_seconds,
+                    increment_seconds=configuration.victory.increment_seconds,
                     remaining_seconds={
                         "white": float(configuration.victory.time_seconds),
                         "black": float(configuration.victory.time_seconds),
@@ -2603,6 +2605,7 @@ class GameService:
                         "mode": game_state.configuration.victory.mode,
                         "targetPoints": game_state.configuration.victory.target_points,
                         "timeSeconds": game_state.configuration.victory.time_seconds,
+                        "incrementSeconds": game_state.configuration.victory.increment_seconds,
                         "kingPoints": game_state.configuration.victory.king_points,
                         "dominionRounds": game_state.configuration.victory.dominion_rounds,
                         "checkTarget": game_state.configuration.victory.check_target,
@@ -2735,6 +2738,7 @@ class GameService:
                 "mode": game_state.configuration.victory.mode,
                 "targetPoints": game_state.configuration.victory.target_points,
                 "timeSeconds": game_state.configuration.victory.time_seconds,
+                "incrementSeconds": game_state.configuration.victory.increment_seconds,
                 "kingPoints": game_state.configuration.victory.king_points,
                 "dominionRounds": game_state.configuration.victory.dominion_rounds,
                 "checkTarget": game_state.configuration.victory.check_target,

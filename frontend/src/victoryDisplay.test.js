@@ -39,3 +39,11 @@ test("each victory mode exposes only its relevant settings", () => {
     assert.deepEqual(victoryDisplayMetadata({ ...victory, mode }), [], mode);
   }
 });
+
+test("timed matches list an increment row when one is configured", () => {
+  assert.deepEqual(
+    victoryDisplayMetadata({ mode: "timed", timeSeconds: 600, incrementSeconds: 5 })[1],
+    { label: "Increment", value: "5 seconds per move" }
+  );
+  assert.equal(victoryDisplayMetadata({ mode: "timed", timeSeconds: 600 }).length, 1);
+});

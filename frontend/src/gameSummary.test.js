@@ -86,3 +86,12 @@ test("center-focused briefings explain the empty starting objective", () => {
   assert.match(dominion.summary, /Begin with the center empty/);
   assert.match(royalCenter.summary, /Begin with the center empty/);
 });
+
+test("timed briefings mention the per-move increment only when there is one", () => {
+  const summary = (incrementSeconds) =>
+    buildGameBriefing({
+      configuration: { victory: { mode: "timed", timeSeconds: 300, incrementSeconds } },
+    }).summary;
+  assert.equal(summary(3), "5 minutes per player plus 3 seconds per move; running out of time loses.");
+  assert.equal(summary(0), "5 minutes per player; running out of time loses.");
+});

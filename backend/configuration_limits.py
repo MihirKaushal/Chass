@@ -4,6 +4,8 @@ POINT_VALUE_MIN = 0
 POINT_VALUE_MAX = 100_000
 TIME_SECONDS_MIN = 30
 TIME_SECONDS_MAX = 86_400
+# Fischer increment added to the mover's clock after each completed turn.
+INCREMENT_SECONDS_MAX = 60
 CUSTOMIZE_TIME_SECONDS_MIN = 60
 TARGET_POINTS_MIN = 1
 TARGET_POINTS_MAX = 100_000
@@ -76,6 +78,7 @@ def customization_limits() -> dict[str, int]:
         "pointMax": POINT_VALUE_MAX,
         "timeSecondsMin": CUSTOMIZE_TIME_SECONDS_MIN,
         "timeSecondsMax": TIME_SECONDS_MAX,
+        "incrementSecondsMax": INCREMENT_SECONDS_MAX,
         "targetPointsMin": TARGET_POINTS_MIN,
         "targetPointsMax": TARGET_POINTS_MAX,
         "dominionRoundsMin": DOMINION_ROUNDS_MIN,

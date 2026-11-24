@@ -2056,6 +2056,7 @@
     "pointMax": 100000,
     "timeSecondsMin": 60,
     "timeSecondsMax": 86400,
+    "incrementSecondsMax": 60,
     "targetPointsMin": 1,
     "targetPointsMax": 100000,
     "dominionRoundsMin": 1,

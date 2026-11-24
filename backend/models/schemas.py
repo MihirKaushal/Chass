@@ -33,6 +33,7 @@ from backend.configuration_limits import (
     GAMBIT_PIECE_CAP_MIN,
     GAMBIT_SETUP_ROWS_MAX,
     GAMBIT_SETUP_ROWS_MIN,
+    INCREMENT_SECONDS_MAX,
     POINT_VALUE_MAX,
     POINT_VALUE_MIN,
     TARGET_POINTS_MAX,
@@ -300,6 +301,7 @@ class ResultView(BaseModel):
 
 class ClockView(BaseModel):
     initialSeconds: int
+    incrementSeconds: int = 0
     remainingSeconds: dict[str, float]
     activeColor: str
     turnStartedAt: datetime
@@ -496,6 +498,7 @@ class VictoryConfigPayload(BaseModel):
     ] = "checkmate"
     targetPoints: int = Field(default=21, ge=TARGET_POINTS_MIN, le=TARGET_POINTS_MAX)
     timeSeconds: int = Field(default=600, ge=TIME_SECONDS_MIN, le=TIME_SECONDS_MAX)
+    incrementSeconds: int = Field(default=0, ge=0, le=INCREMENT_SECONDS_MAX)
     kingPoints: int = Field(default=0, ge=POINT_VALUE_MIN, le=POINT_VALUE_MAX)
     dominionRounds: int = Field(
         default=2,

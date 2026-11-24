@@ -177,6 +177,7 @@ class VictoryConfig(BaseModel):
     mode: VictoryMode = "checkmate"
     target_points: int = Field(default=21, ge=1)
     time_seconds: int = Field(default=600, ge=30)
+    increment_seconds: int = Field(default=0, ge=0)
     king_points: int = Field(default=0, ge=0)
     dominion_rounds: int = Field(default=2, ge=1)
     check_target: int = Field(default=3, ge=1)
@@ -322,6 +323,7 @@ class BotState(BaseModel):
 
 class ClockState(BaseModel):
     initial_seconds: int
+    increment_seconds: int = 0
     remaining_seconds: dict[Color, float]
     active_color: Color = "white"
     turn_started_at: datetime
