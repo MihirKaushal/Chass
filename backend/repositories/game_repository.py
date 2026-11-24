@@ -239,10 +239,7 @@ class SqlGameRepository:
                     )
                 )
                 if invite.replaces_existing_player:
-                    if occupied is None:
-                        raise InviteClaimError("The disconnected player seat no longer exists")
-                    occupied.token_hash = player_token_hash
-                    occupied.last_seen_at = now
+                    raise InviteClaimError("Player seats cannot be reassigned. Use your original browser to reconnect.")
                 else:
                     if occupied is not None:
                         raise InviteClaimError("Game already has two players")
@@ -325,22 +322,6 @@ class SqlGameRepository:
             )
             game.updated_at = now
             game.expires_at = game_expires_at
-            session.commit()
-
-    def revoke_reconnect_invites(self, game_id: str, target_color: str) -> None:
-        now = datetime.now(timezone.utc)
-        with session_scope() as session:
-            session.execute(
-                update(GameInviteRow)
-                .where(
-                    GameInviteRow.game_id == game_id,
-                    GameInviteRow.target_color == target_color,
-                    GameInviteRow.replaces_existing_player.is_(True),
-                    GameInviteRow.used_at.is_(None),
-                    GameInviteRow.revoked_at.is_(None),
-                )
-                .values(revoked_at=now)
-            )
             session.commit()
 
     def save_game(

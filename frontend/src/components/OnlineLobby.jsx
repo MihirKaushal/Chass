@@ -7,18 +7,16 @@ import StableStatus from "./ui/StableStatus";
 function OnlineLobby({
   session,
   inviteState,
-  reconnectInvite,
-  reconnectInviteLoading,
-  onRetryReconnectInvite,
+  returnUrl,
   onReplaceInvite,
 }) {
   const [copyState, setCopyState] = useState("");
-  const activeInvite = inviteState?.reconnect ? reconnectInvite : session;
-  const inviteUrl = activeInvite?.inviteUrl;
-  const inviteCode = activeInvite?.inviteCode || activeInvite?.inviteToken;
+  const reconnect = Boolean(inviteState?.reconnect);
+  const inviteUrl = reconnect ? returnUrl : session?.inviteUrl;
+  const inviteCode = session?.inviteCode || session?.inviteToken;
   const targetLabel = inviteState?.targetColor === "white" ? "White" : "Black";
 
-  useEffect(() => setCopyState(""), [inviteCode, inviteState?.targetColor]);
+  useEffect(() => setCopyState(""), [inviteCode, inviteState?.targetColor, reconnect]);
 
   if (!inviteState) return null;
 
@@ -37,27 +35,30 @@ function OnlineLobby({
 
   return (
     <section
-      className={`online-invite-panel${inviteState.reconnect ? " is-reconnect" : ""}`}
-      aria-label={`Invite ${targetLabel} to the online game`}
+      className={`online-invite-panel${reconnect ? " is-reconnect" : ""}`}
+      aria-label={`${reconnect ? "Reconnect" : "Invite"} ${targetLabel} to the online game`}
     >
       <div className="online-invite-heading">
-        <strong>Invite {targetLabel}</strong>
+        <strong>{reconnect ? `Reconnect ${targetLabel}` : `Invite ${targetLabel}`}</strong>
         <span>
-          {inviteState.reconnect
-            ? `${targetLabel} is offline. Share a fresh one-time link or code to continue.`
+          {reconnect
+            ? `${targetLabel} is offline. Their seat is reserved. Reopen this link in the browser they used to join.`
             : "Share the private link or code."}
         </span>
       </div>
       <div className="invite-controls">
-        {reconnectInviteLoading && !inviteUrl ? (
-          <StableStatus
-            className="invite-generation-status"
-            visible
-            message={`Creating ${targetLabel}'s reconnect invite...`}
-          />
+        {reconnect ? (
+          <>
+            <FormField label="Return to game">
+              <input type="text" value={inviteUrl || ""} readOnly onFocus={(event) => event.target.select()} />
+            </FormField>
+            <Button onClick={() => copyInvite(inviteUrl, "Game link copied")}>
+              Copy game link
+            </Button>
+          </>
         ) : inviteUrl ? (
           <>
-            <FormField label="Private Invite Link">
+            <FormField label="Private invite link">
               <input type="text" value={inviteUrl} readOnly onFocus={(event) => event.target.select()} />
             </FormField>
             <Button onClick={() => copyInvite(inviteUrl, "Invite link copied")}>
@@ -67,15 +68,11 @@ function OnlineLobby({
               <input type="text" value={inviteCode || ""} readOnly onFocus={(event) => event.target.select()} />
             </FormField>
             <Button onClick={() => copyInvite(inviteCode, "Invite code copied")}>
-              Copy Invite code
+              Copy invite code
             </Button>
           </>
         ) : (
-          <Button
-            onClick={inviteState.reconnect ? onRetryReconnectInvite : onReplaceInvite}
-          >
-            {inviteState.reconnect ? "Try Again" : "Create New Invite"}
-          </Button>
+          <Button onClick={onReplaceInvite}>Create new invite</Button>
         )}
         <StableStatus
           className="invite-copy-status"

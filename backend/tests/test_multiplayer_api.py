@@ -303,13 +303,8 @@ def test_only_host_can_customize_online_game(client):
             ],
         },
     )
-    assert host_change.status_code == 200
-    assert host_change.json()["version"] == 2
-    target_rule = next(
-        rule for rule in host_change.json()["rules"] if rule["id"] == "score_target_win"
-    )
-    assert target_rule["enabled"] is True
-    assert target_rule["params"]["targetScore"] == 21
+    assert host_change.status_code == 409
+    assert "opponent joins" in host_change.json()["detail"]
 
     full_game_invite = client.post(
         f"/game/{game_id}/invite",
@@ -341,110 +336,57 @@ def test_host_can_replace_unused_invite(client):
     assert new_join.status_code == 200
 
 
-def test_either_online_player_can_reinvite_the_disconnected_opponent(client):
+def test_disconnected_seats_cannot_be_taken_over(client):
     created = create_online_game(client)
     game_id = created["game"]["id"]
-    joined = client.post(
-        "/game/join",
-        json={"inviteToken": created["inviteToken"]},
-    ).json()
-    moved = client.post(
-        f"/game/{game_id}/move",
-        headers=auth(created["playerToken"]),
-        json={
-            "fromRow": 6,
-            "fromCol": 4,
-            "toRow": 4,
-            "toCol": 4,
-            "expectedVersion": joined["game"]["version"],
-        },
-    ).json()
+    joined = client.post("/game/join", json={"inviteToken": created["inviteToken"]}).json()
+    for token in (created["playerToken"], joined["playerToken"]):
+        response = client.post(f"/game/{game_id}/reconnect-invite", headers=auth(token))
+        assert response.status_code == 409
+        assert client.get(f"/game/{game_id}", headers=auth(token)).status_code == 200
 
-    invite_black = client.post(
-        f"/game/{game_id}/reconnect-invite",
-        headers=auth(created["playerToken"]),
+    # Old, unclaimed replacement invites from before the fix must be harmless too.
+    from backend.routes.game import game_service
+    from backend.security import hash_token
+    now = datetime.now(timezone.utc)
+    legacy_token = "legacy-reconnect-token"
+    game_service.repository.replace_invite(
+        game_id, hash_token(legacy_token), now + timedelta(hours=1), now + timedelta(hours=24),
+        target_color="black", replaces_existing_player=True,
     )
-    assert invite_black.status_code == 200
-    assert invite_black.json()["targetColor"] == "black"
-
-    rejoined_black = client.post(
-        "/game/join",
-        json={"inviteCode": invite_black.json()["inviteCode"]},
-    )
-    assert rejoined_black.status_code == 200
-    black_session = rejoined_black.json()
-    assert black_session["playerColor"] == "black"
-    assert black_session["role"] == "player"
-    assert black_session["game"]["version"] == moved["version"]
-    assert black_session["game"]["history"] == moved["history"]
-    assert client.get(
-        f"/game/{game_id}", headers=auth(joined["playerToken"])
-    ).status_code == 403
-
-    invite_white = client.post(
-        f"/game/{game_id}/reconnect-invite",
-        headers=auth(black_session["playerToken"]),
-    )
-    assert invite_white.status_code == 200
-    assert invite_white.json()["targetColor"] == "white"
-
-    rejoined_white = client.post(
-        "/game/join",
-        json={"inviteCode": invite_white.json()["inviteCode"]},
-    )
-    assert rejoined_white.status_code == 200
-    white_session = rejoined_white.json()
-    assert white_session["playerColor"] == "white"
-    assert white_session["role"] == "host"
-    assert white_session["game"]["version"] == moved["version"]
-    assert white_session["game"]["history"] == moved["history"]
-    assert client.get(
-        f"/game/{game_id}", headers=auth(created["playerToken"])
-    ).status_code == 403
-
-    with session_scope() as session:
-        player_count = session.scalar(
-            select(func.count()).select_from(GamePlayerRow).where(
-                GamePlayerRow.game_id == game_id
-            )
-        )
-        assert player_count == 2
+    response = client.post("/game/join", json={"inviteToken": legacy_token})
+    assert response.status_code == 409
+    assert "cannot be reassigned" in response.json()["detail"]
+    assert client.get(f"/game/{game_id}", headers=auth(joined["playerToken"])).status_code == 200
 
 
-def test_connected_player_blocks_and_revokes_reconnect_invites(client):
+def test_setup_edits_lock_after_join_or_first_move(client):
     created = create_online_game(client)
     game_id = created["game"]["id"]
-    joined = client.post(
-        "/game/join",
-        json={"inviteToken": created["inviteToken"]},
-    ).json()
-
-    pending = client.post(
-        f"/game/{game_id}/reconnect-invite",
-        headers=auth(created["playerToken"]),
+    headers = auth(created["playerToken"])
+    before_join = client.post(
+        f"/game/{game_id}/rules",
+        headers=headers,
+        json={"rules": [], "expectedVersion": created["game"]["version"]},
     )
-    assert pending.status_code == 200
-
-    with client.websocket_connect(f"/game/ws/{game_id}") as websocket:
-        websocket.send_json(
-            {"type": "authenticate", "token": joined["playerToken"]}
+    assert before_join.status_code == 200
+    joined = client.post("/game/join", json={"inviteToken": created["inviteToken"]})
+    assert joined.status_code == 200
+    version = joined.json()["game"]["version"]
+    for endpoint, payload in (("rules", {"rules": []}), ("pieces", {"pieces": []})):
+        response = client.post(
+            f"/game/{game_id}/{endpoint}",
+            headers=headers,
+            json={**payload, "expectedVersion": version},
         )
-        assert websocket.receive_json()["type"] == "game_state"
-        assert websocket.receive_json()["type"] == "presence"
+        assert response.status_code == 409
+        assert "opponent joins" in response.json()["detail"]
 
-        blocked = client.post(
-            f"/game/{game_id}/reconnect-invite",
-            headers=auth(created["playerToken"]),
-        )
-        assert blocked.status_code == 409
-        assert "reconnected" in blocked.json()["detail"].lower()
-
-    stale_join = client.post(
-        "/game/join",
-        json={"inviteCode": pending.json()["inviteCode"]},
-    )
-    assert stale_join.status_code == 409
-    assert "replaced" in stale_join.json()["detail"].lower()
+    local = client.post("/game/create", json={"mode": "local"}).json()["game"]
+    game_id = local["id"]
+    client.post(f"/game/{game_id}/move", json={"fromRow": 6, "fromCol": 4, "toRow": 4, "toCol": 4})
+    for endpoint, payload in (("rules", {"rules": []}), ("pieces", {"pieces": []})):
+        assert client.post(f"/game/{game_id}/{endpoint}", json=payload).status_code == 409
 
 
 def test_inactive_invite_cannot_revive_game(client):

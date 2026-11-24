@@ -8,6 +8,7 @@ from datetime import datetime, timedelta, timezone
 from functools import lru_cache
 from secrets import choice
 from threading import Lock
+from typing import NoReturn
 
 from fastapi import HTTPException
 
@@ -1389,45 +1390,15 @@ class GameService:
             targetColor="black",
         )
 
-    def reconnect_target(self, game_id: str, player_token: str | None) -> str:
+    def create_reconnect_invite(self, game_id: str, player_token: str | None) -> NoReturn:
+        """Refuse seat replacement; a player reconnects with their original browser token."""
         authorized = self.authorize(game_id, player_token)
         if authorized.record.mode != "online" or authorized.player is None:
             raise HTTPException(status_code=409, detail="Reconnect invites require an online game")
-        if not authorized.record.ready:
-            raise HTTPException(status_code=409, detail="The second player has not joined yet")
-        return "black" if authorized.player.color == "white" else "white"
-
-    def create_reconnect_invite(
-        self,
-        game_id: str,
-        player_token: str | None,
-    ) -> InviteResponse:
-        target_color = self.reconnect_target(game_id, player_token)
-        invite_token = generate_invite_code()
-        now = datetime.now(timezone.utc)
-        expires_at = now + timedelta(hours=get_settings().invite_ttl_hours)
-        try:
-            self.repository.replace_invite(
-                game_id,
-                hash_token(invite_token),
-                expires_at,
-                self._expiration_deadline(now),
-                target_color=target_color,
-                replaces_existing_player=True,
-            )
-        except (ExpiredGameError, RepositoryError) as error:
-            raise HTTPException(status_code=410, detail=str(error)) from error
-        return InviteResponse(
-            inviteToken=invite_token,
-            inviteCode=invite_token,
-            inviteUrl=self._invite_url(invite_token),
-            inviteExpiresAt=expires_at,
-            targetColor=target_color,
+        raise HTTPException(
+            status_code=409,
+            detail="Player seats cannot be reassigned. Reopen this game in the original browser.",
         )
-
-    def revoke_reconnect_invites(self, game_id: str, target_color: str) -> None:
-        if target_color in {"white", "black"}:
-            self.repository.revoke_reconnect_invites(game_id, target_color)
 
     @staticmethod
     def _setup_color(authorized: AuthorizedGame) -> str:
@@ -2068,6 +2039,24 @@ class GameService:
             explanation,
         )
 
+    @staticmethod
+    def _assert_setup_editable(record: GameRecord, subject: str = "Game settings") -> None:
+        """Reject setup edits once they could change a match already in progress."""
+        if record.state.history:
+            raise HTTPException(
+                status_code=409,
+                detail=f"{subject} cannot be changed after play begins.",
+            )
+        if record.mode == "online" and record.ready:
+            raise HTTPException(
+                status_code=409,
+                detail=f"{subject} cannot be changed after an opponent joins.",
+            )
+        if record.mode == "bot":
+            raise HTTPException(status_code=409, detail="Create a new bot game to change its settings.")
+        if record.state.imported_position is not None:
+            raise HTTPException(status_code=409, detail="Create a new import to change this scanned game.")
+
     def update_rules(
         self,
         game_id: str,
@@ -2076,6 +2065,7 @@ class GameService:
     ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
+        self._assert_setup_editable(record)
         game_state = record.state
         if game_state.variant == "gambit":
             raise HTTPException(
@@ -2099,6 +2089,7 @@ class GameService:
     ) -> tuple[GameRecord, str | None]:
         authorized = self.authorize(game_id, player_token, require_host=True)
         record = authorized.record
+        self._assert_setup_editable(record)
         game_state = record.state
         if game_state.variant == "gambit":
             raise HTTPException(
@@ -2324,16 +2315,7 @@ class GameService:
                 status_code=409,
                 detail="The Gambit deployment board is edited through the War Chest.",
             )
-        if game_state.history:
-            raise HTTPException(
-                status_code=409,
-                detail="The starting layout cannot be changed after play begins.",
-            )
-        if record.mode == "online" and record.ready:
-            raise HTTPException(
-                status_code=409,
-                detail="The starting layout cannot be changed after an opponent joins.",
-            )
+        self._assert_setup_editable(record, "The starting layout")
         self._expected_version(record, request.expectedVersion)
 
         board_rows = request.boardRows if request.boardRows is not None else game_state.board.rows

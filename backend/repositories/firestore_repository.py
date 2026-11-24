@@ -408,43 +408,13 @@ class FirestoreGameRepository:
 
             target_color = str(invite.get("target_color", "black"))
             player_colors = set(str(color) for color in game.get("player_colors", []))
-            replaces_existing_player = bool(invite.get("replaces_existing_player", False))
-            replaced_player_ref = None
-            replaced_player = None
-            if replaces_existing_player:
-                replaced_player_hash = str(invite.get("replaced_player_hash", ""))
-                if not replaced_player_hash:
-                    raise InviteClaimError("Reconnect invite is missing its player seat")
-                replaced_player_ref = self.client.collection(PLAYERS).document(
-                    replaced_player_hash
-                )
-                replaced_player_snapshot = replaced_player_ref.get(transaction=transaction)
-                if not replaced_player_snapshot.exists:
-                    raise InviteClaimError("The disconnected player seat no longer exists")
-                replaced_player = replaced_player_snapshot.to_dict() or {}
-                if (
-                    replaced_player.get("game_id") != game_id
-                    or replaced_player.get("color") != target_color
-                    or target_color not in player_colors
-                ):
-                    raise InviteClaimError("Reconnect invite no longer matches this player seat")
-            else:
-                if target_color in player_colors:
-                    raise InviteClaimError("Game already has two players")
-                player_colors.add(target_color)
-
-            role = (
-                str(replaced_player.get("role", "player"))
-                if replaced_player is not None
-                else ("host" if target_color == "white" else "player")
-            )
-            joined_at = (
-                replaced_player.get("joined_at", now)
-                if replaced_player is not None
-                else now
-            )
-            if replaced_player_ref is not None:
-                transaction.delete(replaced_player_ref)
+            if invite.get("replaces_existing_player", False):
+                raise InviteClaimError("Player seats cannot be reassigned. Use your original browser to reconnect.")
+            if target_color in player_colors:
+                raise InviteClaimError("Game already has two players")
+            player_colors.add(target_color)
+            role = "host" if target_color == "white" else "player"
+            joined_at = now
             transaction.set(
                 player_ref,
                 {
@@ -557,43 +527,6 @@ class FirestoreGameRepository:
             )
 
         replace(transaction)
-
-    def revoke_reconnect_invites(self, game_id: str, target_color: str) -> None:
-        game_ref = self.client.collection(GAMES).document(game_id)
-        transaction = self.client.transaction()
-
-        @firestore.transactional
-        def revoke(transaction):
-            now = datetime.now(timezone.utc)
-            game_snapshot = game_ref.get(transaction=transaction)
-            if not game_snapshot.exists:
-                return
-
-            game = game_snapshot.to_dict() or {}
-            active_invite_hash = game.get("active_invite_hash")
-            if not active_invite_hash:
-                return
-
-            invite_ref = self.client.collection(INVITES).document(active_invite_hash)
-            invite_snapshot = invite_ref.get(transaction=transaction)
-            if not invite_snapshot.exists:
-                return
-
-            invite = invite_snapshot.to_dict() or {}
-            should_revoke = (
-                invite.get("game_id") == game_id
-                and invite.get("target_color") == target_color
-                and bool(invite.get("replaces_existing_player", False))
-                and invite.get("used_at") is None
-                and invite.get("revoked_at") is None
-            )
-            if not should_revoke:
-                return
-
-            transaction.update(invite_ref, {"revoked_at": now})
-            transaction.update(game_ref, {"active_invite_hash": None})
-
-        revoke(transaction)
 
     def save_game(
         self,

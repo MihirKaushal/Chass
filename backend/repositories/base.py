@@ -155,8 +155,6 @@ class GameRepository(Protocol):
         replaces_existing_player: bool = False,
     ) -> None: ...
 
-    def revoke_reconnect_invites(self, game_id: str, target_color: str) -> None: ...
-
     def save_game(
         self,
         state: GameState,

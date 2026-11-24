@@ -4,7 +4,6 @@ import {
   ApiError,
   completeGambitHandoff,
   completeSetupHandoff,
-  createReconnectInvite,
   createGame,
   importScannedGame,
   getCatalog,
@@ -221,8 +220,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [analysisRetryKey, setAnalysisRetryKey] = useState(0);
   const [matchAnalysisEnabled, setMatchAnalysisEnabled] = useState(true);
   const [presence, setPresence] = useState({ white: false, black: false });
-  const [reconnectInvite, setReconnectInvite] = useState(null);
-  const [reconnectInviteLoading, setReconnectInviteLoading] = useState(false);
   const [boardFlipped, setBoardFlipped] = useState(
     ["online", "bot"].includes(session?.mode) && session?.color === "black"
   );
@@ -237,7 +234,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const lastEndgameSignatureRef = useRef("");
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
   const handledAnalysisRetryRef = useRef(0);
-  const reconnectInviteRequestRef = useRef("");
   const gameSounds = useGameSounds(
     game,
     session?.color || game?.bot?.humanColor || null,
@@ -1002,44 +998,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     }
   };
 
-  const loadReconnectInvite = useCallback(async (targetColor, force = false) => {
-    if (!targetColor || !session?.token) return;
-    const requestKey = `${gameId}:${targetColor}`;
-    if (!force && reconnectInviteRequestRef.current === requestKey) return;
-
-    reconnectInviteRequestRef.current = requestKey;
-    setReconnectInviteLoading(true);
-    setReconnectInvite(null);
-    setError("");
-    try {
-      const invite = await createReconnectInvite(gameId, session.token);
-      if (reconnectInviteRequestRef.current !== requestKey) return;
-      setReconnectInvite({
-        ...invite,
-        inviteUrl: createInviteUrl(invite.inviteToken),
-      });
-    } catch (requestError) {
-      if (reconnectInviteRequestRef.current === requestKey) {
-        setError(requestError.message);
-      }
-    } finally {
-      if (reconnectInviteRequestRef.current === requestKey) {
-        setReconnectInviteLoading(false);
-      }
-    }
-  }, [gameId, session?.token]);
-
-  useEffect(() => {
-    if (!activeOnlineInviteState?.reconnect) {
-      reconnectInviteRequestRef.current = "";
-      setReconnectInvite(null);
-      setReconnectInviteLoading(false);
-      return;
-    }
-
-    loadReconnectInvite(activeOnlineInviteState.targetColor);
-  }, [activeOnlineInviteState, loadReconnectInvite]);
-
   if (initialLoading && !game) {
     return <PageSkeleton variant="play" />;
   }
@@ -1096,12 +1054,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         <OnlineLobby
           session={session}
           inviteState={activeOnlineInviteState}
-          reconnectInvite={reconnectInvite}
-          reconnectInviteLoading={reconnectInviteLoading}
-          onRetryReconnectInvite={() => loadReconnectInvite(
-            activeOnlineInviteState?.targetColor,
-            true
-          )}
+          returnUrl={new URL(`/game/${encodeURIComponent(gameId)}`, window.location.origin).href}
           onReplaceInvite={handleReplaceInvite}
         />
       ) : null}

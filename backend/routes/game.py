@@ -977,12 +977,16 @@ async def replace_invite(
     )
 
 
-@router.post("/{game_id}/reconnect-invite", response_model=InviteResponse)
+@router.post("/{game_id}/reconnect-invite", deprecated=True)
 async def create_reconnect_invite(
     game_id: str,
     request: Request,
     authorization: Annotated[str | None, Header()] = None,
-) -> InviteResponse:
+) -> None:
+    """Retired: a seat stays bound to the browser that claimed it.
+
+    Kept so older cached clients receive an explanation instead of a 404.
+    """
     rate_limiter.check(
         request,
         "reconnect-invite",
@@ -990,21 +994,10 @@ async def create_reconnect_invite(
         window_seconds=60,
         discriminator=game_id,
     )
-    token = _bearer_token(authorization)
-    target_color = await run_in_threadpool(
-        game_service.reconnect_target,
-        game_id,
-        token,
-    )
-    if socket_manager.is_color_connected(game_id, target_color):
-        raise HTTPException(
-            status_code=409,
-            detail=f"{target_color.title()} has already reconnected",
-        )
-    return await run_in_threadpool(
+    await run_in_threadpool(
         game_service.create_reconnect_invite,
         game_id,
-        token,
+        _bearer_token(authorization),
     )
 
 
@@ -1060,24 +1053,6 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
             else ("human" if authorized.record.mode == "bot" else "local")
         ),
     )
-    if identity.color is not None and authorized.record.mode == "online":
-        try:
-            await run_in_threadpool(
-                game_service.revoke_reconnect_invites,
-                game_id,
-                identity.color,
-            )
-        except Exception:
-            await socket_manager.send(
-                websocket,
-                "error",
-                {
-                    "message": "Unable to secure this player seat. Reconnecting...",
-                    "status": 503,
-                },
-            )
-            await websocket.close(code=1011)
-            return
     await socket_manager.connect(game_id, websocket, identity, accept=False)
     _sync_clock_deadline(authorized.record)
 
