@@ -357,6 +357,9 @@ test("rulebook performance is collapsed and does not imply board accuracy or cal
   const html = await markup("/src/components/scanner/ScannerPerformance.jsx");
   assert.match(html, /97\.95%/);
   assert.match(html, /This is not whole-board accuracy/);
+  assert.match(html, /Missed pieces and extra detections are excluded/);
+  assert.match(html, /missing a piece counts as a failure/);
+  assert.match(html, /the three groups total 100%/);
   assert.match(html, /not yet measured/);
   assert.match(html, /89\.59%/);
   assert.match(html, /89\.73%/);

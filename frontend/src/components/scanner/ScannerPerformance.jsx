@@ -29,6 +29,8 @@ export default function ScannerPerformance() {
       <h3>Piece recognition progress</h3>
       <p>Correct type and color <strong>among located pieces</strong>, on the same {data.historyPhotos} Chess V2 photos
         with {count(data.historyPieces)} annotated pieces. Updated {data.recordedOn}.</p>
+      <p>This compares successive model versions: detector alone, added crop classifier, King-focused improvements,
+        then combined training data. Missed pieces and extra detections are excluded from these percentages.</p>
       <ul className="scanner-benchmark-chart">
         {data.history.map((entry) => {
           const accuracy = percent(entry.correct, entry.located);
@@ -40,7 +42,8 @@ export default function ScannerPerformance() {
         })}
       </ul>
       <h3>Recognition across both datasets</h3>
-      <p>Correctly located, typed, and colored pieces <strong>out of all real pieces</strong>, including misses.</p>
+      <p>Correctly located, typed, and colored pieces <strong>out of all real pieces</strong>, including misses.
+        Unlike the chart above, missing a piece counts as a failure. Each dataset is measured separately.</p>
       <div className="scanner-source-table-wrap">
         <table className="scanner-source-table">
           <thead><tr><th scope="col">Test source</th><th scope="col">Previous model</th><th scope="col">Combined-data model</th></tr></thead>
@@ -55,7 +58,8 @@ export default function ScannerPerformance() {
         weighting each source equally prevents the larger collection from hiding failures on the smaller one.
         An equal-budget single-source control had nearly identical pooled recall; the gain is broader source coverage.</p>
       <h3>What happens to all real pieces?</h3>
-      <p>Current model on both test collections: {data.photos} photos and {count(data.pieces)} annotated pieces.</p>
+      <p>Current model on both test collections: {data.photos} photos and {count(data.pieces)} annotated pieces.
+        This combines both datasets and splits every real piece into correct, mislabeled, or missed; the three groups total 100%.</p>
       <figure className="scanner-outcome-chart">
         <div className="scanner-outcome-track" aria-hidden="true">
           {outcomes.map((outcome) => <span key={outcome.tone} className={`scanner-outcome-${outcome.tone}`}
