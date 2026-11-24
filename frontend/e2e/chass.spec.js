@@ -445,6 +445,11 @@ test("recent-game cards use the right column for moves when space allows", async
     const details = await card.locator(".resume-game-details").boundingBox();
     const moves = await card.locator(".resume-game-moves").boundingBox();
     expect(moves.x).toBeGreaterThan(details.x + details.width);
+    const rows = await card.locator(".resume-game-details > *, .resume-game-moves > span").evaluateAll((elements) => elements.map((element) => ({
+      nowrap: getComputedStyle(element).whiteSpace,
+      fits: element.scrollWidth <= element.clientWidth + 1,
+    })));
+    expect(rows.every((row) => row.nowrap === "nowrap" && row.fits)).toBe(true);
   }
   await testInfo.attach("recent-game-columns", { body: await page.screenshot(), contentType: "image/png" });
 });
