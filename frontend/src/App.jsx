@@ -45,6 +45,7 @@ import { clockDeadlineDelayMs } from "./gameClock";
 import { onlineInviteState } from "./onlineInviteState";
 import useDocumentTitle from "./hooks/useDocumentTitle";
 import useGameSocket from "./hooks/useGameSocket";
+import useGamePreferences from "./hooks/useGamePreferences";
 import useGameSounds from "./hooks/useGameSounds";
 import { shouldConfirmGameNavigation } from "./leaveGameGuard";
 import { fallbackPollDelayMs } from "./socketPolicy";
@@ -269,14 +270,9 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [matchAnalysis, setMatchAnalysis] = useState(null);
   const [analysisRefreshing, setAnalysisRefreshing] = useState(false);
   const [analysisRetryKey, setAnalysisRetryKey] = useState(0);
-  const [matchAnalysisEnabled, setMatchAnalysisEnabled] = useState(true);
   const [presence, setPresence] = useState({ white: false, black: false });
-  const [boardFlipped, setBoardFlipped] = useState(
-    ["online", "bot"].includes(session?.mode) && session?.color === "black"
-  );
-  const [autoBoardFlipEnabled, setAutoBoardFlipEnabled] = useState(
-    !["online", "bot"].includes(session?.mode)
-  );
+  const { boardFlipped, setBoardFlipped, autoBoardFlipEnabled, matchAnalysisEnabled,
+    flipBoard, toggleAutoFlip, toggleAnalysis } = useGamePreferences(gameId, game, session);
   const [endgameMessage, setEndgameMessage] = useState("");
   const [showEndgameModal, setShowEndgameModal] = useState(false);
   const [clockTimeoutPending, setClockTimeoutPending] = useState(null);
@@ -284,7 +280,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [showResignConfirm, setShowResignConfirm] = useState(false);
   const [pendingLeaveDestination, setPendingLeaveDestination] = useState(null);
   const lastEndgameSignatureRef = useRef("");
-  const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
   const handledAnalysisRetryRef = useRef(0);
   const gameSounds = useGameSounds(
     game,
@@ -685,15 +680,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   }, [game?.version]);
 
   useEffect(() => {
-    if (!["online", "bot"].includes(game?.mode) || !session?.color) {
-      return;
-    }
-
-    setAutoBoardFlipEnabled(false);
-    setBoardFlipped(session.color === "black");
-  }, [game?.id, game?.mode, session?.color]);
-
-  useEffect(() => {
     if (game?.variant !== "gambit" || game.phase !== "deployment") {
       return;
     }
@@ -702,19 +688,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       setBoardFlipped(setupColor === "black");
     }
   }, [game?.gambit?.editableColor, game?.gambit?.viewerColor, game?.phase, game?.variant]);
-
-  useEffect(() => {
-    if (
-      game?.variant === "gambit" &&
-      game.phase === "play" &&
-      (game.historyPagination?.totalMoves ?? game.history.length) === 0
-    ) {
-      setBoardFlipped(
-        ["online", "bot"].includes(game.mode) ? session?.color === "black" : false
-      );
-      setAutoBoardFlipEnabled(!["online", "bot"].includes(game.mode));
-    }
-  }, [game?.history?.length, game?.mode, game?.phase, game?.variant, session?.color]);
 
   useEffect(() => {
     if (!socketMessage) {
@@ -802,31 +775,6 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     setEndgameMessage(buildEndgameMessage(game));
     setShowEndgameModal(true);
   }, [game]);
-
-  useEffect(() => {
-    if (!game?.id) {
-      return;
-    }
-
-    const moveCount = game.historyPagination?.totalMoves ?? game.history?.length ?? 0;
-    const tracker = moveTrackerRef.current;
-    if (tracker.gameId !== game.id) {
-      moveTrackerRef.current = { gameId: game.id, moveCount };
-      return;
-    }
-
-    const diff = moveCount - tracker.moveCount;
-    // An odd number of moves played or taken back changes who faces the board.
-    if (autoBoardFlipEnabled && Math.abs(diff) % 2 === 1) {
-      setBoardFlipped(game.currentPlayer === "black");
-    }
-    moveTrackerRef.current = { gameId: game.id, moveCount };
-  }, [
-    autoBoardFlipEnabled,
-    game?.id,
-    game?.history?.length,
-    game?.historyPagination?.totalMoves,
-  ]);
 
   const runAction = async (operation) => {
     setActionLoading(true);
@@ -1024,13 +972,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       );
       setShowLocalRestartChooser(false);
       setShowEndgameModal(false);
-      if (game.mode === "online") {
-        setBoardFlipped(session?.color === "black");
-      } else if (game.mode === "bot") {
-        setBoardFlipped(game.bot?.humanColor === "black");
-      } else if (action === "accept") {
-        setBoardFlipped(false);
-      }
+
     } catch {
       // The shared error banner explains restart failures.
     }
@@ -1163,10 +1105,10 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         currentPlayer={game.currentPlayer}
         gameStatus={game.gameStatus}
         winner={game.winner}
-        onFlipBoard={() => setBoardFlipped((current) => !current)}
-        onToggleAutoBoardFlip={() => setAutoBoardFlipEnabled((current) => !current)}
+        onFlipBoard={flipBoard}
+        onToggleAutoBoardFlip={toggleAutoFlip}
         autoBoardFlipEnabled={autoBoardFlipEnabled}
-        onToggleMatchAnalysis={() => setMatchAnalysisEnabled((current) => !current)}
+        onToggleMatchAnalysis={toggleAnalysis}
         matchAnalysisEnabled={matchAnalysisEnabled}
         matchAnalysisAvailable={game.configuration?.matchPredictorEnabled !== false}
         canReset={canRequestRestart}
