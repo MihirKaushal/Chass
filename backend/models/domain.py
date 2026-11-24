@@ -554,6 +554,10 @@ class GameState(BaseModel):
     rematch: RematchState = Field(default_factory=RematchState)
     # The side with a pending draw offer; any recorded move withdraws it.
     draw_offered_by: Color | None = None
+    # Earlier positions for takebacks in local and bot games, newest first.
+    # Plain dicts avoid validating nested states on every load; engine clones
+    # drop them so search never copies them.
+    undo_snapshots: list[dict[str, Any]] = Field(default_factory=list)
     result: GameResult | None = None
 
     @model_validator(mode="after")
@@ -582,7 +586,9 @@ class GameState(BaseModel):
         return self
 
     def clone(self) -> "GameState":
-        return self.model_copy(deep=True)
+        if not self.undo_snapshots:
+            return self.model_copy(deep=True)
+        return self.model_copy(update={"undo_snapshots": []}).model_copy(deep=True)
 
     def next_move_number(self) -> int:
         return self.history[-1].move_number + 1 if self.history else 1

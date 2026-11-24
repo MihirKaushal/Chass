@@ -58,6 +58,7 @@ from backend.models.schemas import (
     ResetGameRequest,
     ResignRequest,
     SetupHandoffRequest,
+    TakebackRequest,
     UpdateBoardLayoutRequest,
     UpdatePiecesRequest,
     UpdateRulesRequest,
@@ -842,6 +843,37 @@ async def reset_game(
         viewer_color=game_service.viewer_color(record, token),
     )
     await _broadcast_state(record)
+    return response
+
+
+@router.post("/{game_id}/takeback", response_model=GameResponse)
+async def take_back_move(
+    game_id: str,
+    payload: TakebackRequest,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
+    token = _bearer_token(authorization)
+    bot_turn_scheduler.cancel(game_id)
+    record, explanation, viewer_color = await run_in_threadpool(
+        game_service.take_back,
+        game_id,
+        payload,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        last_explanation=explanation,
+        viewer_color=viewer_color,
+    )
+    await _broadcast_state(
+        record,
+        last_explanation=explanation,
+        serialized_views={viewer_color: response},
+    )
+    await _ensure_bot_turn(record)
+    await _request_analysis(record)
     return response
 
 

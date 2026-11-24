@@ -198,6 +198,14 @@ export function updateBoardLayout(gameId, payload, token) {
   });
 }
 
+export function takeBack(gameId, payload, token) {
+  return request(`/game/${gameId}/takeback`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
 export function respondToDraw(gameId, payload, token) {
   return request(`/game/${gameId}/draw`, {
     method: "POST",

@@ -440,6 +440,7 @@ class GameResponse(BaseModel):
     checkRace: CheckRaceView | None = None
     rematch: RematchView = Field(default_factory=RematchView)
     drawOfferedBy: Literal["white", "black"] | None = None
+    takebackAvailable: bool = False
     bot: BotView | None = None
 
 
@@ -920,6 +921,10 @@ class DrawOfferRequest(BaseModel):
     action: Literal["offer", "accept", "decline", "cancel"]
     # Only same-device games name the acting side; remote seats are known.
     color: Literal["white", "black"] | None = None
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
+class TakebackRequest(BaseModel):
     expectedVersion: int | None = Field(default=None, ge=1)
 
 

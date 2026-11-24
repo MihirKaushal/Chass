@@ -114,6 +114,7 @@ from backend.models.schemas import (
     RulePatch,
     RuleView,
     SetupHandoffRequest,
+    TakebackRequest,
     UpdateBoardLayoutRequest,
     UpdatePiecesRequest,
     UpdateRulesRequest,
@@ -159,6 +160,8 @@ DEFAULT_PIECE_POINTS: dict[str, int | None] = {
     "king": None,
 }
 VALID_MOVE_CACHE_SIZE = 256
+# Takeback depth for local and bot games: two full move pairs against a bot.
+MAX_UNDO_SNAPSHOTS = 4
 
 
 @lru_cache(maxsize=1)
@@ -887,7 +890,9 @@ class GameService:
         audit: MoveAudit | None = None,
         *,
         preserve_rematch: bool = False,
+        undo_snapshots: list[dict] | None = None,
     ) -> GameRecord:
+        self._carry_undo_snapshots(record, state, audit, undo_snapshots)
         if not preserve_rematch and state.rematch.status == "pending":
             state.rematch = RematchState()
         if state.phase != "play" or (
@@ -908,6 +913,31 @@ class GameService:
             )
         except ConcurrentUpdateError as error:
             raise HTTPException(status_code=409, detail=str(error)) from error
+
+    @staticmethod
+    def _carry_undo_snapshots(
+        record: GameRecord,
+        state: GameState,
+        audit: MoveAudit | None,
+        override: list[dict] | None,
+    ) -> None:
+        if override is not None:
+            state.undo_snapshots = override[:MAX_UNDO_SNAPSHOTS]
+            return
+        if record.mode not in {"local", "bot"}:
+            state.undo_snapshots = []
+            return
+        if state is record.state:
+            return
+        previous = record.state.undo_snapshots
+        if state.history_epoch != record.state.history_epoch:
+            # A restart or new layout begins a new game; earlier positions do not apply.
+            state.undo_snapshots = []
+        elif audit is not None:
+            snapshot = record.state.model_dump(mode="json", exclude={"undo_snapshots"})
+            state.undo_snapshots = [snapshot, *previous][:MAX_UNDO_SNAPSHOTS]
+        else:
+            state.undo_snapshots = list(previous)
 
     @staticmethod
     def _invite_url(invite_token: str) -> str:
@@ -2241,6 +2271,69 @@ class GameService:
             detail="A restart now requires approval from both players.",
         )
 
+    @staticmethod
+    def _takeback_target(record: GameRecord) -> tuple[GameState, list[dict]] | None:
+        """Find the newest earlier position a takeback should restore.
+
+        Against a bot this rewinds to the human's previous turn, so the bot's
+        reply is undone together with the human move it answered.
+        """
+        index = GameService._takeback_index(record)
+        if index is None:
+            return None
+        snapshots = record.state.undo_snapshots
+        return GameState.model_validate(snapshots[index]), list(snapshots[index + 1:])
+
+    @staticmethod
+    def _takeback_index(record: GameRecord) -> int | None:
+        # Inspects raw snapshots so serializing a game never validates them all.
+        if record.mode not in {"local", "bot"}:
+            return None
+        for index, snapshot in enumerate(record.state.undo_snapshots):
+            bot = snapshot.get("bot") or {}
+            if record.mode == "local" or (
+                snapshot.get("phase") == "play"
+                and snapshot.get("current_player") == bot.get("human_color")
+            ):
+                return index
+        return None
+
+    def take_back(
+        self,
+        game_id: str,
+        request: TakebackRequest,
+        player_token: str | None = None,
+    ) -> tuple[GameRecord, str, str | None]:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        if record.mode not in {"local", "bot"}:
+            raise HTTPException(
+                status_code=409,
+                detail="Takebacks are available in games on this device and against a bot.",
+            )
+        self._expected_version(record, request.expectedVersion)
+        target = self._takeback_target(record)
+        if target is None:
+            raise HTTPException(status_code=409, detail="There is no move to take back.")
+        restored, remaining = target
+        restored.id = record.state.id
+        restored.rematch = RematchState()
+        restored.draw_offered_by = None
+        if restored.clock is not None:
+            # Remaining times come from the snapshot; the restored turn starts now.
+            restored.clock.turn_started_at = datetime.now(timezone.utc)
+        undone = len(record.state.undo_snapshots) - len(remaining)
+        explanation = (
+            "Took back the last move."
+            if undone == 1
+            else f"Took back the last {undone} moves."
+        )
+        return (
+            self._save(record, restored, undo_snapshots=remaining),
+            explanation,
+            restored.bot.human_color if restored.bot is not None else None,
+        )
+
     def respond_to_draw(
         self,
         game_id: str,
@@ -3313,6 +3406,7 @@ class GameService:
             centerDominion=center_dominion_view,
             royalCenter=royal_center_view,
             checkRace=check_race_view,
+            takebackAvailable=self._takeback_index(record) is not None,
             drawOfferedBy=(
                 game_state.draw_offered_by if response_phase == "play" else None
             ),

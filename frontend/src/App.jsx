@@ -17,6 +17,7 @@ import {
   requestRematch,
   resignGame,
   respondToDraw,
+  takeBack,
   selectAbility,
   updateGambitDeployment,
   updateGambitDraft,
@@ -814,7 +815,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     }
 
     const diff = moveCount - tracker.moveCount;
-    if (autoBoardFlipEnabled && diff > 0 && diff % 2 === 1) {
+    // An odd number of moves played or taken back changes who faces the board.
+    if (autoBoardFlipEnabled && Math.abs(diff) % 2 === 1) {
       setBoardFlipped(game.currentPlayer === "black");
     }
     moveTrackerRef.current = { gameId: game.id, moveCount };
@@ -1033,6 +1035,14 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     }
   };
 
+  const handleTakeBack = async () => {
+    try {
+      await runAction(() => mutate(takeBack, {}));
+    } catch {
+      // The shared error banner explains why nothing could be taken back.
+    }
+  };
+
   const handleDrawOffer = async (action, color) => {
     try {
       await runAction(() => mutate(respondToDraw, { action, color }));
@@ -1134,6 +1144,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           game.mode === "local" ? game.currentPlayer : session?.color
         )}
         canOfferDraw={canResign && game.mode !== "bot" && !game.drawOfferedBy}
+        onTakeBack={handleTakeBack}
+        canTakeBack={Boolean(game.takebackAvailable) && !actionLoading}
         onHome={() => handleGameNavigation("/")}
         onCustomize={() => handleGameNavigation("/customize")}
         currentPlayer={game.currentPlayer}

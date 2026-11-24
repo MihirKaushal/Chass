@@ -355,3 +355,23 @@ test("same-device players can decline and then agree a draw", async ({ page }) =
   await page.getByRole("button", { name: "Black accepts" }).click();
   await expect(page.getByRole("dialog", { name: "Match finished" })).toContainText("The game is drawn by agreement.");
 });
+
+test("same-device players can take back a move", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
+  await page.getByRole("button", { name: "Game settings" }).click();
+  await expect(page.getByRole("menuitem", { name: "Take back move" })).toHaveCount(0);
+  await page.keyboard.press("Escape");
+
+  await square(page, 6, 4).click();
+  await square(page, 4, 4).click();
+  await expect(page.locator(".turn-banner")).toContainText("Black to move");
+  await page.getByRole("button", { name: "Game settings" }).click();
+  await page.getByRole("menuitem", { name: "Take back move" }).click();
+  await expect(page.locator(".turn-banner")).toContainText("White to move");
+  await expect(square(page, 6, 4)).toHaveAttribute("aria-label", /white Pawn/);
+  await expect(square(page, 4, 4)).not.toHaveAttribute("aria-label", /Pawn/);
+  // Auto flip turns the board back toward White after the takeback.
+  const firstRow = await page.locator(".board-grid button.square").first().getAttribute("data-row");
+  expect(firstRow).toBe("0");
+});

@@ -62,7 +62,7 @@ def _stable_clock_hash_payload(payload: dict[str, Any]) -> None:
 def chass_position_hash(state: GameState) -> str:
     payload = state.model_dump(
         mode="json",
-        exclude={"id", "rematch"},
+        exclude={"id", "rematch", "draw_offered_by", "undo_snapshots"},
     )
     _stable_clock_hash_payload(payload)
     encoded = json.dumps(

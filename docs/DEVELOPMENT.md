@@ -83,6 +83,7 @@ Browser recognition uses a deterministic fixture; that suite does not measure ML
 | `POST` | `/game/{id}/pieces` | Customize pieces |
 | `POST` | `/game/{id}/layout` | Update the board layout |
 | `POST` | `/game/{id}/rematch` | Request, approve, decline, or cancel a restart |
+| `POST` | `/game/{id}/takeback` | Undo the last move in local games, or the last move pair against a bot (up to 4 positions) |
 | `POST` | `/game/{id}/draw` | Offer, accept, decline, or withdraw a draw; the opponent's next move declines it |
 | `POST` | `/game/{id}/resign` | Concede an in-progress game; same-device games name the resigning side |
 | `POST` | `/game/{id}/invite` | Replace an unused invitation |

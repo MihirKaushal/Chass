@@ -321,15 +321,22 @@ class FirestoreGameRepository:
             .limit(limit + 1)
             .stream()
         )
-        has_more = len(snapshots) > limit
-        selected = snapshots[:limit]
+        # A takeback leaves the undone move's record behind; its replacement has the
+        # same move number and a later game version, so keep the newest per number.
+        newest: dict[int, dict[str, Any]] = {}
+        for snapshot in snapshots:
+            data = snapshot.to_dict() or {}
+            number = int(data.get("move_number", 0))
+            current = newest.get(number)
+            if current is None or int(data.get("game_version", 0)) > int(
+                current.get("game_version", 0)
+            ):
+                newest[number] = data
+        ordered = [newest[number] for number in sorted(newest, reverse=True)]
+        has_more = len(ordered) > limit
+        selected = ordered[:limit]
         records = tuple(
-            reversed(
-                [
-                    self._move_record_from_data(snapshot.to_dict() or {})
-                    for snapshot in selected
-                ]
-            )
+            reversed([self._move_record_from_data(data) for data in selected])
         )
         return HistoryPage(
             records=records,

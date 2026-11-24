@@ -515,3 +515,20 @@ def test_firestore_cleanup_resumes_a_pending_deletion(firestore_service):
 
     assert repository.delete_inactive_games(now - timedelta(hours=24), now) == 1
     assert game_id not in client.documents[GAMES]
+
+
+def test_firestore_history_keeps_the_replacement_after_a_takeback(firestore_service):
+    from backend.models.schemas import TakebackRequest
+
+    service, repository, _ = firestore_service
+    game_id = service.create_game(CreateGameRequest(mode="local")).game.id
+    service.move_piece(game_id, MoveRequest(fromRow=6, fromCol=4, toRow=4, toCol=4))
+    service.move_piece(game_id, MoveRequest(fromRow=1, fromCol=4, toRow=3, toCol=4))
+    service.take_back(game_id, TakebackRequest())
+    service.move_piece(game_id, MoveRequest(fromRow=1, fromCol=3, toRow=3, toCol=3))
+
+    record = service.get_game(game_id)
+    page = repository.get_history_page(game_id, record.state.history_epoch)
+    assert [entry.move_number for entry in page.records] == [1, 2]
+    assert (page.records[1].to_row, page.records[1].to_col) == (3, 3)
+    assert record.state.undo_snapshots
