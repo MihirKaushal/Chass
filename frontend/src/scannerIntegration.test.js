@@ -353,13 +353,17 @@ test("scan details start collapsed and distinguish server wait from inference", 
   assert.doesNotMatch(html, /<details[^>]* open|Review complete|Active review time/);
 });
 
-test("rulebook performance is collapsed and does not imply board accuracy or calibrated scores", async () => {
+test("rulebook performance opens by default and explains metrics without implying board accuracy", async () => {
   const html = await markup("/src/components/scanner/ScannerPerformance.jsx");
   assert.match(html, /97\.95%/);
   assert.match(html, /This is not whole-board accuracy/);
   assert.match(html, /Missed pieces and extra detections are excluded/);
   assert.match(html, /missing a piece counts as a failure/);
   assert.match(html, /the three groups total 100%/);
+  assert.match(html, /Finding is not the same as identifying/);
+  assert.match(html, /87.5% among located pieces/);
+  assert.match(html, /70% across all real pieces/);
+  assert.match(html, /not separate scores for the current model/);
   assert.match(html, /not yet measured/);
   assert.match(html, /89\.59%/);
   assert.match(html, /89\.73%/);
@@ -382,5 +386,5 @@ test("rulebook performance is collapsed and does not imply board accuracy or cal
   assert.match(html, /duplicate photos removed and labels and orientation corrected/);
   assert.match(html, /regression results, not a fresh test/);
   assert.match(html, /not calibrated probabilities/);
-  assert.doesNotMatch(html, /<details[^>]* open/);
+  assert.match(html, /<details[^>]*scanner-performance[^>]* open/);
 });
