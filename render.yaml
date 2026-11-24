@@ -67,6 +67,10 @@ services:
         value: "256"
       - key: CHASS_ENGINE_MOVETIME_MS
         value: "180"
+      # Render appends the address it observed to X-Forwarded-For. Confirm with
+      # rateLimiter.requestResolvedAs in /internal/diagnostics after deploying.
+      - key: TRUSTED_PROXY_HOPS
+        value: "1"
   - type: web
     name: chass-scanner
     runtime: docker

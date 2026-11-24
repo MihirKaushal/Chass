@@ -18,6 +18,8 @@ from backend.config import get_settings
 from backend.db import init_db
 from backend.firebase_client import get_firestore_client, reset_firestore_client
 from backend.observability import metrics
+from backend.rate_limit import client_address, rate_limiter, trusted_proxy_hops
+from backend.request_limits import RequestSizeLimitMiddleware
 from backend.routes import (
     bot_turn_scheduler,
     clock_deadline_scheduler,
@@ -84,6 +86,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Added before CORS so CORS stays outermost and size rejections remain readable.
+app.add_middleware(RequestSizeLimitMiddleware)
 app.add_middleware(
     CORSMiddleware,
     allow_origins=list(settings.allowed_origins),
@@ -171,6 +175,14 @@ def diagnostics(request: Request, response: Response) -> dict[str, object]:
             "chass": "ready",
         },
         "metrics": metrics.snapshot(),
+        "rateLimiter": {
+            "trackedKeys": rate_limiter.tracked_keys(),
+            "trustedProxyHops": trusted_proxy_hops(),
+            # The caller's own addresses, so proxy trust can be checked in production.
+            "requestPeer": request.client.host if request.client else None,
+            "requestForwardedFor": request.headers.get("x-forwarded-for"),
+            "requestResolvedAs": client_address(request),
+        },
     }
     predictor_reason = match_analysis_service.health_reason()
     if predictor_reason:

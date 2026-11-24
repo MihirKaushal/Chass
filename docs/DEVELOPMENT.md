@@ -116,6 +116,7 @@ Use `.env.example` as the local template.
 | `FAIRY_STOCKFISH_THREADS` | Fairy worker threads; default `1` |
 | `FAIRY_STOCKFISH_MAX_PROFILES` | Generated profiles retained by one engine process; default `256` |
 | `CHASS_ENGINE_MOVETIME_MS` | Native Chass search budget per position; default `180` |
+| `TRUSTED_PROXY_HOPS` | Proxies that append to `X-Forwarded-For`; rate limits read the client address that many entries from the right. Default `0` uses the socket peer |
 | `VITE_API_URL` | Public backend address used by React |
 
 Do not commit `.env`, database passwords, or production secrets.

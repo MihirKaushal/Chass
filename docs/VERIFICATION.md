@@ -105,6 +105,12 @@ queueing, factor extraction, engine work, and publishing. Import schema rejectio
 errors. No IDs, uploaded content, credentials, or unbounded labels are recorded. Aggregates
 reset per process restart; they are not durable, cross-worker, percentile, or browser metrics.
 
+`rateLimiter` shows how the server resolved the address of the diagnostics request itself.
+After deploying, `requestResolvedAs` should be your own public IP. If it is a private or
+proxy address, adjust `TRUSTED_PROXY_HOPS`; rate limits would otherwise group unrelated
+visitors together. Addresses are read from the right of `X-Forwarded-For` because Render
+appends to that header and keeps whatever the client sent.
+
 ## Local Verification Record
 
 Audit completed November 8, 2026. The commands are repeatable; counts can change as tests grow.

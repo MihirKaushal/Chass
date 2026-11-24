@@ -73,6 +73,7 @@ from backend.services import ClockDeadlineScheduler, GameService
 router = APIRouter(prefix="/game", tags=["game"])
 logger = logging.getLogger(__name__)
 CLOCK_DEADLINE_GRACE_SECONDS = 0.025
+WEBSOCKET_AUTH_TIMEOUT_SECONDS = 10
 rule_engine = RuleEngine()
 game_service = GameService(rule_engine)
 analysis_settings = get_settings()
@@ -117,6 +118,22 @@ bot_engines = {
     fairy_bot_engine.engine_id: fairy_bot_engine,
     chass_bot_engine.engine_id: chass_bot_engine,
 }
+
+
+def _limit_game_request(
+    request: Request | WebSocket,
+    bucket: str,
+    game_id: str,
+    *,
+    limit: int = 60,
+) -> None:
+    rate_limiter.check(
+        request,
+        bucket,
+        limit=limit,
+        window_seconds=60,
+        discriminator=game_id,
+    )
 
 
 def _bearer_token(authorization: str | None) -> str | None:
@@ -495,8 +512,10 @@ async def join_game(payload: JoinGameRequest, request: Request) -> GameSessionRe
 @router.get("/{game_id}", response_model=GameResponse)
 async def get_game(
     game_id: str,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-read", game_id, limit=240)
     token = _bearer_token(authorization)
     authorized = await run_in_threadpool(
         game_service.authorize,
@@ -663,8 +682,10 @@ async def use_custom_action(
 async def select_ability(
     game_id: str,
     payload: AbilitySelectionRequest,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
     record, viewer_color = await run_in_threadpool(
         game_service.select_ability,
@@ -685,8 +706,10 @@ async def select_ability(
 async def complete_setup_handoff(
     game_id: str,
     payload: SetupHandoffRequest,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
     record, viewer_color = await run_in_threadpool(
         game_service.complete_setup_handoff,
@@ -705,14 +728,16 @@ async def complete_setup_handoff(
 @router.post("/{game_id}/rules", response_model=GameResponse)
 async def update_rules(
     game_id: str,
-    request: UpdateRulesRequest,
+    payload: UpdateRulesRequest,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
     record, viewer_color = await run_in_threadpool(
         game_service.update_rules,
         game_id,
-        request,
+        payload,
         token,
     )
     response = game_service.serialize_game(
@@ -726,14 +751,16 @@ async def update_rules(
 @router.post("/{game_id}/pieces", response_model=GameResponse)
 async def update_pieces(
     game_id: str,
-    request: UpdatePiecesRequest,
+    payload: UpdatePiecesRequest,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
     record, viewer_color = await run_in_threadpool(
         game_service.update_pieces,
         game_id,
-        request,
+        payload,
         token,
     )
     response = game_service.serialize_game(
@@ -747,14 +774,16 @@ async def update_pieces(
 @router.post("/{game_id}/layout", response_model=GameResponse)
 async def update_board_layout(
     game_id: str,
-    request: UpdateBoardLayoutRequest,
+    payload: UpdateBoardLayoutRequest,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
     record, viewer_color = await run_in_threadpool(
         game_service.update_board_layout,
         game_id,
-        request,
+        payload,
         token,
     )
     response = game_service.serialize_game(
@@ -768,14 +797,16 @@ async def update_board_layout(
 @router.post("/{game_id}/reset", response_model=GameResponse)
 async def reset_game(
     game_id: str,
-    request: ResetGameRequest,
+    payload: ResetGameRequest,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
     record = await run_in_threadpool(
         game_service.reset_game,
         game_id,
-        request,
+        payload,
         token,
     )
     response = game_service.serialize_game(
@@ -789,14 +820,16 @@ async def reset_game(
 @router.post("/{game_id}/rematch", response_model=GameResponse)
 async def rematch_game(
     game_id: str,
-    request: RematchRequest,
+    payload: RematchRequest,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
     record, viewer_color = await run_in_threadpool(
         game_service.rematch_game,
         game_id,
-        request,
+        payload,
         token,
     )
     response = game_service.serialize_game(
@@ -879,8 +912,10 @@ async def update_gambit_draft(
 async def ready_gambit_deployment(
     game_id: str,
     payload: GambitReadyRequest,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
     record, viewer_color = await run_in_threadpool(
         game_service.ready_gambit_deployment,
@@ -901,8 +936,10 @@ async def ready_gambit_deployment(
 async def complete_gambit_handoff(
     game_id: str,
     payload: GambitHandoffRequest,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
     token = _bearer_token(authorization)
     record, viewer_color = await run_in_threadpool(
         game_service.complete_gambit_handoff,
@@ -968,8 +1005,10 @@ async def use_command_power(
 @router.post("/{game_id}/invite", response_model=InviteResponse)
 async def replace_invite(
     game_id: str,
+    request: Request,
     authorization: Annotated[str | None, Header()] = None,
 ) -> InviteResponse:
+    _limit_game_request(request, "game-setup", game_id)
     return await run_in_threadpool(
         game_service.replace_invite,
         game_id,
@@ -1003,10 +1042,19 @@ async def create_reconnect_invite(
 
 @router.websocket("/ws/{game_id}")
 async def game_ws(websocket: WebSocket, game_id: str) -> None:
+    try:
+        _limit_game_request(websocket, "socket-connect", game_id)
+    except HTTPException:
+        # Closing before accept rejects the handshake.
+        await websocket.close(code=1008)
+        return
     await websocket.accept()
 
     try:
-        authentication = await websocket.receive_json()
+        authentication = await asyncio.wait_for(
+            websocket.receive_json(),
+            timeout=WEBSOCKET_AUTH_TIMEOUT_SECONDS,
+        )
         if authentication.get("type") != "authenticate":
             await socket_manager.send(
                 websocket,
@@ -1019,6 +1067,14 @@ async def game_ws(websocket: WebSocket, game_id: str) -> None:
         token = authentication.get("token")
         authorized = await run_in_threadpool(game_service.authorize, game_id, token)
     except WebSocketDisconnect:
+        return
+    except TimeoutError:
+        await socket_manager.send(
+            websocket,
+            "error",
+            {"message": "WebSocket authentication timed out", "status": 408},
+        )
+        await websocket.close(code=1008)
         return
     except HTTPException as error:
         await socket_manager.send(

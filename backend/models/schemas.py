@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import Any, Literal
+from typing import Annotated, Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
@@ -41,7 +41,15 @@ from backend.configuration_limits import (
     TIME_SECONDS_MIN,
     default_barricade_count,
 )
-from backend.models.domain import ImportedPosition
+from backend.models.domain import ImportedPosition, MoveMode
+
+# Bounds for free-form request data. Real configurations stay far below these;
+# they exist so a single request cannot carry unbounded work into the engine.
+MAX_PATTERNS_PER_PIECE = 64
+MAX_MAP_ENTRIES = 32
+MAX_IDENTIFIER_LENGTH = 64
+MAX_SYMBOL_LENGTH = 16
+PATTERN_OFFSET_LIMIT = BOARD_DIMENSION_MAX
 
 
 class Position(BaseModel):
@@ -434,16 +442,16 @@ class GameResponse(BaseModel):
 
 
 class RulePatch(BaseModel):
-    id: str
+    id: str = Field(max_length=MAX_IDENTIFIER_LENGTH)
     enabled: bool | None = None
-    params: dict[str, Any] | None = None
+    params: dict[str, Any] | None = Field(default=None, max_length=MAX_MAP_ENTRIES)
 
 
 class MovePatternPayload(BaseModel):
-    dr: int
-    dc: int
+    dr: int = Field(ge=-PATTERN_OFFSET_LIMIT, le=PATTERN_OFFSET_LIMIT)
+    dc: int = Field(ge=-PATTERN_OFFSET_LIMIT, le=PATTERN_OFFSET_LIMIT)
     repeat: bool = False
-    mode: str = "both"
+    mode: MoveMode = "both"
     relative_to_color: bool = True
     requires_unmoved: bool = False
     requires_clear_path: bool = False
@@ -452,12 +460,14 @@ class MovePatternPayload(BaseModel):
 class PieceDefinitionPayload(BaseModel):
     type: str = Field(min_length=1, max_length=64, pattern=r"^[a-z][a-z0-9_]*$")
     displayName: str = Field(min_length=1, max_length=80)
-    symbols: dict[str, str]
-    patterns: list[MovePatternPayload]
+    symbols: dict[str, Annotated[str, Field(max_length=MAX_SYMBOL_LENGTH)]] = Field(
+        max_length=4
+    )
+    patterns: list[MovePatternPayload] = Field(max_length=MAX_PATTERNS_PER_PIECE)
     points: int | None = Field(default=None, ge=POINT_VALUE_MIN, le=POINT_VALUE_MAX)
     isCustom: bool = True
-    customAttributes: dict[str, Any] = Field(default_factory=dict)
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    customAttributes: dict[str, Any] = Field(default_factory=dict, max_length=MAX_MAP_ENTRIES)
+    metadata: dict[str, Any] = Field(default_factory=dict, max_length=MAX_MAP_ENTRIES)
 
 
 class ConfigurationPlacement(BaseModel):
@@ -813,7 +823,7 @@ class GameActionRequest(BaseModel):
     source: Position | None = None
     target: Position | None = None
     secondary: Position | None = None
-    params: dict[str, Any] = Field(default_factory=dict)
+    params: dict[str, Any] = Field(default_factory=dict, max_length=MAX_MAP_ENTRIES)
     expectedVersion: int | None = Field(default=None, ge=1)
 
 
@@ -859,14 +869,18 @@ class UpdateRulesRequest(BaseModel):
 
 
 class PieceDefinitionPatch(BaseModel):
-    type: str
-    displayName: str | None = None
-    symbols: dict[str, str] | None = None
-    patterns: list[MovePatternPayload] | None = None
+    type: str = Field(max_length=MAX_IDENTIFIER_LENGTH)
+    displayName: str | None = Field(default=None, min_length=1, max_length=80)
+    symbols: dict[str, Annotated[str, Field(max_length=MAX_SYMBOL_LENGTH)]] | None = Field(
+        default=None, max_length=4
+    )
+    patterns: list[MovePatternPayload] | None = Field(
+        default=None, max_length=MAX_PATTERNS_PER_PIECE
+    )
     points: int | None = Field(default=None, ge=POINT_VALUE_MIN, le=POINT_VALUE_MAX)
     isCustom: bool | None = None
-    customAttributes: dict[str, Any] | None = None
-    metadata: dict[str, Any] | None = None
+    customAttributes: dict[str, Any] | None = Field(default=None, max_length=MAX_MAP_ENTRIES)
+    metadata: dict[str, Any] | None = Field(default=None, max_length=MAX_MAP_ENTRIES)
 
 
 class UpdatePiecesRequest(BaseModel):
