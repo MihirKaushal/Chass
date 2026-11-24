@@ -54,6 +54,15 @@ def test_rate_limiter_discards_idle_keys(monkeypatch):
     assert limiter.tracked_keys() == 1
 
 
+@pytest.mark.parametrize("prefix", ["", "198.51.100.1, ", "198.51.100.1, 198.51.100.2, "])
+def test_render_three_hop_chain_ignores_spoofed_prefix(monkeypatch, prefix):
+    monkeypatch.setenv("TRUSTED_PROXY_HOPS", "3")
+    chain = f"{prefix}203.0.113.9, 172.71.254.12, 10.192.27.109"
+    # The ASGI client can already have been rewritten by Uvicorn. Use the
+    # trusted suffix instead of assuming this value is the raw socket peer.
+    assert client_address(connection("198.51.100.1", chain)) == "203.0.113.9"
+
+
 def test_oversized_json_bodies_are_rejected_with_cors_headers(client):
     origin = "http://localhost:5173"
     response = client.post(

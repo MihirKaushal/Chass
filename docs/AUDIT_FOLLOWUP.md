@@ -37,6 +37,15 @@ not exercise the deployed Render proxy or a live Firestore database.
 
 ## Remaining work
 
+The observed Render public route has three X-Forwarded-For entries: client,
+edge proxy, internal proxy. The Blueprint now sets `TRUSTED_PROXY_HOPS=3`
+instead of 1. After syncing it (or updating the service environment), compare
+diagnostics with your public IP, then repeat with a deliberately fake
+`X-Forwarded-For: 198.51.100.123` request header. `requestResolvedAs` must remain
+your real public IP in both cases. A different ingress path may require a
+different trust configuration. `requestPeer` is the ASGI client address, which
+Uvicorn may already have rewritten; it is not proof of the raw socket source.
+
 - After deployment, check authenticated `/internal/diagnostics` and confirm
   `rateLimiter.requestResolvedAs` matches the real caller. The trusted proxy-hop
   count must match the actual deployment; do not trust arbitrary forwarded
