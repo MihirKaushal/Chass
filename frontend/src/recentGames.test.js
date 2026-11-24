@@ -104,3 +104,10 @@ test("old entries still load and malformed timestamps are ignored", () => {
   ]));
   assert.deepEqual(resumableGames(storage, 1001).map((entry) => entry.gameId), ["old"]);
 });
+
+test("all eight recent unfinished games are available to the carousel", () => {
+  const storage = memoryStorage();
+  for (let index = 0; index < 10; index++) recordRecentGame(storage, { gameId: `game-${index}` }, 1000 + index);
+  assert.deepEqual(resumableGames(storage, 2000).map((entry) => entry.gameId),
+    [9, 8, 7, 6, 5, 4, 3, 2].map((index) => `game-${index}`));
+});

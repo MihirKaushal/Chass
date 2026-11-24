@@ -9,12 +9,9 @@ import PageSkeleton from "../components/PageSkeleton";
 import SiteFooter from "../components/SiteFooter";
 import Button from "../components/ui/Button";
 import ScannerFeatureCard from "../components/scanner/ScannerFeatureCard";
-import AppLink from "../components/AppLink";
+import RecentGames from "../components/RecentGames";
 import {
   browserLocalStorage,
-  lastPlayedLabel,
-  lastPlayedTimestamp,
-  recentGameLabel,
   resumableGames,
 } from "../recentGames";
 import { SITE_TITLE } from "../documentTitle";
@@ -181,31 +178,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
             </article>
           </div>
 
-          {resumable.length ? (
-            <section className="resume-games" aria-labelledby="resume-games-title">
-              <h2 id="resume-games-title">Continue a game</h2>
-              <ul>
-                {resumable.map((entry) => (
-                  <li key={entry.gameId}>
-                    <AppLink className="resume-game-link" href={`/game/${encodeURIComponent(entry.gameId)}`}>
-                      <span className="resume-game-details">
-                        <strong title={recentGameLabel(entry)}>{recentGameLabel(entry)}</strong>
-                        {entry.summary ? <span className="resume-game-summary" title={entry.summary}>{entry.summary}</span> : null}
-                        <span>{lastPlayedLabel(entry.updatedAt)}</span>
-                        <time dateTime={new Date(entry.updatedAt).toISOString()}>{lastPlayedTimestamp(entry.updatedAt)}</time>
-                      </span>
-                      {entry.recentMoves?.length ? (
-                        <span className="resume-game-moves">
-                          <span>Last {entry.recentMoves.length === 1 ? "move" : `${entry.recentMoves.length} moves`}</span>
-                          {entry.recentMoves.map((move, index) => <span key={index} title={move}>{move}</span>)}
-                        </span>
-                      ) : entry.summary ? <span>No moves yet</span> : null}
-                    </AppLink>
-                  </li>
-                ))}
-              </ul>
-            </section>
-          ) : null}
+          <RecentGames games={resumable} />
 
           <ScannerFeatureCard />
           {error ? <p className="landing-error">{error}</p> : null}

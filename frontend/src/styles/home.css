@@ -6,7 +6,10 @@
 }
 
 .home-page .landing-shell { padding: var(--space-4); }
-.home-page .landing-hero { padding: clamp(1.2rem, 2vw, 2rem); }
+.home-page .landing-hero {
+  width: min(var(--page-max-width), 100%);
+  padding: clamp(1.2rem, 2vw, 2rem);
+}
 .home-page .landing-mode-nav { margin-bottom: var(--space-4); }
 .home-page .mode-choice-grid { margin-top: var(--space-4); }
 .home-page .mode-choice-card { min-height: 0; padding: var(--space-4); }
@@ -327,8 +330,8 @@
 }
 
 .resume-games ul {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(var(--resume-columns, 3), minmax(0, 1fr));
   gap: var(--space-2);
   margin: 0;
   padding: 0;
@@ -336,7 +339,6 @@
 }
 
 .resume-games li {
-  flex: 1 1 16rem;
   min-width: 0;
   container-type: inline-size;
 }
@@ -401,9 +403,8 @@
 .resume-game-details > *,
 .resume-game-moves > span {
   min-width: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow-wrap: anywhere;
+  line-height: 1.5;
 }
 
 @container (min-width: 300px) {
@@ -420,11 +421,46 @@
   }
 }
 
-@media (max-width: 640px) {
-  .resume-games ul {
-    flex-direction: column;
-  }
-  .resume-games li {
-    flex-basis: auto;
-  }
+.resume-games-header {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.resume-games-header > span {
+  font-size: var(--text-sm);
+  color: var(--ink-muted);
+}
+
+.resume-carousel.is-paged {
+  display: grid;
+  grid-template-columns: 2rem minmax(0, 1fr) 2rem;
+  gap: var(--space-2);
+  align-items: center;
+}
+
+.resume-carousel-arrow {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding: var(--space-1);
+  border: 1px solid var(--border-accent);
+  border-radius: 50%;
+  background: var(--surface-strong);
+  color: var(--accent);
+  cursor: pointer;
+}
+
+.resume-carousel-arrow:hover:not(:disabled) {
+  background: var(--accent);
+  color: white;
+}
+
+.resume-carousel-arrow:disabled { opacity: 0.35; cursor: default; }
+.resume-carousel-arrow svg {
+  width: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 2;
 }

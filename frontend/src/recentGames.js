@@ -77,7 +77,7 @@ export function forgetRecentGame(storage, gameId) {
   if (remaining.length !== entries.length) writeEntries(storage, remaining);
 }
 
-export function resumableGames(storage, now = Date.now(), limit = 3) {
+export function resumableGames(storage, now = Date.now(), limit = MAX_RECENT_GAMES) {
   return readEntries(storage)
     .filter((entry) => !entry.finished && now - Number(entry.updatedAt || 0) < RESUMABLE_WINDOW_MS)
     .sort((left, right) => right.updatedAt - left.updatedAt)

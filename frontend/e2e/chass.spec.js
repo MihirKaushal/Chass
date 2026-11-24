@@ -446,10 +446,36 @@ test("recent-game cards use the right column for moves when space allows", async
     const moves = await card.locator(".resume-game-moves").boundingBox();
     expect(moves.x).toBeGreaterThan(details.x + details.width);
     const rows = await card.locator(".resume-game-details > *, .resume-game-moves > span").evaluateAll((elements) => elements.map((element) => ({
-      nowrap: getComputedStyle(element).whiteSpace,
+      singleLine: element.getBoundingClientRect().height <= parseFloat(getComputedStyle(element).lineHeight) + 1,
       fits: element.scrollWidth <= element.clientWidth + 1,
     })));
-    expect(rows.every((row) => row.nowrap === "nowrap" && row.fits)).toBe(true);
+    expect(rows.every((row) => row.singleLine && row.fits)).toBe(true);
   }
   await testInfo.attach("recent-game-columns", { body: await page.screenshot(), contentType: "image/png" });
+});
+
+test("saved-game arrows reach all eight games without hiding their details", async ({ page }, testInfo) => {
+  await page.addInitScript(() => localStorage.setItem("chass:recent-games", JSON.stringify(
+    Array.from({ length: 8 }, (_, index) => ({ gameId: `saved-${index}`, mode: "bot", color: "white", updatedAt: Date.now() - index * 1000,
+      summary: "8 x 8 | Black to move | Bot ~1500 Elo", recentMoves: ["1. White Knight g1-f3"],
+    }))
+  )));
+  await page.goto("/");
+  const previous = page.getByRole("button", { name: "Previous saved games" });
+  const next = page.getByRole("button", { name: "Next saved games" });
+  await expect(previous).toBeDisabled();
+  await expect(page.locator('.resume-game-link[href="/game/saved-0"]')).toBeVisible();
+  const desktop = testInfo.project.name === "desktop";
+  await expect(page.locator(".resume-game-link")).toHaveCount(desktop ? 3 : 1);
+  for (let step = 0; step < (desktop ? 2 : 7); step++) await next.click();
+  await expect(page.locator('.resume-game-link[href="/game/saved-7"]')).toBeVisible();
+  await expect(next).toBeDisabled();
+  await expect(previous).toBeEnabled();
+  await expect(page.locator(".resume-game-details").last()).toContainText("Bot ~1500 Elo");
+  expect(await page.locator(".resume-game-details > *, .resume-game-moves > span").evaluateAll((elements) => elements.every((element) => (
+    getComputedStyle(element).textOverflow !== "ellipsis" && element.scrollWidth <= element.clientWidth + 1
+  )))).toBe(true);
+  await previous.click();
+  await expect(next).toBeEnabled();
+  await testInfo.attach("saved-game-carousel", { body: await page.screenshot(), contentType: "image/png" });
 });
