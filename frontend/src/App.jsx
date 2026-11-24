@@ -1212,7 +1212,11 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           closeLabel="Close Pawn action dialog"
           eyebrow="Final rank reached"
           title="Choose a Pawn action"
-          description="Promote normally, or use Kamikaze if that is your selected ability."
+          description={
+            playerHasAbility(game, game.currentPlayer, "kamikaze")
+              ? "Promote normally, or detonate it with your Kamikaze ability."
+              : "Choose the piece this Pawn becomes."
+          }
           actions={(
             <Button variant="secondary" onClick={() => setPendingPromotion(null)}>
               Cancel
@@ -1255,7 +1259,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           closeLabel="Close leave game confirmation"
           eyebrow="Current game"
           title="Leave this game?"
-          description={`Are you sure you want to leave this game and go to ${navigationDestination(pendingLeaveDestination).destination}? Your current game may be lost.`}
+          description={`Leave this game and go to ${navigationDestination(pendingLeaveDestination).destination}? The game stays open, and you can return to it from Home.`}
           className="leave-game-dialog"
           actions={(
             <>
@@ -1358,7 +1362,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
             <>
               {canRequestRestart ? (
                 <Button onClick={handleRestartRequest}>
-                  Play again
+                  {game.mode === "bot" ? "Play again" : "Request a rematch"}
                 </Button>
               ) : null}
               <Button variant="secondary" onClick={customizeCurrentGame}>

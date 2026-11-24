@@ -310,3 +310,23 @@ test("an unusable invite explains itself without a pointless retry", async ({ pa
     await expect(sections.getByRole("link", { name, exact: true })).toHaveAttribute("href", href);
   }
 });
+
+test("a move can be played from the keyboard with one tab stop on the board", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
+  const squares = page.locator(".board-grid button.square");
+  await expect(squares).toHaveCount(64);
+  await expect(page.locator('.board-grid button.square[tabindex="0"]')).toHaveCount(1);
+
+  await page.locator('.board-grid button.square[tabindex="0"]').focus();
+  for (let step = 0; step < 6; step += 1) await page.keyboard.press("ArrowDown");
+  for (let step = 0; step < 4; step += 1) await page.keyboard.press("ArrowRight");
+  await expect(square(page, 6, 4)).toBeFocused();
+  await page.keyboard.press("Enter");
+  await page.keyboard.press("ArrowUp");
+  await page.keyboard.press("ArrowUp");
+  await expect(square(page, 4, 4)).toBeFocused();
+  await page.keyboard.press("Enter");
+  await expect(square(page, 4, 4)).toHaveAttribute("aria-label", /white Pawn/);
+  await expect(page.locator(".turn-banner")).toContainText("Black to move");
+});

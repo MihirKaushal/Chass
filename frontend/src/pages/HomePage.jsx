@@ -109,7 +109,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
                 <span className="mode-choice-icon"><RoomIcon type="local" /></span>
                 <h2>Local room</h2>
               </header>
-              <p>Pass one screen between players.</p>
+              <p>Pass one screen between players, or play a bot.</p>
               <div className="mode-choice-actions">
                 <Button
                   disabled={Boolean(creatingMode)}

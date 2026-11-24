@@ -18,14 +18,14 @@ export const SITE_SECTIONS = [
     label: "Scanner",
     href: "/scanner",
     destination: "the Board Scanner",
-    leaveLabel: "Open scanner",
+    leaveLabel: "Leave and open scanner",
   },
   {
     id: "rulebook",
     label: "Rulebook",
     href: "/rulebook",
     destination: "the Rulebook",
-    leaveLabel: "Open rulebook",
+    leaveLabel: "Leave and open rulebook",
   },
 ];
 

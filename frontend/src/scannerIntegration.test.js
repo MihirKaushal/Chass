@@ -150,7 +150,7 @@ test("all external Rulebook links open safely in new tabs while internal links s
 
 test("home keeps concise room descriptions and exposes the scanner", async () => {
   const html = await markup("/src/pages/HomePage.jsx");
-  assert.match(html, /Pass one screen between players\.<\/p>/);
+  assert.match(html, /Pass one screen between players, or play a bot\.<\/p>/);
   assert.match(html, /Create a private link and play from two browsers\.<\/p>/);
   assert.match(html, /Continue your physical game/);
   assert.match(html, /class="page-frame home-page"/);

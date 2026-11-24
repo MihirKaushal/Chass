@@ -152,6 +152,7 @@ function PlayPage({
           powerTargets={powerTargets}
         />
         <ChessBoard
+          keyboardNavigation
           board={game.board}
           boardRows={game.boardRows ?? game.boardSize}
           boardCols={game.boardCols ?? game.boardSize}

@@ -326,6 +326,7 @@ function GambitDeployment({
         </header>
 
         <ChessBoard
+          keyboardNavigation
           board={game.board}
           boardRows={rows}
           boardCols={game.boardCols ?? game.boardSize}
@@ -754,6 +755,7 @@ function GambitPlay({
           powerTargets={powerTargets}
         />
         <ChessBoard
+          keyboardNavigation
           board={game.board}
           boardRows={game.boardRows ?? game.boardSize}
           boardCols={game.boardCols ?? game.boardSize}
