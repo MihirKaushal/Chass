@@ -378,3 +378,20 @@
     animation: none;
   }
 }
+
+.skeleton-slow-notice {
+  display: grid;
+  gap: var(--space-1);
+  margin: 0;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-lg);
+  background: var(--surface-strong);
+  color: var(--deep);
+  font-size: var(--text-md);
+}
+
+.skeleton-slow-notice span {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}

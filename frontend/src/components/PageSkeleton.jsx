@@ -1,3 +1,8 @@
+import { useEffect, useState } from "react";
+
+// Free hosting sleeps when idle; the first request after that can take up to a minute.
+export const SLOW_LOAD_NOTICE_MS = 3500;
+
 function SkeletonLine({ size = "medium" }) {
   return <span className={`skeleton-block skeleton-line ${size}`} aria-hidden="true" />;
 }
@@ -83,6 +88,23 @@ function RulebookSkeleton() {
   );
 }
 
+function SlowLoadNotice() {
+  const [visible, setVisible] = useState(false);
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setVisible(true), SLOW_LOAD_NOTICE_MS);
+    return () => window.clearTimeout(timer);
+  }, []);
+
+  if (!visible) return null;
+  return (
+    <p className="skeleton-slow-notice">
+      <strong>Waking up the game server…</strong>
+      <span>After a quiet period, the first load can take up to a minute.</span>
+    </p>
+  );
+}
+
 function PageSkeleton({ variant = "play", embedded = false }) {
   return (
     <div
@@ -93,6 +115,7 @@ function PageSkeleton({ variant = "play", embedded = false }) {
     >
       <span className="visually-hidden">Loading Chass</span>
       {!embedded ? <SkeletonNavigation /> : null}
+      <SlowLoadNotice />
       {variant === "customize"
         ? <CustomizeSkeleton />
         : variant === "rulebook"

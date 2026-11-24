@@ -83,3 +83,20 @@ test("customizer restores edits across the Rulebook and imports settings under S
   await expect(page.locator(".studio-square")).toHaveCount(144);
   await expect(page.getByRole("dialog")).toHaveCount(0);
 });
+
+test("starting a game on a sleeping server explains the wait, then opens the board", async ({ page }) => {
+  let release;
+  const held = new Promise((resolve) => { release = resolve; });
+  await page.route("**/game/create", async (route) => {
+    await held;
+    await route.continue();
+  });
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
+  const notice = page.locator(".skeleton-slow-notice");
+  await expect(notice).toBeHidden();
+  await expect(notice).toContainText("Waking up the game server", { timeout: 6000 });
+  release();
+  await expect(page).toHaveURL(/\/game\//);
+  await expect(page.locator(".board-grid")).toBeVisible();
+});

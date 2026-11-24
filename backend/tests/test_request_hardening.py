@@ -150,3 +150,14 @@ def test_diagnostics_show_how_client_addresses_resolve(client, monkeypatch):
     assert limiter["trustedProxyHops"] == 1
     assert limiter["requestResolvedAs"] == "203.0.113.9"
     assert limiter["requestForwardedFor"] == "1.2.3.4, 203.0.113.9"
+
+
+def test_game_state_responses_are_compressed(client):
+    game = client.post(
+        "/game/create",
+        json={"mode": "local"},
+        headers={"Accept-Encoding": "gzip"},
+    )
+    assert game.status_code == 200
+    assert game.headers["content-encoding"] == "gzip"
+    assert game.json()["game"]["id"]

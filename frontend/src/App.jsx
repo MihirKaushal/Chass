@@ -43,6 +43,7 @@ import { onlineInviteState } from "./onlineInviteState";
 import useGameSocket from "./hooks/useGameSocket";
 import useGameSounds from "./hooks/useGameSounds";
 import { shouldConfirmGameNavigation } from "./leaveGameGuard";
+import { fallbackPollDelayMs } from "./socketPolicy";
 import { analysisMatchesGame } from "./matchPredictor";
 import CustomizePage from "./pages/CustomizePage";
 import GambitPage from "./pages/GambitPage";
@@ -71,7 +72,6 @@ const FINISHED_STATUSES = new Set([
   "check_race",
   "draw",
 ]);
-const BOT_STATE_FALLBACK_POLL_MS = 1000;
 
 function colorLabel(color) {
   return color ? color.charAt(0).toUpperCase() + color.slice(1) : "";
@@ -365,6 +365,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     },
     onError: setSocketMessage,
   });
+  const connectionStatusRef = useRef(connectionStatus);
+  connectionStatusRef.current = connectionStatus;
 
   useEffect(() => {
     if (!botTurnIsPending(game)) {
@@ -382,7 +384,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         if (!cancelled) {
           pollTimer = window.setTimeout(
             pollBotState,
-            BOT_STATE_FALLBACK_POLL_MS
+            fallbackPollDelayMs("botTurn", connectionStatusRef.current)
           );
         }
       }
@@ -390,7 +392,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
 
     pollTimer = window.setTimeout(
       pollBotState,
-      BOT_STATE_FALLBACK_POLL_MS
+      fallbackPollDelayMs("botTurn", connectionStatusRef.current)
     );
     return () => {
       cancelled = true;
@@ -461,7 +463,10 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
           if (cancelled || !analysisMatchesGame(analysis, gameRef.current)) return;
           if (analysis.status === "analyzing") {
             setMatchAnalysis((current) => current || analysis);
-            pollTimer = window.setTimeout(loadAnalysis, 500);
+            pollTimer = window.setTimeout(
+              loadAnalysis,
+              fallbackPollDelayMs("analysis", connectionStatusRef.current)
+            );
             return;
           }
           setMatchAnalysis(analysis);

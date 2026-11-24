@@ -9,6 +9,7 @@ from time import perf_counter
 
 from fastapi import FastAPI, HTTPException, Response
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from google.api_core.exceptions import GoogleAPICallError
 from google.auth.exceptions import GoogleAuthError
 from starlette.requests import Request
@@ -86,6 +87,8 @@ app = FastAPI(
     lifespan=lifespan,
 )
 
+# Game state responses are repetitive JSON (about 30 KiB per update) and compress well.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 # Added before CORS so CORS stays outermost and size rejections remain readable.
 app.add_middleware(RequestSizeLimitMiddleware)
 app.add_middleware(

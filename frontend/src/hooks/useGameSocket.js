@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 
 import { getWebSocketUrl } from "../api/gameApi";
+import { socketShouldReconnect } from "../socketPolicy";
 
 
 const HEARTBEAT_MS = 25000;
@@ -31,6 +32,7 @@ export default function useGameSocket({
     let reconnectTimer = null;
     let stopped = false;
     let reconnectAttempt = 0;
+    let lastErrorStatus = null;
 
     const clearHeartbeat = () => {
       if (heartbeatTimer) {
@@ -49,9 +51,10 @@ export default function useGameSocket({
 
       socket.onopen = () => {
         reconnectAttempt = 0;
+        lastErrorStatus = null;
         setConnectionStatus("connected");
+        // The server replies to authentication with the current game state.
         socket.send(JSON.stringify({ type: "authenticate", token: token || null }));
-        socket.send(JSON.stringify({ type: "sync" }));
         heartbeatTimer = window.setInterval(() => {
           if (socket?.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ type: "ping" }));
@@ -73,6 +76,7 @@ export default function useGameSocket({
           } else if (payload.type === "presence") {
             callbacksRef.current.onPresence?.(payload);
           } else if (payload.type === "error") {
+            lastErrorStatus = payload.status ?? null;
             callbacksRef.current.onError?.(payload.message || "Real-time connection failed.");
           } else {
             callbacksRef.current.onEvent?.(payload);
@@ -86,9 +90,13 @@ export default function useGameSocket({
         setConnectionStatus("reconnecting");
       };
 
-      socket.onclose = () => {
+      socket.onclose = (event) => {
         clearHeartbeat();
         if (stopped) {
+          return;
+        }
+        if (!socketShouldReconnect(event.code, lastErrorStatus)) {
+          setConnectionStatus("offline");
           return;
         }
 
