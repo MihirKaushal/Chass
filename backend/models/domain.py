@@ -552,6 +552,8 @@ class GameState(BaseModel):
     score: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
     spent_score: dict[Color, int] = Field(default_factory=lambda: {"white": 0, "black": 0})
     rematch: RematchState = Field(default_factory=RematchState)
+    # The side with a pending draw offer; any recorded move withdraws it.
+    draw_offered_by: Color | None = None
     result: GameResult | None = None
 
     @model_validator(mode="after")

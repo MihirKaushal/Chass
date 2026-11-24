@@ -439,6 +439,7 @@ class GameResponse(BaseModel):
     royalCenter: RoyalCenterView | None = None
     checkRace: CheckRaceView | None = None
     rematch: RematchView = Field(default_factory=RematchView)
+    drawOfferedBy: Literal["white", "black"] | None = None
     bot: BotView | None = None
 
 
@@ -913,6 +914,13 @@ class ResetGameRequest(BaseModel):
             self.boardRows = self.boardSize
             self.boardCols = self.boardSize
         return self
+
+
+class DrawOfferRequest(BaseModel):
+    action: Literal["offer", "accept", "decline", "cancel"]
+    # Only same-device games name the acting side; remote seats are known.
+    color: Literal["white", "black"] | None = None
+    expectedVersion: int | None = Field(default=None, ge=1)
 
 
 class ResignRequest(BaseModel):

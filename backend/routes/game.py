@@ -39,6 +39,7 @@ from backend.models.schemas import (
     BotCompatibilityView,
     ConfigurationValidationResponse,
     CreateGameRequest,
+    DrawOfferRequest,
     GambitDeploymentRequest,
     GambitDraftRequest,
     GambitHandoffRequest,
@@ -841,6 +842,43 @@ async def reset_game(
         viewer_color=game_service.viewer_color(record, token),
     )
     await _broadcast_state(record)
+    return response
+
+
+@router.post("/{game_id}/draw", response_model=GameResponse)
+async def respond_to_draw(
+    game_id: str,
+    payload: DrawOfferRequest,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
+    token = _bearer_token(authorization)
+    record, explanation, viewer_color = await run_in_threadpool(
+        game_service.respond_to_draw,
+        game_id,
+        payload,
+        token,
+    )
+    response = game_service.serialize_game(
+        record,
+        last_explanation=explanation,
+        viewer_color=viewer_color,
+    )
+    serialized_views = {viewer_color: response}
+    await _broadcast_state(
+        record,
+        last_explanation=explanation,
+        serialized_views=serialized_views,
+    )
+    if response.phase == "finished":
+        await _broadcast_state(
+            record,
+            event_type="game_ended",
+            last_explanation=explanation,
+            serialized_views=serialized_views,
+        )
+        await _request_analysis(record)
     return response
 
 

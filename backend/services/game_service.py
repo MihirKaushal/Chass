@@ -79,6 +79,7 @@ from backend.models.schemas import (
     ConfigurationValidationResponse,
     CountdownView,
     CreateGameRequest,
+    DrawOfferRequest,
     GambitConfigView,
     GambitDeploymentRequest,
     GambitDraftPlayerView,
@@ -889,6 +890,11 @@ class GameService:
     ) -> GameRecord:
         if not preserve_rematch and state.rematch.status == "pending":
             state.rematch = RematchState()
+        if state.phase != "play" or (
+            audit is not None and audit.player_color != state.draw_offered_by
+        ):
+            # The opponent's move declines a draw offer; setup changes and endings clear it.
+            state.draw_offered_by = None
         try:
             return self.repository.save_game(
                 state,
@@ -2168,6 +2174,7 @@ class GameService:
             game_state.score = {"white": 0, "black": 0}
             game_state.spent_score = {"white": 0, "black": 0}
             game_state.rematch = RematchState()
+            game_state.draw_offered_by = None
             game_state.result = None
             if game_state.clock is not None:
                 seconds = game_state.clock.initial_seconds
@@ -2207,6 +2214,7 @@ class GameService:
         game_state.score = {"white": 0, "black": 0}
         game_state.spent_score = {"white": 0, "black": 0}
         game_state.rematch = RematchState()
+        game_state.draw_offered_by = None
         game_state.result = None
         if game_state.clock is not None:
             seconds = game_state.clock.initial_seconds
@@ -2231,6 +2239,79 @@ class GameService:
         raise HTTPException(
             status_code=409,
             detail="A restart now requires approval from both players.",
+        )
+
+    def respond_to_draw(
+        self,
+        game_id: str,
+        request: DrawOfferRequest,
+        player_token: str | None = None,
+    ) -> tuple[GameRecord, str, str | None]:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        state = record.state
+        if state.phase != "play" or state.game_status in FINISHED_STATUSES:
+            raise HTTPException(status_code=409, detail="Draw offers are only possible during play.")
+        if record.mode == "bot":
+            raise HTTPException(status_code=409, detail="The bot does not respond to draw offers.")
+        if record.mode == "online":
+            if authorized.player is None:
+                raise HTTPException(status_code=403, detail="A player seat is required.")
+            if not record.ready:
+                raise HTTPException(
+                    status_code=409, detail="Waiting for the second player to join."
+                )
+            actor = authorized.player.color
+        else:
+            if request.color is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Choose White or Black for same-device draw offers.",
+                )
+            actor = request.color
+        self._expected_version(record, request.expectedVersion)
+
+        pending = state.draw_offered_by
+        next_state = state.clone()
+        if request.action == "offer":
+            if pending is not None:
+                raise HTTPException(status_code=409, detail="A draw offer is already pending.")
+            next_state.draw_offered_by = actor
+            explanation = f"{actor.title()} offered a draw."
+        elif request.action == "cancel":
+            if pending != actor:
+                raise HTTPException(
+                    status_code=409,
+                    detail="Only the player who offered a draw can withdraw it.",
+                )
+            next_state.draw_offered_by = None
+            explanation = f"{actor.title()} withdrew the draw offer."
+        else:
+            if pending is None or pending == actor:
+                raise HTTPException(
+                    status_code=409, detail="There is no draw offer for you to answer."
+                )
+            next_state.draw_offered_by = None
+            if request.action == "decline":
+                explanation = f"{actor.title()} declined the draw offer."
+            else:
+                # Charge the running clock; a flag that already fell decides the game.
+                self.engine.refresh_clock(next_state)
+                if next_state.game_status in FINISHED_STATUSES:
+                    raise HTTPException(status_code=409, detail="This game is already over.")
+                explanation = "The game is drawn by agreement."
+                finish_game(
+                    next_state,
+                    status="draw",
+                    reason_code="draw_agreement",
+                    trigger="agreement",
+                    winner=None,
+                    description=explanation,
+                )
+        return (
+            self._save(record, next_state),
+            explanation,
+            authorized.player.color if authorized.player else None,
         )
 
     def resign_game(
@@ -2481,6 +2562,7 @@ class GameService:
         game_state.affinity = AffinityState()
         game_state.turn_counts = {"white": 0, "black": 0}
         game_state.rematch = RematchState()
+        game_state.draw_offered_by = None
         game_state.result = None
         if game_state.clock is not None:
             seconds = game_state.clock.initial_seconds
@@ -3231,6 +3313,9 @@ class GameService:
             centerDominion=center_dominion_view,
             royalCenter=royal_center_view,
             checkRace=check_race_view,
+            drawOfferedBy=(
+                game_state.draw_offered_by if response_phase == "play" else None
+            ),
             rematch=RematchView(
                 status=game_state.rematch.status,
                 requestedBy=game_state.rematch.requested_by,

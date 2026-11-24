@@ -31,6 +31,8 @@ function TopNav({
   onReset,
   onResign,
   canResign = false,
+  onOfferDraw,
+  canOfferDraw = false,
   onHome,
   onCustomize,
   currentPlayer,
@@ -227,6 +229,11 @@ function TopNav({
             >
               Auto flip: {autoBoardFlipEnabled ? "On" : "Off"}
             </Button>
+            {canOfferDraw ? (
+              <Button variant="secondary" size="small" role="menuitem" onClick={() => runSetting(onOfferDraw)}>
+                Offer a draw
+              </Button>
+            ) : null}
             {canResign ? (
               <Button variant="danger" size="small" role="menuitem" onClick={() => runSetting(onResign)}>
                 Resign

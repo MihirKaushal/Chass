@@ -16,6 +16,7 @@ import {
   replaceInvite,
   requestRematch,
   resignGame,
+  respondToDraw,
   selectAbility,
   updateGambitDeployment,
   updateGambitDraft,
@@ -173,6 +174,47 @@ function RestartRequestPanel({ game, playerColor, onRespond, actionLoading }) {
         {game.mode === "local" && requestedBy ? (
           <Button variant="secondary" disabled={actionLoading} onClick={() => onRespond("cancel", requestedBy)}>
             Cancel request
+          </Button>
+        ) : null}
+      </div>
+    </section>
+  );
+}
+
+function DrawOfferPanel({ game, playerColor, onRespond, actionLoading }) {
+  const offeredBy = game.drawOfferedBy;
+  if (!offeredBy) return null;
+
+  const responder = oppositeColor(offeredBy);
+  const online = game.mode === "online";
+  const canAnswer = !online || playerColor === responder;
+  const canWithdraw = !online || playerColor === offeredBy;
+
+  return (
+    <section className="restart-request draw-offer" aria-live="polite">
+      <div>
+        <span className="eyebrow">Draw offered</span>
+        <strong>{colorLabel(offeredBy)} offers a draw.</strong>
+        <small>
+          {canAnswer
+            ? `${colorLabel(responder)} can accept, decline, or decline by moving.`
+            : "Waiting for your opponent to answer."}
+        </small>
+      </div>
+      <div className="restart-actions">
+        {canAnswer ? (
+          <>
+            <Button disabled={actionLoading} onClick={() => onRespond("accept", responder)}>
+              {online ? "Accept draw" : `${colorLabel(responder)} accepts`}
+            </Button>
+            <Button variant="secondary" disabled={actionLoading} onClick={() => onRespond("decline", responder)}>
+              {online ? "Decline" : `${colorLabel(responder)} declines`}
+            </Button>
+          </>
+        ) : null}
+        {canWithdraw ? (
+          <Button variant="secondary" disabled={actionLoading} onClick={() => onRespond("cancel", offeredBy)}>
+            Withdraw offer
           </Button>
         ) : null}
       </div>
@@ -991,6 +1033,14 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     }
   };
 
+  const handleDrawOffer = async (action, color) => {
+    try {
+      await runAction(() => mutate(respondToDraw, { action, color }));
+    } catch {
+      // The shared error banner explains why the draw action was refused.
+    }
+  };
+
   const handleResign = async (color = null) => {
     try {
       await runAction(() => mutate(resignGame, color ? { color } : {}));
@@ -1079,6 +1129,11 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
         onReset={handleRestartRequest}
         onResign={() => setShowResignConfirm(true)}
         canResign={canResign}
+        onOfferDraw={() => handleDrawOffer(
+          "offer",
+          game.mode === "local" ? game.currentPlayer : session?.color
+        )}
+        canOfferDraw={canResign && game.mode !== "bot" && !game.drawOfferedBy}
         onHome={() => handleGameNavigation("/")}
         onCustomize={() => handleGameNavigation("/customize")}
         currentPlayer={game.currentPlayer}
@@ -1127,6 +1182,12 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
                 : "Syncing authoritative game state..."
               : ""
         }
+      />
+      <DrawOfferPanel
+        game={game}
+        playerColor={session?.color}
+        onRespond={handleDrawOffer}
+        actionLoading={actionLoading}
       />
       <RestartRequestPanel
         game={game}

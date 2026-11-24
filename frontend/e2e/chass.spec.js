@@ -133,6 +133,14 @@ test("online seats survive refresh and moves synchronize across browsers", async
     for (const player of [page, friend]) {
       await expect(player.locator(".match-predictor .predictor-evaluation")).toHaveText("Hidden");
     }
+    await page.getByRole("button", { name: "Game settings" }).click();
+    await page.getByRole("menuitem", { name: "Offer a draw" }).click();
+    await expect(page.locator(".draw-offer")).toContainText("Waiting for your opponent to answer.");
+    await expect(friend.locator(".draw-offer")).toContainText("White offers a draw.");
+    await friend.getByRole("button", { name: "Accept draw" }).click();
+    for (const player of [page, friend]) {
+      await expect(player.getByRole("dialog", { name: "Match finished" })).toContainText("drawn by agreement");
+    }
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   } finally { await context.close(); }
 });
@@ -329,4 +337,21 @@ test("a move can be played from the keyboard with one tab stop on the board", as
   await page.keyboard.press("Enter");
   await expect(square(page, 4, 4)).toHaveAttribute("aria-label", /white Pawn/);
   await expect(page.locator(".turn-banner")).toContainText("Black to move");
+});
+
+test("same-device players can decline and then agree a draw", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
+  await expect(page.locator(".board-grid")).toBeVisible();
+  const offer = async () => {
+    await page.getByRole("button", { name: "Game settings" }).click();
+    await page.getByRole("menuitem", { name: "Offer a draw" }).click();
+  };
+  await offer();
+  await expect(page.locator(".draw-offer")).toContainText("White offers a draw.");
+  await page.getByRole("button", { name: "Black declines" }).click();
+  await expect(page.locator(".draw-offer")).toHaveCount(0);
+  await offer();
+  await page.getByRole("button", { name: "Black accepts" }).click();
+  await expect(page.getByRole("dialog", { name: "Match finished" })).toContainText("The game is drawn by agreement.");
 });
