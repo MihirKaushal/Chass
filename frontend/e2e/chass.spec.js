@@ -122,6 +122,12 @@ test("online seats survive refresh and moves synchronize across browsers", async
     await square(friend, 1, 4).click();
     await square(friend, 3, 4).click();
     await expect(square(page, 3, 4)).toHaveAttribute("aria-label", /black Pawn/);
+    await expect(page).toHaveTitle("Your move | Chass!");
+    await expect(friend).toHaveTitle("Waiting for White | Chass!");
+    // Neither online player sees engine evaluations while the game is live.
+    for (const player of [page, friend]) {
+      await expect(player.locator(".match-predictor .predictor-evaluation")).toHaveText("Hidden");
+    }
     await expect.poll(() => page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1)).toBe(true);
   } finally { await context.close(); }
 });

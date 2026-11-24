@@ -8,6 +8,11 @@ No hosted chess service, API key, or paid dependency is required. Chass automati
 the strongest compatible engine; players can enable or disable analysis but cannot force
 an engine that does not model their rules. The native fallback requires no additional binary.
 
+Online games between two people withhold analysis until the game ends, because evaluations
+such as "White mates in 3" would give both players engine help. The server neither computes
+nor broadcasts an estimate for a live online position, and `GET /game/{id}/analysis` returns
+status `withheld`. Local and bot games keep analysis available during play.
+
 ## Engine Routing
 
 ### Stockfish 18

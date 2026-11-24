@@ -174,6 +174,12 @@ class MatchAnalysisService:
             calibrated=profile.calibrated if profile else False,
         )
 
+    def withheld_view(self, state: GameState, version: int, reason: str) -> MatchAnalysisView:
+        """Report that analysis exists for this game but is not shown right now."""
+        return self._disabled_view(state, version, enabled=True, reason=reason).model_copy(
+            update={"status": "withheld"}
+        )
+
     @staticmethod
     def _profile_fields(profile: AnalysisProfile) -> dict:
         return {

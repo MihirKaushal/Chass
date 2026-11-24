@@ -19,6 +19,10 @@ function MatchPredictor({
   onRetry,
 }) {
   const unavailable = analysis?.status === "unavailable";
+  // Withheld for fairness (live online play) or off on this server; neither is retryable.
+  const withheld = analysis?.status === "withheld";
+  const off = analysis?.status === "disabled";
+  const paused = withheld || off;
   const ready = analysis?.status === "ready";
   const calibrateOpening = shouldCalibrateClassicOpening(analysis, initialLayout);
   const engineName = analysis?.engineName || analysis?.engineVersion || "Analysis Engine";
@@ -43,7 +47,7 @@ function MatchPredictor({
     : outcomeKind === "result"
       ? "result share"
       : "estimated winning chance";
-  const loading = refreshing || !analysis || analysis.status === "analyzing";
+  const loading = !paused && (refreshing || !analysis || analysis.status === "analyzing");
 
   return (
     <section
@@ -60,13 +64,21 @@ function MatchPredictor({
         >
           {unavailable
             ? "Unavailable"
-            : loading
-              ? "Updating"
-              : evaluationLabel(analysis, moveCount, { calibrateOpening })}
+            : withheld
+              ? "Hidden"
+              : off
+                ? "Off"
+                : loading
+                  ? "Updating"
+                  : evaluationLabel(analysis, moveCount, { calibrateOpening })}
         </StatusBadge>
       </header>
 
-      {unavailable ? (
+      {paused ? (
+        <p className="match-predictor-message">
+          {analysis.reason || "Analysis is not available for this game right now."}
+        </p>
+      ) : unavailable ? (
         <div className="match-predictor-unavailable">
           <p className="match-predictor-message">{analysis.reason}</p>
           <Button

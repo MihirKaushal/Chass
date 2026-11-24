@@ -339,7 +339,8 @@ class MatchAnalysisView(BaseModel):
     gameId: str
     enabled: bool
     eligible: bool
-    status: Literal["disabled", "analyzing", "ready", "unavailable"]
+    # "withheld": analysis exists but is hidden for fairness, e.g. during live online play.
+    status: Literal["disabled", "withheld", "analyzing", "ready", "unavailable"]
     reason: str | None = None
     gameVersion: int
     positionHash: str | None = None

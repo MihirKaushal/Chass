@@ -69,6 +69,7 @@ from backend.repositories import (
     GameRecord,
 )
 from backend.rules import RuleEngine
+from backend.rules.variant_system import FINISHED_STATUSES
 from backend.services import ClockDeadlineScheduler, GameService
 
 router = APIRouter(prefix="/game", tags=["game"])
@@ -190,6 +191,25 @@ async def _broadcast_match_analysis(analysis: MatchAnalysisView) -> None:
 
 
 match_analysis_service.set_listener(_broadcast_match_analysis)
+
+LIVE_ONLINE_ANALYSIS_REASON = (
+    "Analysis is hidden during a live online game so neither player gets engine help. "
+    "It unlocks when the game ends."
+)
+
+
+def _analysis_withheld(record: GameRecord) -> bool:
+    """Online opponents must not see engine evaluations until the game is over."""
+    return (
+        record.mode == "online"
+        and record.state.phase != "finished"
+        and record.state.game_status not in FINISHED_STATUSES
+    )
+
+
+async def _request_analysis(record: GameRecord) -> None:
+    if not _analysis_withheld(record):
+        await match_analysis_service.request(record.state, record.version)
 
 
 def _clock_deadline_delay(record: GameRecord) -> float | None:
@@ -552,6 +572,12 @@ async def get_match_analysis(
         game_id,
         token,
     )
+    if _analysis_withheld(authorized.record):
+        return match_analysis_service.withheld_view(
+            authorized.record.state,
+            authorized.record.version,
+            LIVE_ONLINE_ANALYSIS_REASON,
+        )
     return await match_analysis_service.request(
         authorized.record.state,
         authorized.record.version,
@@ -629,7 +655,7 @@ async def make_move(
     if record.mode == "bot" and response.phase != "finished":
         await _ensure_bot_turn(record)
     else:
-        await match_analysis_service.request(record.state, record.version)
+        await _request_analysis(record)
     return response
 
 
@@ -675,7 +701,7 @@ async def use_custom_action(
     if record.mode == "bot" and response.phase != "finished":
         await _ensure_bot_turn(record)
     else:
-        await match_analysis_service.request(record.state, record.version)
+        await _request_analysis(record)
     return response
 
 
@@ -851,6 +877,7 @@ async def resign_game(
         last_explanation=explanation,
         serialized_views=serialized_views,
     )
+    await _request_analysis(record)
     return response
 
 
@@ -1035,7 +1062,7 @@ async def use_command_power(
     if record.mode == "bot" and response.phase != "finished":
         await _ensure_bot_turn(record)
     else:
-        await match_analysis_service.request(record.state, record.version)
+        await _request_analysis(record)
     return response
 
 
