@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import {
   ApiError,
@@ -49,18 +49,21 @@ import { fallbackPollDelayMs } from "./socketPolicy";
 import { analysisMatchesGame } from "./matchPredictor";
 import { gameDocumentTitle } from "./documentTitle";
 import { browserLocalStorage, forgetRecentGame, recordRecentGame } from "./recentGames";
-import CustomizePage from "./pages/CustomizePage";
 import GambitPage from "./pages/GambitPage";
 import HomePage from "./pages/HomePage";
 import JoinPage from "./pages/JoinPage";
 import PlayPage from "./pages/PlayPage";
-import RulebookPage from "./pages/RulebookPage";
-import ScannerPage from "./pages/ScannerPage";
 import AbilitySelectionPage, { AbilityHandoffPage } from "./pages/AbilitySelectionPage";
 import { navigate, useNavigationBlocker, useRoute } from "./routing";
 import { customizeSession } from "./customizeSession";
+import { importWithReload } from "./lazyRoute";
 import { navigationDestination } from "./siteNavigation";
 
+
+// Larger, less common routes (and the bundled rulebook catalog they share) load on demand.
+const CustomizePage = lazy(() => importWithReload(() => import("./pages/CustomizePage")));
+const RulebookPage = lazy(() => importWithReload(() => import("./pages/RulebookPage")));
+const ScannerPage = lazy(() => importWithReload(() => import("./pages/ScannerPage")));
 
 const FINISHED_STATUSES = new Set([
   "checkmate",
@@ -1441,30 +1444,36 @@ function App() {
 
   if (route.name === "customize") {
     return (
-      <CustomizePage
-        onCreate={handleCreate}
-        onHome={() => navigate("/")}
-        initialPreset={route.preset}
-      />
+      <Suspense fallback={<PageSkeleton variant="customize" />}>
+        <CustomizePage
+          onCreate={handleCreate}
+          onHome={() => navigate("/")}
+          initialPreset={route.preset}
+        />
+      </Suspense>
     );
   }
 
   if (route.name === "rulebook") {
     return (
-      <RulebookPage
-        onHome={() => navigate("/")}
-        onCustomize={() => navigate(customizeSession.returnPath())}
-      />
+      <Suspense fallback={<PageSkeleton variant="rulebook" />}>
+        <RulebookPage
+          onHome={() => navigate("/")}
+          onCustomize={() => navigate(customizeSession.returnPath())}
+        />
+      </Suspense>
     );
   }
 
   if (route.name === "scanner") {
     return (
-      <ScannerPage
-        onImport={handleScanImport}
-        onHome={() => navigate("/")}
-        onCustomize={() => navigate(customizeSession.returnPath())}
-      />
+      <Suspense fallback={<PageSkeleton variant="rulebook" />}>
+        <ScannerPage
+          onImport={handleScanImport}
+          onHome={() => navigate("/")}
+          onCustomize={() => navigate(customizeSession.returnPath())}
+        />
+      </Suspense>
     );
   }
 
