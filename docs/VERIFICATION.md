@@ -10,6 +10,7 @@ python3 -m venv .venv
 .venv/bin/ruff check backend scripts
 .venv/bin/python scripts/export_rulebook.py --check
 .venv/bin/pytest
+.venv-scanner/bin/python -m pytest -o addopts="" scanner/ml/tests
 cd frontend
 npm ci
 npm test
@@ -113,21 +114,23 @@ appends to that header and keeps whatever the client sent.
 
 ## Local Verification Record
 
-Audit completed November 8, 2026. The commands are repeatable; counts can change as tests grow.
+Last updated November 23, 2026. The commands are repeatable; counts change as tests grow.
+Rows marked November 8 were not re-run in the later update.
 
 | Check | Result |
 | --- | --- |
-| Backend API/rule/property suite | 389 passed; emulator case skipped here and passed separately |
-| Scanner ML/preparation suite | 157 passed |
-| Frontend unit/presentation suite | 225 passed |
-| Chromium workflows | 18 passed across desktop and narrow projects |
-| Firestore emulator lifecycle | Passed, including conflict/history/cleanup |
-| Real engines | Stockfish 18 and Fairy-Stockfish 250826 LB passed; 24 legal moves plus checkmate/stalemate matched on 10x10 fixtures |
-| Scanner contract | Real ONNX wrapper passed; three local dataset-image outputs also validated |
-| Frontend production build | Passed on Vite 7.3.7 |
-| Dependency audit | No npm advisories reported after the toolchain update |
+| Backend API/rule/property suite | 414 passed; emulator case skipped here and passed separately (Nov 23) |
+| Scanner ML/preparation suite | 170 passed, also from a clean committed checkout (Nov 23) |
+| Frontend unit/presentation suite | 246 passed (Nov 23) |
+| Chromium workflows | 46 passed across desktop and narrow projects (Nov 23) |
+| Firestore emulator lifecycle | Passed, including conflict/history/cleanup (Nov 8) |
+| Real engines | Stockfish 18 and Fairy-Stockfish 250826 LB passed; 24 legal moves plus checkmate/stalemate matched on 10x10 fixtures (Nov 8) |
+| Scanner contract | Real ONNX wrapper passed; three local dataset-image outputs also validated (Nov 8) |
+| Frontend production build | Passed on Vite 7.3.7 (Nov 23) |
+| Dependency audit | No npm advisories reported (Nov 23) |
 
-The GitHub Actions workflow is configured but still needs its first pushed remote run.
+GitHub Actions runs these suites on every push and pull request. Remote results are not
+recorded here; check the repository's Actions tab.
 These local results do not verify Render cold-start latency, camera hardware on every browser,
 all possible custom variants, or production Firestore quotas/credentials. After deployment,
 check one scanner import, two-browser move/reconnect flow, and each engine selection on the

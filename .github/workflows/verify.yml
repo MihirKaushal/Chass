@@ -77,3 +77,14 @@ jobs:
           python-version-file: .python-version
       - run: python -m venv .venv && .venv/bin/pip install -r backend/requirements.txt -r scanner/deploy/requirements-onnx.txt
       - run: .venv/bin/python scripts/scanner_contract_smoke.py
+  scanner-ml:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version-file: .python-version
+      # CPU wheels avoid downloading CUDA builds of torch; the tests never use a GPU.
+      - run: python -m venv .venv && .venv/bin/pip install --extra-index-url https://download.pytorch.org/whl/cpu -r scanner/ml/requirements-dev.txt
+      - run: .venv/bin/python -m pytest -q -o addopts="" scanner/ml/tests
