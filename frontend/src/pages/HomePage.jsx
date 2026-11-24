@@ -9,6 +9,13 @@ import PageSkeleton from "../components/PageSkeleton";
 import SiteFooter from "../components/SiteFooter";
 import Button from "../components/ui/Button";
 import ScannerFeatureCard from "../components/scanner/ScannerFeatureCard";
+import AppLink from "../components/AppLink";
+import {
+  browserLocalStorage,
+  lastPlayedLabel,
+  recentGameLabel,
+  resumableGames,
+} from "../recentGames";
 import { SITE_TITLE } from "../documentTitle";
 import useDocumentTitle from "../hooks/useDocumentTitle";
 
@@ -38,6 +45,7 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
   const [error, setError] = useState("");
   const [catalog, setCatalog] = useState(null);
   const [showBotSetup, setShowBotSetup] = useState(false);
+  const [resumable] = useState(() => resumableGames(browserLocalStorage()));
   useDocumentTitle(SITE_TITLE);
 
   useEffect(() => {
@@ -171,6 +179,22 @@ function HomePage({ onCreate, onCustomize, onJoinCode }) {
               ) : null}
             </article>
           </div>
+
+          {resumable.length ? (
+            <section className="resume-games" aria-labelledby="resume-games-title">
+              <h2 id="resume-games-title">Continue a game</h2>
+              <ul>
+                {resumable.map((entry) => (
+                  <li key={entry.gameId}>
+                    <AppLink className="resume-game-link" href={`/game/${encodeURIComponent(entry.gameId)}`}>
+                      <strong>{recentGameLabel(entry)}</strong>
+                      <span>{lastPlayedLabel(entry.updatedAt)}</span>
+                    </AppLink>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ) : null}
 
           <ScannerFeatureCard />
           {error ? <p className="landing-error">{error}</p> : null}

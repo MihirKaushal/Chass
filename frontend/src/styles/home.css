@@ -312,3 +312,59 @@
   border-radius: 50%;
   animation: spin 800ms linear infinite;
 }
+
+/* Unfinished games this browser can return to. */
+.resume-games {
+  position: relative;
+  z-index: 1;
+  margin-top: var(--space-4);
+}
+
+.resume-games h2 {
+  margin: 0 0 var(--space-2);
+  color: var(--deep);
+  font-size: var(--text-lg);
+}
+
+.resume-games ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.resume-game-link {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 13rem;
+  padding: var(--space-3) var(--space-4);
+  border: 1px solid var(--border-accent);
+  border-radius: var(--radius-control);
+  background: var(--surface-strong);
+  color: var(--deep);
+  text-decoration: none;
+  transition: border-color var(--motion-fast), box-shadow var(--motion-fast);
+}
+
+.resume-game-link:hover,
+.resume-game-link:focus-visible {
+  border-color: var(--accent);
+  box-shadow: var(--shadow-sm);
+}
+
+.resume-game-link strong {
+  font-size: var(--text-md);
+}
+
+.resume-game-link span {
+  color: var(--ink-muted);
+  font-size: var(--text-sm);
+}
+
+@media (max-width: 640px) {
+  .resume-games ul {
+    flex-direction: column;
+  }
+}

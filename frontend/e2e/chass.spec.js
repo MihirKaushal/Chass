@@ -78,6 +78,32 @@ test("a same-device player can resign from the game menu", async ({ page }) => {
   await expect(page).toHaveTitle("Game over | Chass!");
 });
 
+test("home offers a way back into unfinished games", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await expect(page.getByRole("heading", { name: "Continue a game" })).toHaveCount(0);
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
+  await square(page, 6, 4).click();
+  await square(page, 4, 4).click();
+  await expect(page.locator(".turn-banner")).toContainText("Black to move");
+  await page.getByRole("button", { name: "Home", exact: true }).click();
+  await page.getByRole("button", { name: "Leave and go home" }).click();
+
+  const resume = page.getByRole("link", { name: /Game on this device/ });
+  await expect(resume).toContainText("Played just now");
+  await testInfo.attach("home-resume", {
+    body: await page.screenshot({ animations: "disabled" }), contentType: "image/png",
+  });
+  await resume.click();
+  await expect(square(page, 4, 4)).toHaveAttribute("aria-label", /white Pawn/);
+
+  await page.getByRole("button", { name: "Game settings" }).click();
+  await page.getByRole("menuitem", { name: "Resign" }).click();
+  await page.getByRole("button", { name: "Black resigns" }).click();
+  await page.getByRole("dialog", { name: "Match Finished" }).getByRole("button", { name: "Home" }).click();
+  await expect(page.getByRole("heading", { name: "Chass!", level: 1 })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Continue a game" })).toHaveCount(0);
+});
+
 test("online seats survive refresh and moves synchronize across browsers", async ({ page, browser }) => {
   await page.goto("/");
   const created = page.waitForResponse((response) => response.url().endsWith("/game/create") && response.request().method() === "POST");

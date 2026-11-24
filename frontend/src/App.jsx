@@ -48,6 +48,7 @@ import { shouldConfirmGameNavigation } from "./leaveGameGuard";
 import { fallbackPollDelayMs } from "./socketPolicy";
 import { analysisMatchesGame } from "./matchPredictor";
 import { gameDocumentTitle } from "./documentTitle";
+import { browserLocalStorage, forgetRecentGame, recordRecentGame } from "./recentGames";
 import CustomizePage from "./pages/CustomizePage";
 import GambitPage from "./pages/GambitPage";
 import HomePage from "./pages/HomePage";
@@ -340,6 +341,9 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
       })
       .catch((requestError) => {
         if (!cancelled) {
+          if (requestError instanceof ApiError && [404, 410].includes(requestError.status)) {
+            forgetRecentGame(browserLocalStorage(), gameId);
+          }
           setError(requestError.message);
           setInitialLoading(false);
         }
@@ -415,6 +419,21 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     game?.version,
     refreshGame,
   ]);
+
+  const recentGameColor = session?.color || game?.bot?.humanColor || null;
+  const recentGameFinished = Boolean(
+    game && (game.phase === "finished" || FINISHED_STATUSES.has(game.gameStatus) || game.winner)
+  );
+  useEffect(() => {
+    if (!game?.id) return;
+    recordRecentGame(browserLocalStorage(), {
+      gameId: game.id,
+      mode: game.mode,
+      variant: game.variant,
+      color: recentGameColor,
+      finished: recentGameFinished,
+    });
+  }, [game?.id, game?.mode, game?.variant, game?.version, recentGameColor, recentGameFinished]);
 
   const activeOnlineInviteState = useMemo(
     () => onlineInviteState({
