@@ -46,6 +46,7 @@ FINISHED_STATUSES = {
     "royal_center",
     "check_race",
     "draw",
+    "resigned",
 }
 CENTER_START_RESTRICTION_MESSAGE = (
     "Marked center squares must begin empty when they affect the rules; "

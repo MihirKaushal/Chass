@@ -57,6 +57,27 @@ test("a checked King is marked and the tab names the side to move", async ({ pag
   });
 });
 
+test("a same-device player can resign from the game menu", async ({ page }) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Start local game", exact: true }).click();
+  await expect(page.locator(".board-grid")).toBeVisible();
+  await page.getByRole("button", { name: "Game settings" }).click();
+  await page.getByRole("menuitem", { name: "Resign" }).click();
+  const confirm = page.getByRole("dialog", { name: "Who is resigning?" });
+  await confirm.getByRole("button", { name: "Keep playing" }).click();
+  await expect(confirm).toHaveCount(0);
+
+  await page.getByRole("button", { name: "Game settings" }).click();
+  await page.getByRole("menuitem", { name: "Resign" }).click();
+  await page.getByRole("button", { name: "White resigns" }).click();
+  const result = page.getByRole("dialog", { name: "Match Finished" });
+  await expect(result).toContainText("Black won! White resigned.");
+  await result.getByRole("button", { name: "Review Board" }).click();
+  await page.getByRole("button", { name: "Game settings" }).click();
+  await expect(page.getByRole("menuitem", { name: "Resign" })).toHaveCount(0);
+  await expect(page).toHaveTitle("Game over | Chass!");
+});
+
 test("online seats survive refresh and moves synchronize across browsers", async ({ page, browser }) => {
   await page.goto("/");
   const created = page.waitForResponse((response) => response.url().endsWith("/game/create") && response.request().method() === "POST");

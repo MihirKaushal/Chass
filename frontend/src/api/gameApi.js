@@ -198,6 +198,14 @@ export function updateBoardLayout(gameId, payload, token) {
   });
 }
 
+export function resignGame(gameId, payload, token) {
+  return request(`/game/${gameId}/resign`, {
+    method: "POST",
+    body: JSON.stringify(payload),
+    token,
+  });
+}
+
 export function requestRematch(gameId, payload, token) {
   return request(`/game/${gameId}/rematch`, {
     method: "POST",

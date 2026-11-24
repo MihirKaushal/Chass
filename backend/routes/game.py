@@ -55,6 +55,7 @@ from backend.models.schemas import (
     MoveRequest,
     RematchRequest,
     ResetGameRequest,
+    ResignRequest,
     SetupHandoffRequest,
     UpdateBoardLayoutRequest,
     UpdatePiecesRequest,
@@ -814,6 +815,42 @@ async def reset_game(
         viewer_color=game_service.viewer_color(record, token),
     )
     await _broadcast_state(record)
+    return response
+
+
+@router.post("/{game_id}/resign", response_model=GameResponse)
+async def resign_game(
+    game_id: str,
+    payload: ResignRequest,
+    request: Request,
+    authorization: Annotated[str | None, Header()] = None,
+) -> GameResponse:
+    _limit_game_request(request, "game-setup", game_id)
+    token = _bearer_token(authorization)
+    record, explanation, viewer_color = await run_in_threadpool(
+        game_service.resign_game,
+        game_id,
+        payload,
+        token,
+    )
+    bot_turn_scheduler.cancel(game_id)
+    response = game_service.serialize_game(
+        record,
+        last_explanation=explanation,
+        viewer_color=viewer_color,
+    )
+    serialized_views = {viewer_color: response}
+    await _broadcast_state(
+        record,
+        last_explanation=explanation,
+        serialized_views=serialized_views,
+    )
+    await _broadcast_state(
+        record,
+        event_type="game_ended",
+        last_explanation=explanation,
+        serialized_views=serialized_views,
+    )
     return response
 
 

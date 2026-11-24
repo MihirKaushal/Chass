@@ -83,6 +83,7 @@ Browser recognition uses a deterministic fixture; that suite does not measure ML
 | `POST` | `/game/{id}/pieces` | Customize pieces |
 | `POST` | `/game/{id}/layout` | Update the board layout |
 | `POST` | `/game/{id}/rematch` | Request, approve, decline, or cancel a restart |
+| `POST` | `/game/{id}/resign` | Concede an in-progress game; same-device games name the resigning side |
 | `POST` | `/game/{id}/invite` | Replace an unused invitation |
 | `WS` | `/game/ws/{id}` | Receive live game updates |
 

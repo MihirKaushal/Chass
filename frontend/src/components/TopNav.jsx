@@ -29,6 +29,8 @@ function VolumeIcon({ muted, volume }) {
 
 function TopNav({
   onReset,
+  onResign,
+  canResign = false,
   onHome,
   onCustomize,
   currentPlayer,
@@ -225,6 +227,11 @@ function TopNav({
             >
               Auto flip: {autoBoardFlipEnabled ? "On" : "Off"}
             </Button>
+            {canResign ? (
+              <Button variant="danger" size="small" role="menuitem" onClick={() => runSetting(onResign)}>
+                Resign
+              </Button>
+            ) : null}
             {canReset ? (
               <Button variant="secondary" size="small" role="menuitem" onClick={() => runSetting(onReset)}>
                 {mode === "bot"

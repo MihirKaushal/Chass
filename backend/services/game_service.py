@@ -107,6 +107,7 @@ from backend.models.schemas import (
     RematchRequest,
     RematchView,
     ResetGameRequest,
+    ResignRequest,
     ResultView,
     RoyalCenterView,
     RulePatch,
@@ -136,6 +137,7 @@ from backend.rules.variant_system import (
     ability_cooldown_remaining,
     affinity_start_squares,
     barricade_start_squares,
+    finish_game,
     has_ability,
     objective_center_squares,
     public_countdowns,
@@ -2229,6 +2231,68 @@ class GameService:
         raise HTTPException(
             status_code=409,
             detail="A restart now requires approval from both players.",
+        )
+
+    def resign_game(
+        self,
+        game_id: str,
+        request: ResignRequest,
+        player_token: str | None = None,
+    ) -> tuple[GameRecord, str, str | None]:
+        authorized = self.authorize(game_id, player_token)
+        record = authorized.record
+        state = record.state
+        if state.phase == "finished" or state.game_status in FINISHED_STATUSES:
+            raise HTTPException(status_code=409, detail="This game is already over.")
+        if state.phase != "play":
+            raise HTTPException(
+                status_code=409,
+                detail="Resigning is available once play begins.",
+            )
+        if record.mode == "online":
+            if authorized.player is None:
+                raise HTTPException(status_code=403, detail="A player seat is required.")
+            if not record.ready:
+                raise HTTPException(
+                    status_code=409, detail="Waiting for the second player to join."
+                )
+            color = authorized.player.color
+        elif record.mode == "bot":
+            if state.bot is None:
+                raise HTTPException(status_code=409, detail="Bot settings are unavailable.")
+            color = state.bot.human_color
+        else:
+            if request.color is None:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Choose White or Black for same-device resignation.",
+                )
+            color = request.color
+        self._expected_version(record, request.expectedVersion)
+
+        next_state = state.clone()
+        # Charge the elapsed turn so a timed game ends with an accurate clock.
+        self.engine.refresh_clock(next_state)
+        if next_state.game_status in FINISHED_STATUSES:
+            raise HTTPException(status_code=409, detail="This game is already over.")
+        winner = "black" if color == "white" else "white"
+        explanation = f"{winner.title()} won! {color.title()} resigned."
+        finish_game(
+            next_state,
+            status="resigned",
+            reason_code="resignation",
+            trigger="resignation",
+            winner=winner,
+            description=explanation,
+        )
+        return (
+            self._save(record, next_state),
+            explanation,
+            (
+                authorized.player.color
+                if authorized.player
+                else (state.bot.human_color if state.bot is not None else None)
+            ),
         )
 
     def rematch_game(

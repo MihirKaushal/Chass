@@ -15,6 +15,7 @@ import {
   readyGambitDeployment,
   replaceInvite,
   requestRematch,
+  resignGame,
   selectAbility,
   updateGambitDeployment,
   updateGambitDraft,
@@ -73,6 +74,7 @@ const FINISHED_STATUSES = new Set([
   "royal_center",
   "check_race",
   "draw",
+  "resigned",
 ]);
 
 function colorLabel(color) {
@@ -232,6 +234,7 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   const [showEndgameModal, setShowEndgameModal] = useState(false);
   const [clockTimeoutPending, setClockTimeoutPending] = useState(null);
   const [showLocalRestartChooser, setShowLocalRestartChooser] = useState(false);
+  const [showResignConfirm, setShowResignConfirm] = useState(false);
   const [pendingLeaveDestination, setPendingLeaveDestination] = useState(null);
   const lastEndgameSignatureRef = useRef("");
   const moveTrackerRef = useRef({ gameId: "", moveCount: 0 });
@@ -525,6 +528,13 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
   }, [game, selectedSquare]);
 
   const canRequestRestart = Boolean(game?.ready && game?.phase !== "lobby");
+  const canResign = Boolean(
+    game?.ready
+    && game?.phase === "play"
+    && !FINISHED_STATUSES.has(game?.gameStatus)
+    && !game?.winner
+    && (game?.mode === "local" || session?.color)
+  );
   const canMove =
     Boolean(game?.ready) &&
     game?.phase === "play" &&
@@ -959,6 +969,15 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     }
   };
 
+  const handleResign = async (color = null) => {
+    try {
+      await runAction(() => mutate(resignGame, color ? { color } : {}));
+      setShowResignConfirm(false);
+    } catch {
+      // The shared error banner explains why the resignation was refused.
+    }
+  };
+
   const handleRestartRequest = () => {
     setShowEndgameModal(false);
     if (game.mode === "local") {
@@ -1036,6 +1055,8 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
     <div className="app-shell page-frame">
       <TopNav
         onReset={handleRestartRequest}
+        onResign={() => setShowResignConfirm(true)}
+        canResign={canResign}
         onHome={() => handleGameNavigation("/")}
         onCustomize={() => handleGameNavigation("/customize")}
         currentPlayer={game.currentPlayer}
@@ -1229,6 +1250,41 @@ function GameWorkspace({ gameId, initialGame = null, onBootstrapConsumed }) {
               >
                 {navigationDestination(pendingLeaveDestination).leaveLabel}
               </Button>
+            </>
+          )}
+        />
+      ) : null}
+
+      {showResignConfirm && canResign ? (
+        <Dialog
+          open
+          onClose={() => setShowResignConfirm(false)}
+          closeLabel="Close resign confirmation"
+          title={game.mode === "local" ? "Who is resigning?" : "Resign this game?"}
+          description={
+            game.mode === "local"
+              ? "The other side will be declared the winner. This cannot be undone."
+              : "Your opponent will be declared the winner. This cannot be undone."
+          }
+          actions={(
+            <>
+              <Button variant="secondary" onClick={() => setShowResignConfirm(false)}>
+                Keep playing
+              </Button>
+              {game.mode === "local" ? ["white", "black"].map((color) => (
+                <Button
+                  key={color}
+                  variant="danger"
+                  disabled={actionLoading}
+                  onClick={() => handleResign(color)}
+                >
+                  {colorLabel(color)} resigns
+                </Button>
+              )) : (
+                <Button variant="danger" disabled={actionLoading} onClick={() => handleResign()}>
+                  Resign
+                </Button>
+              )}
             </>
           )}
         />

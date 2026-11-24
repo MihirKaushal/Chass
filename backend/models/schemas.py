@@ -914,6 +914,12 @@ class ResetGameRequest(BaseModel):
         return self
 
 
+class ResignRequest(BaseModel):
+    # Only same-device games name the resigning side; remote seats are known.
+    color: Literal["white", "black"] | None = None
+    expectedVersion: int | None = Field(default=None, ge=1)
+
+
 class RematchRequest(BaseModel):
     action: Literal["request", "accept", "decline", "cancel"]
     color: Literal["white", "black"] | None = None

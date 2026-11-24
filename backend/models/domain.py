@@ -26,6 +26,7 @@ GameStatus = Literal[
     "royal_center",
     "check_race",
     "draw",
+    "resigned",
 ]
 GameVariant = Literal["classic", "gambit"]
 GamePhase = Literal[
